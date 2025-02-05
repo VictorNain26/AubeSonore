@@ -1,8 +1,8 @@
 # Utiliser une image Node 18 Alpine
 FROM node:18-alpine
 
-# Installer les paquets nécessaires, y compris bash
-RUN apk add --no-cache curl unzip bash
+# Installer les paquets nécessaires : Python3, Pip, pipx, bash et ffmpeg
+RUN apk add --no-cache curl unzip bash python3 py3-pip py3-virtualenv pipx ffmpeg
 
 # Forcer l'utilisation de bash pour les commandes RUN suivantes
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -13,26 +13,30 @@ RUN curl -fsSL https://bun.sh/install | bash
 # Ajouter le répertoire d'installation de Bun au PATH
 ENV PATH="/root/.bun/bin:${PATH}"
 
-# Revenir au shell par défaut (/bin/sh) pour les étapes suivantes
-SHELL ["/bin/sh", "-c"]
+# Créer un environnement virtuel et installer spotdl avec pipx
+RUN python3 -m venv /opt/spotdl-env && \
+    /opt/spotdl-env/bin/pip install --no-cache-dir spotdl
+
+# Ajouter le chemin de l'environnement virtuel au PATH pour exécuter spotdl
+ENV PATH="/opt/spotdl-env/bin:${PATH}"
+
+# Vérifier que spotdl est bien installé
+RUN spotdl --version && which spotdl
 
 # Définir le répertoire de travail
 WORKDIR /app
 
-# Copier les fichiers de dépendances pour bénéficier du cache Docker
+# Copier les fichiers de dépendances
 COPY package.json bun.lockb* ./
 
-# Vérifier que la commande bun est bien présente (optionnel)
-RUN bun --version
-
-# Installer les dépendances avec bun
+# Installer les dépendances avec Bun
 RUN bun install
 
 # Copier le reste du code source
 COPY . .
 
-# Exposer le port utilisé par votre application (ici 3000)
+# Exposer le port utilisé par l'application
 EXPOSE 3000
 
-# Démarrer l'application en mode watch pour le hot reload
+# Démarrer l'application
 CMD ["bun", "run", "--watch", "index.ts"]

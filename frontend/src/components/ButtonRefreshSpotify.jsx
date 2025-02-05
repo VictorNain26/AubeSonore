@@ -10,7 +10,7 @@ const ButtonRefreshSpotify = () => {
         setMessage('');
         try {
             // Use the proper backend URL; if testing locally, you might use "http://localhost:3000/playlists_sync"
-            const response = await fetch('http://localhost:3000/playlists_sync', {
+            const response = await fetch('https://ourmusic-api.ovh/playlists_sync', {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
