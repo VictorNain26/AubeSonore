@@ -39,4 +39,4 @@ COPY . .
 EXPOSE 3000
 
 # Démarrer l'application
-CMD ["bun", "run", "--watch", "index.ts"]
+CMD ["bun", "run", "--watch", "index.js"]
