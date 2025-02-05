@@ -1,20 +1,20 @@
 services:
   backend:
     build:
-      context: ./ourmusic-backend
-      dockerfile: Dockerfile
+      context: ./backend
+      dockerfile: dockerfile
     container_name: ourmusic-backend
     volumes:
       - ./backend:/app  # Montage du code source pour le hot reload
     ports:
       - "3001:3000"      # Expose le port 3000 du container sur le port 3001 de l'hôte
     networks:
-      - npm_network
+      - custom_network
 
   frontend:
     build:
-      context: ./ourmusic-frontend
-      dockerfile: Dockerfile
+      context: ./frontend
+      dockerfile: dockerfile
     container_name: ourmusic-frontend
     volumes:
       - ./frontend:/app  # Montage du code source pour le hot reload
@@ -23,9 +23,8 @@ services:
     ports:
       - "3002:5173"      # Expose le port 5173 du container sur le port 3002 de l'hôte
     networks:
-      - npm_network
+      - custom_network
 
 networks:
-  npm_network:
-    external: true
-    name: bridge
+  custom_network:
+    driver: bridge  # Utilisation du driver bridge pour un réseau personnalisé

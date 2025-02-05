@@ -35,4 +35,4 @@ COPY . .
 EXPOSE 3000
 
 # Démarrer l'application en mode watch pour le hot reload
-CMD ["bun", "run", "--watch", "app.js"]
+CMD ["bun", "run", "--watch", "index.ts"]
