@@ -9,19 +9,7 @@ services:
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
-
-    environment:
-      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
-      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
-      - SPOTIFY_USER_ID=${SPOTIFY_USER_ID}
-      - PLAYLIST_PATH=/app/music
-      - COOKIE_FILE=/app/music/youtube_cookies.txt
-      - DOCKER_BUN_CONTAINER_NAME=ourmusic-backend
-      - DOCKER_OTHER_CONTAINER_NAME=azuracast
-      - SOURCE_MP3_PATH=/app/music
-      - DESTINATION_MP3_PATH=/var/azuracast/stations/ourmusic/media
-      - PORT=3000
-
+      - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
     networks:
       - proxy_manager_default
   frontend:
@@ -40,4 +28,7 @@ services:
       - proxy_manager_default
 networks:
   proxy_manager_default:
+    external: true
+volumes:
+  azuracast_playlists_folder:
     external: true
