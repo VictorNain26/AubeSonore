@@ -2,29 +2,42 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: dockerfile
-    container_name: ourmusic-backend
+      dockerfile: Dockerfile
+    container_name: ourmusicbackend
+    
+    # Montages (code source et socket Docker)
     volumes:
-      - ./backend:/app  # Montage du code source pour le hot reload
-    ports:
-      - "3001:3000"      # Expose le port 3000 du container sur le port 3001 de l'hôte
-    networks:
-      - custom_network
+      - ./backend:/app
+      - /var/run/docker.sock:/var/run/docker.sock
 
+    environment:
+      - SPOTIFY_CLIENT_ID=${SPOTIFY_CLIENT_ID}
+      - SPOTIFY_CLIENT_SECRET=${SPOTIFY_CLIENT_SECRET}
+      - SPOTIFY_USER_ID=${SPOTIFY_USER_ID}
+      - PLAYLIST_PATH=/app/music
+      - COOKIE_FILE=/app/music/youtube_cookies.txt
+      - DOCKER_BUN_CONTAINER_NAME=ourmusic-backend
+      - DOCKER_OTHER_CONTAINER_NAME=azuracast
+      - SOURCE_MP3_PATH=/app/music
+      - DESTINATION_MP3_PATH=/var/azuracast/stations/ourmusic/media
+      - PORT=3000
+
+    networks:
+      - proxy_manager_default
   frontend:
     build:
       context: ./frontend
-      dockerfile: dockerfile
-    container_name: ourmusic-frontend
+      dockerfile: Dockerfile
+    container_name: ourmusicfrontend
+    
     volumes:
-      - ./frontend:/app  # Montage du code source pour le hot reload
+      - ./frontend:/app
+
     environment:
       - PORT=5173
-    ports:
-      - "3002:5173"      # Expose le port 5173 du container sur le port 3002 de l'hôte
-    networks:
-      - custom_network
 
+    networks:
+      - proxy_manager_default
 networks:
-  custom_network:
-    driver: bridge  # Utilisation du driver bridge pour un réseau personnalisé
+  proxy_manager_default:
+    external: true

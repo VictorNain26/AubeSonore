@@ -1,42 +1,40 @@
-# Utiliser une image Node 18 Alpine
+# Use your existing base image
 FROM node:18-alpine
 
-# Installer les paquets nécessaires
-RUN apk add --no-cache curl unzip bash python3 py3-pip pipx ffmpeg
+# Install system dependencies
+RUN apk add --no-cache curl unzip bash python3 py3-pip pipx ffmpeg chromium
 
-# Installer Bun via le script officiel
+# Install Bun (if you're using Bun)
 RUN curl -fsSL https://bun.sh/install | bash
-
-# Ajouter Bun au PATH
 ENV BUN_INSTALL="/root/.bun"
 ENV PATH="${BUN_INSTALL}/bin:${PATH}"
 
-# Vérifier que Bun est bien installé
 RUN bun --version
 
-# Configurer pipx et installer spotdl proprement
+# Install spotdl + yt-dlp via pipx
 ENV PIPX_BIN_DIR=/usr/local/bin
 ENV PIPX_HOME=/usr/local/pipx
 RUN pipx ensurepath
 RUN pipx install spotdl --system-site-packages
+RUN pipx install yt-dlp --system-site-packages
 
-# Vérifier que spotdl est bien installé
+# Verify installations
 RUN spotdl --version && which spotdl
+RUN yt-dlp --version && which yt-dlp
 
-# Définir le répertoire de travail
+RUN chromium --version
+
 WORKDIR /app
 
-# Copier les fichiers de dépendances
+# Copy dependencies + install them (adapt to your workflow)
 COPY package.json bun.lockb* ./
-
-# Installer les dépendances avec Bun
 RUN bun install
 
-# Copier le reste du code source
 COPY . .
 
-# Exposer le port utilisé par l'application
+# >>>> COPY THE CHROMIUM PROFILE TO /root/.config/chromium/Default
+COPY chromium-profile/Default /root/.config/chromium/Default
+
 EXPOSE 3000
 
-# Démarrer l'application
-CMD ["bun", "run", "--watch", "index.js"]
+CMD ["bun", "index.js"]
