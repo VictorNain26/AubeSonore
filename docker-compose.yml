@@ -4,8 +4,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: ourmusicbackend
-    
-    # Montages (code source et socket Docker)
+    ports:
+      - "3001:3000" 
     volumes:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
@@ -20,9 +20,8 @@ services:
     
     volumes:
       - ./frontend:/app
-
-    environment:
-      - PORT=5173
+    ports:
+      - "3002:5173" 
 
     networks:
       - proxy_manager_default
