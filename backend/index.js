@@ -110,7 +110,7 @@ async function createPlaylistDirectory(playlist) {
   return playlistDirPath;
 }
 
-async function createSyncFile(playlist, playlistDirPath) {
+async function createSyncFile(playlist, playlistDirPath, sendEvent) {
   const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
   const syncFilePath = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
   
@@ -127,14 +127,14 @@ async function createSyncFile(playlist, playlistDirPath) {
   ];
   try {
     const output = await runCommand(cmd);
-    console.log(`Fichier de synchronisation créé pour '${playlist.name}':\n${output}`);
+    sendEvent(`Fichier de synchronisation créé pour '${playlist.name}': ${output}`);
   } catch (err) {
-    console.error(`Erreur lors de la création du fichier de synchronisation pour '${playlist.name}':`, err);
+    sendEvent(`Erreur lors de la création du fichier de synchronisation pour '${playlist.name}': ${err.message}`);
   }
   return syncFilePath;
 }
 
-async function syncPlaylistFile(syncFilePath, playlistDirPath) {
+async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent) {
   const cmd = [
     "spotdl",
     "sync",
@@ -146,14 +146,14 @@ async function syncPlaylistFile(syncFilePath, playlistDirPath) {
   ];
   try {
     const output = await runCommand(cmd);
-    console.log(`Synchronisation réussie pour '${syncFilePath}':\n${output}`);
+    sendEvent(`Synchronisation réussie pour '${syncFilePath}': ${output}`);
   } catch (err) {
-    console.error(`Erreur lors de la synchronisation du fichier '${syncFilePath}':`, err);
+    sendEvent(`Erreur lors de la synchronisation du fichier '${syncFilePath}': ${err.message}`);
   }
 }
 
-async function syncEverything() {
-  console.log("Début de la synchronisation");
+async function syncEverything(sendEvent) {
+  sendEvent("Début de la synchronisation");
   await ensureDirectoryExists("/root/.spotdl/temp");
 
   const token = await getSpotifyAccessToken();
@@ -161,7 +161,7 @@ async function syncEverything() {
   const total = playlists.length;
 
   if (total === 0) {
-    console.log("Aucune playlist 'ourmusic' trouvée.");
+    sendEvent("Aucune playlist 'ourmusic' trouvée.");
     return;
   }
 
@@ -172,25 +172,26 @@ async function syncEverything() {
     const syncFilePath = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
 
     if (await fileExists(syncFilePath)) {
-      console.log(`Le fichier de synchronisation pour '${playlist.name}' existe déjà. Lancement de la synchronisation.`);
-      await syncPlaylistFile(syncFilePath, playlistDirPath);
+      sendEvent(`Le fichier de synchronisation pour '${playlist.name}' existe déjà. Lancement de la synchronisation.`);
+      await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
     } else {
-      console.log(`Le fichier de synchronisation pour '${playlist.name}' n'existe pas. Création du fichier de synchronisation et Lancement de la synchronisation.`);
-      await createSyncFile(playlist, playlistDirPath);
+      sendEvent(`Le fichier de synchronisation pour '${playlist.name}' n'existe pas. Création et synchronisation en cours.`);
+      await createSyncFile(playlist, playlistDirPath, sendEvent);
+      await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
     }
 
     count++;
-    console.log(`Traitement de la playlist '${playlist.name}' terminé (${count}/${total})`);
+    sendEvent(`Traitement de la playlist '${playlist.name}' terminé (${count}/${total}).`);
   }
 
   try {
     await runCommand(["chmod", "-R", "777", PLAYLIST_PATH]);
-    console.log(`Permissions 777 appliquées récursivement sur ${PLAYLIST_PATH}`);
+    sendEvent(`Permissions 777 appliquées récursivement sur ${PLAYLIST_PATH}`);
   } catch (err) {
-    console.error("Erreur lors de l'application des permissions:", err);
+    sendEvent("Erreur lors de l'application des permissions: " + err.message);
   }
 
-  console.log("Toutes les playlists ont été synchronisées avec succès !");
+  sendEvent("Toutes les playlists ont été synchronisées avec succès !");
 }
 
 Bun.serve({
@@ -205,7 +206,7 @@ Bun.serve({
 
     if (url.pathname === "/playlists_sync") {
       try {
-        await syncEverything();
+        await syncEverything((msg) => console.log(msg));
         return new Response(
           JSON.stringify({ message: "Toutes les playlists ont été synchronisées avec succès !" }),
           {
@@ -222,6 +223,31 @@ Bun.serve({
           }
         );
       }
+    }
+
+    if (url.pathname === "/sse-playlists-sync") {
+      const stream = new ReadableStream({
+        async start(controller) {
+          function sendEvent(data) {
+            controller.enqueue(`data: ${JSON.stringify(data)}\n\n`);
+          }
+
+          try {
+            await syncEverything(sendEvent);
+          } catch (error) {
+            sendEvent({ error: error.message });
+          }
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders });

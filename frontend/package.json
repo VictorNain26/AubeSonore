@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.3.0",
+    "axios": "^1.7.9",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-h5-audio-player": "3.10.0-rc.1",
     "react-router": "^7.1.5"
   },
   "devDependencies": {

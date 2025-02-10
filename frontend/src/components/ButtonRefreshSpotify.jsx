@@ -1,32 +1,69 @@
 import React, { useState } from 'react';
 
+const interestingPhrases = [
+  "Début de la synchronisation",
+  "Synchronisation réussie pour",
+  "Traitement de la playlist",
+  "Toutes les playlists ont été synchronisées"
+];
+
+function isInteresting(message) {
+  if (
+    message.includes("Skipping") ||
+    message.includes("Processing query") ||
+    message.includes("Nothing to delete")
+  ) {
+    return false;
+  }
+  return interestingPhrases.some(phrase => message.includes(phrase));
+}
+
 const ButtonRefreshSpotify = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setLoading(true);
     setMessage('');
 
-    try {
-      const response = await fetch('https://ourmusic-api.ovh/playlists_sync', {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
+    const sseUrl = 'https://ourmusic-api.ovh/sse-playlists-sync';
+    const eventSource = new EventSource(sseUrl, { withCredentials: true });
 
-      const data = await response.json();
+    eventSource.onopen = () => {
+      console.log("Connexion SSE établie.");
+    };
 
-      if (response.ok) {
-        setMessage(data.message);
-      } else {
-        setMessage(data.message);
+    eventSource.onmessage = (e) => {
+      if (e.data.trim() === '.') return;
+
+      let data;
+      try {
+        data = JSON.parse(e.data);
+      } catch (error) {
+        data = { message: e.data };
       }
-    } catch (error) {
-      setMessage("Erreur lors de l'appel à l'API.");
-      console.error("Erreur lors de l'appel à l'API :", error);
-    } finally {
+      console.log("Message SSE reçu :", data);
+
+      const messageText = typeof data === 'object' ? (data.message || '') : data;
+      if (isInteresting(messageText)) {
+        setMessage(messageText);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      if (eventSource.readyState === 2) {
+        console.log("Connexion SSE fermée normalement.");
+      } else {
+        console.error("Erreur SSE réelle :", err);
+      }
       setLoading(false);
-    }
+      eventSource.close();
+    };
+
+    eventSource.onclose = () => {
+      console.log("Connexion SSE fermée.");
+      setLoading(false);
+    };
   };
 
   return (
@@ -40,7 +77,9 @@ const ButtonRefreshSpotify = () => {
       >
         {loading ? 'Synchronisation en cours...' : 'Rafraîchir les playlists'}
       </button>
-      {message && <p className="mt-3 text-lg">{message}</p>}
+      <div className="mt-3 text-lg">
+        {message && <span>{message}</span>}
+      </div>
     </div>
   );
 };
