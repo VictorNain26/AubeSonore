@@ -175,3 +175,4 @@ dist
 .DS_Store
 .env
 music.youtube.com_cookies.txt
+update_cookie.log
