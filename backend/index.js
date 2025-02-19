@@ -183,7 +183,7 @@ async function createCookieFile(sendEvent) {
 
   // Utiliser le dossier Firefox importé si défini
   const firefoxFolder = Bun.env.FIREFOX_FOLDER || "/root/.mozilla/firefox";
-  const firefoxProfile = Bun.env.FIREFOX_PROFILE || "default-release";
+  const firefoxProfile = Bun.env.FIREFOX_PROFILE || "jixmpje9.default";
   // Construit l'argument dans le format attendu par yt-dlp
   const cookiesFromBrowserArg = `firefox:${firefoxFolder}/${firefoxProfile}`;
 
