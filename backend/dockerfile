@@ -1,8 +1,8 @@
 # Utiliser l'image Node 18 Alpine (minimale)
 FROM node:18-alpine
 
-# Installer les paquets nécessaires
-RUN apk add --no-cache curl unzip bash python3 py3-pip pipx ffmpeg
+# Installer les paquets nécessaires (on ajoute firefox)
+RUN apk add --no-cache curl unzip bash python3 py3-pip pipx ffmpeg firefox
 
 # Installer Bun via le script officiel
 RUN curl -fsSL https://bun.sh/install | bash

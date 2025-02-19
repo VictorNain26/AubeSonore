@@ -93,13 +93,11 @@ const AzuracastPlayer = () => {
     }
   }, [volume]);
 
-  // Pour éviter de passer une chaîne vide au src, on définit l'URL uniquement si disponible
+  // Définir l'URL de la station si disponible
   const station = nowPlaying?.station || { name: "Radio", listen_url: null };
   const currentSong = nowPlaying?.now_playing?.song || null;
 
-  // Contrôles personnalisés : 
-  // - handlePlay rétablit l'attribut src (si nécessaire), lance la lecture et met isPlaying à true.
-  // - handleStop coupe le flux en retirant le src, met isPlaying à false.
+  // Contrôles personnalisés
   const handlePlay = () => {
     if (audioRef.current && station.listen_url) {
       if (!audioRef.current.getAttribute('src')) {
@@ -120,20 +118,39 @@ const AzuracastPlayer = () => {
     }
   };
 
+  // En cas d'erreur, on l'affiche
+  if (error) {
+    return (
+      <div className="mx-auto my-5 text-center text-red-600">
+        {error}
+      </div>
+    );
+  }
+
+  // Pendant le chargement, on affiche un spinner et aucun contrôle n'est visible
+  if (!nowPlaying) {
+    return (
+      <div className="mx-auto my-5 text-center">
+        <div className="border-8 border-gray-300 border-t-blue-500 rounded-full w-16 h-16 animate-spin mx-auto" />
+        <p className="mt-4 text-xl">Chargement...</p>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ margin: '20px auto', maxWidth: '600px', textAlign: 'center' }}>
-      <h2>{station.name}</h2>
+    <div className="mx-auto my-5 max-w-xl text-center">
+      <h2 className="text-3xl font-bold mb-8">{station.name}</h2>
       
       {currentSong && (
-        <div>
-          <p>
+        <div className="mb-6">
+          <p className="text-xl">
             <strong>En cours :</strong> {currentSong.artist} - {currentSong.title}
           </p>
           {currentSong.art && (
             <img
               src={currentSong.art}
               alt={`${currentSong.artist} - ${currentSong.title}`}
-              style={{ width: '200px', borderRadius: '5px' }}
+              className="w-48 rounded-md mx-auto"
             />
           )}
         </div>
@@ -144,13 +161,13 @@ const AzuracastPlayer = () => {
         <audio ref={audioRef} preload="auto" />
       )}
 
-      {/* Bouton personnalisé : affiche Play ou Stop selon isPlaying */}
-      <div style={{ marginTop: '20px' }}>
+      {/* Bouton Play/Stop */}
+      <div className="mt-6">
         {isPlaying ? (
           <button
             onClick={handleStop}
             disabled={!station.listen_url}
-            style={{ padding: '10px 20px', fontSize: '1rem' }}
+            className="px-4 py-2 text-lg bg-red-500 text-white rounded hover:bg-red-600 disabled:opacity-50 transition-colors"
           >
             Stop
           </button>
@@ -158,7 +175,7 @@ const AzuracastPlayer = () => {
           <button
             onClick={handlePlay}
             disabled={!station.listen_url}
-            style={{ padding: '10px 20px', fontSize: '1rem' }}
+            className="px-4 py-2 text-lg bg-green-500 text-white rounded hover:bg-green-600 disabled:opacity-50 transition-colors"
           >
             Play
           </button>
@@ -166,9 +183,9 @@ const AzuracastPlayer = () => {
       </div>
 
       {/* Contrôle du volume */}
-      <div style={{ marginTop: '10px' }}>
-        <label>
-          Volume:{" "}
+      <div className="mt-4">
+        <label className="flex items-center justify-center gap-2">
+          <span>Volume:</span>
           <input
             type="range"
             min="0"
@@ -176,20 +193,21 @@ const AzuracastPlayer = () => {
             step="0.01"
             value={volume}
             onChange={(e) => setVolume(Number(e.target.value))}
+            className="w-32"
           />
         </label>
       </div>
 
-      {/* Affichage numérique de la progression (sans barre graphique) */}
-      <div style={{ marginTop: '20px', fontSize: '0.9rem' }}>
+      {/* Affichage numérique de la progression */}
+      <div className="mt-4 text-sm">
         {Math.floor(trackElapsed / 60)}:{('0' + trackElapsed % 60).slice(-2)} / {Math.floor(trackDuration / 60)}:{('0' + trackDuration % 60).slice(-2)}
       </div>
 
       {/* Historique des 5 derniers morceaux */}
       {nowPlaying && nowPlaying.song_history && nowPlaying.song_history.length > 0 && (
-        <div style={{ marginTop: '20px', textAlign: 'left' }}>
-          <h3>Historique des 5 derniers morceaux :</h3>
-          <ul>
+        <div className="mt-6 text-left">
+          <h3 className="text-xl font-semibold mb-2">Historique des 5 derniers morceaux :</h3>
+          <ul className="list-disc pl-5">
             {nowPlaying.song_history.slice(0, 5).map(item => (
               <li key={item.sh_id}>
                 {item.song.artist} - {item.song.title}

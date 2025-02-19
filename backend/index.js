@@ -1,4 +1,4 @@
-import { mkdir, access, constants, chmod } from "fs/promises";
+import * as fs from "fs/promises";
 import path from "path";
 import axios from "axios";
 
@@ -12,7 +12,9 @@ const {
 } = Bun.env;
 
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_USER_ID) {
-  throw new Error("Les variables d'environnement Spotify doivent être définies.");
+  throw new Error(
+    "Les variables d'environnement Spotify doivent être définies. Vérifiez SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET et SPOTIFY_USER_ID."
+  );
 }
 
 if (!PLAYLIST_PATH || !COOKIE_FILE) {
@@ -23,26 +25,30 @@ const port = Number(PORT) || 3000;
 let cachedToken = null;
 let tokenExpiry = 0;
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "https://ourmusic.fr",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-};
+// Fonction pour générer dynamiquement les en-têtes CORS
+function getCorsHeaders(req) {
+  const origin = req.headers.get("Origin") || "https://ourmusic.fr";
+  return {
+    "Access-Control-Allow-Origin": origin,
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    "Access-Control-Allow-Credentials": "true",
+  };
+}
 
 async function ensureDirectoryExists(dirPath) {
   try {
-    await access(dirPath, constants.F_OK);
-    await chmod(dirPath, 0o777);
+    await fs.access(dirPath, fs.constants.F_OK);
+    await fs.chmod(dirPath, 0o777);
   } catch {
-    await mkdir(dirPath, { recursive: true, mode: 0o777 });
+    await fs.mkdir(dirPath, { recursive: true, mode: 0o777 });
     console.log(`Dossier créé : ${dirPath}`);
   }
 }
 
 async function fileExists(filePath) {
   try {
-    await access(filePath, constants.F_OK);
+    await fs.access(filePath, fs.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -77,6 +83,7 @@ async function getSpotifyAccessToken() {
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
     cachedToken = response.data.access_token;
+    // On soustrait 60 secondes pour éviter l'expiration imminente
     tokenExpiry = now + (response.data.expires_in - 60) * 1000;
     return cachedToken;
   } catch (error) {
@@ -98,6 +105,11 @@ async function getOurMusicPlaylists(token) {
       playlist.name.toLowerCase().includes("ourmusic")
     );
   } catch (error) {
+    if (error.response && error.response.status === 404) {
+      console.error(
+        `Utilisateur Spotify non trouvé ou playlists privées. Vérifiez SPOTIFY_USER_ID (${SPOTIFY_USER_ID}) et assurez-vous que les playlists sont publiques.`
+      );
+    }
     console.error("Erreur lors de la récupération des playlists Spotify:", error);
     throw new Error("Impossible de récupérer les playlists Spotify.");
   }
@@ -127,9 +139,9 @@ async function createSyncFile(playlist, playlistDirPath, sendEvent) {
   ];
   try {
     const output = await runCommand(cmd);
-    sendEvent(`Fichier de synchronisation créé pour '${playlist.name}': ${output}`);
+    sendEvent({ message: `Fichier de synchronisation créé pour '${playlist.name}': ${output}` });
   } catch (err) {
-    sendEvent(`Erreur lors de la création du fichier de synchronisation pour '${playlist.name}': ${err.message}`);
+    sendEvent({ error: `Erreur lors de la création du fichier de synchronisation pour '${playlist.name}': ${err.message}` });
   }
   return syncFilePath;
 }
@@ -146,14 +158,59 @@ async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent) {
   ];
   try {
     const output = await runCommand(cmd);
-    sendEvent(`Synchronisation réussie pour '${syncFilePath}': ${output}`);
+    sendEvent({ message: `Synchronisation réussie pour '${syncFilePath}': ${output}` });
   } catch (err) {
-    sendEvent(`Erreur lors de la synchronisation du fichier '${syncFilePath}': ${err.message}`);
+    sendEvent({ error: `Erreur lors de la synchronisation du fichier '${syncFilePath}': ${err.message}` });
   }
 }
 
+async function createCookieFile(sendEvent) {
+  const cookieAgeLimit = 24 * 60 * 60 * 1000; // 24 heures en millisecondes
+
+  try {
+    const fileStats = await fs.stat(COOKIE_FILE);
+    const age = Date.now() - fileStats.mtimeMs;
+    if (age < cookieAgeLimit) {
+      sendEvent({ message: "Le cookie est récent (< 24h), mise à jour non nécessaire." });
+      return;
+    }
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      sendEvent({ error: `Erreur lors de la vérification du cookie : ${error.message}` });
+      throw error;
+    }
+  }
+
+  // Utiliser le dossier Firefox importé si défini
+  const firefoxFolder = Bun.env.FIREFOX_FOLDER || "/root/.mozilla/firefox";
+  const firefoxProfile = Bun.env.FIREFOX_PROFILE || "default-release";
+  // Construit l'argument dans le format attendu par yt-dlp
+  const cookiesFromBrowserArg = `firefox:${firefoxFolder}/${firefoxProfile}`;
+
+  const cmd = [
+    "yt-dlp",
+    "--cookies-from-browser",
+    cookiesFromBrowserArg,
+    "--cookies",
+    COOKIE_FILE,
+    "--skip-download",
+    "https://music.youtube.com/watch?v=dQw4w9WgXcQ",
+  ];
+  try {
+    const output = await runCommand(cmd);
+    sendEvent({ message: `Cookie créé avec succès : ${output}` });
+  } catch (err) {
+    sendEvent({ error: `Erreur lors de la création du cookie : ${err.message}` });
+  }
+}
+
+
 async function syncEverything(sendEvent) {
-  sendEvent("Début de la synchronisation");
+  sendEvent({ message: "Début de la synchronisation" });
+  
+  // Créer (ou mettre à jour) le cookie pour spotdl si nécessaire
+  await createCookieFile(sendEvent);
+
   await ensureDirectoryExists("/root/.spotdl/temp");
 
   const token = await getSpotifyAccessToken();
@@ -161,7 +218,7 @@ async function syncEverything(sendEvent) {
   const total = playlists.length;
 
   if (total === 0) {
-    sendEvent("Aucune playlist 'ourmusic' trouvée.");
+    sendEvent({ message: "Aucune playlist 'ourmusic' trouvée. Vérifiez l'ID utilisateur Spotify et la visibilité des playlists." });
     return;
   }
 
@@ -172,26 +229,26 @@ async function syncEverything(sendEvent) {
     const syncFilePath = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
 
     if (await fileExists(syncFilePath)) {
-      sendEvent(`Le fichier de synchronisation pour '${playlist.name}' existe déjà. Lancement de la synchronisation.`);
+      sendEvent({ message: `Le fichier de synchronisation pour '${playlist.name}' existe déjà. Lancement de la synchronisation.` });
       await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
     } else {
-      sendEvent(`Le fichier de synchronisation pour '${playlist.name}' n'existe pas. Création et synchronisation en cours.`);
+      sendEvent({ message: `Création du fichier de synchronisation pour '${playlist.name}'.` });
       await createSyncFile(playlist, playlistDirPath, sendEvent);
       await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
     }
 
     count++;
-    sendEvent(`Traitement de la playlist '${playlist.name}' terminé (${count}/${total}).`);
+    sendEvent({ message: `Traitement de la playlist '${playlist.name}' terminé (${count}/${total}).` });
   }
 
   try {
     await runCommand(["chmod", "-R", "777", PLAYLIST_PATH]);
-    sendEvent(`Permissions 777 appliquées récursivement sur ${PLAYLIST_PATH}`);
+    sendEvent({ message: `Permissions 777 appliquées récursivement sur ${PLAYLIST_PATH}` });
   } catch (err) {
-    sendEvent("Erreur lors de l'application des permissions: " + err.message);
+    sendEvent({ error: "Erreur lors de l'application des permissions: " + err.message });
   }
 
-  sendEvent("Toutes les playlists ont été synchronisées avec succès !");
+  sendEvent({ message: "Toutes les playlists ont été synchronisées avec succès !" });
 }
 
 Bun.serve({
@@ -199,6 +256,7 @@ Bun.serve({
   idleTimeout: 0,
   async fetch(req) {
     const url = new URL(req.url);
+    const corsHeaders = getCorsHeaders(req);
 
     if (req.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders });
@@ -226,8 +284,23 @@ Bun.serve({
     }
 
     if (url.pathname === "/sse-playlists-sync") {
+      const headers = {
+        ...corsHeaders,
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      };
+
       const stream = new ReadableStream({
         async start(controller) {
+          // Envoi immédiat du signal de connexion établie
+          controller.enqueue(`data: ${JSON.stringify({ status: "connected" })}\n\n`);
+
+          // Heartbeat toutes les 30 secondes
+          const heartbeat = setInterval(() => {
+            controller.enqueue(`data: ${JSON.stringify({ heartbeat: Date.now() })}\n\n`);
+          }, 30000);
+
           function sendEvent(data) {
             controller.enqueue(`data: ${JSON.stringify(data)}\n\n`);
           }
@@ -236,18 +309,14 @@ Bun.serve({
             await syncEverything(sendEvent);
           } catch (error) {
             sendEvent({ error: error.message });
+          } finally {
+            clearInterval(heartbeat);
+            controller.close();
           }
-          controller.close();
         },
       });
-      return new Response(stream, {
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
-      });
+
+      return new Response(stream, { headers });
     }
 
     return new Response("Not found", { status: 404, headers: corsHeaders });
