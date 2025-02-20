@@ -9,6 +9,8 @@ const {
   PLAYLIST_PATH,
   COOKIE_FILE,
   PORT,
+  FIREFOX_FOLDER = "/app/mozilla/firefox",
+  FIREFOX_PROFILE = "jixmpje9.default",
 } = Bun.env;
 
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_USER_ID) {
@@ -25,7 +27,6 @@ const port = Number(PORT) || 3000;
 let cachedToken = null;
 let tokenExpiry = 0;
 
-// Fonction pour générer dynamiquement les en-têtes CORS
 function getCorsHeaders(req) {
   const origin = req.headers.get("Origin") || "https://ourmusic.fr";
   return {
@@ -69,9 +70,7 @@ async function runCommand(cmd, options = {}) {
 
 async function getSpotifyAccessToken() {
   const now = Date.now();
-  if (cachedToken && now < tokenExpiry) {
-    return cachedToken;
-  }
+  if (cachedToken && now < tokenExpiry) return cachedToken;
   try {
     const response = await axios.post(
       "https://accounts.spotify.com/api/token",
@@ -83,7 +82,6 @@ async function getSpotifyAccessToken() {
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
     cachedToken = response.data.access_token;
-    // On soustrait 60 secondes pour éviter l'expiration imminente
     tokenExpiry = now + (response.data.expires_in - 60) * 1000;
     return cachedToken;
   } catch (error) {
@@ -98,9 +96,7 @@ async function getOurMusicPlaylists(token) {
       `https://api.spotify.com/v1/users/${SPOTIFY_USER_ID}/playlists`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    if (!response.data.items) {
-      throw new Error("Structure inattendue des données de Spotify.");
-    }
+    if (!response.data.items) throw new Error("Structure inattendue des données de Spotify.");
     return response.data.items.filter((playlist) =>
       playlist.name.toLowerCase().includes("ourmusic")
     );
@@ -125,7 +121,6 @@ async function createPlaylistDirectory(playlist) {
 async function createSyncFile(playlist, playlistDirPath, sendEvent) {
   const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
   const syncFilePath = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
-  
   const cmd = [
     "spotdl",
     "sync",
@@ -165,8 +160,7 @@ async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent) {
 }
 
 async function createCookieFile(sendEvent) {
-  const cookieAgeLimit = 24 * 60 * 60 * 1000; // 24 heures en millisecondes
-
+  const cookieAgeLimit = 24 * 60 * 60 * 1000; // 24h en ms
   try {
     const fileStats = await fs.stat(COOKIE_FILE);
     const age = Date.now() - fileStats.mtimeMs;
@@ -180,13 +174,7 @@ async function createCookieFile(sendEvent) {
       throw error;
     }
   }
-
-  // Utiliser le dossier Firefox importé si défini
-  const firefoxFolder = Bun.env.FIREFOX_FOLDER || "/root/.mozilla/firefox";
-  const firefoxProfile = Bun.env.FIREFOX_PROFILE || "jixmpje9.default";
-  // Construit l'argument dans le format attendu par yt-dlp
-  const cookiesFromBrowserArg = `firefox:${firefoxFolder}/${firefoxProfile}`;
-
+  const cookiesFromBrowserArg = `firefox:${FIREFOX_FOLDER}/${FIREFOX_PROFILE}`;
   const cmd = [
     "yt-dlp",
     "--cookies-from-browser",
@@ -204,30 +192,22 @@ async function createCookieFile(sendEvent) {
   }
 }
 
-
 async function syncEverything(sendEvent) {
   sendEvent({ message: "Début de la synchronisation" });
-  
-  // Créer (ou mettre à jour) le cookie pour spotdl si nécessaire
   await createCookieFile(sendEvent);
-
   await ensureDirectoryExists("/root/.spotdl/temp");
-
   const token = await getSpotifyAccessToken();
   const playlists = await getOurMusicPlaylists(token);
   const total = playlists.length;
-
   if (total === 0) {
     sendEvent({ message: "Aucune playlist 'ourmusic' trouvée. Vérifiez l'ID utilisateur Spotify et la visibilité des playlists." });
     return;
   }
-
   let count = 0;
   for (const playlist of playlists) {
     const playlistDirPath = await createPlaylistDirectory(playlist);
     const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
     const syncFilePath = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
-
     if (await fileExists(syncFilePath)) {
       sendEvent({ message: `Le fichier de synchronisation pour '${playlist.name}' existe déjà. Lancement de la synchronisation.` });
       await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
@@ -236,18 +216,15 @@ async function syncEverything(sendEvent) {
       await createSyncFile(playlist, playlistDirPath, sendEvent);
       await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
     }
-
     count++;
     sendEvent({ message: `Traitement de la playlist '${playlist.name}' terminé (${count}/${total}).` });
   }
-
   try {
     await runCommand(["chmod", "-R", "777", PLAYLIST_PATH]);
     sendEvent({ message: `Permissions 777 appliquées récursivement sur ${PLAYLIST_PATH}` });
   } catch (err) {
     sendEvent({ error: "Erreur lors de l'application des permissions: " + err.message });
   }
-
   sendEvent({ message: "Toutes les playlists ont été synchronisées avec succès !" });
 }
 
@@ -262,28 +239,8 @@ Bun.serve({
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    if (url.pathname === "/playlists_sync") {
-      try {
-        await syncEverything((msg) => console.log(msg));
-        return new Response(
-          JSON.stringify({ message: "Toutes les playlists ont été synchronisées avec succès !" }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      } catch (error) {
-        return new Response(
-          JSON.stringify({ message: "Erreur lors de la synchronisation: " + error.message }),
-          {
-            status: 500,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-    }
-
-    if (url.pathname === "/sse-playlists-sync") {
+    // Endpoint SSE pour la synchronisation des playlists Spotify
+    if (url.pathname === "/api/live/spotify/sse") {
       const headers = {
         ...corsHeaders,
         "Content-Type": "text/event-stream",
@@ -293,16 +250,19 @@ Bun.serve({
 
       const stream = new ReadableStream({
         async start(controller) {
-          // Envoi immédiat du signal de connexion établie
-          controller.enqueue(`data: ${JSON.stringify({ status: "connected" })}\n\n`);
-
+          // Envoi initial de connexion
+          controller.enqueue(
+            `data: ${JSON.stringify({ connect: { time: Math.floor(Date.now() / 1000) } })}\n\n`
+          );
+          // Lier la méthode enqueue pour préserver le contexte
+          const enqueue = controller.enqueue.bind(controller);
           // Heartbeat toutes les 30 secondes
           const heartbeat = setInterval(() => {
-            controller.enqueue(`data: ${JSON.stringify({ heartbeat: Date.now() })}\n\n`);
+            enqueue(`data: ${JSON.stringify({ pub: { heartbeat: Date.now() } })}\n\n`);
           }, 30000);
 
           function sendEvent(data) {
-            controller.enqueue(`data: ${JSON.stringify(data)}\n\n`);
+            controller.enqueue(`data: ${JSON.stringify({ pub: data })}\n\n`);
           }
 
           try {
@@ -315,7 +275,6 @@ Bun.serve({
           }
         },
       });
-
       return new Response(stream, { headers });
     }
 

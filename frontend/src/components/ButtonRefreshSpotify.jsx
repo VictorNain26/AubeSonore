@@ -26,7 +26,8 @@ const ButtonRefreshSpotify = () => {
     setLoading(true);
     setMessage('');
 
-    const sseUrl = 'https://ourmusic-api.ovh/sse-playlists-sync';
+    // Mise à jour de l'URL pour pointer vers l'endpoint SSE de Spotify
+    const sseUrl = 'https://ourmusic-api.ovh/api/live/spotify/sse';
     const eventSource = new EventSource(sseUrl, { withCredentials: true });
 
     eventSource.onopen = () => {
@@ -42,11 +43,19 @@ const ButtonRefreshSpotify = () => {
       } catch (error) {
         data = { message: e.data };
       }
-      console.log("Message SSE reçu :", data);
 
-      const messageText = typeof data === 'object' ? (data.message || '') : data;
-      if (isInteresting(messageText)) {
-        setMessage(messageText);
+      // Extraction du message : s'il provient de "pub", on l'utilise
+      const displayedMessage =
+        data.pub && data.pub.message ? data.pub.message : (data.message || '');
+
+      // Afficher dans la console uniquement si c'est un message de type "pub" et qu'il ne concerne pas un timer
+      if (data.pub && data.pub.message && !data.pub.message.toLowerCase().includes("timer")) {
+        console.log("Message SSE reçu (pub message):", data.pub.message);
+      }
+
+      // Remplacer l'ancien message par le nouveau s'il est intéressant
+      if (isInteresting(displayedMessage)) {
+        setMessage(displayedMessage);
       }
     };
 
