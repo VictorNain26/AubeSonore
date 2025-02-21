@@ -11,6 +11,7 @@ const {
   PORT,
   FIREFOX_FOLDER = "/app/mozilla/firefox",
   FIREFOX_PROFILE = "jixmpje9.default",
+  RATE_LIMIT_MS = "5000",
 } = Bun.env;
 
 if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET || !SPOTIFY_USER_ID) {
@@ -118,6 +119,10 @@ async function createPlaylistDirectory(playlist) {
   return playlistDirPath;
 }
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 async function createSyncFile(playlist, playlistDirPath, sendEvent) {
   const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
   const syncFilePath = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
@@ -130,17 +135,18 @@ async function createSyncFile(playlist, playlistDirPath, sendEvent) {
     "--output",
     playlistDirPath,
     "--cookie-file",
-    COOKIE_FILE,
+    COOKIE_FILE
   ];
   try {
     const output = await runCommand(cmd);
-    sendEvent({ message: `Fichier de synchronisation créé pour '${playlist.name}': ${output}` });
+    sendEvent({ message: `Fichier de synchronisation créé pour '${playlist.name}' : ${output}` });
   } catch (err) {
-    sendEvent({ error: `Erreur lors de la création du fichier de synchronisation pour '${playlist.name}': ${err.message}` });
+    sendEvent({ error: `Erreur lors de la création du fichier de synchronisation pour '${playlist.name}' : ${err.message}` });
   }
   return syncFilePath;
 }
 
+// Fonction de synchronisation d'une playlist à partir d'un fichier de synchronisation existant
 async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent) {
   const cmd = [
     "spotdl",
@@ -149,16 +155,17 @@ async function syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent) {
     "--output",
     playlistDirPath,
     "--cookie-file",
-    COOKIE_FILE,
+    COOKIE_FILE
   ];
   try {
     const output = await runCommand(cmd);
-    sendEvent({ message: `Synchronisation réussie pour '${syncFilePath}': ${output}` });
+    sendEvent({ message: `Synchronisation réussie pour '${syncFilePath}' : ${output}` });
   } catch (err) {
-    sendEvent({ error: `Erreur lors de la synchronisation du fichier '${syncFilePath}': ${err.message}` });
+    sendEvent({ error: `Erreur lors de la synchronisation du fichier '${syncFilePath}' : ${err.message}` });
   }
 }
 
+// Fonction de création du cookie (inchangée)
 async function createCookieFile(sendEvent) {
   const cookieAgeLimit = 24 * 60 * 60 * 1000; // 24h en ms
   try {
@@ -182,7 +189,7 @@ async function createCookieFile(sendEvent) {
     "--cookies",
     COOKIE_FILE,
     "--skip-download",
-    "https://music.youtube.com/watch?v=dQw4w9WgXcQ",
+    "https://music.youtube.com/watch?v=dQw4w9WgXcQ"
   ];
   try {
     const output = await runCommand(cmd);
@@ -192,10 +199,14 @@ async function createCookieFile(sendEvent) {
   }
 }
 
+// Fonction principale de synchronisation avec rate limiting
 async function syncEverything(sendEvent) {
   sendEvent({ message: "Début de la synchronisation" });
+  
+  // Création du cookie
   await createCookieFile(sendEvent);
   await ensureDirectoryExists("/root/.spotdl/temp");
+  
   const token = await getSpotifyAccessToken();
   const playlists = await getOurMusicPlaylists(token);
   const total = playlists.length;
@@ -208,6 +219,7 @@ async function syncEverything(sendEvent) {
     const playlistDirPath = await createPlaylistDirectory(playlist);
     const safeName = playlist.name.replace(/[^a-zA-Z0-9_\-]/g, "_").toLowerCase();
     const syncFilePath = path.join(playlistDirPath, `${safeName}.sync.spotdl`);
+    
     if (await fileExists(syncFilePath)) {
       sendEvent({ message: `Le fichier de synchronisation pour '${playlist.name}' existe déjà. Lancement de la synchronisation.` });
       await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
@@ -216,14 +228,18 @@ async function syncEverything(sendEvent) {
       await createSyncFile(playlist, playlistDirPath, sendEvent);
       await syncPlaylistFile(syncFilePath, playlistDirPath, sendEvent);
     }
+    
     count++;
     sendEvent({ message: `Traitement de la playlist '${playlist.name}' terminé (${count}/${total}).` });
+    // Délai entre chaque synchronisation pour limiter le débit
+    await delay(Number(RATE_LIMIT_MS));
   }
+  
   try {
     await runCommand(["chmod", "-R", "777", PLAYLIST_PATH]);
     sendEvent({ message: `Permissions 777 appliquées récursivement sur ${PLAYLIST_PATH}` });
   } catch (err) {
-    sendEvent({ error: "Erreur lors de l'application des permissions: " + err.message });
+    sendEvent({ error: `Erreur lors de l'application des permissions : ${err.message}` });
   }
   sendEvent({ message: "Toutes les playlists ont été synchronisées avec succès !" });
 }
@@ -254,7 +270,6 @@ Bun.serve({
           controller.enqueue(
             `data: ${JSON.stringify({ connect: { time: Math.floor(Date.now() / 1000) } })}\n\n`
           );
-          // Lier la méthode enqueue pour préserver le contexte
           const enqueue = controller.enqueue.bind(controller);
           // Heartbeat toutes les 30 secondes
           const heartbeat = setInterval(() => {
