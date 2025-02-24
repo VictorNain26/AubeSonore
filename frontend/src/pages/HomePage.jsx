@@ -3,9 +3,7 @@ import AzuracastPlayer from './../components/AzuracastPlayer';
 
 const HomePage = () => {
   return (
-    <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-      <AzuracastPlayer />
-    </div>
+    <AzuracastPlayer />
   );
 };
 

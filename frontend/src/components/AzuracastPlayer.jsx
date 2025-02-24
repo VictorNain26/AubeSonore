@@ -18,6 +18,8 @@ const AzuracastPlayer = () => {
   const [isConnected, setIsConnected] = useState(false);
 
   const audioRef = useRef(null);
+  const sseRef = useRef(null);
+  const reconnectTimeoutRef = useRef(null);
 
   // Fonction helper pour mettre à jour nowPlaying et les infos de durée
   const updateNowPlaying = (npData) => {
@@ -28,8 +30,15 @@ const AzuracastPlayer = () => {
     }
   };
 
-  useEffect(() => {
+  // Fonction de connexion SSE avec gestion de reconnection
+  const connectSSE = () => {
+    // Nettoyer toute connexion précédente
+    if (sseRef.current) {
+      sseRef.current.close();
+    }
+
     const sse = new EventSource(sseUri);
+    sseRef.current = sse;
 
     sse.onopen = () => {
       console.log("Connexion SSE établie.");
@@ -67,12 +76,46 @@ const AzuracastPlayer = () => {
     };
 
     sse.onerror = () => {
-      setError("Erreur lors de la connexion SSE.");
+      console.error("Erreur lors de la connexion SSE.");
+      setError("Erreur lors de la connexion SSE. Nouvelle tentative dans 5 secondes...");
+      setIsConnected(false);
       sse.close();
+      // Tentative de reconnexion après un délai
+      reconnectTimeoutRef.current = setTimeout(() => {
+        // Si le navigateur est en ligne, retenter la connexion
+        if (navigator.onLine) {
+          connectSSE();
+        } else {
+          console.warn("Navigateur hors ligne. En attente d'une reconnexion.");
+        }
+      }, 5000);
+    };
+  };
+
+  useEffect(() => {
+    // Connexion initiale SSE
+    connectSSE();
+
+    // Ecoute de l'évènement "online" pour retenter immédiatement la connexion
+    const handleOnline = () => {
+      console.log("Connexion réseau rétablie, tentative de reconnexion SSE...");
+      if (!isConnected) {
+        connectSSE();
+      }
     };
 
-    return () => sse.close();
-  }, [sseUri]);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      if (sseRef.current) {
+        sseRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, [sseUri, isConnected]);
 
   useEffect(() => {
     let intervalId = null;
