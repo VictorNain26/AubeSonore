@@ -21,18 +21,29 @@ const AzuracastPlayer = () => {
   const sseRef = useRef(null);
   const reconnectTimeoutRef = useRef(null);
 
-  // Fonction helper pour mettre à jour nowPlaying et les infos de durée
+  // Met à jour les informations nowPlaying et la durée
   const updateNowPlaying = (npData) => {
     setNowPlaying(npData);
-    if (npData.now_playing) {
-      setTrackElapsed(npData.now_playing.elapsed);
-      setTrackDuration(npData.now_playing.duration);
+    if (npData && npData.now_playing) {
+      setTrackElapsed(npData.now_playing.elapsed || 0);
+      setTrackDuration(npData.now_playing.duration || 0);
     }
   };
 
-  // Fonction de connexion SSE avec gestion de reconnection
+  // Fonction de gestion des données SSE selon la doc AzuraCast
+  const handleSseData = (ssePayload, useTime = true) => {
+    const data = ssePayload.data;
+    if (useTime && data.current_time) {
+      // Met à jour le temps courant si fourni
+      setTrackElapsed(data.current_time);
+    }
+    if (data.np) {
+      updateNowPlaying(data.np);
+    }
+  };
+
+  // Fonction de connexion SSE avec reconnexion automatique
   const connectSSE = () => {
-    // Nettoyer toute connexion précédente
     if (sseRef.current) {
       sseRef.current.close();
     }
@@ -48,30 +59,31 @@ const AzuracastPlayer = () => {
 
     sse.onmessage = (e) => {
       if (e.data.trim() === '.') return;
-
-      let jsonData;
       try {
-        jsonData = JSON.parse(e.data);
-      } catch {
-        return;
-      }
-
-      if (jsonData.pub) {
-        if (jsonData.pub.status) {
-          console.log("Status SSE :", jsonData.pub.status);
-        }
-        if (jsonData.pub.data?.np) {
-          updateNowPlaying(jsonData.pub.data.np);
-        }
-      } else if (jsonData.connect) {
-        const { data } = jsonData.connect;
-        if (Array.isArray(data)) {
-          data.forEach(row => {
-            if (row.np) {
-              updateNowPlaying(row.np);
+        const jsonData = JSON.parse(e.data);
+        if ('connect' in jsonData) {
+          const connectData = jsonData.connect;
+          if ('data' in connectData) {
+            // Format legacy
+            connectData.data.forEach((initialRow) => handleSseData(initialRow));
+          } else {
+            // Nouveau format Centrifugo
+            if ('time' in connectData) {
+              setTrackElapsed(Math.floor(connectData.time / 1000));
             }
-          });
+            // Itère sur les abonnements pour récupérer les publications
+            for (const subName in connectData.subs) {
+              const sub = connectData.subs[subName];
+              if (sub.publications && sub.publications.length > 0) {
+                sub.publications.forEach((initialRow) => handleSseData(initialRow, false));
+              }
+            }
+          }
+        } else if ('pub' in jsonData) {
+          handleSseData(jsonData.pub);
         }
+      } catch (err) {
+        console.error("Erreur lors du traitement du message SSE:", err);
       }
     };
 
@@ -80,9 +92,7 @@ const AzuracastPlayer = () => {
       setError("Erreur lors de la connexion SSE. Nouvelle tentative dans 5 secondes...");
       setIsConnected(false);
       sse.close();
-      // Tentative de reconnexion après un délai
       reconnectTimeoutRef.current = setTimeout(() => {
-        // Si le navigateur est en ligne, retenter la connexion
         if (navigator.onLine) {
           connectSSE();
         } else {
@@ -93,10 +103,9 @@ const AzuracastPlayer = () => {
   };
 
   useEffect(() => {
-    // Connexion initiale SSE
+    // Connexion initiale
     connectSSE();
 
-    // Ecoute de l'évènement "online" pour retenter immédiatement la connexion
     const handleOnline = () => {
       console.log("Connexion réseau rétablie, tentative de reconnexion SSE...");
       if (!isConnected) {
@@ -105,15 +114,10 @@ const AzuracastPlayer = () => {
     };
 
     window.addEventListener('online', handleOnline);
-
     return () => {
       window.removeEventListener('online', handleOnline);
-      if (sseRef.current) {
-        sseRef.current.close();
-      }
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
+      if (sseRef.current) sseRef.current.close();
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
     };
   }, [sseUri, isConnected]);
 
@@ -156,7 +160,7 @@ const AzuracastPlayer = () => {
     }
   };
 
-  // Tant que les données ne sont pas disponibles, afficher uniquement le spinner
+  // Affichage d'un spinner tant que les données ne sont pas chargées
   if (!nowPlaying) {
     return (
       <div className="fixed inset-0 bg-white flex items-center justify-center overflow-hidden z-50">
