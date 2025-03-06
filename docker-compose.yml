@@ -1,4 +1,18 @@
+version: '3'
 services:
+  db:
+    image: postgres:13
+    container_name: ourmusicdb
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - proxy_manager_default
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -10,24 +24,37 @@ services:
       - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
       - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
+    environment:
+      - DB_HOST=db
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
     networks:
       - proxy_manager_default
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: ourmusicfrontend
-    
     volumes:
       - ./frontend:/app
     ports:
-      - "3002:5173" 
-
+      - "3002:5173"
+    environment:
+      - VITE_AUTH0_DOMAIN=${VITE_AUTH0_DOMAIN}
+      - VITE_AUTH0_CLIENT_ID=${VITE_AUTH0_CLIENT_ID}
     networks:
       - proxy_manager_default
+    restart: unless-stopped
+
 networks:
   proxy_manager_default:
     external: true
+
 volumes:
   azuracast_playlists_folder:
     external: true
+  postgres_data:
