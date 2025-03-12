@@ -1,4 +1,18 @@
 services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - proxy_manager_default
+    restart: unless-stopped
+
   backend:
     build:
       context: ./OurMusic-Backend
@@ -7,9 +21,13 @@ services:
     ports:
       - "3001:3000"
     volumes:
-      - ./backend:/app
+      - ./OurMusic-Backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
       - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
+    env_file:
+      - ./OurMusic-Backend/.env
+    depends_on:
+      - db
     networks:
       - proxy_manager_default
     restart: unless-stopped
@@ -19,18 +37,19 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: ourmusicfrontend
-    volumes:
-      - ./frontend:/app
     ports:
       - "3002:5173"
+    volumes:
+      - ./frontend:/app
     networks:
       - proxy_manager_default
     restart: unless-stopped
 
-networks:
-  proxy_manager_default:
+volumes:
+  postgres_data:
+  azuracast_playlists_folder:
     external: true
 
-volumes:
-  azuracast_playlists_folder:
+networks:
+  proxy_manager_default:
     external: true
