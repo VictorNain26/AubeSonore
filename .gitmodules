@@ -1,3 +1,6 @@
 [submodule "backend"]
 	path = backend
 	url = https://github.com/VictorNain26/OurMusic-backend
+[submodule "frontend"]
+	path = frontend
+	url = https://github.com/VictorNain26/OurMusic-frontend
