@@ -9,7 +9,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - proxy_manager_default
-    restart: unless-stopped
+    restart: always
 
   backend:
     build:
@@ -26,7 +26,7 @@ services:
       - db
     networks:
       - proxy_manager_default
-    restart: unless-stopped
+    restart: always
 
   frontend:
     build:
@@ -37,7 +37,7 @@ services:
       - ./frontend:/app
     networks:
       - proxy_manager_default
-    restart: unless-stopped
+    restart: always
 
 volumes:
   postgres_data:
