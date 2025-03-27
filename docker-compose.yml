@@ -17,11 +17,11 @@ services:
       dockerfile: Dockerfile
     container_name: ourmusicbackend
     volumes:
-      - ./OurMusic-Backend:/app
+      - ./backend:/app
       - /var/run/docker.sock:/var/run/docker.sock
       - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
     env_file:
-      - ./OurMusic-Backend/.env
+      - ./backend/.env
     depends_on:
       - db
     networks:
@@ -35,6 +35,8 @@ services:
     container_name: ourmusicfrontend
     volumes:
       - ./frontend:/app
+    env_file:
+      - ./frontend/.env
     networks:
       - proxy_manager_default
     restart: always
