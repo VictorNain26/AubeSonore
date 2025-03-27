@@ -18,6 +18,7 @@ services:
     container_name: ourmusicbackend
     volumes:
       - ./backend:/app
+      - /app/node_modules
       - /var/run/docker.sock:/var/run/docker.sock
       - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
     env_file:
