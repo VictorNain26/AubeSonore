@@ -13,7 +13,7 @@ services:
 
   backend:
     build:
-      context: ./OurMusic-Backend
+      context: ./backend
       dockerfile: Dockerfile
     container_name: ourmusicbackend
     volumes:
