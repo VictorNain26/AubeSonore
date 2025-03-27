@@ -16,6 +16,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: ourmusicbackend
+    ports:
+      - "3000:3000"
     volumes:
       - ./backend:/app
       - /app/node_modules
