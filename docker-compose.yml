@@ -37,7 +37,7 @@ services:
       dockerfile: Dockerfile
     container_name: ourmusicfrontend
     ports:
-      - "80:80"
+      - "8080:80"
     volumes:
       - ./frontend:/app
     env_file:
