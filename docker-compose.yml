@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:16
+    container_name: ourmusic-db
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
@@ -10,18 +11,21 @@ services:
     networks:
       - proxy_manager_default
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: ourmusicbackend
+    container_name: ourmusic-backend
     ports:
       - "3000:3000"
     volumes:
       - ./backend:/app
-      - /app/node_modules
-      - /var/run/docker.sock:/var/run/docker.sock
       - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
     env_file:
       - ./backend/.env
@@ -30,12 +34,17 @@ services:
     networks:
       - proxy_manager_default
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: ourmusicfrontend
+    container_name: ourmusic-frontend
     ports:
       - "8080:80"
     volumes:
@@ -45,6 +54,8 @@ services:
     networks:
       - proxy_manager_default
     restart: always
+    depends_on:
+      - backend
 
 volumes:
   postgres_data:
