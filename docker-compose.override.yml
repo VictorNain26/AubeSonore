@@ -1,0 +1,9 @@
+services:
+  backend:
+    volumes:
+      - ./backend:/app
+      - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
+
+  frontend:
+    volumes:
+      - ./frontend:/app

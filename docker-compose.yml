@@ -24,9 +24,6 @@ services:
     container_name: ourmusic-backend
     ports:
       - "3000:3000"
-    volumes:
-      - ./backend:/app
-      - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
     env_file:
       - ./backend/.env
     depends_on:
@@ -47,15 +44,13 @@ services:
     container_name: ourmusic-frontend
     ports:
       - "8080:80"
-    volumes:
-      - ./frontend:/app
     env_file:
       - ./frontend/.env
+    depends_on:
+      - backend
     networks:
       - proxy_manager_default
     restart: always
-    depends_on:
-      - backend
 
 volumes:
   postgres_data:
