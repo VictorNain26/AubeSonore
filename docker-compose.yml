@@ -54,7 +54,7 @@ services:
       - proxy_manager_default
     restart: always
     ports:
-      - "8080:8080"
+      - "8080:80"
 
 volumes:
   postgres_data:
