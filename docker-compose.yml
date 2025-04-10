@@ -25,17 +25,20 @@ services:
     env_file:
       - ./backend/.env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - proxy_manager_default
     restart: always
     volumes:
       - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
       interval: 30s
       timeout: 5s
       retries: 3
+    ports:
+      - "3000:3000"
 
   frontend:
     build:
@@ -45,10 +48,13 @@ services:
     env_file:
       - ./frontend/.env
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - proxy_manager_default
     restart: always
+    ports:
+      - "8080:8080"
 
 volumes:
   postgres_data:
