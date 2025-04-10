@@ -9,7 +9,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - ourmusic_network
+      - proxy_manager_default
     restart: always
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
@@ -25,12 +25,9 @@ services:
     env_file:
       - ./backend/.env
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     networks:
-      - ourmusic_network
-    ports:
-      - "3000:3000"
+      - proxy_manager_default
     restart: always
     volumes:
       - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
@@ -48,12 +45,9 @@ services:
     env_file:
       - ./frontend/.env
     depends_on:
-      backend:
-        condition: service_started
+      - backend
     networks:
-      - ourmusic_network
-    ports:
-      - "8080:80"
+      - proxy_manager_default
     restart: always
 
 volumes:
@@ -62,6 +56,5 @@ volumes:
     external: true
 
 networks:
-  ourmusic_network:
-    name: ourmusic_network
-    driver: bridge
+  proxy_manager_default:
+    external: true
