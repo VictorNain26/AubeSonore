@@ -1,7 +1,11 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # OurMusic - Configuration Claude Code
 
 ## Structure du projet
-- **Backend** : `/OurMusic-Backend` (Bun + Elysia + TypeScript)
+- **Backend** : `/OurMusic-Backend` (Bun + Elysia + TypeScript)  
 - **Frontend** : `/OurMusic-frontend` (Vite + React + TypeScript)
 
 ## Configuration environnement de développement
@@ -60,10 +64,13 @@ pnpm run dev
 - `bun run db:push` - Appliquer les migrations
 
 ### Frontend
-- `pnpm run dev` - Démarrer le serveur de développement
-- `pnpm run build` - Construire pour la production
-- `pnpm run lint` - Linter le code
-- `pnpm run test` - Lancer les tests
+- `pnpm run dev` - Démarrer le serveur de développement (port 5173)
+- `pnpm run build` - TypeScript compilation + Vite build  
+- `pnpm run lint` - Linter le code avec ESLint strict
+- `pnpm run lint:fix` - Corriger automatiquement les erreurs de lint
+- `pnpm run typecheck` - Vérification TypeScript sans compilation
+- `pnpm run test` - Lancer les tests Vitest
+- `pnpm run preview` - Prévisualiser le build de production
 
 ## Variables d'environnement
 
@@ -101,9 +108,79 @@ pnpm run dev
 - **Authentification** : Better Auth Client
 - **Tests** : Vitest
 
+## Architecture Frontend
+
+### Structure des dossiers
+```
+src/
+├── components/          # Composants React réutilisables
+│   ├── ui/             # Composants UI base (style Shadcn/ui)
+│   ├── AzuracastPlayer.tsx
+│   ├── ModernHeader.tsx
+│   └── Sidebar.tsx
+├── hooks/              # Hooks React personnalisés
+│   ├── useAuth.ts      # Logique d'authentification
+│   ├── useSSE.ts       # Server-Sent Events
+│   └── useLikedTracks.ts
+├── layout/             # Composants de mise en page
+│   ├── ModernLayout.tsx
+│   └── PageWrapper.tsx
+├── lib/                # Services et utilitaires core
+│   ├── authClient.ts   # Configuration Better Auth
+│   ├── playerService.ts # Service audio avec Zustand
+│   └── utils.ts        # Fusion classes Tailwind
+├── pages/              # Composants de pages
+├── utils/              # Fonctions utilitaires
+│   ├── api.ts          # Client API avec gestion d'erreur
+│   ├── config.ts       # Variables d'environnement
+│   └── queryClient.ts  # Configuration React Query
+└── index.css          # Styles globaux avec variables CSS
+```
+
+### Patterns d'architecture
+
+**State Management:**
+- **Zustand** pour l'état du lecteur audio (volume, lecture, track courante)
+- **React Query** pour l'état serveur (API, cache, synchronisation)
+- **Better Auth** pour l'état d'authentification avec auto-refresh
+
+**Authentification:**
+- Configuration Better Auth avec email/password + social login
+- Gestion automatique des sessions avec cookies HttpOnly
+- Redirections automatiques après vérification email
+
+**Real-time:**
+- **Server-Sent Events (SSE)** pour les mises à jour radio en temps réel
+- Hook personnalisé `useSSE` avec reconnexion automatique
+- Synchronisation lecteur avec informations track live
+
+**API Integration:**
+- Fonction `apiFetch` personnalisée avec gestion CORS et credentials
+- Configuration basée sur les variables d'environnement
+- Gestion centralisée des erreurs avec toasts
+
+### Conventions de code
+
+**TypeScript strict:**
+- Types explicites requis pour toutes les fonctions (`explicit-function-return-type`)
+- Interdiction du type `any` (`no-explicit-any`)
+- Expressions booléennes strictes (`strict-boolean-expressions`)
+- Tous les composants doivent avoir des interfaces TypeScript
+
+**Composants:**
+- Style Shadcn/ui avec `class-variance-authority`
+- Props typées avec interfaces TypeScript
+- Patterns de composition pour les composants complexes
+
+**Styles:**
+- Tailwind CSS 4.x avec variables CSS personnalisées
+- Design system avec thème sombre et effets glass/neon
+- Classes utilitaires avec `tailwind-merge` pour éviter les conflits
+
 ## Notes de développement
-- Le backend utilise ESLint avec une configuration stricte
-- Le frontend utilise ESLint avec une configuration stricte
-- Les deux projets sont prêts pour la conversion TypeScript
-- L'authentification est gérée par Better Auth avec support des comptes sociaux
-- Le streaming audio est géré par Azuracast via SSE
+- **ESLint extremement strict** : types explicites obligatoires, pas de `any`, expressions booléennes strictes
+- **PNPM obligatoire** pour la gestion des dépendances (version 10.13.1)
+- **Authentification** gérée par Better Auth avec support complets des comptes sociaux
+- **Streaming audio** géré par Azuracast via SSE avec hook personnalisé
+- **PWA ready** avec service worker et support installation
+- **Tests** configurés avec Vitest pour les tests unitaires
