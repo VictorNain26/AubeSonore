@@ -19,34 +19,32 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context: ./OurMusic-Backend
       dockerfile: Dockerfile
     container_name: ourmusic-backend
     env_file:
-      - ./backend/.env
+      - ./OurMusic-Backend/.env
     depends_on:
       db:
         condition: service_healthy
     networks:
       - proxy_manager_default
     restart: always
-    volumes:
-      - azuracast_playlists_folder:/var/azuracast/stations/ourmusic/media/Playlists
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 5s
       retries: 3
     ports:
-      - "3000:3000"
+      - "3001:3000"
 
   frontend:
     build:
-      context: ./frontend
+      context: ./OurMusic-frontend
       dockerfile: Dockerfile
     container_name: ourmusic-frontend
     env_file:
-      - ./frontend/.env
+      - ./OurMusic-frontend/.env
     depends_on:
       backend:
         condition: service_healthy
@@ -58,9 +56,7 @@ services:
 
 volumes:
   postgres_data:
-  azuracast_playlists_folder:
-    external: true
 
 networks:
   proxy_manager_default:
-    external: true
+    driver: bridge
