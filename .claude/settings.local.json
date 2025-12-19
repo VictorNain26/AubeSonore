@@ -14,7 +14,10 @@
       "mcp__filesystem__directory_tree",
       "mcp__filesystem__read_multiple_files",
       "Bash(git commit:*)",
-      "WebSearch"
+      "WebSearch",
+      "mcp__koyeb__create-app",
+      "mcp__koyeb__list-deployments",
+      "mcp__koyeb__query-logs"
     ]
   },
   "enableAllProjectMcpServers": true,

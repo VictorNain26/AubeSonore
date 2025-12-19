@@ -1,0 +1,43 @@
+# Git
+.git
+.gitignore
+
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+build
+.next
+.turbo
+
+# Development
+.vscode
+.idea
+*.log
+.env.local
+.env.*.local
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+__tests__
+coverage
+
+# CI/CD
+.github
+.claude
+
+# Vercel
+.vercel
+apps/frontend/vercel.json
+apps/chromecast/vercel.json
+
+# Other apps sources (only copy what's needed in each Dockerfile)
+# This file is shared but each Dockerfile COPY command is selective
