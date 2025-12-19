@@ -40,6 +40,7 @@
     "@types/node": "latest",
     "@types/nodemailer": "latest",
     "@types/pg": "latest",
+    "bun-types": "^1.2.2",
     "typescript": "^5.8.3"
   }
 }

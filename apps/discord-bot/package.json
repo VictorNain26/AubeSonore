@@ -24,6 +24,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "@types/eventsource": "^1.1.15",
+    "bun-types": "^1.2.2",
     "typescript": "^5.8.3"
   }
 }
