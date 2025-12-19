@@ -63,19 +63,8 @@ export const auth = betterAuth({
         isResetPassword: true,
       });
     },
-
-    // onResetPassword: async (ctx: { redirect: (url: string) => any }): Promise<any> => {
-    //   return ctx.redirect(`${env.FRONTEND_BASE_URL}?password_reset=success`);
-    // },
   },
 
-  // session: {
-  //   include: {
-  //     account: true,
-  //   },
-  // },
-
-  // Vérification de l'email
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
@@ -100,12 +89,11 @@ export const auth = betterAuth({
   /* ──────────────── Account Linking ──────────────── */
   account: {
     accountLinking: {
-      enabled: true, // autorise le "link"
+      enabled: true,
       trustedProviders: ['spotify'],
-      // updateAccountOnSignIn: true, // rafraîchit les tokens si on se relog
     },
   },
-  /* ──────────────── Social providers ──────────────── */
+
   socialProviders: {
     spotify: {
       clientId: process.env.SPOTIFY_CLIENT_ID ?? '',

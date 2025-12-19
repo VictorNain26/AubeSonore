@@ -107,3 +107,23 @@ export interface SpotifyPlaylistTracksResponse {
   next: string | null;
   previous: string | null;
 }
+
+/**
+ * Simplified Spotify playlist response (for API with filtered fields)
+ */
+export interface SpotifyPlaylistResponse {
+  id: string;
+  name: string;
+  description?: string;
+  public: boolean;
+}
+
+/**
+ * Simplified Spotify tracks response (for API with filtered fields)
+ */
+export interface SpotifyTracksResponse {
+  items: Array<{
+    track: Pick<SpotifyTrack, 'uri'> | null;
+  }>;
+  next: string | null;
+}

@@ -33,7 +33,7 @@ export async function likeTrack({ user, body }: { user: User; body: TrackBody })
       ),
     )
     .limit(1)
-    .then((res: any[]) => res[0]);
+    .then((res: LikedTrack[]) => res[0]);
 
   if (existingTrack) {
     return { status: 400, error: 'Déjà liké' };

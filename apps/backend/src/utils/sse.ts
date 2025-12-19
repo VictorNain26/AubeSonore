@@ -1,4 +1,11 @@
-type SSEHandler = (send: (data: any) => void) => Promise<void>;
+interface SSEData {
+  connect?: { time: number };
+  heartbeat?: number;
+  error?: string;
+  [key: string]: unknown;
+}
+
+type SSEHandler = (send: (data: SSEData) => void) => Promise<void>;
 
 export function createSSEStream(handler: SSEHandler): ReadableStream<string> {
   let controllerRef: ReadableStreamDefaultController<string> | undefined;
@@ -8,7 +15,7 @@ export function createSSEStream(handler: SSEHandler): ReadableStream<string> {
     start(controller) {
       controllerRef = controller;
 
-      const sendEvent = (data: any): void => {
+      const sendEvent = (data: SSEData): void => {
         if (isClosed) {
           return;
         }

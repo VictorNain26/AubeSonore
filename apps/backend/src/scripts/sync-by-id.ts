@@ -1,21 +1,16 @@
-// import { createCookieFile } from '../spotify.js';
-// import { ensureDirectoryExists } from '../utils/fileUtils.js';
 import { handleSpotifySyncById } from '../services/spotifyService.js';
 
-// Interface pour l'admin fictif
 interface FakeAdmin {
   id: string;
   role: string;
   email: string;
 }
 
-// Interface pour le payload du logger
 interface LoggerPayload {
   message?: string;
   error?: string;
 }
 
-// ➡️ Simuler un admin (fictif car on est en script)
 const fakeAdmin: FakeAdmin = { id: 'admin-script', role: 'admin', email: 'admin@ourmusic.fr' };
 
 const playlistId: string | undefined = process.argv[2]; // récupère l'argument passé en CLI

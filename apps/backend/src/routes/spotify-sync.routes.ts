@@ -6,30 +6,13 @@ import axios from 'axios';
 import { getAllUserPlaylists } from '../spotify';
 import { getFreshSpotifyAccessToken } from '../services/spotifyTokenHelper';
 import { searchTrackOnSpotify } from '../spotify';
-
-
-interface SpotifyPlaylist {
-  id: string;
-  name: string;
-}
-
-interface SpotifyTrack {
-  uri: string;
-}
-
-interface SpotifyPlaylistResponse {
-  id: string;
-  name: string;
-  description?: string;
-  public: boolean;
-}
-
-interface SpotifyTracksResponse {
-  items: Array<{
-    track: SpotifyTrack | null;
-  }>;
-  next: string | null;
-}
+import type {
+  SpotifyPlaylist,
+  SpotifyTrack,
+  SpotifyPlaylistTracksResponse,
+  SpotifyPlaylistResponse,
+  SpotifyTracksResponse,
+} from '@ourmusic/shared-types';
 
 interface SyncResponse {
   message: string;
