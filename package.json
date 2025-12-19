@@ -8,27 +8,28 @@
     "pnpm": ">=10"
   },
   "scripts": {
-    "dev": "pnpm --filter \"./apps/**\" dev",
-    "dev:backend": "pnpm --filter @ourmusic/backend dev",
-    "dev:frontend": "pnpm --filter @ourmusic/frontend dev",
-    "dev:chromecast": "pnpm --filter @ourmusic/chromecast dev",
-    "dev:discord-bot": "pnpm --filter @ourmusic/discord-bot dev",
-    "build": "pnpm --filter \"./apps/**\" build",
-    "build:backend": "pnpm --filter @ourmusic/backend build",
-    "build:frontend": "pnpm --filter @ourmusic/frontend build",
-    "build:chromecast": "pnpm --filter @ourmusic/chromecast build",
-    "build:discord-bot": "pnpm --filter @ourmusic/discord-bot build",
-    "lint": "pnpm --recursive lint",
-    "lint:fix": "pnpm --recursive lint:fix",
-    "typecheck": "pnpm --recursive typecheck",
+    "dev": "turbo dev",
+    "dev:backend": "turbo dev --filter=@ourmusic/backend",
+    "dev:frontend": "turbo dev --filter=@ourmusic/frontend",
+    "dev:chromecast": "turbo dev --filter=@ourmusic/chromecast",
+    "dev:discord-bot": "turbo dev --filter=@ourmusic/discord-bot",
+    "build": "turbo build",
+    "build:backend": "turbo build --filter=@ourmusic/backend",
+    "build:frontend": "turbo build --filter=@ourmusic/frontend",
+    "build:chromecast": "turbo build --filter=@ourmusic/chromecast",
+    "build:discord-bot": "turbo build --filter=@ourmusic/discord-bot",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint --continue -- --fix",
+    "typecheck": "turbo typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "clean": "pnpm --recursive clean && rm -rf node_modules"
+    "clean": "turbo clean && rm -rf node_modules .turbo"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
     "eslint": "^9.26.0",
     "prettier": "^3.5.3",
+    "turbo": "^2.3.3",
     "typescript": "^5.8.3"
   },
   "pnpm": {

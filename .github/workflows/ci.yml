@@ -1,0 +1,183 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+# Permissions needed for Vercel deployments
+permissions:
+  contents: read
+  pull-requests: write
+  deployments: write
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  # Job 1: Detect which apps changed
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      chromecast: ${{ steps.filter.outputs.chromecast }}
+      discord-bot: ${{ steps.filter.outputs.discord-bot }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'apps/backend/**'
+              - 'packages/**'
+            frontend:
+              - 'apps/frontend/**'
+              - 'packages/**'
+            chromecast:
+              - 'apps/chromecast/**'
+              - 'packages/**'
+            discord-bot:
+              - 'apps/discord-bot/**'
+              - 'packages/**'
+
+  # Job 2: Quality checks (lint + typecheck)
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint & Typecheck
+        run: |
+          pnpm turbo lint typecheck
+
+      # Cache Turbo outputs for faster builds
+      - uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+  # Job 3: Build affected apps
+  build:
+    name: Build Apps
+    needs: [changes, quality]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [backend, frontend, chromecast, discord-bot]
+    steps:
+      - name: Check if app changed
+        id: changed
+        run: echo "changed=${{ needs.changes.outputs[matrix.app] }}" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v4
+        if: steps.changed.outputs.changed == 'true'
+
+      - uses: pnpm/action-setup@v4
+        if: steps.changed.outputs.changed == 'true'
+        with:
+          version: 10.13.1
+
+      - uses: actions/setup-node@v4
+        if: steps.changed.outputs.changed == 'true'
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install Bun (for Bun apps)
+        if: |
+          steps.changed.outputs.changed == 'true' &&
+          (matrix.app == 'backend' || matrix.app == 'discord-bot')
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        if: steps.changed.outputs.changed == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        if: steps.changed.outputs.changed == 'true'
+        run: pnpm turbo build --filter=@ourmusic/${{ matrix.app }}
+
+  # Job 4: Deploy to Koyeb (Backend + Discord Bot)
+  deploy-koyeb:
+    name: Deploy to Koyeb
+    needs: [changes, build]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    strategy:
+      matrix:
+        include:
+          - app: backend
+            service_id: ${{ secrets.KOYEB_BACKEND_SERVICE_ID }}
+          - app: discord-bot
+            service_id: ${{ secrets.KOYEB_DISCORD_BOT_SERVICE_ID }}
+    steps:
+      - name: Check if app changed
+        id: changed
+        run: echo "changed=${{ needs.changes.outputs[matrix.app] }}" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v4
+        if: steps.changed.outputs.changed == 'true'
+
+      - name: Install Koyeb CLI
+        if: steps.changed.outputs.changed == 'true'
+        run: |
+          curl -fsSL https://cli.koyeb.com/install.sh | sh
+          sudo mv koyeb /usr/local/bin/
+
+      - name: Deploy to Koyeb
+        if: steps.changed.outputs.changed == 'true'
+        env:
+          KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
+        run: |
+          koyeb service redeploy ${{ matrix.service_id }}
+
+  # Job 5: Deploy to Vercel (Frontend + Chromecast)
+  deploy-vercel:
+    name: Deploy to Vercel
+    needs: [changes, build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: frontend
+            vercel_project_id: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
+          - app: chromecast
+            vercel_project_id: ${{ secrets.VERCEL_CHROMECAST_PROJECT_ID }}
+    steps:
+      - name: Check if app changed
+        id: changed
+        run: echo "changed=${{ needs.changes.outputs[matrix.app] }}" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v4
+        if: steps.changed.outputs.changed == 'true'
+
+      - name: Deploy to Vercel
+        if: steps.changed.outputs.changed == 'true'
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ matrix.vercel_project_id }}
+          working-directory: apps/${{ matrix.app }}
+          vercel-args: ${{ github.ref == 'refs/heads/master' && '--prod' || '' }}
