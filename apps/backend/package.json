@@ -1,0 +1,45 @@
+{
+  "name": "@ourmusic/backend",
+  "version": "1.0.0",
+  "private": true,
+  "module": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "bun src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "reset:all": "bun run src/scripts/reset-all.js",
+    "db:generate": "bunx drizzle-kit generate",
+    "db:push": "DRIZZLE_KIT_NO_PROMPT=true bunx drizzle-kit push",
+    "seed:admin": "bun run src/scripts/seed-admin.js",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@elysiajs/cors": "^1.3.0",
+    "@elysiajs/cron": "^1.3.0",
+    "@ourmusic/shared-types": "workspace:*",
+    "@ourmusic/shared-utils": "workspace:*",
+    "axios": "^1.9.0",
+    "better-auth": "^1.2.7",
+    "cheerio": "^1.0.0",
+    "dayjs": "^1.11.13",
+    "drizzle-kit": "^0.31.4",
+    "drizzle-orm": "^0.41.0",
+    "elysia": "^1.3.0",
+    "html-to-text": "^9.0.5",
+    "nodemailer": "^6.10.1",
+    "pg": "^8.15.6",
+    "valibot": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/html-to-text": "^9.0.4",
+    "@types/node": "latest",
+    "@types/nodemailer": "latest",
+    "@types/pg": "latest",
+    "typescript": "^5.8.3"
+  }
+}

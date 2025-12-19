@@ -1,305 +1,195 @@
-# 🎵 OurMusic - Webradio Collaborative
+# 🎵 OurMusic
 
-Une webradio moderne avec interface React et backend TypeScript/Bun.
-
-## 🚀 Démarrage rapide
-
-### Prérequis
-- Docker & Docker Compose
-- Git
-
-### Installation
-
-1. **Cloner le projet**
-```bash
-git clone <repository-url>
-cd OurMusic
-```
-
-2. **Démarrer en développement**
-```bash
-./scripts/dev.sh
-```
-
-3. **Accéder à l'application**
-- 📱 Frontend: http://localhost:5174
-- 🔧 Backend: http://localhost:3001
-- 🗄️ Adminer: http://localhost:8081
-
-## 🛠️ Gestion des environnements
-
-### Script de gestion principal
-```bash
-./scripts/manage.sh [COMMAND] [ENVIRONMENT]
-```
-
-**Commandes disponibles :**
-- `start` - Démarrer l'environnement
-- `stop` - Arrêter l'environnement  
-- `restart` - Redémarrer l'environnement
-- `logs` - Voir les logs
-- `status` - Statut des services
-- `clean` - Nettoyer les conteneurs/images
-- `backup` - Créer une sauvegarde de la DB
-- `restore` - Restaurer une sauvegarde
-- `update` - Mettre à jour les images
-
-**Exemples :**
-```bash
-# Développement
-./scripts/manage.sh start dev
-./scripts/manage.sh logs dev backend
-./scripts/manage.sh backup dev
-
-# Production
-./scripts/manage.sh start prod
-./scripts/manage.sh logs prod
-./scripts/manage.sh backup prod
-```
+Une webradio moderne avec interface React et backend TypeScript/Bun, organisée en monorepo.
 
 ## 🏗️ Architecture
 
-### Services
-
-#### Développement (`docker-compose.dev.yml`)
-- **Database** (PostgreSQL 16) - Port 5433
-- **Backend** (Bun/TypeScript) - Port 3001 + Debug 9229
-- **Frontend** (Vite/React) - Port 5174
-- **Adminer** (DB Admin) - Port 8081
-
-#### Production (`docker-compose.prod.yml`)
-- **Database** (PostgreSQL 16) - Interne
-- **Backend** (Bun/TypeScript) - Via reverse proxy
-- **Frontend** (Nginx) - Via reverse proxy
-- **Watchtower** (Auto-updates)
-- **DB Backup** (Sauvegardes quotidiennes)
-
-### Structure des dossiers
 ```
-OurMusic/
-├── OurMusic-Backend/          # API Backend (Bun + TypeScript)
-├── OurMusic-frontend/         # Interface React (Vite + TypeScript)
-├── scripts/                   # Scripts de gestion
-├── database/                  # Sauvegardes DB
-├── docker-compose.yml         # Configuration Docker originale
-├── docker-compose.dev.yml     # Développement
-└── docker-compose.prod.yml    # Production
+ourmusic/
+├── apps/
+│   ├── backend/          # API Bun + Elysia + TypeScript
+│   └── frontend/         # Vite + React + TypeScript
+└── packages/
+    ├── shared-types/     # Types TypeScript partagés
+    ├── shared-utils/     # Utilitaires communs
+    └── eslint-config/    # Configuration ESLint
+```
+
+## 🚀 Quick Start
+
+### Prérequis
+- Node.js >=20
+- PNPM >=10.13.1
+- Bun (pour le backend)
+- PostgreSQL
+
+### Installation
+
+```bash
+# Installer les dépendances
+pnpm install
+
+# Configurer les environnements
+cp apps/backend/.env.example apps/backend/.env
+cp apps/frontend/.env.example apps/frontend/.env
+
+# Démarrer le projet
+pnpm dev
+```
+
+L'application sera disponible sur:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:3000
+
+## 📦 Packages
+
+### Apps
+
+#### @ourmusic/backend
+API REST avec Bun, Elysia, Drizzle ORM et Better Auth
+- **Port**: 3000
+- **Tech**: Bun, Elysia, PostgreSQL, Drizzle ORM
+- **Auth**: Better Auth (email + OAuth)
+
+#### @ourmusic/frontend
+Application React 19 avec Vite et Tailwind CSS
+- **Port**: 5173
+- **Tech**: React 19, Vite, Tailwind CSS, Zustand
+- **Features**: PWA, SSE real-time, React Query
+
+### Shared Packages
+
+#### @ourmusic/shared-types
+Types TypeScript partagés entre backend et frontend
+- User, Session, Account
+- LikedTrack, ScrapedTrack
+- SpotifyPlaylist, SpotifyTrack
+- API responses
+
+#### @ourmusic/shared-utils
+Utilitaires communs
+- Error handling
+- String utilities
+- Constants (genres, tags, roles)
+
+#### @ourmusic/eslint-config
+Configuration ESLint unifiée avec TypeScript strict
+
+## 🛠️ Commandes
+
+### Développement
+```bash
+pnpm dev              # Démarrer tous les apps
+pnpm dev:backend      # Backend uniquement
+pnpm dev:frontend     # Frontend uniquement
+```
+
+### Build
+```bash
+pnpm build            # Build tous les apps
+pnpm build:backend    # Build backend
+pnpm build:frontend   # Build frontend
+```
+
+### Qualité du code
+```bash
+pnpm lint             # Lint tous les packages
+pnpm lint:fix         # Fix automatiquement
+pnpm typecheck        # Vérification TypeScript
+pnpm format           # Formater avec Prettier
+```
+
+### Tests
+```bash
+pnpm test             # Tous les tests
+pnpm --filter @ourmusic/frontend test
+```
+
+### Base de données
+```bash
+pnpm --filter @ourmusic/backend db:generate    # Générer migrations
+pnpm --filter @ourmusic/backend db:push        # Appliquer migrations
+pnpm --filter @ourmusic/backend seed:admin     # Créer admin
 ```
 
 ## ⚙️ Configuration
 
-### Variables d'environnement
-
-**Backend (`.env`)**
+### Backend (.env)
 ```bash
-cp OurMusic-Backend/.env.example OurMusic-Backend/.env.dev
-cp OurMusic-Backend/.env.example OurMusic-Backend/.env.prod
+PORT=3000
+DATABASE_URL=postgresql://user:pass@localhost:5432/ourmusic
+BETTER_AUTH_SECRET=your-secret-key-min-32-chars
+BETTER_AUTH_URL=http://localhost:3000
+FRONTEND_BASE_URL=http://localhost:5173
+SPOTIFY_CLIENT_ID=your-spotify-client-id
+SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
 ```
 
-**Frontend (`.env`)**
+### Frontend (.env)
 ```bash
-cp OurMusic-frontend/.env.example OurMusic-frontend/.env.dev
-cp OurMusic-frontend/.env.example OurMusic-frontend/.env.prod
+VITE_API_BASE_URL=http://localhost:3000
+VITE_AZURACAST_BASE_URL=http://your-azuracast-url
+VITE_SITE_BASE_URL=http://localhost:5173
 ```
 
-**Docker Compose (`.env`)**
-```bash
-# Base de données
-DB_USER=youruser
-DB_PASSWORD=yourpassword
-DB_NAME=yourdbname
-```
+## 🎯 Features
 
-### Configuration minimum requise
+### Backend
+- ✅ Better Auth (email + OAuth)
+- ✅ Spotify API integration
+- ✅ Web scraping (Hypem)
+- ✅ Cron jobs (auto-sync)
+- ✅ TypeScript strict mode
+- ✅ Drizzle ORM
 
-**Backend (.env.dev/.env.prod) :**
-- `DATABASE_URL` - URL de connexion PostgreSQL
-- `BETTER_AUTH_SECRET` - Clé secrète (min 32 caractères)
-- `BETTER_AUTH_URL` - URL publique de l'API auth
-- `FRONTEND_BASE_URL` - URL du frontend
-- `SPOTIFY_CLIENT_ID/SECRET` - API Spotify (optionnel)
+### Frontend
+- ✅ React 19
+- ✅ Server-Sent Events (SSE)
+- ✅ React Query (cache)
+- ✅ Zustand (state)
+- ✅ Tailwind CSS
+- ✅ PWA ready
+- ✅ TypeScript strict
 
-**Frontend (.env.dev/.env.prod) :**
-- `VITE_API_BASE_URL` - URL de l'API backend
-- `VITE_AZURACAST_BASE_URL` - URL Azuracast (optionnel)
+## 📝 API Endpoints
 
-## 🔧 Développement
+### Authentication
+- `POST /api/auth/sign-in` - Connexion
+- `POST /api/auth/sign-up` - Inscription
+- `POST /api/auth/sign-out` - Déconnexion
+- `GET /api/auth/session` - Session courante
 
-### Hot Reload
-- **Backend** : Redémarrage automatique avec `--watch`
-- **Frontend** : Hot Module Replacement (HMR) avec Vite
-- **Database** : Volume persistant pour les données
+### Tracks
+- `GET /api/track/like` - Récupérer les morceaux aimés
+- `POST /api/track/like` - Ajouter un morceau
+- `DELETE /api/track/like/:id` - Supprimer un morceau
 
-### Debug
-- **Backend** : Port 9229 exposé pour Node.js debugging
-- **Frontend** : DevTools React + Vite
-- **Database** : Adminer sur http://localhost:8081
+### Spotify
+- `POST /api/spotify/sync-liked` - Synchroniser vers Spotify
+- `GET /api/live/spotify/sync` - Synchroniser playlists (Admin)
 
-### Tests
-```bash
-# Backend
-cd OurMusic-Backend
-bun run test
-bun run lint
-bun run typecheck
+### Utils
+- `GET /health` - Health check
+- `GET /` - API info
 
-# Frontend  
-cd OurMusic-frontend
-pnpm test
-pnpm run lint
-pnpm run typecheck
-```
+## 🔒 Sécurité
 
-## 🚀 Production
+- Better Auth pour l'authentification
+- Variables d'environnement pour les secrets
+- TypeScript strict mode
+- CORS configuré
+- Validation des données (Valibot)
 
-### Déploiement
+## 📄 License
 
-1. **Configurer les variables de production**
-```bash
-# Copier et modifier les fichiers .env.prod
-cp OurMusic-Backend/.env.example OurMusic-Backend/.env.prod
-cp OurMusic-frontend/.env.example OurMusic-frontend/.env.prod
-```
+MIT
 
-2. **Démarrer en production**
-```bash
-./scripts/prod.sh
-```
-
-### Fonctionnalités de production
-
-- **Sécurité** : Conteneurs non-root, read-only filesystems
-- **Performance** : Images Alpine optimisées, multi-stage builds
-- **Monitoring** : Health checks, resource limits
-- **Sauvegarde** : Backup automatique quotidien de la DB
-- **Auto-update** : Watchtower pour les mises à jour automatiques
-
-### Reverse Proxy
-
-Exemple de configuration Nginx :
-```nginx
-server {
-    listen 80;
-    server_name yourmusic.com;
-    
-    location / {
-        proxy_pass http://localhost:8080;  # Frontend
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-    
-    location /api {
-        proxy_pass http://localhost:3001;  # Backend
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
-```
-
-## 📊 Monitoring
-
-### Logs
-```bash
-# Tous les services
-./scripts/manage.sh logs dev
-
-# Service spécifique
-./scripts/manage.sh logs prod backend
-docker-compose -f docker-compose.prod.yml logs -f frontend
-```
-
-### Health Checks
-- **Database** : `pg_isready`
-- **Backend** : `GET /health`
-- **Frontend** : Nginx status
-
-### Métriques
-- Resource limits configurés dans Docker Compose
-- Health check intervals optimisés
-- Log rotation automatique
-
-## 🔐 Sécurité
-
-### Développement
-- Variables d'environnement isolées
-- Network isolation
-- Non-root containers en prod
-
-### Production
-- HTTPS recommandé (via reverse proxy)
-- Headers sécurisés configurés
-- Secrets management via Docker secrets (recommandé)
-- Backup encryption (à configurer)
-
-## 📝 Maintenance
-
-### Sauvegardes
-```bash
-# Créer une sauvegarde
-./scripts/manage.sh backup prod
-
-# Restaurer une sauvegarde
-./scripts/manage.sh restore prod backup_file.sql
-```
-
-### Mises à jour
-```bash
-# Mettre à jour les images
-./scripts/manage.sh update prod
-
-# Rebuild complet
-docker-compose -f docker-compose.prod.yml down
-docker-compose -f docker-compose.prod.yml up --build -d
-```
-
-### Nettoyage
-```bash
-# Nettoyer le système
-./scripts/manage.sh clean dev
-docker system prune -a
-```
-
-## 🆘 Dépannage
-
-### Problèmes courants
-
-**Base de données inaccessible :**
-```bash
-# Vérifier les logs
-./scripts/manage.sh logs dev db
-
-# Recréer le volume
-docker-compose -f docker-compose.dev.yml down -v
-./scripts/manage.sh start dev
-```
-
-**Port déjà utilisé :**
-```bash
-# Trouver le processus
-lsof -i :3001
-# Modifier les ports dans docker-compose.dev.yml si nécessaire
-```
-
-**Problème de permissions :**
-```bash
-# Fix permissions
-sudo chown -R $USER:$USER .
-```
-
-## 📋 Roadmap
-
-- [ ] CI/CD avec GitHub Actions
-- [ ] Kubernetes deployment configs
-- [ ] Prometheus/Grafana monitoring
-- [ ] SSL certificates automation
-- [ ] Multi-environment secrets management
-
-## 🤝 Contribution
+## 👥 Contribution
 
 1. Fork le projet
-2. Créer une branche feature (`git checkout -b feature/AmazingFeature`)
-3. Commit les changements (`git commit -m 'Add some AmazingFeature'`)
-4. Push sur la branche (`git push origin feature/AmazingFeature`)
+2. Créer une branche (`git checkout -b feature/amazing-feature`)
+3. Commit les changements (`git commit -m 'Add amazing feature'`)
+4. Push sur la branche (`git push origin feature/amazing-feature`)
 5. Ouvrir une Pull Request
 
 ---

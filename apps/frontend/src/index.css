@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Background colors - dark gradient theme inspired by music apps */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    /* Card colors with slight transparency */
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    
+    /* Popover colors */
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Primary colors - vibrant purple/pink gradient like Spotify/Apple Music */
+    --primary: 271 81% 56%;
+    --primary-foreground: 0 0% 98%;
+    
+    /* Secondary colors - deep blue */
+    --secondary: 240 5.9% 10%;
+    --secondary-foreground: 0 0% 98%;
+    
+    /* Muted colors */
+    --muted: 240 5.9% 10%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    /* Accent colors - bright cyan for highlights */
+    --accent: 191 91% 56%;
+    --accent-foreground: 240 5.9% 10%;
+    
+    /* Destructive colors */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    
+    /* Border and input colors */
+    --border: 240 5.9% 20%;
+    --input: 240 5.9% 20%;
+    --ring: 271 81% 56%;
+    
+    /* Chart colors inspired by music visualization */
+    --chart-1: 271 81% 56%;
+    --chart-2: 191 91% 56%;
+    --chart-3: 142 71% 45%;
+    --chart-4: 41 96% 40%;
+    --chart-5: 0 84.2% 60.2%;
+    
+    /* Music player specific colors */
+    --player-bg: 240 10% 2%;
+    --player-card: 240 8% 8%;
+    --progress-bg: 240 5.9% 20%;
+    --volume-bg: 240 5.9% 15%;
+    
+    /* Gradient backgrounds */
+    --gradient-primary: linear-gradient(135deg, hsl(271 81% 56%) 0%, hsl(191 91% 56%) 100%);
+    --gradient-player: linear-gradient(145deg, hsl(240 10% 2%) 0%, hsl(240 8% 8%) 100%);
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background-color: hsl(var(--muted));
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--primary));
+    border-radius: 9999px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary) / 0.8);
+  }
+}
+
+/* Custom range slider styles for audio player */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-track {
+  background-color: hsl(var(--progress-bg));
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 1rem;
+  width: 1rem;
+  border-radius: 9999px;
+  background-color: hsl(var(--primary));
+  border: 0;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  margin-top: -4px;
+}
+
+input[type="range"]::-moz-range-track {
+  background-color: hsl(var(--progress-bg));
+  height: 0.5rem;
+  border-radius: 9999px;
+  border: 0;
+}
+
+input[type="range"]::-moz-range-thumb {
+  height: 1rem;
+  width: 1rem;
+  border-radius: 9999px;
+  background-color: hsl(var(--primary));
+  border: 0;
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  margin-top: -6px;
+}
+
+/* Music visualization bars animation */
+@keyframes music-bar {
+  0%, 100% { height: 4px; }
+  50% { height: 20px; }
+}
+
+.music-bar {
+  animation: music-bar 0.6s ease-in-out infinite;
+}
+
+.music-bar:nth-child(2) { animation-delay: 0.1s; }
+.music-bar:nth-child(3) { animation-delay: 0.2s; }
+.music-bar:nth-child(4) { animation-delay: 0.3s; }
+.music-bar:nth-child(5) { animation-delay: 0.4s; }
+
+/* Glass morphism effect for cards */
+.glass {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Neon glow effect for active elements */
+.neon-glow {
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
+}
+
+/* Floating animation for elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Pulse animation for live indicators */
+@keyframes pulse-live {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.pulse-live {
+  animation: pulse-live 2s ease-in-out infinite;
+}

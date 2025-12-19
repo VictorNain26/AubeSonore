@@ -1,2 +1,55 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.cache/
+*.log
+
+# Environment
 .env
-.git
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Lock files (keep pnpm-lock.yaml at root only)
+apps/*/pnpm-lock.yaml
+packages/*/pnpm-lock.yaml
+apps/*/bun.lock
+packages/*/bun.lock
+
+# Process files
+*.pid
+*.seed
+
+# Drizzle
+drizzle/migrations/meta/
+
+# Testing
+coverage/
+
+# Temporary
+temp-*/
+*.tmp
+
+# Documentation interne (ne pas commiter)
+CLAUDE.md
+MIGRATION.md
+*.local.md
+
+# Logs et process
+*.log
+*.pid
