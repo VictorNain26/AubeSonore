@@ -17,22 +17,24 @@ function hasError(data: unknown): data is { error: string } {
 }
 
 export const trackRoutes = new Elysia({ prefix: '/api/track' })
-  .macro({
-    auth: {
-      async resolve({ error, request: { headers } }): Promise<{ user: User; session: Session }> {
-        const session = await auth.api.getSession({ headers });
-        if (!session) {
-          return error(401);
-        }
-        return { user: session.user as User, session: session.session as Session };
-      },
-    },
+  // Helper to get session
+  .derive(async ({ request: { headers } }): Promise<{ user?: User; session?: Session }> => {
+    const sessionData = await auth.api.getSession({ headers });
+    if (!sessionData) {
+      return {};
+    }
+    return { user: sessionData.user as User, session: sessionData.session as Session };
   })
 
   // ✅ Liker un morceau
   .post(
     '/like',
-    async ({ user, body }): Promise<ServiceResponse> => {
+    async ({ user, body, set }): Promise<ServiceResponse> => {
+      if (!user) {
+        set.status = 401;
+        return { error: 'Unauthorized' };
+      }
+
       const data = validateBody(likeTrackSchema, body);
       if (hasError(data)) {
         return data;
@@ -40,32 +42,28 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
 
       return trackService.likeTrack({ user, body: data });
     },
-    {
-      auth: true,
-    },
   )
 
   // ✅ Récupérer les morceaux likés
-  .get(
-    '/like',
-    async ({ user }): Promise<LikedTrack[]> => trackService.getLikedTracks({ user }),
-    {
-      auth: true,
-    },
-  )
+  .get('/like', async ({ user, set }): Promise<LikedTrack[] | { error: string }> => {
+    if (!user) {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
+    return trackService.getLikedTracks({ user });
+  })
 
   // ✅ Supprimer un morceau liké
-  .delete(
-    '/like/:trackId',
-    async ({ user, params }): Promise<ServiceResponse> => {
-      const { trackId } = params;
-      if (!trackId || typeof trackId !== 'string') {
-        return { status: 400, error: 'ID invalide' };
-      }
+  .delete('/like/:trackId', async ({ user, params, set }): Promise<ServiceResponse> => {
+    if (!user) {
+      set.status = 401;
+      return { error: 'Unauthorized' };
+    }
 
-      return trackService.unlikeTrack({ user, id: trackId });
-    },
-    {
-      auth: true,
-    },
-  );
+    const { trackId } = params;
+    if (!trackId || typeof trackId !== 'string') {
+      return { status: 400, error: 'ID invalide' };
+    }
+
+    return trackService.unlikeTrack({ user, id: trackId });
+  });

@@ -1,7 +1,7 @@
-import { Client, GatewayIntentBits, GuildMember, PermissionsBitField } from 'discord.js';
+import { Client, GatewayIntentBits, GuildMember, PermissionsBitField, ActivityType } from 'discord.js';
 import { joinVoiceChannel, createAudioPlayer, createAudioResource, AudioPlayerStatus, VoiceConnection, AudioPlayer } from '@discordjs/voice';
 import { EventSource } from 'eventsource';
-import type { SSENowPlayingData } from '@ourmusic/shared-types';
+import type { AzuracastNowPlaying } from '@ourmusic/shared-types';
 
 const {
   DISCORD_BOT_TOKEN,
@@ -18,7 +18,7 @@ const client = new Client({
 });
 
 interface BotState {
-  nowPlaying: SSENowPlayingData | null;
+  nowPlaying: AzuracastNowPlaying | null;
   isPlaying: boolean;
   trackElapsed: number;
   trackDuration: number;
@@ -47,9 +47,9 @@ function connectSSE(): void {
 
   sse.onmessage = (e): void => {
     if (e.data.trim() === '.') return;
-    let jsonData: { pub?: { data?: { np: SSENowPlayingData } } };
+    let jsonData: { pub?: { data?: { np: AzuracastNowPlaying } } };
     try {
-      jsonData = JSON.parse(e.data) as { pub?: { data?: { np: SSENowPlayingData } } };
+      jsonData = JSON.parse(e.data) as { pub?: { data?: { np: AzuracastNowPlaying } } };
     } catch (err) {
       console.error("🚨 Erreur de parsing JSON SSE:", err);
       return;
@@ -70,7 +70,7 @@ function connectSSE(): void {
 
 connectSSE();
 
-client.on('interactionCreate', async (interaction) => {
+client.on('interactionCreate', async (interaction): Promise<void> => {
   if (!interaction.isChatInputCommand()) return;
 
   const { commandName } = interaction;
@@ -78,11 +78,18 @@ client.on('interactionCreate', async (interaction) => {
   try {
     if (commandName === 'play') {
       if (!interaction.member || !(interaction.member instanceof GuildMember) || !interaction.member.voice?.channel) {
-        return interaction.reply('Vous devez être dans un salon vocal !');
+        await interaction.reply('Vous devez être dans un salon vocal !');
+        return;
+      }
+
+      if (!interaction.guild || !interaction.guild.members.me) {
+        await interaction.reply("Impossible d'accéder aux informations du serveur.");
+        return;
       }
 
       if (!interaction.guild.members.me.permissions.has([PermissionsBitField.Flags.Connect, PermissionsBitField.Flags.Speak])) {
-        return interaction.reply("Je n'ai pas les permissions nécessaires pour rejoindre et parler dans le salon vocal.");
+        await interaction.reply("Je n'ai pas les permissions nécessaires pour rejoindre et parler dans le salon vocal.");
+        return;
       }
 
       currentState.connection = joinVoiceChannel({
@@ -93,7 +100,8 @@ client.on('interactionCreate', async (interaction) => {
 
       const streamUrl = currentState.nowPlaying?.station?.listen_url;
       if (!streamUrl) {
-        return interaction.reply("L'URL de diffusion de la station n'est pas disponible.");
+        await interaction.reply("L'URL de diffusion de la station n'est pas disponible.");
+        return;
       }
 
       currentState.player = createAudioPlayer();
@@ -102,16 +110,19 @@ client.on('interactionCreate', async (interaction) => {
       currentState.connection.subscribe(currentState.player);
 
       currentState.player.on(AudioPlayerStatus.Idle, () => {
-        currentState.player.play(createAudioResource(streamUrl, { inlineVolume: true }));
+        if (currentState.player) {
+          currentState.player.play(createAudioResource(streamUrl, { inlineVolume: true }));
+        }
       });
 
       currentState.isPlaying = true;
       const song = currentState.nowPlaying?.now_playing?.song;
       await interaction.reply(`Lecture en cours: **${song?.artist || 'Inconnu'} - ${song?.title || 'Inconnu'}**`);
+      return;
     }
 
     if (commandName === 'stop') {
-      if (currentState.connection) {
+      if (currentState.connection && currentState.player) {
         currentState.player.stop();
         currentState.connection.destroy();
         currentState.connection = null;
@@ -120,10 +131,12 @@ client.on('interactionCreate', async (interaction) => {
       } else {
         await interaction.reply('Aucune lecture en cours.');
       }
+      return;
     }
 
     if (commandName === 'setVolume') {
       await interaction.reply('Cette commande n\'est pas encore supportée pour Discord.');
+      return;
     }
 
     if (commandName === 'info') {
@@ -131,6 +144,7 @@ client.on('interactionCreate', async (interaction) => {
       await interaction.reply(
         `🎵 **Now Playing:** ${song?.artist || 'Inconnu'} - ${song?.title || 'Inconnu'}`
       );
+      return;
     }
   } catch (error) {
     console.error("🚨 Erreur lors du traitement de la commande:", error);
@@ -138,12 +152,22 @@ client.on('interactionCreate', async (interaction) => {
   }
 });
 
-client.once('ready', async () => {
+client.once('ready', async (): Promise<void> => {
+  if (!client.user) {
+    console.error('🚨 Client user is null');
+    return;
+  }
+
   console.log(`✅ Bot connecté en tant que ${client.user.tag}`);
   client.user.setPresence({
-    activities: [{ name: 'Radio en direct 🎵', type: 'LISTENING' }],
+    activities: [{ name: 'Radio en direct 🎵', type: ActivityType.Listening }],
     status: 'online',
   });
+
+  if (!client.application) {
+    console.error('🚨 Client application is null');
+    return;
+  }
 
   try {
     const commands = [

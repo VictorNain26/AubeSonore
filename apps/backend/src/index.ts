@@ -2,9 +2,7 @@ import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { env } from './config/env';
 import { betterAuthPlugin } from './lib/auth/betterAuthPlugin';
-import { spotifyRoutes } from './routes/spotify.routes';
 import { trackRoutes } from './routes/track.routes';
-import { spotifySyncRoutes } from './routes/spotify-sync.routes';
 
 const app = new Elysia();
 
@@ -33,8 +31,6 @@ app.use(betterAuthPlugin);
 
 // ✅ Routes
 app.use(trackRoutes);
-app.use(spotifyRoutes);
-app.use(spotifySyncRoutes);
 
 // ✅ Healthcheck
 app.get('/health', (): { status: string; uptime: number } => ({
@@ -62,35 +58,6 @@ app.onAfterHandle(({ request }): void => {
     `[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → 200`,
   );
 });
-
-// ✅ CRON : uniquement si activé
-if (env.ENABLE_CRON) {
-  const { cron } = await import('@elysiajs/cron');
-  const { runSpotifyCronSync } = await import('./jobs/spotify.cron');
-  const { runScrapeCronJob } = await import('./jobs/scrape.cron');
-
-  app.use(
-    cron({
-      name: 'spotify-sync',
-      pattern: '0 3 * * 1',
-      run: async (): Promise<void> => {
-        console.log('[CRON] 🎧 Tâche cron Spotify sync');
-        await runSpotifyCronSync();
-      },
-    }),
-  );
-
-  app.use(
-    cron({
-      name: 'scrape-task',
-      pattern: '0 3 * * 0,3',
-      run: async (): Promise<void> => {
-        console.log('[CRON] 🔎 Tâche cron scraping HypeMachine');
-        await runScrapeCronJob();
-      },
-    }),
-  );
-}
 
 // ✅ Lancement du serveur
 app.listen({ port: env.PORT, hostname: '0.0.0.0' });

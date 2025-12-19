@@ -23,8 +23,11 @@ export interface AzuracastNowPlaying {
   station: {
     id: number;
     name: string;
+    listen_url?: string;
   };
   now_playing: {
+    elapsed: number;
+    duration: number;
     song: {
       id: string;
       text: string;

@@ -1,3 +1,4 @@
+import React from 'react';
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
@@ -17,7 +18,7 @@ export const metadata = {
   description: "Receiver personnalisé pour OurMusic Chromecast",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }): JSX.Element {
+export default function RootLayout({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
     <html lang="en">
       <head>
