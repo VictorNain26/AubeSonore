@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
 import { Button } from './ui/button';
-import { motion, AnimatePresence, useAnimation, AnimationControls } from 'framer-motion';
+import { motion, AnimatePresence, useAnimation } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { useLikedTracks, LikedTrack } from '../hooks/useLikedTracks';
+import { useLikedTracks } from '../hooks/useLikedTracks';
+import type { LikedTrack } from '../hooks/useLikedTracks';
 
 const LikedTracksList: React.FC = () => {
   const { likedTracks, isLoading, isError, handleDelete } = useLikedTracks();
-  const controls: AnimationControls = useAnimation();
+  const controls = useAnimation();
   const [ref, inView] = useInView({ threshold: 0.2, triggerOnce: true });
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useLikedTracks, LikedTrack } from '../hooks/useLikedTracks';
+import { useLikedTracks } from '../hooks/useLikedTracks';
+import type { LikedTrack } from '../hooks/useLikedTracks';
 import TrackLikeButton from './TrackLikeButton';
 import { Button } from './ui/button';
 import { useAuth } from '../hooks/useAuth';

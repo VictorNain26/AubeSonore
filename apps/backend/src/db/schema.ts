@@ -1,5 +1,5 @@
 import { pgTable, text, timestamp, unique, boolean } from 'drizzle-orm/pg-core';
-import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 // ─────────────────────────────────────────────
 // USER TABLE

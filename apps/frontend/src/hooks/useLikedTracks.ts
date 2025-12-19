@@ -1,9 +1,10 @@
-import { useQuery, useMutation, useQueryClient, UseMutationResult } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { UseMutationResult } from '@tanstack/react-query';
 import { apiFetch } from '../utils/api';
 import { toast } from 'react-hot-toast';
 import { authClient } from '../lib/authClient';
 import { useEffect } from 'react';
-import { Session } from './useAuth';
+import type { Session } from './useAuth';
 
 export interface LikedTrack {
   id: string;

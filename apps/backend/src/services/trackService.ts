@@ -1,7 +1,7 @@
 import { db, schema } from '../db/index';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
-import { User, LikedTrack } from '../db/schema';
+import type { User, LikedTrack } from '../db/schema';
 
 interface TrackBody {
   title: string;

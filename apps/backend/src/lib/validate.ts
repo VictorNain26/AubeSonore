@@ -1,4 +1,5 @@
-import { safeParse, BaseSchema, BaseIssue } from 'valibot';
+import { safeParse } from 'valibot';
+import type { BaseSchema, BaseIssue } from 'valibot';
 
 interface ValidationError {
   status: number;

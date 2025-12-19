@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { useLikedTracks } from '../hooks/useLikedTracks';
 import { motion } from 'framer-motion';
 import { authClient } from '../lib/authClient';
-import { Session } from '../hooks/useAuth';
+import type { Session } from '../hooks/useAuth';
 
 export interface Track {
   title: string;
