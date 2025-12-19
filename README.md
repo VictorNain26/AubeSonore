@@ -8,7 +8,9 @@ Une webradio moderne avec interface React et backend TypeScript/Bun, organisée 
 ourmusic/
 ├── apps/
 │   ├── backend/          # API Bun + Elysia + TypeScript
-│   └── frontend/         # Vite + React + TypeScript
+│   ├── frontend/         # Vite + React + TypeScript
+│   ├── chromecast/       # Next.js Chromecast receiver
+│   └── discord-bot/      # Bot Discord Bun + discord.js
 └── packages/
     ├── shared-types/     # Types TypeScript partagés
     ├── shared-utils/     # Utilitaires communs
@@ -40,6 +42,8 @@ pnpm dev
 L'application sera disponible sur:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:3000
+- Chromecast Receiver: http://localhost:3001
+- Discord Bot: exécute automatiquement
 
 ## 📦 Packages
 
@@ -56,6 +60,17 @@ Application React 19 avec Vite et Tailwind CSS
 - **Port**: 5173
 - **Tech**: React 19, Vite, Tailwind CSS, Zustand
 - **Features**: PWA, SSE real-time, React Query
+
+#### @ourmusic/chromecast
+Application Next.js pour Chromecast receiver
+- **Port**: 3001
+- **Tech**: Next.js 15, React 19, Tailwind CSS
+- **Features**: SSE real-time, Cast SDK, Auto-play
+
+#### @ourmusic/discord-bot
+Bot Discord pour streamer la radio
+- **Tech**: Bun, discord.js, @discordjs/voice
+- **Features**: Commandes /play, /stop, /info, SSE real-time
 
 ### Shared Packages
 
@@ -79,16 +94,20 @@ Configuration ESLint unifiée avec TypeScript strict
 
 ### Développement
 ```bash
-pnpm dev              # Démarrer tous les apps
-pnpm dev:backend      # Backend uniquement
-pnpm dev:frontend     # Frontend uniquement
+pnpm dev                 # Démarrer tous les apps
+pnpm dev:backend         # Backend uniquement
+pnpm dev:frontend        # Frontend uniquement
+pnpm dev:chromecast      # Chromecast receiver uniquement
+pnpm dev:discord-bot     # Discord bot uniquement
 ```
 
 ### Build
 ```bash
-pnpm build            # Build tous les apps
-pnpm build:backend    # Build backend
-pnpm build:frontend   # Build frontend
+pnpm build               # Build tous les apps
+pnpm build:backend       # Build backend
+pnpm build:frontend      # Build frontend
+pnpm build:chromecast    # Build chromecast
+pnpm build:discord-bot   # Build discord-bot
 ```
 
 ### Qualité du code
@@ -132,6 +151,12 @@ VITE_AZURACAST_BASE_URL=http://your-azuracast-url
 VITE_SITE_BASE_URL=http://localhost:5173
 ```
 
+### Discord Bot (.env)
+```bash
+DISCORD_BOT_TOKEN=your-discord-bot-token
+AZURACAST_SSE_URL=http://your-azuracast-url/api/live/nowplaying/sse
+```
+
 ## 🎯 Features
 
 ### Backend
@@ -149,6 +174,20 @@ VITE_SITE_BASE_URL=http://localhost:5173
 - ✅ Zustand (state)
 - ✅ Tailwind CSS
 - ✅ PWA ready
+- ✅ TypeScript strict
+
+### Chromecast
+- ✅ Next.js 15 with Turbopack
+- ✅ Cast Receiver Framework
+- ✅ SSE real-time updates
+- ✅ Auto-play audio stream
+- ✅ Blurred background artwork
+
+### Discord Bot
+- ✅ Voice streaming
+- ✅ SSE real-time updates
+- ✅ Slash commands
+- ✅ Auto-reconnect
 - ✅ TypeScript strict
 
 ## 📝 API Endpoints

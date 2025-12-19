@@ -1,0 +1,29 @@
+{
+  "name": "@ourmusic/discord-bot",
+  "version": "1.0.0",
+  "private": true,
+  "module": "src/index.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "bun src/index.ts",
+    "start": "bun src/index.ts",
+    "build": "bun build src/index.ts --outdir dist --target bun",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@discordjs/opus": "^0.10.0",
+    "@discordjs/voice": "^0.18.0",
+    "@ourmusic/shared-types": "workspace:*",
+    "@ourmusic/shared-utils": "workspace:*",
+    "discord.js": "^14.18.0",
+    "eventsource": "^3.0.5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/eventsource": "^1.1.15",
+    "typescript": "^5.8.3"
+  }
+}
