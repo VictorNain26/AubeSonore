@@ -18,7 +18,8 @@
       "mcp__koyeb__create-app",
       "mcp__koyeb__list-deployments",
       "mcp__koyeb__query-logs",
-      "Bash(pnpm typecheck:*)"
+      "Bash(pnpm typecheck:*)",
+      "Bash(git restore:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -15,7 +15,6 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@microsoft/fetch-event-source": "^2.0.1",
     "@ourmusic/shared-types": "workspace:*",
     "@ourmusic/shared-utils": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.14",
