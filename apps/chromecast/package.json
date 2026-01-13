@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@ourmusic/shared-types": "workspace:*",
-    "next": "15.1.7",
+    "next": "15.4.10",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },
