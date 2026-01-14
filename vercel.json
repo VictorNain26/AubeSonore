@@ -1,9 +1,15 @@
 {
-  "buildCommand": "cd ../.. && pnpm turbo build --filter=@ourmusic/chromecast",
-  "outputDirectory": ".next",
-  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
-  "framework": "nextjs",
-  "devCommand": "pnpm dev",
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "buildCommand": "pnpm turbo build --filter=@ourmusic/frontend",
+  "installCommand": "pnpm install --frozen-lockfile",
+  "outputDirectory": "apps/frontend/dist",
+  "framework": "vite",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -23,7 +29,7 @@
       ]
     },
     {
-      "source": "/_next/static/(.*)",
+      "source": "/assets/(.*)",
       "headers": [
         {
           "key": "Cache-Control",

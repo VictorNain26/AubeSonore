@@ -26,10 +26,10 @@ export const auth = betterAuth({
 
   advanced: {
     useSecureCookies: isProd,
-    crossSubDomainCookies: isProd
+    crossSubDomainCookies: isProd && env.COOKIE_DOMAIN
       ? {
         enabled: true,
-        domain: 'ourmusic-api.ovh',
+        domain: env.COOKIE_DOMAIN,
       }
       : { enabled: false },
     defaultCookieAttributes: {
@@ -51,7 +51,7 @@ export const auth = betterAuth({
   // Auth par email / mot de passe
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: true,
+    requireEmailVerification: false,
 
     sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }): Promise<void> => {
       await sendBetterAuthEmail({
@@ -66,7 +66,7 @@ export const auth = betterAuth({
   },
 
   emailVerification: {
-    sendOnSignUp: true,
+    sendOnSignUp: false,
     autoSignInAfterVerification: true,
 
     sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }): Promise<void> => {
@@ -90,11 +90,15 @@ export const auth = betterAuth({
   account: {
     accountLinking: {
       enabled: true,
-      trustedProviders: ['spotify'],
+      trustedProviders: ['google', 'spotify'],
     },
   },
 
   socialProviders: {
+    google: {
+      clientId: env.GOOGLE_CLIENT_ID ?? '',
+      clientSecret: env.GOOGLE_CLIENT_SECRET ?? '',
+    },
     spotify: {
       clientId: process.env.SPOTIFY_CLIENT_ID ?? '',
       clientSecret: process.env.SPOTIFY_CLIENT_SECRET ?? '',

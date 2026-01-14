@@ -63,8 +63,7 @@ app.onAfterHandle(({ request }): void => {
 app.listen({ port: env.PORT, hostname: '0.0.0.0' });
 
 console.log('\n✅ OurMusic Backend est lancé et accessible :');
-console.log(`➡️ Local : http://localhost:${env.PORT}`);
-console.log('➡️ Prod  : https://ourmusic-api.ovh\n');
+console.log(`➡️ URL : http://localhost:${env.PORT}\n`);
 
 // 🔥 Gestion erreurs fatales
 process.on('uncaughtException', (err: Error): void => {

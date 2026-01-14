@@ -24,8 +24,6 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
-      chromecast: ${{ steps.filter.outputs.chromecast }}
-      discord-bot: ${{ steps.filter.outputs.discord-bot }}
     steps:
       - uses: actions/checkout@v4
 
@@ -38,12 +36,6 @@ jobs:
               - 'packages/**'
             frontend:
               - 'apps/frontend/**'
-              - 'packages/**'
-            chromecast:
-              - 'apps/chromecast/**'
-              - 'packages/**'
-            discord-bot:
-              - 'apps/discord-bot/**'
               - 'packages/**'
 
   # Job 2: Quality checks (lint + typecheck)
@@ -84,7 +76,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        app: [backend, frontend, chromecast, discord-bot]
+        app: [backend, frontend]
     steps:
       - name: Check if app changed
         id: changed
@@ -104,10 +96,10 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
-      - name: Install Bun (for Bun apps)
+      - name: Install Bun (for Backend)
         if: |
           steps.changed.outputs.changed == 'true' &&
-          (matrix.app == 'backend' || matrix.app == 'discord-bot')
+          matrix.app == 'backend'
         uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
@@ -118,66 +110,40 @@ jobs:
         if: steps.changed.outputs.changed == 'true'
         run: pnpm turbo build --filter=@ourmusic/${{ matrix.app }}
 
-  # Job 4: Deploy to Koyeb (Backend + Discord Bot)
+  # Job 4: Deploy to Koyeb (Backend)
   deploy-koyeb:
     name: Deploy to Koyeb
     needs: [changes, build]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/master'
-    strategy:
-      matrix:
-        include:
-          - app: backend
-            service_id: ${{ secrets.KOYEB_BACKEND_SERVICE_ID }}
-          - app: discord-bot
-            service_id: ${{ secrets.KOYEB_DISCORD_BOT_SERVICE_ID }}
+    if: github.ref == 'refs/heads/master' && needs.changes.outputs.backend == 'true'
     steps:
-      - name: Check if app changed
-        id: changed
-        run: echo "changed=${{ needs.changes.outputs[matrix.app] }}" >> $GITHUB_OUTPUT
-
       - uses: actions/checkout@v4
-        if: steps.changed.outputs.changed == 'true'
 
       - name: Install Koyeb CLI
-        if: steps.changed.outputs.changed == 'true'
         run: |
           curl -fsSL https://cli.koyeb.com/install.sh | sh
           sudo mv koyeb /usr/local/bin/
 
       - name: Deploy to Koyeb
-        if: steps.changed.outputs.changed == 'true'
         env:
           KOYEB_TOKEN: ${{ secrets.KOYEB_TOKEN }}
         run: |
-          koyeb service redeploy ${{ matrix.service_id }}
+          koyeb service redeploy ${{ secrets.KOYEB_BACKEND_SERVICE_ID }}
 
-  # Job 5: Deploy to Vercel (Frontend + Chromecast)
+  # Job 5: Deploy to Vercel (Frontend)
   deploy-vercel:
     name: Deploy to Vercel
     needs: [changes, build]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - app: frontend
-            vercel_project_id: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
-          - app: chromecast
-            vercel_project_id: ${{ secrets.VERCEL_CHROMECAST_PROJECT_ID }}
+    if: github.ref == 'refs/heads/master' && needs.changes.outputs.frontend == 'true'
     steps:
-      - name: Check if app changed
-        id: changed
-        run: echo "changed=${{ needs.changes.outputs[matrix.app] }}" >> $GITHUB_OUTPUT
-
       - uses: actions/checkout@v4
-        if: steps.changed.outputs.changed == 'true'
 
       - name: Deploy to Vercel
-        if: steps.changed.outputs.changed == 'true'
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ matrix.vercel_project_id }}
-          working-directory: apps/${{ matrix.app }}
-          vercel-args: ${{ github.ref == 'refs/heads/master' && '--prod' || '' }}
+          vercel-project-id: ${{ secrets.VERCEL_FRONTEND_PROJECT_ID }}
+          working-directory: apps/frontend
+          vercel-args: '--prod'

@@ -1,51 +1,74 @@
-# 🎵 OurMusic
+# OurMusic
 
-Une webradio moderne avec interface React et backend TypeScript/Bun, organisée en monorepo.
+Une webradio moderne avec interface React et backend TypeScript/Bun, organisee en monorepo.
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ourmusic/
 ├── apps/
 │   ├── backend/          # API Bun + Elysia + TypeScript
-│   ├── frontend/         # Vite + React + TypeScript
-│   ├── chromecast/       # Next.js Chromecast receiver
-│   └── discord-bot/      # Bot Discord Bun + discord.js
-└── packages/
-    ├── shared-types/     # Types TypeScript partagés
-    ├── shared-utils/     # Utilitaires communs
-    └── eslint-config/    # Configuration ESLint
+│   └── frontend/         # Vite + React + TypeScript
+├── packages/
+│   ├── shared-types/     # Types TypeScript partages
+│   ├── shared-utils/     # Utilitaires communs
+│   └── logger/           # Logging utilities
+├── docker-compose.yml    # Production Docker
+└── docker-compose.dev.yml # Development (DB only)
 ```
 
-## 🚀 Quick Start
+## Quick Start
 
-### Prérequis
+### Prerequis
 - Node.js >=20
 - PNPM >=10.13.1
 - Bun (pour le backend)
-- PostgreSQL
+- Docker & Docker Compose (optionnel)
 
-### Installation
+### Installation locale
 
 ```bash
-# Installer les dépendances
+# Installer les dependances
 pnpm install
 
 # Configurer les environnements
 cp apps/backend/.env.example apps/backend/.env
 cp apps/frontend/.env.example apps/frontend/.env
 
-# Démarrer le projet
+# Demarrer PostgreSQL (via Docker)
+docker compose -f docker-compose.dev.yml up -d
+
+# Appliquer les migrations
+pnpm --filter @ourmusic/backend db:push
+
+# Demarrer le projet
 pnpm dev
 ```
 
 L'application sera disponible sur:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:3000
-- Chromecast Receiver: http://localhost:3001
-- Discord Bot: exécute automatiquement
 
-## 📦 Packages
+### Demarrage avec Docker (Production)
+
+```bash
+# Copier et configurer les variables d'environnement
+cp .env.example .env
+# Editer .env avec vos valeurs
+
+# Demarrer tous les services
+docker compose up -d
+
+# Voir les logs
+docker compose logs -f
+```
+
+Services disponibles:
+- Frontend: http://localhost:8080
+- Backend API: http://localhost:3000
+- PostgreSQL: localhost:5432
+
+## Packages
 
 ### Apps
 
@@ -53,52 +76,33 @@ L'application sera disponible sur:
 API REST avec Bun, Elysia, Drizzle ORM et Better Auth
 - **Port**: 3000
 - **Tech**: Bun, Elysia, PostgreSQL, Drizzle ORM
-- **Auth**: Better Auth (email + OAuth)
+- **Auth**: Better Auth (email + Google OAuth + Spotify OAuth)
+- **Features**: HypeMachine scraping, Spotify sync
 
 #### @ourmusic/frontend
 Application React 19 avec Vite et Tailwind CSS
-- **Port**: 5173
+- **Port**: 5173 (dev) / 8080 (docker)
 - **Tech**: React 19, Vite, Tailwind CSS, Zustand
 - **Features**: PWA, SSE real-time, React Query
-
-#### @ourmusic/chromecast
-Application Next.js pour Chromecast receiver
-- **Port**: 3001
-- **Tech**: Next.js 15, React 19, Tailwind CSS
-- **Features**: SSE real-time, Cast SDK, Auto-play
-
-#### @ourmusic/discord-bot
-Bot Discord pour streamer la radio
-- **Tech**: Bun, discord.js, @discordjs/voice
-- **Features**: Commandes /play, /stop, /info, SSE real-time
 
 ### Shared Packages
 
 #### @ourmusic/shared-types
-Types TypeScript partagés entre backend et frontend
-- User, Session, Account
-- LikedTrack, ScrapedTrack
-- SpotifyPlaylist, SpotifyTrack
-- API responses
+Types TypeScript partages entre backend et frontend
 
 #### @ourmusic/shared-utils
-Utilitaires communs
-- Error handling
-- String utilities
-- Constants (genres, tags, roles)
+Utilitaires communs (error handling, string utils, constants)
 
-#### @ourmusic/eslint-config
-Configuration ESLint unifiée avec TypeScript strict
+#### @ourmusic/logger
+Logging utilities
 
-## 🛠️ Commandes
+## Commandes
 
-### Développement
+### Developpement
 ```bash
-pnpm dev                 # Démarrer tous les apps
+pnpm dev                 # Demarrer tous les apps
 pnpm dev:backend         # Backend uniquement
 pnpm dev:frontend        # Frontend uniquement
-pnpm dev:chromecast      # Chromecast receiver uniquement
-pnpm dev:discord-bot     # Discord bot uniquement
 ```
 
 ### Build
@@ -106,131 +110,120 @@ pnpm dev:discord-bot     # Discord bot uniquement
 pnpm build               # Build tous les apps
 pnpm build:backend       # Build backend
 pnpm build:frontend      # Build frontend
-pnpm build:chromecast    # Build chromecast
-pnpm build:discord-bot   # Build discord-bot
 ```
 
-### Qualité du code
+### Qualite du code
 ```bash
 pnpm lint             # Lint tous les packages
 pnpm lint:fix         # Fix automatiquement
-pnpm typecheck        # Vérification TypeScript
+pnpm typecheck        # Verification TypeScript
 pnpm format           # Formater avec Prettier
 ```
 
-### Tests
+### Base de donnees
 ```bash
-pnpm test             # Tous les tests
-pnpm --filter @ourmusic/frontend test
-```
-
-### Base de données
-```bash
-pnpm --filter @ourmusic/backend db:generate    # Générer migrations
+pnpm --filter @ourmusic/backend db:generate    # Generer migrations
 pnpm --filter @ourmusic/backend db:push        # Appliquer migrations
-pnpm --filter @ourmusic/backend seed:admin     # Créer admin
+pnpm --filter @ourmusic/backend seed:admin     # Creer admin
 ```
 
-## ⚙️ Configuration
+## Configuration
 
-### Backend (.env)
+### Variables d'environnement
+
+Voir `.env.example` a la racine pour la configuration Docker complete.
+
+#### Backend (.env)
 ```bash
 PORT=3000
 DATABASE_URL=postgresql://user:pass@localhost:5432/ourmusic
 BETTER_AUTH_SECRET=your-secret-key-min-32-chars
 BETTER_AUTH_URL=http://localhost:3000
 FRONTEND_BASE_URL=http://localhost:5173
-SPOTIFY_CLIENT_ID=your-spotify-client-id
-SPOTIFY_CLIENT_SECRET=your-spotify-client-secret
+BACKEND_BASE_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8080
+
+# OAuth (optionnel)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+SPOTIFY_CLIENT_ID=
+SPOTIFY_CLIENT_SECRET=
 ```
 
-### Frontend (.env)
+#### Frontend (.env)
 ```bash
 VITE_API_BASE_URL=http://localhost:3000
-VITE_AZURACAST_BASE_URL=http://your-azuracast-url
+VITE_AZURACAST_BASE_URL=https://your-azuracast-instance.com
 VITE_SITE_BASE_URL=http://localhost:5173
 ```
 
-### Discord Bot (.env)
-```bash
-DISCORD_BOT_TOKEN=your-discord-bot-token
-AZURACAST_SSE_URL=http://your-azuracast-url/api/live/nowplaying/sse
-```
+### AzuraCast
 
-## 🎯 Features
+Ce projet necessite une instance AzuraCast pour le streaming audio.
+AzuraCast doit etre installe separement sur son propre serveur/port.
+
+Installation AzuraCast: https://www.azuracast.com/docs/getting-started/installation/
+
+## Features
 
 ### Backend
-- ✅ Better Auth (email + OAuth)
-- ✅ Spotify API integration
-- ✅ Web scraping (Hypem)
-- ✅ Cron jobs (auto-sync)
-- ✅ TypeScript strict mode
-- ✅ Drizzle ORM
+- Better Auth (email + Google OAuth + Spotify OAuth)
+- Spotify API integration (sync liked tracks)
+- Web scraping HypeMachine (trending tracks)
+- Cron jobs (auto-sync)
+- TypeScript strict mode
+- Drizzle ORM + PostgreSQL
 
 ### Frontend
-- ✅ React 19
-- ✅ Server-Sent Events (SSE)
-- ✅ React Query (cache)
-- ✅ Zustand (state)
-- ✅ Tailwind CSS
-- ✅ PWA ready
-- ✅ TypeScript strict
+- React 19
+- Server-Sent Events (SSE) real-time
+- React Query (cache)
+- Zustand (state management)
+- Tailwind CSS
+- PWA ready
+- TypeScript strict
 
-### Chromecast
-- ✅ Next.js 15 with Turbopack
-- ✅ Cast Receiver Framework
-- ✅ SSE real-time updates
-- ✅ Auto-play audio stream
-- ✅ Blurred background artwork
-
-### Discord Bot
-- ✅ Voice streaming
-- ✅ SSE real-time updates
-- ✅ Slash commands
-- ✅ Auto-reconnect
-- ✅ TypeScript strict
-
-## 📝 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /api/auth/sign-in` - Connexion
 - `POST /api/auth/sign-up` - Inscription
-- `POST /api/auth/sign-out` - Déconnexion
+- `POST /api/auth/sign-out` - Deconnexion
 - `GET /api/auth/session` - Session courante
+- `GET /api/auth/callback/google` - Google OAuth callback
+- `GET /api/auth/callback/spotify` - Spotify OAuth callback
 
 ### Tracks
-- `GET /api/track/like` - Récupérer les morceaux aimés
+- `GET /api/track/like` - Recuperer les morceaux aimes
 - `POST /api/track/like` - Ajouter un morceau
 - `DELETE /api/track/like/:id` - Supprimer un morceau
-
-### Spotify
-- `POST /api/spotify/sync-liked` - Synchroniser vers Spotify
-- `GET /api/live/spotify/sync` - Synchroniser playlists (Admin)
 
 ### Utils
 - `GET /health` - Health check
 - `GET /` - API info
 
-## 🔒 Sécurité
+## Deploiement
+
+### Docker (recommande)
+```bash
+docker compose up -d --build
+```
+
+### CI/CD
+Le projet inclut un workflow GitHub Actions pour:
+- Lint & TypeCheck
+- Build des apps
+- Deploy backend sur Koyeb
+- Deploy frontend sur Vercel
+
+## Securite
 
 - Better Auth pour l'authentification
 - Variables d'environnement pour les secrets
 - TypeScript strict mode
-- CORS configuré
-- Validation des données (Valibot)
+- CORS configure
+- Validation des donnees (Valibot)
 
-## 📄 License
+## License
 
 MIT
-
-## 👥 Contribution
-
-1. Fork le projet
-2. Créer une branche (`git checkout -b feature/amazing-feature`)
-3. Commit les changements (`git commit -m 'Add amazing feature'`)
-4. Push sur la branche (`git push origin feature/amazing-feature`)
-5. Ouvrir une Pull Request
-
----
-
-**Développé avec ❤️ par l'équipe OurMusic**
