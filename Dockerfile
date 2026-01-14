@@ -1,67 +1,71 @@
-# Root Dockerfile for Koyeb deployment
-# Builds the backend from monorepo context
+# =============================================================================
+# OurMusic Backend - Dockerfile for Koyeb Deployment
+# Based on official Node.js + corepack + Bun documentation
+# =============================================================================
 
-FROM node:20-slim AS base
+# -----------------------------------------------------------------------------
+# Stage 1: Dependencies Installation
+# Using node:20-slim with corepack for pnpm (as per pnpm Docker docs)
+# -----------------------------------------------------------------------------
+FROM node:20-slim AS deps
+
+# Enable corepack for pnpm support (Node.js official method)
+RUN corepack enable pnpm
+
 WORKDIR /app
 
-# Install bun and pnpm
-RUN npm install -g pnpm@10.13.1 && \
-    curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
-
-# Copy workspace configuration
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
-COPY turbo.json ./
-
-# Copy all package.json files for dependency resolution
+# Copy only files needed for dependency resolution
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/shared-utils/package.json ./packages/shared-utils/
 COPY packages/logger/package.json ./packages/logger/
 
-# Install dependencies
-FROM base AS deps
+# Install all dependencies (including devDependencies for build)
 RUN pnpm install --frozen-lockfile
 
-# Build stage
-FROM base AS builder
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/backend/node_modules ./apps/backend/node_modules 2>/dev/null || true
-COPY --from=deps /app/packages/shared-types/node_modules ./packages/shared-types/node_modules 2>/dev/null || true
-COPY --from=deps /app/packages/shared-utils/node_modules ./packages/shared-utils/node_modules 2>/dev/null || true
-COPY --from=deps /app/packages/logger/node_modules ./packages/logger/node_modules 2>/dev/null || true
+# -----------------------------------------------------------------------------
+# Stage 2: Build shared packages
+# -----------------------------------------------------------------------------
+FROM deps AS builder
 
 # Copy source files
-COPY packages/shared-types ./packages/shared-types
-COPY packages/shared-utils ./packages/shared-utils
-COPY packages/logger ./packages/logger
+COPY packages ./packages
 COPY apps/backend ./apps/backend
+COPY tsconfig.base.json ./
 
-# Build shared packages first, then backend
+# Build shared packages that export from dist/
+RUN pnpm --filter @ourmusic/shared-types build && \
+    pnpm --filter @ourmusic/shared-utils build
+
+# -----------------------------------------------------------------------------
+# Stage 3: Production Runtime
+# Using oven/bun:slim for minimal Bun runtime (as per Bun Docker docs)
+# -----------------------------------------------------------------------------
+FROM oven/bun:slim AS runner
+
 WORKDIR /app
-RUN pnpm --filter @ourmusic/shared-types build || true && \
-    pnpm --filter @ourmusic/shared-utils build || true && \
-    pnpm --filter @ourmusic/backend build || true
 
-# Production stage
-FROM node:20-slim AS runner
-WORKDIR /app
-
-# Install bun for runtime
-RUN curl -fsSL https://bun.sh/install | bash
-ENV PATH="/root/.bun/bin:$PATH"
 ENV NODE_ENV=production
 
-# Copy built application and dependencies
-COPY --from=builder /app/apps/backend/dist ./dist 2>/dev/null || true
-COPY --from=builder /app/apps/backend/src ./src
-COPY --from=builder /app/apps/backend/package.json ./
-COPY --from=builder /app/apps/backend/drizzle ./drizzle
-COPY --from=builder /app/apps/backend/drizzle.config.js ./
+# Copy package files for workspace resolution
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/pnpm-workspace.yaml ./
+
+# Copy node_modules (pnpm structure)
 COPY --from=builder /app/node_modules ./node_modules
+
+# Copy built shared packages
 COPY --from=builder /app/packages ./packages
 
+# Copy backend application
+COPY --from=builder /app/apps/backend ./apps/backend
+
+# Set working directory to backend
+WORKDIR /app/apps/backend
+
+# Expose port
 EXPOSE 3000
 
-# Run with bun - fallback to src if dist doesn't exist
-CMD ["sh", "-c", "if [ -f dist/index.js ]; then bun run dist/index.js; else bun run src/index.ts; fi"]
+# Run with Bun (executes TypeScript directly)
+CMD ["bun", "run", "src/index.ts"]
