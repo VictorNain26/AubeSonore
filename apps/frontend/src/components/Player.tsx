@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Radio, Users, Music } from 'lucide-react';
+import { Play, Square, Volume2, VolumeX, Radio, Users, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlayer, getAnalyser } from '../lib/player';
 import { useNowPlaying, type SongEntry } from '../lib/azuracast';
@@ -423,22 +423,41 @@ export default function Player() {
         </span>
       </div>
 
-      {/* Play/Pause Button */}
-      <div className="flex items-center justify-center mb-6">
+      {/* Live Play/Stop Button */}
+      <div className="flex flex-col items-center gap-2 mb-6">
         <button
           onClick={togglePlay}
           className={cn(
-            'w-16 h-16 rounded-full flex items-center justify-center',
-            'bg-white/10 backdrop-blur-md border border-white/20',
-            'hover:bg-white/20 hover:scale-105 active:scale-95',
-            'transition-all duration-200',
-            'shadow-lg shadow-black/20'
+            'relative flex items-center gap-3 px-6 py-3 rounded-full',
+            'backdrop-blur-md border transition-all duration-200',
+            'hover:scale-105 active:scale-95',
+            'shadow-lg shadow-black/20',
+            isPlaying
+              ? 'bg-red-500/20 border-red-500/40 hover:bg-red-500/30'
+              : 'bg-white/10 border-white/20 hover:bg-white/20'
           )}
         >
+          {/* Live indicator dot */}
+          <span
+            className={cn(
+              'w-2.5 h-2.5 rounded-full transition-colors',
+              isPlaying ? 'bg-red-500 animate-pulse' : 'bg-white/30'
+            )}
+          />
+
+          {/* Label */}
+          <span className={cn(
+            'text-sm font-medium uppercase tracking-wide',
+            isPlaying ? 'text-red-400' : 'text-white/70'
+          )}>
+            En direct
+          </span>
+
+          {/* Play/Stop icon */}
           {isPlaying ? (
-            <Pause className="w-7 h-7 text-white" />
+            <Square className="w-5 h-5 text-white" />
           ) : (
-            <Play className="w-7 h-7 text-white ml-1" />
+            <Play className="w-5 h-5 text-white ml-0.5" />
           )}
         </button>
       </div>
