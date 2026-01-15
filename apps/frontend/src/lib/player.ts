@@ -1,7 +1,7 @@
 import { create } from 'zustand';
+import { STREAM_URL } from '../utils/config';
 
 const STORAGE_KEY = 'aubesonore_volume';
-const STREAM_URL = 'http://116.203.46.203/radio/8000/radio.mp3';
 
 interface PlayerState {
   isPlaying: boolean;
