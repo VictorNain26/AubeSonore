@@ -272,7 +272,9 @@ export default function Player() {
 
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
   const { data: np, isConnected } = useNowPlaying();
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const animationRef = useRef<number>(0);
+  const startTimeRef = useRef<number>(0);
+  const baseElapsedRef = useRef<number>(0);
 
   const nowPlaying = np?.now_playing;
   const duration = nowPlaying?.duration || 0;
@@ -283,20 +285,35 @@ export default function Player() {
     setArtError(false);
   }, [nowPlaying?.sh_id]);
 
+  // Sync with server elapsed time
   useEffect(() => {
     if (nowPlaying?.elapsed !== undefined) {
+      baseElapsedRef.current = nowPlaying.elapsed;
+      startTimeRef.current = performance.now();
       setElapsed(nowPlaying.elapsed);
     }
   }, [nowPlaying?.elapsed, nowPlaying?.sh_id]);
 
+  // Smooth animation loop for elapsed time
   useEffect(() => {
     if (isPlaying && duration > 0) {
-      intervalRef.current = setInterval(() => {
-        setElapsed((prev) => Math.min(prev + 1, duration));
-      }, 1000);
+      startTimeRef.current = performance.now();
+
+      const animate = () => {
+        const now = performance.now();
+        const deltaSeconds = (now - startTimeRef.current) / 1000;
+        const newElapsed = Math.min(baseElapsedRef.current + deltaSeconds, duration);
+        setElapsed(newElapsed);
+        animationRef.current = requestAnimationFrame(animate);
+      };
+
+      animationRef.current = requestAnimationFrame(animate);
     }
+
     return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
     };
   }, [isPlaying, duration]);
 
