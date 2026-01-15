@@ -71,7 +71,6 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
     const waveform: number[] = [];
 
     for (let i = 0; i < barsCount; i++) {
-      // Créer une forme de waveform naturelle (plus haute au centre)
       const centerFactor = 1 - Math.abs(i - barsCount / 2) / (barsCount / 2) * 0.3;
       const random = Math.sin(seed * (i + 1) * 0.1) * 0.5 + 0.5;
       const variation = Math.sin(i * 0.5) * 0.2 + 0.8;
@@ -119,27 +118,32 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
         const barX = x + gap / 2;
         const barW = barWidth - gap;
 
-        // Partie colorée (progression)
+        // Partie colorée (progression) - atténuée si en pause
         if (x < progressX) {
           const fillWidth = Math.min(barW, progressX - barX);
           if (fillWidth > 0) {
-            const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
-            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.9)');
-            gradient.addColorStop(0.5, 'rgba(168, 85, 247, 1)');
-            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.9)');
-            ctx.fillStyle = gradient;
+            if (isPlaying) {
+              const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
+              gradient.addColorStop(0, 'rgba(139, 92, 246, 0.9)');
+              gradient.addColorStop(0.5, 'rgba(168, 85, 247, 1)');
+              gradient.addColorStop(1, 'rgba(139, 92, 246, 0.9)');
+              ctx.fillStyle = gradient;
+            } else {
+              // Couleur atténuée en pause
+              ctx.fillStyle = 'rgba(139, 92, 246, 0.4)';
+            }
             ctx.beginPath();
             ctx.roundRect(barX, y, fillWidth, barHeight, 2);
             ctx.fill();
           }
         }
 
-        // Partie non colorée (reste)
+        // Partie non colorée (reste) - plus atténuée si en pause
         if (x + barW > progressX) {
           const startX = Math.max(barX, progressX);
           const remainingWidth = barX + barW - startX;
           if (remainingWidth > 0) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.fillStyle = isPlaying ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.08)';
             ctx.beginPath();
             ctx.roundRect(startX, y, remainingWidth, barHeight, 2);
             ctx.fill();
@@ -147,7 +151,10 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
         }
       }
 
-      animationRef.current = requestAnimationFrame(draw);
+      // Continue l'animation seulement si en lecture
+      if (isPlaying) {
+        animationRef.current = requestAnimationFrame(draw);
+      }
     };
 
     draw();
@@ -162,7 +169,7 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
       ref={canvasRef}
       width={384}
       height={56}
-      className="w-full h-14"
+      className={cn('w-full h-14 transition-opacity duration-300', !isPlaying && 'opacity-70')}
     />
   );
 }
