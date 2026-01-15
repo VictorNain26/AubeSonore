@@ -39,10 +39,9 @@ export const usePlayer = create<PlayerStore>((set) => ({
 
   play: async () => {
     try {
-      // Ensure source is set
-      if (!audio.src || audio.src === '') {
-        audio.src = STREAM_URL;
-      }
+      // Recharger le flux pour être en direct
+      audio.src = STREAM_URL;
+      audio.load();
       await audio.play();
       set({ isPlaying: true });
     } catch (error) {
@@ -53,7 +52,7 @@ export const usePlayer = create<PlayerStore>((set) => ({
 
   stop: () => {
     audio.pause();
-    audio.currentTime = 0;
+    audio.src = '';
     set({ isPlaying: false });
   },
 
