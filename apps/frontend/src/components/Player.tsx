@@ -24,16 +24,21 @@ interface HistoryItemProps {
 }
 
 function HistoryItem({ entry }: HistoryItemProps) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <div className="flex items-center gap-3 py-2">
-      <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-secondary">
-        {entry.song.art && (
+      <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-secondary flex items-center justify-center">
+        {entry.song.art && !imgError ? (
           <img
             src={entry.song.art}
             alt=""
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
+            onError={() => setImgError(true)}
           />
+        ) : (
+          <Music className="w-5 h-5 text-muted-foreground" />
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -129,6 +134,7 @@ export default function Player() {
   const [elapsed, setElapsed] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(1);
+  const [artError, setArtError] = useState(false);
 
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
   const { data: np, isConnected } = useNowPlaying();
@@ -137,6 +143,11 @@ export default function Player() {
   const nowPlaying = np?.now_playing;
   const duration = nowPlaying?.duration || 0;
   const progress = duration > 0 ? (elapsed / duration) * 100 : 0;
+
+  // Reset art error when song changes
+  useEffect(() => {
+    setArtError(false);
+  }, [nowPlaying?.sh_id]);
 
   useEffect(() => {
     if (nowPlaying?.elapsed !== undefined) {
@@ -201,12 +212,13 @@ export default function Player() {
               isPlaying && 'scale-[1.02]'
             )}
           >
-            {nowPlaying?.song.art ? (
+            {nowPlaying?.song.art && !artError ? (
               <img
                 src={nowPlaying.song.art}
                 alt={nowPlaying.song.title}
                 className="w-full h-full object-cover"
                 referrerPolicy="no-referrer"
+                onError={() => setArtError(true)}
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary/40 to-accent/20 flex items-center justify-center">
