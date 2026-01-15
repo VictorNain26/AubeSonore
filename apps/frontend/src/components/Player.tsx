@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Pause, Volume2, VolumeX, Radio, Users, Clock } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Radio, Users, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '../lib/player';
 import { useNowPlaying, type SongEntry } from '../lib/azuracast';
@@ -28,7 +28,12 @@ function HistoryItem({ entry }: HistoryItemProps) {
     <div className="flex items-center gap-3 py-2">
       <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-secondary">
         {entry.song.art && (
-          <img src={entry.song.art} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+          <img
+            src={entry.song.art}
+            alt=""
+            className="w-full h-full object-cover"
+            referrerPolicy="no-referrer"
+          />
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -38,6 +43,80 @@ function HistoryItem({ entry }: HistoryItemProps) {
       <span className="text-xs text-muted-foreground shrink-0">
         {formatTimeAgo(entry.played_at)}
       </span>
+    </div>
+  );
+}
+
+interface VolumeSliderProps {
+  value: number;
+  onChange: (value: number) => void;
+}
+
+function VolumeSlider({ value, onChange }: VolumeSliderProps) {
+  const sliderRef = useRef<HTMLDivElement>(null);
+  const isDragging = useRef(false);
+
+  const updateValue = useCallback((clientX: number) => {
+    if (!sliderRef.current) return;
+    const rect = sliderRef.current.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    onChange(percent);
+  }, [onChange]);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    isDragging.current = true;
+    updateValue(e.clientX);
+  }, [updateValue]);
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    isDragging.current = true;
+    updateValue(touch.clientX);
+  }, [updateValue]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isDragging.current) updateValue(e.clientX);
+    };
+    const handleTouchMove = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      if (isDragging.current && touch) updateValue(touch.clientX);
+    };
+    const handleEnd = () => {
+      isDragging.current = false;
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchend', handleEnd);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleEnd);
+    };
+  }, [updateValue]);
+
+  return (
+    <div
+      ref={sliderRef}
+      className="relative h-1.5 flex-1 bg-secondary rounded-full cursor-pointer group"
+      onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
+    >
+      {/* Track fill */}
+      <div
+        className="absolute inset-y-0 left-0 bg-primary rounded-full"
+        style={{ width: `${value * 100}%` }}
+      />
+      {/* Thumb */}
+      <div
+        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ left: `calc(${value * 100}% - 6px)` }}
+      />
     </div>
   );
 }
@@ -55,14 +134,12 @@ export default function Player() {
   const duration = nowPlaying?.duration || 0;
   const progress = duration > 0 ? (elapsed / duration) * 100 : 0;
 
-  // Sync elapsed time from SSE data
   useEffect(() => {
     if (nowPlaying?.elapsed !== undefined) {
       setElapsed(nowPlaying.elapsed);
     }
   }, [nowPlaying?.elapsed, nowPlaying?.sh_id]);
 
-  // Local timer for smooth progress
   useEffect(() => {
     if (isPlaying && duration > 0) {
       intervalRef.current = setInterval(() => {
@@ -89,21 +166,28 @@ export default function Player() {
     }
   }, [isMuted, prevVolume, volume, setVolume]);
 
-  const handleVolumeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = parseInt(e.target.value) / 100;
-      setVolume(val);
-      setIsMuted(val === 0);
-      if (val > 0) setPrevVolume(val);
-    },
-    [setVolume]
-  );
+  const handleVolumeChange = useCallback((val: number) => {
+    setVolume(val);
+    setIsMuted(val === 0);
+    if (val > 0) setPrevVolume(val);
+  }, [setVolume]);
+
+  const playlistName = nowPlaying?.playlist?.replace(/_/g, ' ');
 
   return (
     <div className="w-full max-w-lg mx-auto px-4">
-      {/* Album Art + Now Playing */}
+      {/* Playlist badge */}
+      {playlistName && (
+        <div className="flex justify-center mb-4">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-secondary/50 rounded-full text-xs text-muted-foreground">
+            <Music className="w-3 h-3" />
+            {playlistName}
+          </span>
+        </div>
+      )}
+
+      {/* Album Art */}
       <div className="flex flex-col items-center mb-6">
-        {/* Album Art */}
         <div className="relative mb-6">
           <div
             className={cn(
@@ -137,18 +221,13 @@ export default function Player() {
         </div>
 
         {/* Track info */}
-        <div className="text-center space-y-1 w-full max-w-sm">
+        <div className="text-center w-full max-w-sm">
           <h2 className="text-lg md:text-xl font-medium text-foreground truncate px-2">
             {nowPlaying?.song.title || 'En attente...'}
           </h2>
-          <p className="text-sm text-muted-foreground truncate px-2">
+          <p className="text-sm text-muted-foreground truncate px-2 mt-1">
             {nowPlaying?.song.artist || '—'}
           </p>
-          {nowPlaying?.playlist && (
-            <p className="text-xs text-muted-foreground/60">
-              {nowPlaying.playlist.replace(/_/g, ' ')}
-            </p>
-          )}
         </div>
       </div>
 
@@ -186,26 +265,19 @@ export default function Player() {
       </div>
 
       {/* Volume */}
-      <div className="flex items-center gap-3 mb-6 px-4">
+      <div className="flex items-center gap-3 mb-6">
         <button
           onClick={toggleMute}
-          className="text-muted-foreground hover:text-foreground transition-colors"
+          className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
         >
           {isMuted || volume === 0 ? (
-            <VolumeX className="w-4 h-4" />
+            <VolumeX className="w-5 h-5" />
           ) : (
-            <Volume2 className="w-4 h-4" />
+            <Volume2 className="w-5 h-5" />
           )}
         </button>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          value={Math.round(volume * 100)}
-          onChange={handleVolumeChange}
-          className="flex-1 accent-primary"
-        />
-        <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">
+        <VolumeSlider value={volume} onChange={handleVolumeChange} />
+        <span className="text-xs text-muted-foreground w-8 text-right tabular-nums shrink-0">
           {Math.round(volume * 100)}
         </span>
       </div>
@@ -231,7 +303,6 @@ export default function Player() {
       {np?.song_history?.[0] && (
         <div className="border-t border-border pt-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-            <Clock className="w-3.5 h-3.5" />
             <span>Précédemment</span>
           </div>
           <HistoryItem entry={np.song_history[0]} />
