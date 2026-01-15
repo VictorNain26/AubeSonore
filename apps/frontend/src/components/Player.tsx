@@ -28,7 +28,7 @@ function HistoryItem({ entry }: HistoryItemProps) {
     <div className="flex items-center gap-3 py-2">
       <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-secondary">
         {entry.song.art && (
-          <img src={entry.song.art} alt="" className="w-full h-full object-cover" />
+          <img src={entry.song.art} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -118,6 +118,7 @@ export default function Player() {
                 src={nowPlaying.song.art}
                 alt={nowPlaying.song.title}
                 className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-primary/40 to-accent/20 flex items-center justify-center">
