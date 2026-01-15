@@ -175,39 +175,37 @@ interface VolumeSliderProps {
 function VolumeSlider({ value, onChange }: VolumeSliderProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [localValue, setLocalValue] = useState(value);
+
+  // Sync local value with prop when not dragging
+  useEffect(() => {
+    if (!isDragging) setLocalValue(value);
+  }, [value, isDragging]);
 
   const updateValue = useCallback((clientX: number) => {
     if (!sliderRef.current) return;
     const rect = sliderRef.current.getBoundingClientRect();
     const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    setLocalValue(percent);
     onChange(percent);
   }, [onChange]);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    setIsDragging(true);
-    updateValue(e.clientX);
-  }, [updateValue]);
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    if (!touch) return;
-    setIsDragging(true);
-    updateValue(touch.clientX);
-  }, [updateValue]);
 
   useEffect(() => {
     if (!isDragging) return;
 
-    const handleMouseMove = (e: MouseEvent) => updateValue(e.clientX);
+    const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
+      updateValue(e.clientX);
+    };
     const handleTouchMove = (e: TouchEvent) => {
       const touch = e.touches[0];
       if (touch) updateValue(touch.clientX);
     };
     const handleEnd = () => setIsDragging(false);
 
-    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mousemove', handleMouseMove, { passive: false });
     document.addEventListener('mouseup', handleEnd);
-    document.addEventListener('touchmove', handleTouchMove);
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
     document.addEventListener('touchend', handleEnd);
 
     return () => {
@@ -218,30 +216,49 @@ function VolumeSlider({ value, onChange }: VolumeSliderProps) {
     };
   }, [isDragging, updateValue]);
 
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    updateValue(e.clientX);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+    setIsDragging(true);
+    updateValue(touch.clientX);
+  };
+
+  const displayValue = localValue;
+
   return (
     <div
       ref={sliderRef}
       className={cn(
-        'relative h-1.5 flex-1 rounded-full group',
-        'bg-white/10 backdrop-blur-sm',
+        'relative h-2 flex-1 rounded-full group',
+        'bg-white/10',
         isDragging ? 'cursor-grabbing' : 'cursor-pointer'
       )}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
-      {/* Track fill */}
+      {/* Track fill - no transition during drag for instant feedback */}
       <div
-        className="absolute inset-y-0 left-0 rounded-full transition-all duration-75 bg-white/40"
-        style={{ width: `${value * 100}%` }}
+        className={cn(
+          'absolute inset-y-0 left-0 rounded-full bg-white/50',
+          !isDragging && 'transition-[width] duration-100'
+        )}
+        style={{ width: `${displayValue * 100}%` }}
       />
       {/* Thumb */}
       <div
         className={cn(
-          'absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow-md transition-all',
-          'bg-white/80 backdrop-blur-sm',
-          isDragging ? 'scale-125 opacity-100' : 'opacity-0 group-hover:opacity-100'
+          'absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full shadow-lg',
+          'bg-white',
+          'transition-opacity duration-150',
+          isDragging ? 'opacity-100 scale-110' : 'opacity-0 group-hover:opacity-100'
         )}
-        style={{ left: `calc(${value * 100}% - 6px)` }}
+        style={{ left: `calc(${displayValue * 100}% - 8px)` }}
       />
     </div>
   );
