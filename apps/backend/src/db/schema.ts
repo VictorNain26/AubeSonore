@@ -95,22 +95,17 @@ export const likedTracks = pgTable('liked_tracks', {
 // TYPES INFÉRÉS
 // ─────────────────────────────────────────────
 
-// Types pour les modèles User
 export type User = InferSelectModel<typeof user>;
 export type NewUser = InferInsertModel<typeof user>;
 
-// Types pour les modèles Account
 export type Account = InferSelectModel<typeof account>;
 export type NewAccount = InferInsertModel<typeof account>;
 
-// Types pour les modèles Session
 export type Session = InferSelectModel<typeof session>;
 export type NewSession = InferInsertModel<typeof session>;
 
-// Types pour les modèles Verification
 export type Verification = InferSelectModel<typeof verification>;
 export type NewVerification = InferInsertModel<typeof verification>;
 
-// Types pour les modèles LikedTracks
 export type LikedTrack = InferSelectModel<typeof likedTracks>;
 export type NewLikedTrack = InferInsertModel<typeof likedTracks>;

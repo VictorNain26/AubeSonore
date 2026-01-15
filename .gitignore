@@ -54,3 +54,4 @@ MIGRATION.md
 *.log
 *.pid
 .turbo
+.vercel

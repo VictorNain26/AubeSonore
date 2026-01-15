@@ -1,0 +1,28 @@
+# Audio files
+*.mp3
+*.flac
+*.wav
+*.m4a
+
+# Data directories
+downloads/
+music/
+archive/
+
+# Beets database
+*.db
+import.log
+
+# Track lists
+tracks-to-download.txt
+
+# Environment
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# System
+.DS_Store

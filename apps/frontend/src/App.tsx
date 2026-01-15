@@ -1,20 +1,19 @@
-import React, { useEffect } from 'react';
-import ModernLayout from './layout/ModernLayout';
-import ModernHomePage from './pages/ModernHomePage';
-import { PlayerService } from './lib/playerService';
+import { useEffect } from 'react';
+import Layout from './layout/Layout';
+import HomePage from './pages/HomePage';
+import { usePlayer } from './lib/player';
 import { AZURACAST_URL } from './utils/config';
 
-const App: React.FC = () => {
+export default function App() {
+  const setSource = usePlayer((state) => state.setSource);
+
   useEffect(() => {
-    const streamUrl = `${AZURACAST_URL}/radio/8000/radio.mp3`;
-    PlayerService.setSource(streamUrl);
-  }, []);
+    setSource(`${AZURACAST_URL}/radio/8000/radio.mp3`);
+  }, [setSource]);
 
   return (
-    <ModernLayout>
-      <ModernHomePage />
-    </ModernLayout>
+    <Layout>
+      <HomePage />
+    </Layout>
   );
-};
-
-export default App;
+}
