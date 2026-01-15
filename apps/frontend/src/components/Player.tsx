@@ -364,19 +364,21 @@ export default function Player() {
         </div>
       </div>
 
-      {/* Waveform Progress */}
-      <div className="mb-2">
-        <WaveformProgress
-          progress={progress}
-          isPlaying={isPlaying}
-          songId={nowPlaying?.sh_id}
-        />
-      </div>
-
-      {/* Time */}
-      <div className="flex justify-between text-xs text-muted-foreground tabular-nums mb-6 px-1">
-        <span>{formatTime(elapsed)}</span>
-        <span>{formatTime(duration)}</span>
+      {/* Waveform Progress avec temps */}
+      <div className="flex items-center gap-3 mb-6">
+        <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
+          {formatTime(elapsed)}
+        </span>
+        <div className="flex-1">
+          <WaveformProgress
+            progress={progress}
+            isPlaying={isPlaying}
+            songId={nowPlaying?.sh_id}
+          />
+        </div>
+        <span className="text-xs text-muted-foreground tabular-nums w-10">
+          {formatTime(duration)}
+        </span>
       </div>
 
       {/* Play/Pause Button */}
