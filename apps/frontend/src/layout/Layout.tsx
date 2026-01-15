@@ -7,7 +7,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <div className="h-dvh overflow-hidden aurora-bg flex flex-col">
+    <div className="min-h-dvh aurora-bg flex flex-col">
       <Toaster
         position="bottom-center"
         toastOptions={{
@@ -23,8 +23,8 @@ export default function Layout({ children }: LayoutProps) {
         </h1>
       </header>
 
-      {/* Main */}
-      <main className="flex-1 flex items-center justify-center overflow-hidden">
+      {/* Main - scrollable content area */}
+      <main className="flex-1 flex flex-col">
         {children}
       </main>
 
