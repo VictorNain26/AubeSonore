@@ -1,11 +1,10 @@
-import React, { lazy, Suspense } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { Loader2 } from 'lucide-react';
+import ModernLayout from './layout/ModernLayout';
+import { PlayerService } from './lib/playerService';
+import { AZURACAST_URL } from './utils/config';
 
 const ModernHomePage = lazy(() => import('./pages/ModernHomePage'));
-
-import ModernLayout from './layout/ModernLayout';
 
 const LoadingFallback: React.FC = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -17,25 +16,18 @@ const LoadingFallback: React.FC = () => (
 );
 
 const App: React.FC = () => {
-  const location = useLocation();
+  // Set up audio stream URL on mount
+  useEffect(() => {
+    const streamUrl = `${AZURACAST_URL}/radio/8000/radio.mp3`;
+    PlayerService.setSource(streamUrl);
+  }, []);
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route
-          path="/"
-          element={
-            <ModernLayout>
-              <Suspense fallback={<LoadingFallback />}>
-                <ModernHomePage />
-              </Suspense>
-            </ModernLayout>
-          }
-        />
-
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </AnimatePresence>
+    <ModernLayout>
+      <Suspense fallback={<LoadingFallback />}>
+        <ModernHomePage />
+      </Suspense>
+    </ModernLayout>
   );
 };
 
