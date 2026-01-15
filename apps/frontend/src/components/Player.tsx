@@ -52,11 +52,34 @@ function HistoryItem({ entry }: HistoryItemProps) {
   );
 }
 
-// Visualiseur audio temps réel
-function AudioVisualizer({ isPlaying }: { isPlaying: boolean }) {
+// Waveform avec progression intégrée
+interface WaveformProgressProps {
+  progress: number;
+  isPlaying: boolean;
+  songId: number | undefined;
+}
+
+function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
-  const barsCount = 48;
+  const waveformRef = useRef<number[]>([]);
+  const barsCount = 64;
+
+  // Générer une waveform pseudo-aléatoire basée sur le songId
+  useEffect(() => {
+    const seed = songId || Date.now();
+    const waveform: number[] = [];
+
+    for (let i = 0; i < barsCount; i++) {
+      // Créer une forme de waveform naturelle (plus haute au centre)
+      const centerFactor = 1 - Math.abs(i - barsCount / 2) / (barsCount / 2) * 0.3;
+      const random = Math.sin(seed * (i + 1) * 0.1) * 0.5 + 0.5;
+      const variation = Math.sin(i * 0.5) * 0.2 + 0.8;
+      waveform.push(Math.max(0.15, Math.min(1, random * centerFactor * variation)));
+    }
+
+    waveformRef.current = waveform;
+  }, [songId]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -69,49 +92,58 @@ function AudioVisualizer({ isPlaying }: { isPlaying: boolean }) {
       const analyser = getAnalyser();
       const width = canvas.width;
       const height = canvas.height;
+      const waveform = waveformRef.current;
 
       ctx.clearRect(0, 0, width, height);
 
-      if (analyser && isPlaying) {
-        const dataArray = new Uint8Array(analyser.frequencyBinCount);
-        analyser.getByteFrequencyData(dataArray);
+      const barWidth = width / barsCount;
+      const gap = 2;
+      const progressX = (progress / 100) * width;
 
-        const barWidth = width / barsCount;
-        const gap = 2;
+      for (let i = 0; i < barsCount; i++) {
+        const x = i * barWidth;
+        const baseHeight = (waveform[i] || 0.5) * height * 0.85;
 
-        for (let i = 0; i < barsCount; i++) {
+        let barHeight = baseHeight;
+
+        // Animation temps réel si lecture en cours
+        if (analyser && isPlaying) {
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(dataArray);
           const dataIndex = Math.floor((i / barsCount) * dataArray.length);
-          const value = dataArray[dataIndex] || 0;
-          const barHeight = (value / 255) * height * 0.9;
-
-          const x = i * barWidth;
-          const y = (height - barHeight) / 2;
-
-          // Gradient pour chaque barre
-          const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
-          gradient.addColorStop(0, 'rgba(139, 92, 246, 0.8)');
-          gradient.addColorStop(0.5, 'rgba(168, 85, 247, 0.9)');
-          gradient.addColorStop(1, 'rgba(139, 92, 246, 0.8)');
-
-          ctx.fillStyle = gradient;
-          ctx.beginPath();
-          ctx.roundRect(x + gap / 2, y, barWidth - gap, barHeight, 2);
-          ctx.fill();
+          const audioValue = (dataArray[dataIndex] || 0) / 255;
+          barHeight = baseHeight * (0.4 + audioValue * 0.6);
         }
-      } else {
-        // Barres statiques quand pas de lecture
-        const barWidth = width / barsCount;
-        const gap = 2;
 
-        for (let i = 0; i < barsCount; i++) {
-          const barHeight = 4;
-          const x = i * barWidth;
-          const y = (height - barHeight) / 2;
+        const y = (height - barHeight) / 2;
+        const barX = x + gap / 2;
+        const barW = barWidth - gap;
 
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-          ctx.beginPath();
-          ctx.roundRect(x + gap / 2, y, barWidth - gap, barHeight, 2);
-          ctx.fill();
+        // Partie colorée (progression)
+        if (x < progressX) {
+          const fillWidth = Math.min(barW, progressX - barX);
+          if (fillWidth > 0) {
+            const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
+            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.9)');
+            gradient.addColorStop(0.5, 'rgba(168, 85, 247, 1)');
+            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.9)');
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.roundRect(barX, y, fillWidth, barHeight, 2);
+            ctx.fill();
+          }
+        }
+
+        // Partie non colorée (reste)
+        if (x + barW > progressX) {
+          const startX = Math.max(barX, progressX);
+          const remainingWidth = barX + barW - startX;
+          if (remainingWidth > 0) {
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.beginPath();
+            ctx.roundRect(startX, y, remainingWidth, barHeight, 2);
+            ctx.fill();
+          }
         }
       }
 
@@ -123,14 +155,14 @@ function AudioVisualizer({ isPlaying }: { isPlaying: boolean }) {
     return () => {
       cancelAnimationFrame(animationRef.current);
     };
-  }, [isPlaying]);
+  }, [isPlaying, progress]);
 
   return (
     <canvas
       ref={canvasRef}
-      width={320}
-      height={48}
-      className="w-full h-12"
+      width={384}
+      height={56}
+      className="w-full h-14"
     />
   );
 }
@@ -332,23 +364,19 @@ export default function Player() {
         </div>
       </div>
 
-      {/* Waveform Visualizer */}
-      <div className="mb-4">
-        <AudioVisualizer isPlaying={isPlaying} />
+      {/* Waveform Progress */}
+      <div className="mb-2">
+        <WaveformProgress
+          progress={progress}
+          isPlaying={isPlaying}
+          songId={nowPlaying?.sh_id}
+        />
       </div>
 
-      {/* Progress & Time */}
-      <div className="mb-6 space-y-2">
-        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-1000 ease-linear"
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
-          <span>{formatTime(elapsed)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
+      {/* Time */}
+      <div className="flex justify-between text-xs text-muted-foreground tabular-nums mb-6 px-1">
+        <span>{formatTime(elapsed)}</span>
+        <span>{formatTime(duration)}</span>
       </div>
 
       {/* Play/Pause Button */}
