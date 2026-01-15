@@ -20,7 +20,11 @@ type PlayerStore = PlayerState & PlayerActions;
 const audio = new Audio();
 audio.preload = 'none';
 audio.crossOrigin = 'anonymous';
-audio.src = STREAM_URL;
+
+// Web Audio API pour la visualisation
+let audioContext: AudioContext | null = null;
+let analyser: AnalyserNode | null = null;
+let sourceNode: MediaElementAudioSourceNode | null = null;
 
 const getStoredVolume = (): number => {
   try {
@@ -33,13 +37,32 @@ const getStoredVolume = (): number => {
 
 audio.volume = getStoredVolume();
 
+const initAudioContext = () => {
+  if (audioContext) return;
+
+  audioContext = new AudioContext();
+  analyser = audioContext.createAnalyser();
+  analyser.fftSize = 128;
+  analyser.smoothingTimeConstant = 0.8;
+
+  sourceNode = audioContext.createMediaElementSource(audio);
+  sourceNode.connect(analyser);
+  analyser.connect(audioContext.destination);
+};
+
+export const getAnalyser = (): AnalyserNode | null => analyser;
+
 export const usePlayer = create<PlayerStore>((set) => ({
   isPlaying: false,
   volume: getStoredVolume(),
 
   play: async () => {
     try {
-      // Recharger le flux pour être en direct
+      initAudioContext();
+      if (audioContext?.state === 'suspended') {
+        await audioContext.resume();
+      }
+
       audio.src = STREAM_URL;
       audio.load();
       await audio.play();

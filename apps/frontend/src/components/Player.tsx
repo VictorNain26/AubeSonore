@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Pause, Volume2, VolumeX, Radio, Users, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePlayer } from '../lib/player';
+import { usePlayer, getAnalyser } from '../lib/player';
 import { useNowPlaying, type SongEntry } from '../lib/azuracast';
 
 function formatTime(seconds: number): string {
@@ -49,6 +49,89 @@ function HistoryItem({ entry }: HistoryItemProps) {
         {formatTimeAgo(entry.played_at)}
       </span>
     </div>
+  );
+}
+
+// Visualiseur audio temps réel
+function AudioVisualizer({ isPlaying }: { isPlaying: boolean }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const animationRef = useRef<number>(0);
+  const barsCount = 48;
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const draw = () => {
+      const analyser = getAnalyser();
+      const width = canvas.width;
+      const height = canvas.height;
+
+      ctx.clearRect(0, 0, width, height);
+
+      if (analyser && isPlaying) {
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(dataArray);
+
+        const barWidth = width / barsCount;
+        const gap = 2;
+
+        for (let i = 0; i < barsCount; i++) {
+          const dataIndex = Math.floor((i / barsCount) * dataArray.length);
+          const value = dataArray[dataIndex] || 0;
+          const barHeight = (value / 255) * height * 0.9;
+
+          const x = i * barWidth;
+          const y = (height - barHeight) / 2;
+
+          // Gradient pour chaque barre
+          const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
+          gradient.addColorStop(0, 'rgba(139, 92, 246, 0.8)');
+          gradient.addColorStop(0.5, 'rgba(168, 85, 247, 0.9)');
+          gradient.addColorStop(1, 'rgba(139, 92, 246, 0.8)');
+
+          ctx.fillStyle = gradient;
+          ctx.beginPath();
+          ctx.roundRect(x + gap / 2, y, barWidth - gap, barHeight, 2);
+          ctx.fill();
+        }
+      } else {
+        // Barres statiques quand pas de lecture
+        const barWidth = width / barsCount;
+        const gap = 2;
+
+        for (let i = 0; i < barsCount; i++) {
+          const barHeight = 4;
+          const x = i * barWidth;
+          const y = (height - barHeight) / 2;
+
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+          ctx.beginPath();
+          ctx.roundRect(x + gap / 2, y, barWidth - gap, barHeight, 2);
+          ctx.fill();
+        }
+      }
+
+      animationRef.current = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animationRef.current);
+    };
+  }, [isPlaying]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      width={320}
+      height={48}
+      className="w-full h-12"
+    />
   );
 }
 
@@ -107,7 +190,8 @@ function VolumeSlider({ value, onChange }: VolumeSliderProps) {
     <div
       ref={sliderRef}
       className={cn(
-        'relative h-2 flex-1 bg-secondary rounded-full group',
+        'relative h-1.5 flex-1 rounded-full group',
+        'bg-white/10 backdrop-blur-sm',
         isDragging ? 'cursor-grabbing' : 'cursor-pointer'
       )}
       onMouseDown={handleMouseDown}
@@ -115,16 +199,17 @@ function VolumeSlider({ value, onChange }: VolumeSliderProps) {
     >
       {/* Track fill */}
       <div
-        className="absolute inset-y-0 left-0 bg-primary rounded-full transition-all duration-75"
+        className="absolute inset-y-0 left-0 rounded-full transition-all duration-75 bg-white/40"
         style={{ width: `${value * 100}%` }}
       />
       {/* Thumb */}
       <div
         className={cn(
-          'absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full shadow-md transition-all',
-          isDragging ? 'scale-110 opacity-100' : 'opacity-0 group-hover:opacity-100'
+          'absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full shadow-md transition-all',
+          'bg-white/80 backdrop-blur-sm',
+          isDragging ? 'scale-125 opacity-100' : 'opacity-0 group-hover:opacity-100'
         )}
-        style={{ left: `calc(${value * 100}% - 8px)` }}
+        style={{ left: `calc(${value * 100}% - 6px)` }}
       />
     </div>
   );
@@ -194,7 +279,7 @@ export default function Player() {
       {/* Playlist badge */}
       {playlistName && (
         <div className="flex justify-center mb-4">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-secondary/50 rounded-full text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/5 backdrop-blur-sm rounded-full text-xs text-muted-foreground border border-white/10">
             <Music className="w-3 h-3" />
             {playlistName}
           </span>
@@ -247,44 +332,50 @@ export default function Player() {
         </div>
       </div>
 
-      {/* Progress bar */}
+      {/* Waveform Visualizer */}
+      <div className="mb-4">
+        <AudioVisualizer isPlaying={isPlaying} />
+      </div>
+
+      {/* Progress & Time */}
       <div className="mb-6 space-y-2">
-        <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+        <div className="h-1 bg-white/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-1000 ease-linear"
+            className="h-full bg-gradient-to-r from-violet-500 to-purple-500 rounded-full transition-all duration-1000 ease-linear"
             style={{ width: `${progress}%` }}
           />
         </div>
         <div className="flex justify-between text-xs text-muted-foreground tabular-nums">
           <span>{formatTime(elapsed)}</span>
-          <span>{duration > 0 ? `-${formatTime(duration - elapsed)}` : '—:——'}</span>
+          <span>{formatTime(duration)}</span>
         </div>
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-4 mb-6">
+      {/* Play/Pause Button */}
+      <div className="flex items-center justify-center mb-6">
         <button
           onClick={togglePlay}
           className={cn(
-            'w-14 h-14 rounded-full flex items-center justify-center',
-            'bg-primary text-primary-foreground',
-            'hover:bg-primary/90 transition-all',
-            'shadow-lg shadow-primary/25'
+            'w-16 h-16 rounded-full flex items-center justify-center',
+            'bg-white/10 backdrop-blur-md border border-white/20',
+            'hover:bg-white/20 hover:scale-105 active:scale-95',
+            'transition-all duration-200',
+            'shadow-lg shadow-black/20'
           )}
         >
           {isPlaying ? (
-            <Pause className="w-6 h-6" />
+            <Pause className="w-7 h-7 text-white" />
           ) : (
-            <Play className="w-6 h-6 ml-0.5" />
+            <Play className="w-7 h-7 text-white ml-1" />
           )}
         </button>
       </div>
 
       {/* Volume */}
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-6 px-2">
         <button
           onClick={toggleMute}
-          className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+          className="text-white/60 hover:text-white transition-colors shrink-0"
         >
           {isMuted || volume === 0 ? (
             <VolumeX className="w-5 h-5" />
@@ -293,7 +384,7 @@ export default function Player() {
           )}
         </button>
         <VolumeSlider value={volume} onChange={handleVolumeChange} />
-        <span className="text-xs text-muted-foreground w-8 text-right tabular-nums shrink-0">
+        <span className="text-xs text-white/40 w-8 text-right tabular-nums shrink-0">
           {Math.round(volume * 100)}
         </span>
       </div>
@@ -317,7 +408,7 @@ export default function Player() {
 
       {/* Dernier morceau joué */}
       {np?.song_history?.[0] && (
-        <div className="border-t border-border pt-4">
+        <div className="border-t border-white/10 pt-4">
           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
             <span>Précédemment</span>
           </div>
