@@ -415,29 +415,22 @@ export default function Player() {
       </div>
 
       {/* Play/Stop Button */}
-      <div className="flex flex-col items-center gap-3 mb-6">
+      <div className="flex justify-center mb-6">
         <button
           onClick={togglePlay}
           className={cn(
-            'w-16 h-16 rounded-full flex items-center justify-center',
-            'border border-white/20 transition-all duration-300',
-            'hover:scale-105 active:scale-95',
-            'bg-white/10 backdrop-blur-sm',
-            isPlaying && 'shadow-[0_0_30px_rgba(168,85,247,0.4)] border-purple-500/30'
+            'w-14 h-14 rounded-full flex items-center justify-center',
+            'border border-white/20 transition-all duration-200',
+            'hover:scale-105 hover:bg-white/15 active:scale-95',
+            'bg-white/10 backdrop-blur-sm'
           )}
         >
           {isPlaying ? (
-            <Square className="w-6 h-6 text-white" />
+            <Square className="w-5 h-5 text-white" />
           ) : (
-            <Play className="w-7 h-7 text-white ml-1" />
+            <Play className="w-6 h-6 text-white ml-0.5" />
           )}
         </button>
-        <span className={cn(
-          'text-xs transition-colors',
-          isPlaying ? 'text-purple-400' : 'text-muted-foreground'
-        )}>
-          En direct
-        </span>
       </div>
 
       {/* Volume */}
