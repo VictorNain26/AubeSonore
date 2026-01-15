@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 
 const STORAGE_KEY = 'aubesonore_volume';
+const STREAM_URL = 'http://116.203.46.203/radio/8000/radio.mp3';
 
-// Types
 interface PlayerState {
   isPlaying: boolean;
   volume: number;
@@ -12,30 +12,37 @@ interface PlayerActions {
   play: () => Promise<void>;
   stop: () => void;
   setVolume: (value: number) => void;
-  setSource: (url: string) => void;
 }
 
 type PlayerStore = PlayerState & PlayerActions;
 
 // Audio singleton
 const audio = new Audio();
-audio.preload = 'auto';
+audio.preload = 'none';
 audio.crossOrigin = 'anonymous';
+audio.src = STREAM_URL;
 
 const getStoredVolume = (): number => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? parseFloat(stored) : 1;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? parseFloat(stored) : 1;
+  } catch {
+    return 1;
+  }
 };
 
 audio.volume = getStoredVolume();
 
-// Store
 export const usePlayer = create<PlayerStore>((set) => ({
   isPlaying: false,
   volume: getStoredVolume(),
 
   play: async () => {
     try {
+      // Ensure source is set
+      if (!audio.src || audio.src === '') {
+        audio.src = STREAM_URL;
+      }
       await audio.play();
       set({ isPlaying: true });
     } catch (error) {
@@ -51,25 +58,13 @@ export const usePlayer = create<PlayerStore>((set) => ({
   },
 
   setVolume: (value: number) => {
-    const clampedValue = Math.max(0, Math.min(1, value));
-    audio.volume = clampedValue;
-    localStorage.setItem(STORAGE_KEY, clampedValue.toString());
-    set({ volume: clampedValue });
-  },
-
-  setSource: (url: string) => {
-    if (audio.src !== url) {
-      audio.src = url;
+    const clamped = Math.max(0, Math.min(1, value));
+    audio.volume = clamped;
+    try {
+      localStorage.setItem(STORAGE_KEY, clamped.toString());
+    } catch {
+      // Ignore storage errors
     }
+    set({ volume: clamped });
   },
 }));
-
-// Legacy exports for compatibility
-export const usePlayerStore = usePlayer;
-
-export const PlayerService = {
-  setSource: (url: string) => usePlayer.getState().setSource(url),
-  play: () => usePlayer.getState().play(),
-  stop: () => usePlayer.getState().stop(),
-  setVolume: (value: number) => usePlayer.getState().setVolume(value),
-};

@@ -7,7 +7,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   return (
-    <div className="min-h-screen aurora-bg">
+    <div className="h-dvh overflow-hidden aurora-bg flex flex-col">
       <Toaster
         position="bottom-center"
         toastOptions={{
@@ -16,18 +16,21 @@ export default function Layout({ children }: LayoutProps) {
         }}
       />
 
-      <header className="fixed top-0 left-0 right-0 z-50">
-        <div className="container mx-auto px-6 py-5">
-          <h1 className="text-center text-lg font-light tracking-[0.3em] text-foreground/80 uppercase">
-            AubeSonore
-          </h1>
-        </div>
+      {/* Header */}
+      <header className="shrink-0 py-4 md:py-5">
+        <h1 className="text-center text-sm md:text-lg font-light tracking-[0.25em] md:tracking-[0.3em] text-foreground/80 uppercase">
+          AubeSonore
+        </h1>
       </header>
 
-      <main className="min-h-screen">{children}</main>
+      {/* Main */}
+      <main className="flex-1 flex items-center justify-center overflow-hidden">
+        {children}
+      </main>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-50 py-4">
-        <p className="text-center text-xs text-muted-foreground/50 tracking-widest">
+      {/* Footer */}
+      <footer className="shrink-0 py-3 md:py-4">
+        <p className="text-center text-[10px] md:text-xs text-muted-foreground/50 tracking-widest">
           Éveillez vos sens
         </p>
       </footer>
