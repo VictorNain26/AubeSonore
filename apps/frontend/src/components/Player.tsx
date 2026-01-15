@@ -54,7 +54,7 @@ interface VolumeSliderProps {
 
 function VolumeSlider({ value, onChange }: VolumeSliderProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
-  const isDragging = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
 
   const updateValue = useCallback((clientX: number) => {
     if (!sliderRef.current) return;
@@ -64,28 +64,26 @@ function VolumeSlider({ value, onChange }: VolumeSliderProps) {
   }, [onChange]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    isDragging.current = true;
+    setIsDragging(true);
     updateValue(e.clientX);
   }, [updateValue]);
 
   const handleTouchStart = useCallback((e: React.TouchEvent) => {
     const touch = e.touches[0];
     if (!touch) return;
-    isDragging.current = true;
+    setIsDragging(true);
     updateValue(touch.clientX);
   }, [updateValue]);
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDragging.current) updateValue(e.clientX);
-    };
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => updateValue(e.clientX);
     const handleTouchMove = (e: TouchEvent) => {
       const touch = e.touches[0];
-      if (isDragging.current && touch) updateValue(touch.clientX);
+      if (touch) updateValue(touch.clientX);
     };
-    const handleEnd = () => {
-      isDragging.current = false;
-    };
+    const handleEnd = () => setIsDragging(false);
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleEnd);
@@ -98,24 +96,30 @@ function VolumeSlider({ value, onChange }: VolumeSliderProps) {
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleEnd);
     };
-  }, [updateValue]);
+  }, [isDragging, updateValue]);
 
   return (
     <div
       ref={sliderRef}
-      className="relative h-1.5 flex-1 bg-secondary rounded-full cursor-pointer group"
+      className={cn(
+        'relative h-2 flex-1 bg-secondary rounded-full group',
+        isDragging ? 'cursor-grabbing' : 'cursor-pointer'
+      )}
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
       {/* Track fill */}
       <div
-        className="absolute inset-y-0 left-0 bg-primary rounded-full"
+        className="absolute inset-y-0 left-0 bg-primary rounded-full transition-all duration-75"
         style={{ width: `${value * 100}%` }}
       />
       {/* Thumb */}
       <div
-        className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-primary rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-        style={{ left: `calc(${value * 100}% - 6px)` }}
+        className={cn(
+          'absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-primary rounded-full shadow-md transition-all',
+          isDragging ? 'scale-110 opacity-100' : 'opacity-0 group-hover:opacity-100'
+        )}
+        style={{ left: `calc(${value * 100}% - 8px)` }}
       />
     </div>
   );
