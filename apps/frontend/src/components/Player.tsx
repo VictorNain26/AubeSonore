@@ -118,16 +118,7 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
         const barX = x + gap / 2;
         const barW = barWidth - gap;
 
-        // Si en pause: tout en gris uniforme
-        if (!isPlaying) {
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-          ctx.beginPath();
-          ctx.roundRect(barX, y, barW, barHeight, 2);
-          ctx.fill();
-          continue;
-        }
-
-        // En lecture: partie colorée (progression)
+        // Partie colorée (progression)
         if (x < progressX) {
           const fillWidth = Math.min(barW, progressX - barX);
           if (fillWidth > 0) {
@@ -142,7 +133,7 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
           }
         }
 
-        // En lecture: partie non colorée (reste)
+        // Partie non colorée (reste)
         if (x + barW > progressX) {
           const startX = Math.max(barX, progressX);
           const remainingWidth = barX + barW - startX;
@@ -279,7 +270,7 @@ export default function Player() {
   const [artError, setArtError] = useState(false);
 
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
-  const { data: np, isConnected } = useNowPlaying();
+  const { data: np } = useNowPlaying();
   const animationRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
   const baseElapsedRef = useRef<number>(0);
@@ -423,43 +414,30 @@ export default function Player() {
         </span>
       </div>
 
-      {/* Live Play/Stop Button */}
-      <div className="flex flex-col items-center gap-2 mb-6">
+      {/* Play/Stop Button */}
+      <div className="flex flex-col items-center gap-3 mb-6">
         <button
           onClick={togglePlay}
           className={cn(
-            'relative flex items-center gap-3 px-6 py-3 rounded-full',
-            'backdrop-blur-md border transition-all duration-200',
+            'w-16 h-16 rounded-full flex items-center justify-center',
+            'border border-white/20 transition-all duration-300',
             'hover:scale-105 active:scale-95',
-            'shadow-lg shadow-black/20',
-            isPlaying
-              ? 'bg-red-500/20 border-red-500/40 hover:bg-red-500/30'
-              : 'bg-white/10 border-white/20 hover:bg-white/20'
+            'bg-white/10 backdrop-blur-sm',
+            isPlaying && 'shadow-[0_0_30px_rgba(168,85,247,0.4)] border-purple-500/30'
           )}
         >
-          {/* Live indicator dot */}
-          <span
-            className={cn(
-              'w-2.5 h-2.5 rounded-full transition-colors',
-              isPlaying ? 'bg-red-500 animate-pulse' : 'bg-white/30'
-            )}
-          />
-
-          {/* Label */}
-          <span className={cn(
-            'text-sm font-medium uppercase tracking-wide',
-            isPlaying ? 'text-red-400' : 'text-white/70'
-          )}>
-            En direct
-          </span>
-
-          {/* Play/Stop icon */}
           {isPlaying ? (
-            <Square className="w-5 h-5 text-white" />
+            <Square className="w-6 h-6 text-white" />
           ) : (
-            <Play className="w-5 h-5 text-white ml-0.5" />
+            <Play className="w-7 h-7 text-white ml-1" />
           )}
         </button>
+        <span className={cn(
+          'text-xs transition-colors',
+          isPlaying ? 'text-purple-400' : 'text-muted-foreground'
+        )}>
+          En direct
+        </span>
       </div>
 
       {/* Volume */}
@@ -480,22 +458,13 @@ export default function Player() {
         </span>
       </div>
 
-      {/* Stats bar */}
-      <div className="flex items-center justify-center gap-6 text-xs text-muted-foreground mb-4">
-        {np?.listeners && (
-          <div className="flex items-center gap-1.5">
-            <Users className="w-3.5 h-3.5" />
-            <span>{np.listeners.current} auditeur{np.listeners.current > 1 ? 's' : ''}</span>
-          </div>
-        )}
-        <div className="flex items-center gap-1.5">
-          <span className={cn(
-            'w-2 h-2 rounded-full',
-            isConnected ? 'bg-green-500' : 'bg-red-500'
-          )} />
-          <span>{isConnected ? 'Connecté' : 'Déconnecté'}</span>
+      {/* Listeners count */}
+      {np?.listeners && (
+        <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-4">
+          <Users className="w-3.5 h-3.5" />
+          <span>{np.listeners.current} auditeur{np.listeners.current > 1 ? 's' : ''}</span>
         </div>
-      </div>
+      )}
 
       {/* Dernier morceau joué */}
       {np?.song_history?.[0] && (
