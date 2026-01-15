@@ -1,65 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Volume2, VolumeX, Radio } from 'lucide-react';
-import { Button } from './ui/button';
+import { Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PlayerService, usePlayerStore } from '../lib/playerService';
 import { AZURACAST_URL } from '../utils/config';
 
-interface Station {
-  name: string;
-  listen_url?: string;
-}
-
-interface Song {
-  title: string;
-  artist: string;
-  art?: string;
-  album?: string;
-}
-
 interface NowPlayingData {
-  station?: Station;
+  station?: { name: string };
   now_playing?: {
-    song?: Song;
+    song?: {
+      title: string;
+      artist: string;
+      art?: string;
+    };
     elapsed?: number;
     duration?: number;
   };
 }
 
-interface SSEPayload {
-  data?: {
-    current_time?: number;
-    np?: NowPlayingData;
-  };
-}
-
 interface SSEMessage {
-  connect?: {
-    data?: SSEPayload[];
-    subs?: Record<string, {
-      publications?: SSEPayload[];
-    }>;
-  };
-  pub?: SSEPayload;
+  connect?: { data?: Array<{ data?: { np?: NowPlayingData } }> };
+  pub?: { data?: { np?: NowPlayingData } };
 }
-
-const MusicVisualizer: React.FC<{ isPlaying: boolean }> = ({ isPlaying }) => (
-  <div className="flex items-end justify-center gap-1 h-12">
-    {[...Array(7)].map((_, i) => (
-      <motion.div
-        key={i}
-        className={cn(
-          'w-1.5 bg-gradient-to-t from-primary via-accent to-pink-400 rounded-full',
-          isPlaying ? 'music-bar' : 'h-1',
-        )}
-        style={{
-          animationDelay: `${i * 0.1}s`,
-        }}
-      />
-    ))}
-  </div>
-);
 
 const MusicPlayer: React.FC = () => {
   const [nowPlaying, setNowPlaying] = useState<NowPlayingData | null>(null);
@@ -94,9 +55,7 @@ const MusicPlayer: React.FC = () => {
     const vol = parseInt(e.target.value);
     setVolume(vol / 100);
     setIsMuted(vol === 0);
-    if (vol > 0) {
-      setPreviousVolume(vol / 100);
-    }
+    if (vol > 0) setPreviousVolume(vol / 100);
   };
 
   const formatTime = (seconds: number): string => {
@@ -107,7 +66,7 @@ const MusicPlayer: React.FC = () => {
 
   const progressPercentage = duration > 0 ? (elapsed / duration) * 100 : 0;
 
-  // SSE Connection for live updates
+  // SSE Connection
   useEffect(() => {
     const connectToSSE = (): void => {
       try {
@@ -116,28 +75,21 @@ const MusicPlayer: React.FC = () => {
         eventSourceRef.current.onmessage = (event): void => {
           try {
             const data: SSEMessage = JSON.parse(event.data);
-
-            let nowPlayingData: NowPlayingData | null = null;
+            let np: NowPlayingData | null = null;
 
             if (data.connect?.data?.[0]?.data?.np) {
-              nowPlayingData = data.connect.data[0].data.np;
+              np = data.connect.data[0].data.np;
             } else if (data.pub?.data?.np) {
-              nowPlayingData = data.pub.data.np;
+              np = data.pub.data.np;
             }
 
-            if (nowPlayingData) {
-              setNowPlaying(nowPlayingData);
-
-              if (nowPlayingData.now_playing?.elapsed !== undefined) {
-                setElapsed(nowPlayingData.now_playing.elapsed);
-              }
-              if (nowPlayingData.now_playing?.duration !== undefined) {
-                setDuration(nowPlayingData.now_playing.duration);
-              }
+            if (np) {
+              setNowPlaying(np);
+              if (np.now_playing?.elapsed !== undefined) setElapsed(np.now_playing.elapsed);
+              if (np.now_playing?.duration !== undefined) setDuration(np.now_playing.duration);
             }
-
-          } catch (err) {
-            // Silent fail for parsing errors
+          } catch {
+            // Silent
           }
         };
 
@@ -145,244 +97,153 @@ const MusicPlayer: React.FC = () => {
           eventSourceRef.current?.close();
           setTimeout(connectToSSE, 3000);
         };
-      } catch (err) {
+      } catch {
         setTimeout(connectToSSE, 5000);
       }
     };
 
     connectToSSE();
-
-    return (): void => {
-      eventSourceRef.current?.close();
-    };
+    return (): void => { eventSourceRef.current?.close(); };
   }, []);
 
   // Progress timer
   useEffect(() => {
     if (isPlaying && duration > 0) {
       intervalRef.current = setInterval(() => {
-        setElapsed(prev => {
-          const next = prev + 1;
-          return next <= duration ? next : duration;
-        });
+        setElapsed(prev => (prev + 1 <= duration ? prev + 1 : duration));
       }, 1000);
     } else if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-
-    return (): void => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
+    return (): void => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [isPlaying, duration]);
 
-  const currentSong = nowPlaying?.now_playing?.song;
-  const stationName = nowPlaying?.station?.name ?? 'OurMusic Radio';
+  const song = nowPlaying?.now_playing?.song;
 
   return (
-    <div className="w-full max-w-2xl mx-auto px-4">
-      {/* Main Player Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
-        className="relative overflow-hidden rounded-[2rem] bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl"
-      >
-        {/* Background Art with Blur */}
-        <AnimatePresence mode="wait">
-          {currentSong?.art && (
-            <motion.div
-              key={currentSong.art}
-              initial={{ opacity: 0, scale: 1.2 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 1 }}
-              className="absolute inset-0 z-0"
-            >
-              <img
-                src={currentSong.art}
-                alt=""
-                className="w-full h-full object-cover opacity-30 blur-3xl scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
-            </motion.div>
+    <div className="w-full max-w-md mx-auto px-6">
+      {/* Vinyl / Album Art */}
+      <div className="relative flex items-center justify-center mb-10">
+        {/* Vinyl disc */}
+        <div
+          className={cn(
+            'w-64 h-64 rounded-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900',
+            'border border-white/5 shadow-2xl relative',
+            isPlaying ? 'vinyl-spin' : 'vinyl-spin vinyl-spin-paused'
           )}
-        </AnimatePresence>
+        >
+          {/* Vinyl grooves */}
+          <div className="absolute inset-4 rounded-full border border-white/5" />
+          <div className="absolute inset-8 rounded-full border border-white/5" />
+          <div className="absolute inset-12 rounded-full border border-white/5" />
+          <div className="absolute inset-16 rounded-full border border-white/5" />
 
-        <div className="relative z-10 p-8 md:p-12">
-          <div className="flex flex-col items-center gap-8">
-            {/* Album Art */}
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-              className="relative"
-            >
-              <div className={cn(
-                'w-48 h-48 md:w-64 md:h-64 rounded-3xl overflow-hidden shadow-2xl',
-                'ring-4 ring-white/10 ring-offset-4 ring-offset-transparent',
-                isPlaying && 'ring-primary/50'
-              )}>
-                <AnimatePresence mode="wait">
-                  {currentSong?.art ? (
-                    <motion.img
-                      key={currentSong.art}
-                      src={currentSong.art}
-                      alt="Album artwork"
-                      className="w-full h-full object-cover"
-                      initial={{ opacity: 0, scale: 1.1 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      transition={{ duration: 0.5 }}
-                    />
-                  ) : (
-                    <motion.div
-                      className="w-full h-full bg-gradient-to-br from-primary/60 to-accent/60 flex items-center justify-center"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                    >
-                      <Radio className="w-20 h-20 text-white/80" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+          {/* Center label with album art */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gray-800 shadow-inner">
+              {song?.art ? (
+                <img src={song.art} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/60 to-accent/40" />
+              )}
+            </div>
+          </div>
 
-              {/* Live indicator badge */}
-              <AnimatePresence>
-                {isPlaying && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0 }}
-                    className="absolute -top-3 -right-3 bg-gradient-to-r from-primary to-accent rounded-full px-4 py-1.5 shadow-lg"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 bg-white rounded-full animate-pulse" />
-                      <span className="text-xs font-bold text-white uppercase tracking-wider">Live</span>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
-
-            {/* Track Info */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="text-center space-y-2 w-full"
-            >
-              {/* Station Name */}
-              <p className="text-sm font-medium text-accent uppercase tracking-widest">
-                {stationName}
-              </p>
-
-              {/* Track Title */}
-              <h1 className="text-2xl md:text-3xl font-bold text-white leading-tight line-clamp-2">
-                {currentSong?.title ?? 'En attente...'}
-              </h1>
-
-              {/* Artist */}
-              <p className="text-lg text-white/60">
-                {currentSong?.artist ?? 'Connexion en cours'}
-              </p>
-            </motion.div>
-
-            {/* Progress Bar */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="w-full space-y-2"
-            >
-              <div className="relative h-1.5 bg-white/10 rounded-full overflow-hidden">
-                <motion.div
-                  className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary to-accent rounded-full"
-                  initial={{ width: 0 }}
-                  animate={{ width: `${progressPercentage}%` }}
-                  transition={{ duration: 0.5, ease: 'linear' }}
-                />
-              </div>
-              <div className="flex justify-between text-xs text-white/40 font-medium">
-                <span>{formatTime(elapsed)}</span>
-                <span>{duration > 0 ? formatTime(duration) : '--:--'}</span>
-              </div>
-            </motion.div>
-
-            {/* Music Visualizer */}
-            <MusicVisualizer isPlaying={isPlaying} />
-
-            {/* Controls */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="flex flex-col items-center gap-6 w-full"
-            >
-              {/* Play Button */}
-              <Button
-                variant="gradient"
-                onClick={togglePlay}
-                className={cn(
-                  'w-20 h-20 rounded-full shadow-2xl transition-all duration-300',
-                  'hover:scale-105 active:scale-95',
-                  isPlaying && 'shadow-primary/50'
-                )}
-              >
-                {isPlaying ? (
-                  <Pause className="w-8 h-8" />
-                ) : (
-                  <Play className="w-8 h-8 ml-1" />
-                )}
-              </Button>
-
-              {/* Volume Control */}
-              <div className="flex items-center gap-4 w-full max-w-xs">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleMute}
-                  className="text-white/60 hover:text-white shrink-0"
-                >
-                  {isMuted || volume === 0 ? (
-                    <VolumeX className="w-5 h-5" />
-                  ) : (
-                    <Volume2 className="w-5 h-5" />
-                  )}
-                </Button>
-
-                <div className="flex-1 relative">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={Math.round(volume * 100)}
-                    onChange={handleVolumeChange}
-                    className="w-full h-1.5 bg-white/10 rounded-full appearance-none cursor-pointer
-                      [&::-webkit-slider-thumb]:appearance-none
-                      [&::-webkit-slider-thumb]:w-4
-                      [&::-webkit-slider-thumb]:h-4
-                      [&::-webkit-slider-thumb]:rounded-full
-                      [&::-webkit-slider-thumb]:bg-gradient-to-r
-                      [&::-webkit-slider-thumb]:from-primary
-                      [&::-webkit-slider-thumb]:to-accent
-                      [&::-webkit-slider-thumb]:shadow-lg
-                      [&::-webkit-slider-thumb]:cursor-pointer
-                      [&::-webkit-slider-thumb]:transition-transform
-                      [&::-webkit-slider-thumb]:hover:scale-110"
-                  />
-                </div>
-
-                <span className="text-xs text-white/40 w-8 text-right font-medium">
-                  {Math.round(volume * 100)}%
-                </span>
-              </div>
-            </motion.div>
+          {/* Center hole */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-3 h-3 rounded-full bg-background" />
           </div>
         </div>
-      </motion.div>
+
+        {/* Glow effect */}
+        {isPlaying && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-72 h-72 rounded-full bg-primary/10 blur-3xl breathe" />
+          </div>
+        )}
+      </div>
+
+      {/* Track Info */}
+      <div className="text-center mb-8 space-y-2">
+        <h2 className="text-xl font-light text-foreground tracking-wide">
+          {song?.title || 'En attente...'}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {song?.artist || '—'}
+        </p>
+      </div>
+
+      {/* Progress */}
+      <div className="mb-8 space-y-2">
+        <div className="relative h-1 bg-secondary rounded-full overflow-hidden">
+          <div
+            className="absolute left-0 top-0 h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all duration-500"
+            style={{ width: `${progressPercentage}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-xs text-muted-foreground">
+          <span>{formatTime(elapsed)}</span>
+          <span>{duration > 0 ? formatTime(duration) : '—:——'}</span>
+        </div>
+      </div>
+
+      {/* Controls */}
+      <div className="flex flex-col items-center gap-6">
+        {/* Play Button */}
+        <button
+          onClick={togglePlay}
+          className={cn(
+            'w-16 h-16 rounded-full flex items-center justify-center',
+            'bg-primary/10 border border-primary/30 text-primary',
+            'hover:bg-primary/20 hover:border-primary/50 transition-all duration-300',
+            isPlaying && 'glow-soft'
+          )}
+        >
+          {isPlaying ? (
+            <Pause className="w-6 h-6" />
+          ) : (
+            <Play className="w-6 h-6 ml-1" />
+          )}
+        </button>
+
+        {/* Volume */}
+        <div className="flex items-center gap-3 w-full max-w-xs">
+          <button
+            onClick={toggleMute}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {isMuted || volume === 0 ? (
+              <VolumeX className="w-4 h-4" />
+            ) : (
+              <Volume2 className="w-4 h-4" />
+            )}
+          </button>
+
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={Math.round(volume * 100)}
+            onChange={handleVolumeChange}
+            className="flex-1"
+          />
+
+          <span className="text-xs text-muted-foreground w-8 text-right tabular-nums">
+            {Math.round(volume * 100)}
+          </span>
+        </div>
+      </div>
+
+      {/* Live indicator */}
+      {isPlaying && (
+        <div className="mt-8 flex items-center justify-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+          <span className="text-xs text-muted-foreground uppercase tracking-widest">
+            En direct
+          </span>
+        </div>
+      )}
     </div>
   );
 };

@@ -2,59 +2,53 @@
 
 @layer base {
   :root {
-    /* Background colors - dark gradient theme inspired by music apps */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    
-    /* Card colors with slight transparency */
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    
-    /* Popover colors */
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    
-    /* Primary colors - vibrant purple/pink gradient like Spotify/Apple Music */
-    --primary: 271 81% 56%;
-    --primary-foreground: 0 0% 98%;
-    
-    /* Secondary colors - deep blue */
-    --secondary: 240 5.9% 10%;
-    --secondary-foreground: 0 0% 98%;
-    
-    /* Muted colors */
-    --muted: 240 5.9% 10%;
-    --muted-foreground: 240 5% 64.9%;
-    
-    /* Accent colors - bright cyan for highlights */
-    --accent: 191 91% 56%;
-    --accent-foreground: 240 5.9% 10%;
-    
-    /* Destructive colors */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    
-    /* Border and input colors */
-    --border: 240 5.9% 20%;
-    --input: 240 5.9% 20%;
-    --ring: 271 81% 56%;
-    
-    /* Chart colors inspired by music visualization */
-    --chart-1: 271 81% 56%;
-    --chart-2: 191 91% 56%;
-    --chart-3: 142 71% 45%;
-    --chart-4: 41 96% 40%;
-    --chart-5: 0 84.2% 60.2%;
-    
-    /* Music player specific colors */
-    --player-bg: 240 10% 2%;
-    --player-card: 240 8% 8%;
-    --progress-bg: 240 5.9% 20%;
-    --volume-bg: 240 5.9% 15%;
-    
-    /* Gradient backgrounds */
-    --gradient-primary: linear-gradient(135deg, hsl(271 81% 56%) 0%, hsl(191 91% 56%) 100%);
-    --gradient-player: linear-gradient(145deg, hsl(240 10% 2%) 0%, hsl(240 8% 8%) 100%);
+    /* AubeSonore - Palette poétique inspirée de l'aurore */
+
+    /* Fond - Nuit profonde avec nuance chaude */
+    --background: 220 25% 8%;
+    --foreground: 35 30% 92%;
+
+    /* Cartes - Nuances douces */
+    --card: 220 20% 12%;
+    --card-foreground: 35 30% 92%;
+
+    /* Popover */
+    --popover: 220 20% 10%;
+    --popover-foreground: 35 30% 92%;
+
+    /* Primaire - Corail doux (aurore) */
+    --primary: 15 70% 60%;
+    --primary-foreground: 220 25% 8%;
+
+    /* Secondaire - Bleu nuit */
+    --secondary: 220 30% 18%;
+    --secondary-foreground: 35 30% 92%;
+
+    /* Muted */
+    --muted: 220 20% 18%;
+    --muted-foreground: 35 15% 55%;
+
+    /* Accent - Ambre doré */
+    --accent: 35 80% 55%;
+    --accent-foreground: 220 25% 8%;
+
+    /* Destructive */
+    --destructive: 0 65% 55%;
+    --destructive-foreground: 35 30% 92%;
+
+    /* Bordures et inputs */
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 15 70% 60%;
+
+    /* Player */
+    --player-bg: 220 25% 6%;
+    --player-card: 220 20% 10%;
+    --progress-bg: 220 15% 22%;
+    --volume-bg: 220 15% 18%;
+
+    /* Radius plus doux */
+    --radius: 1rem;
   }
 }
 
@@ -62,33 +56,33 @@
   * {
     border-color: hsl(var(--border));
   }
-  
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
-  
-  /* Custom scrollbar */
+
+  /* Scrollbar élégante */
   ::-webkit-scrollbar {
-    width: 8px;
+    width: 6px;
   }
-  
+
   ::-webkit-scrollbar-track {
-    background-color: hsl(var(--muted));
+    background-color: transparent;
   }
-  
+
   ::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.3);
     border-radius: 9999px;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--primary) / 0.8);
+    background-color: hsl(var(--primary) / 0.5);
   }
 }
 
-/* Custom range slider styles for audio player */
+/* Range slider - Style organique */
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -98,82 +92,96 @@ input[type="range"] {
 
 input[type="range"]::-webkit-slider-track {
   background-color: hsl(var(--progress-bg));
-  height: 0.5rem;
+  height: 4px;
   border-radius: 9999px;
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  height: 1rem;
-  width: 1rem;
+  height: 14px;
+  width: 14px;
   border-radius: 9999px;
   background-color: hsl(var(--primary));
-  border: 0;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  margin-top: -4px;
+  border: 2px solid hsl(var(--foreground));
+  margin-top: -5px;
+  transition: transform 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
 }
 
 input[type="range"]::-moz-range-track {
   background-color: hsl(var(--progress-bg));
-  height: 0.5rem;
+  height: 4px;
   border-radius: 9999px;
   border: 0;
 }
 
 input[type="range"]::-moz-range-thumb {
-  height: 1rem;
-  width: 1rem;
+  height: 14px;
+  width: 14px;
   border-radius: 9999px;
   background-color: hsl(var(--primary));
-  border: 0;
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  margin-top: -6px;
+  border: 2px solid hsl(var(--foreground));
 }
 
-/* Music visualization bars animation */
-@keyframes music-bar {
-  0%, 100% { height: 4px; }
-  50% { height: 20px; }
+/* Animation douce pour les barres audio */
+@keyframes wave {
+  0%, 100% {
+    height: 4px;
+    opacity: 0.4;
+  }
+  50% {
+    height: 24px;
+    opacity: 1;
+  }
 }
 
-.music-bar {
-  animation: music-bar 0.6s ease-in-out infinite;
+.sound-wave {
+  animation: wave 1.2s ease-in-out infinite;
 }
 
-.music-bar:nth-child(2) { animation-delay: 0.1s; }
-.music-bar:nth-child(3) { animation-delay: 0.2s; }
-.music-bar:nth-child(4) { animation-delay: 0.3s; }
-.music-bar:nth-child(5) { animation-delay: 0.4s; }
-
-/* Glass morphism effect for cards */
-.glass {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Animation de respiration pour le vinyle */
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
 }
 
-/* Neon glow effect for active elements */
-.neon-glow {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), 0 0 40px rgba(139, 92, 246, 0.1);
+.breathe {
+  animation: breathe 4s ease-in-out infinite;
 }
 
-/* Floating animation for elements */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+/* Rotation vinyle */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.float-animation {
-  animation: float 3s ease-in-out infinite;
+.vinyl-spin {
+  animation: spin-slow 8s linear infinite;
 }
 
-/* Pulse animation for live indicators */
-@keyframes pulse-live {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+.vinyl-spin-paused {
+  animation-play-state: paused;
 }
 
-.pulse-live {
-  animation: pulse-live 2s ease-in-out infinite;
+/* Lueur douce */
+.glow-soft {
+  box-shadow: 0 0 40px hsl(var(--primary) / 0.15);
+}
+
+/* Fond dégradé aurore */
+.aurora-bg {
+  background:
+    radial-gradient(ellipse at 20% 80%, hsl(15 70% 60% / 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, hsl(35 80% 55% / 0.06) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 50%, hsl(220 25% 8%) 0%, hsl(220 25% 4%) 100%);
 }
