@@ -545,23 +545,30 @@ export default function Player() {
       </div>
 
       {/* =================================================================
-          SECTION 4: Playback Controls (Grouped)
-          Layout: [Volume] ——— [Play] ——— [Listeners]
-          ================================================================= */}
-      <div className="flex items-center justify-between mb-6 px-2">
-        {/* Left: Volume Control (slider overlays, no layout shift) */}
-        <VolumeControl
-          volume={volume}
-          isMuted={isMuted}
-          onVolumeChange={handleVolumeChange}
-          onToggleMute={toggleMute}
-        />
+          SECTION 4: Playback Controls
 
-        {/* Center: Play/Stop Button */}
+          Best Practice: "True center" with unequal siblings
+          Pattern: flex-1 on sides + shrink-0 on center
+          Source: https://chrisbracco.com/css-truly-center-a-single-child-element-horizontally-when-siblings-are-present/
+
+          [flex-1 justify-start] — [shrink-0 center] — [flex-1 justify-end]
+          ================================================================= */}
+      <div className="flex items-center mb-6 px-2">
+        {/* Left: flex-1 distributes equal space, justify-start aligns content */}
+        <div className="flex-1 flex justify-start">
+          <VolumeControl
+            volume={volume}
+            isMuted={isMuted}
+            onVolumeChange={handleVolumeChange}
+            onToggleMute={toggleMute}
+          />
+        </div>
+
+        {/* Center: shrink-0 prevents shrinking, truly centered */}
         <button
           onClick={togglePlay}
           className={cn(
-            'w-14 h-14 rounded-full flex items-center justify-center',
+            'w-14 h-14 rounded-full flex items-center justify-center shrink-0',
             'border border-white/20 transition-all duration-200',
             'hover:scale-105 hover:bg-white/10 active:scale-95',
             'bg-white/5 backdrop-blur-sm'
@@ -575,16 +582,14 @@ export default function Player() {
           )}
         </button>
 
-        {/* Right: Listeners count */}
-        <div className="w-24 flex justify-end">
+        {/* Right: flex-1 distributes equal space, justify-end aligns content */}
+        <div className="flex-1 flex justify-end">
           {np?.listeners ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Users className="w-3.5 h-3.5" />
               <span>{np.listeners.current}</span>
             </div>
-          ) : (
-            <div className="w-8" />
-          )}
+          ) : null}
         </div>
       </div>
 
