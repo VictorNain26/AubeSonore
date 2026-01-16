@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Square, Volume2, VolumeX, Radio, Users, Music } from 'lucide-react';
+import { Play, Square, Volume2, VolumeX, Radio, Users, Music, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlayer, getAnalyser } from '../lib/player';
 import { useNowPlaying, type SongEntry } from '../lib/azuracast';
+import { useLikedTracks } from '../hooks/useLikedTracks';
+import { LikedTracksModal } from './LikedTracksModal';
 
 function formatTime(seconds: number): string {
   if (!seconds || seconds < 0) return '0:00';
@@ -21,13 +23,16 @@ function formatTimeAgo(timestamp: number): string {
 
 interface HistoryItemProps {
   entry: SongEntry;
+  isLiked: boolean;
+  isLiking: boolean;
+  onLike: () => void;
 }
 
-function HistoryItem({ entry }: HistoryItemProps) {
+function HistoryItem({ entry, isLiked, isLiking, onLike }: HistoryItemProps) {
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div className="flex items-center gap-3 py-2">
+    <div className="flex items-center gap-3 py-2 group">
       <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-secondary flex items-center justify-center">
         {entry.song.art && !imgError ? (
           <img
@@ -45,6 +50,21 @@ function HistoryItem({ entry }: HistoryItemProps) {
         <p className="text-sm text-foreground truncate">{entry.song.title}</p>
         <p className="text-xs text-muted-foreground truncate">{entry.song.artist}</p>
       </div>
+      <button
+        onClick={onLike}
+        disabled={isLiking}
+        className={cn(
+          'p-1.5 rounded-full transition-all',
+          'opacity-0 group-hover:opacity-100',
+          isLiked
+            ? 'text-red-400 opacity-100'
+            : 'text-white/40 hover:text-red-400',
+          isLiking && 'animate-pulse'
+        )}
+        title={isLiked ? 'Déjà liké' : 'Ajouter aux favoris'}
+      >
+        <Heart className={cn('w-4 h-4', isLiked && 'fill-current')} />
+      </button>
       <span className="text-xs text-muted-foreground shrink-0">
         {formatTimeAgo(entry.played_at)}
       </span>
@@ -402,9 +422,12 @@ export default function Player() {
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(1);
   const [artError, setArtError] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [likingTrackId, setLikingTrackId] = useState<string | null>(null);
 
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
   const { data: np } = useNowPlaying();
+  const { likeTrack, isTrackLiked, tracks } = useLikedTracks();
   const animationRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
   const baseElapsedRef = useRef<number>(0);
@@ -473,6 +496,41 @@ export default function Player() {
 
   const playlistName = nowPlaying?.playlist?.replace(/_/g, ' ');
 
+  // Check if current track is liked
+  const isCurrentTrackLiked = nowPlaying
+    ? isTrackLiked(nowPlaying.song.title, nowPlaying.song.artist)
+    : false;
+
+  // Handle like for any track (current or history)
+  const handleLikeTrack = useCallback(
+    async (title: string, artist: string, artworkUrl?: string) => {
+      const trackKey = `${title}-${artist}`;
+      if (likingTrackId === trackKey) return; // Prevent double-click
+
+      setLikingTrackId(trackKey);
+      try {
+        const requestData: Parameters<typeof likeTrack>[0] = {
+          title,
+          artist,
+          youtubeUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} ${artist}`)}`,
+        };
+        if (artworkUrl) {
+          requestData.artworkUrl = artworkUrl;
+        }
+        await likeTrack(requestData);
+      } finally {
+        setLikingTrackId(null);
+      }
+    },
+    [likeTrack, likingTrackId]
+  );
+
+  // Check if a history track is liked
+  const isHistoryTrackLiked = useCallback(
+    (entry: SongEntry) => isTrackLiked(entry.song.title, entry.song.artist),
+    [isTrackLiked]
+  );
+
   return (
     <div className="w-full max-w-lg mx-auto px-4">
       {/* =================================================================
@@ -517,9 +575,33 @@ export default function Player() {
           SECTION 2: Track Info
           ================================================================= */}
       <div className="text-center mb-5">
-        <h2 className="text-lg md:text-xl font-medium text-foreground truncate px-2">
-          {nowPlaying?.song.title || 'En attente...'}
-        </h2>
+        <div className="flex items-center justify-center gap-2">
+          <h2 className="text-lg md:text-xl font-medium text-foreground truncate">
+            {nowPlaying?.song.title || 'En attente...'}
+          </h2>
+          {nowPlaying && (
+            <button
+              onClick={() =>
+                handleLikeTrack(
+                  nowPlaying.song.title,
+                  nowPlaying.song.artist,
+                  nowPlaying.song.art
+                )
+              }
+              disabled={isCurrentTrackLiked || likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}`}
+              className={cn(
+                'p-1.5 rounded-full transition-all shrink-0',
+                isCurrentTrackLiked
+                  ? 'text-red-400'
+                  : 'text-white/40 hover:text-red-400',
+                likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}` && 'animate-pulse'
+              )}
+              title={isCurrentTrackLiked ? 'Déjà liké' : 'Ajouter aux favoris'}
+            >
+              <Heart className={cn('w-5 h-5', isCurrentTrackLiked && 'fill-current')} />
+            </button>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground truncate px-2 mt-0.5">
           {nowPlaying?.song.artist || '—'}
         </p>
@@ -583,7 +665,26 @@ export default function Player() {
         </button>
 
         {/* Right: flex-1 distributes equal space, justify-end aligns content */}
-        <div className="flex-1 flex justify-end">
+        <div className="flex-1 flex justify-end items-center gap-2">
+          {/* Liked tracks button */}
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className={cn(
+              'p-2 rounded-full transition-all duration-200 relative',
+              'text-white/60 hover:text-white hover:bg-white/10',
+              tracks.length > 0 && 'text-red-400/80 hover:text-red-400'
+            )}
+            title="Mes morceaux likés"
+          >
+            <Heart className={cn('w-5 h-5', tracks.length > 0 && 'fill-current')} />
+            {tracks.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-medium">
+                {tracks.length > 9 ? '9+' : tracks.length}
+              </span>
+            )}
+          </button>
+
+          {/* Listeners count */}
           {np?.listeners ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Users className="w-3.5 h-3.5" />
@@ -608,12 +709,32 @@ export default function Player() {
       {/* =================================================================
           SECTION 6: History (Previous Track)
           ================================================================= */}
-      {np?.song_history?.[0] && (
-        <div className="border-t border-white/10 pt-4">
-          <p className="text-xs text-muted-foreground mb-2">Précédemment</p>
-          <HistoryItem entry={np.song_history[0]} />
-        </div>
-      )}
+      {(() => {
+        const historyEntry = np?.song_history?.[0];
+        if (!historyEntry) return null;
+        return (
+          <div className="border-t border-white/10 pt-4">
+            <p className="text-xs text-muted-foreground mb-2">Précédemment</p>
+            <HistoryItem
+              entry={historyEntry}
+              isLiked={isHistoryTrackLiked(historyEntry)}
+              isLiking={likingTrackId === `${historyEntry.song.title}-${historyEntry.song.artist}`}
+              onLike={() =>
+                handleLikeTrack(
+                  historyEntry.song.title,
+                  historyEntry.song.artist,
+                  historyEntry.song.art
+                )
+              }
+            />
+          </div>
+        );
+      })()}
+
+      {/* =================================================================
+          MODAL: Liked Tracks
+          ================================================================= */}
+      <LikedTracksModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
     </div>
   );
 }

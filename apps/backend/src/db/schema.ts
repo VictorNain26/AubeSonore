@@ -1,5 +1,20 @@
-import { pgTable, text, timestamp, unique, boolean } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, unique, boolean, jsonb } from 'drizzle-orm/pg-core';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+
+// ─────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────
+export type PlatformLinks = {
+  spotify?: string;
+  appleMusic?: string;
+  deezer?: string;
+  youtubeMusic?: string;
+  tidal?: string;
+  amazonMusic?: string;
+  soundcloud?: string;
+};
+
+export type PreferredPlatform = 'spotify' | 'appleMusic' | 'deezer' | 'youtubeMusic' | 'tidal' | 'amazonMusic' | 'soundcloud' | 'youtube';
 
 // ─────────────────────────────────────────────
 // USER TABLE
@@ -82,13 +97,38 @@ export const likedTracks = pgTable('liked_tracks', {
   id: text('id').primaryKey(),
   title: text('title').notNull(),
   artist: text('artist').notNull(),
-  artwork: text('artwork').notNull(),
+  album: text('album'),
+
+  // Artwork - URL originale + backup base64
+  artworkUrl: text('artwork_url'), // URL externe (AzuraCast, etc.)
+  artworkBase64: text('artwork_base64'), // Backup en base64 pour persistence
+
+  // Identifiants pour recherche multi-plateformes
   youtubeUrl: text('youtube_url').notNull(),
+  isrc: text('isrc'), // International Standard Recording Code
+
+  // Liens vers les plateformes de streaming
+  songlinkUrl: text('songlink_url'), // Lien Odesli/Songlink universel
+  platformLinks: jsonb('platform_links').$type<PlatformLinks>(), // Liens directs par plateforme
+
+  // Métadonnées
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 
   // userId en text, cohérent avec user.id
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
+});
+
+// ─────────────────────────────────────────────
+// USER_PREFERENCES TABLE
+// ─────────────────────────────────────────────
+export const userPreferences = pgTable('user_preferences', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  preferredPlatform: text('preferred_platform').$type<PreferredPlatform>().notNull().default('spotify'),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 // ─────────────────────────────────────────────
@@ -109,3 +149,6 @@ export type NewVerification = InferInsertModel<typeof verification>;
 
 export type LikedTrack = InferSelectModel<typeof likedTracks>;
 export type NewLikedTrack = InferInsertModel<typeof likedTracks>;
+
+export type UserPreferences = InferSelectModel<typeof userPreferences>;
+export type NewUserPreferences = InferInsertModel<typeof userPreferences>;
