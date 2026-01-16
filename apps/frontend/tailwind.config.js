@@ -16,59 +16,78 @@ export default {
       },
     },
     extend: {
+      // ─────────────────────────────────────────────
+      // Colors - Mapped to CSS design tokens
+      // ─────────────────────────────────────────────
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+        // Surfaces
+        surface: {
+          base: "hsl(var(--surface-base))",
+          elevated: "hsl(var(--surface-elevated))",
+          overlay: "hsl(var(--surface-overlay))",
         },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+        // Glass system (use with bg-glass-* for backgrounds)
+        glass: {
+          DEFAULT: "hsl(var(--glass-bg))",
+          hover: "hsl(var(--glass-bg-hover))",
+          active: "hsl(var(--glass-bg-active))",
+          border: "hsl(var(--glass-border))",
+          "border-strong": "hsl(var(--glass-border-strong))",
         },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
+        // Semantic colors
+        danger: "hsl(var(--color-danger))",
+        success: "hsl(var(--color-success))",
+        // Accent
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "hsl(var(--accent-primary))",
+          muted: "hsl(var(--accent-muted))",
         },
-        popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+        // Legacy compatibility (phasing out)
+        background: "hsl(var(--surface-base))",
+        foreground: "hsl(var(--text-primary))",
+        border: "hsl(var(--glass-border))",
+        muted: {
+          foreground: "hsl(var(--text-tertiary))",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "hsl(var(--surface-elevated))",
+          foreground: "hsl(var(--text-primary))",
         },
-        'player-bg': "hsl(var(--player-bg))",
-        'player-card': "hsl(var(--player-card))",
-        'progress-bg': "hsl(var(--progress-bg))",
-        'volume-bg': "hsl(var(--volume-bg))",
       },
+
+      // ─────────────────────────────────────────────
+      // Border Radius - Mapped to CSS tokens
+      // ─────────────────────────────────────────────
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
+        sm: "var(--radius-sm)",
+        md: "var(--radius-md)",
+        lg: "var(--radius-lg)",
+        xl: "var(--radius-xl)",
+        full: "var(--radius-full)",
       },
+
+      // ─────────────────────────────────────────────
+      // Box Shadow - Mapped to CSS tokens
+      // ─────────────────────────────────────────────
+      boxShadow: {
+        sm: "var(--shadow-sm)",
+        md: "var(--shadow-md)",
+        lg: "var(--shadow-lg)",
+      },
+
+      // ─────────────────────────────────────────────
+      // Transitions - Mapped to CSS tokens
+      // ─────────────────────────────────────────────
+      transitionDuration: {
+        fast: "150ms",
+        base: "200ms",
+        slow: "300ms",
+      },
+
+      // ─────────────────────────────────────────────
+      // Keyframes - Unique to Tailwind (CSS has others)
+      // ─────────────────────────────────────────────
       keyframes: {
-        "accordion-down": {
-          from: { height: 0 },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: 0 },
-        },
         "music-bar": {
           "0%, 100%": { height: "4px" },
           "50%": { height: "20px" },
@@ -77,24 +96,17 @@ export default {
           "0%, 100%": { transform: "translateY(0px)" },
           "50%": { transform: "translateY(-10px)" },
         },
-        "pulse-live": {
-          "0%, 100%": { opacity: 1 },
-          "50%": { opacity: 0.5 },
-        },
       },
       animation: {
-        "accordion-down": "accordion-down 0.2s ease-out",
-        "accordion-up": "accordion-up 0.2s ease-out",
         "music-bar": "music-bar 0.6s ease-in-out infinite",
         "float": "float 3s ease-in-out infinite",
-        "pulse-live": "pulse-live 2s ease-in-out infinite",
       },
+
+      // ─────────────────────────────────────────────
+      // Backdrop Blur
+      // ─────────────────────────────────────────────
       backdropBlur: {
         xs: '2px',
-      },
-      backgroundImage: {
-        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
       },
     },
   },

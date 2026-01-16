@@ -1,88 +1,231 @@
 @import "tailwindcss";
 
+/* =============================================================================
+   DESIGN TOKENS - Single Source of Truth
+   Architecture 2026: Semantic naming, layered approach
+   ============================================================================= */
+
 @layer base {
   :root {
-    /* AubeSonore - Palette poétique inspirée de l'aurore */
+    /* ─────────────────────────────────────────────
+       SURFACES - Background layers
+       ─────────────────────────────────────────────*/
+    --surface-base: 222 20% 6%;
+    --surface-elevated: 222 18% 10%;
+    --surface-overlay: 0 0% 0%;
 
-    /* Fond - Nuit profonde avec nuance chaude */
-    --background: 220 25% 8%;
-    --foreground: 35 30% 92%;
+    /* ─────────────────────────────────────────────
+       GLASS - Glassmorphism system
+       Opacities designed for dark theme
+       ─────────────────────────────────────────────*/
+    --glass-bg: 0 0% 100% / 0.03;
+    --glass-bg-hover: 0 0% 100% / 0.06;
+    --glass-bg-active: 0 0% 100% / 0.10;
+    --glass-border: 0 0% 100% / 0.08;
+    --glass-border-strong: 0 0% 100% / 0.12;
 
-    /* Cartes - Nuances douces */
-    --card: 220 20% 12%;
-    --card-foreground: 35 30% 92%;
+    /* ─────────────────────────────────────────────
+       TEXT - Opacity scale for hierarchy
+       ─────────────────────────────────────────────*/
+    --text-primary: 0 0% 100%;
+    --text-secondary: 0 0% 100% / 0.70;
+    --text-tertiary: 0 0% 100% / 0.50;
+    --text-muted: 0 0% 100% / 0.35;
 
-    /* Popover */
-    --popover: 220 20% 10%;
-    --popover-foreground: 35 30% 92%;
+    /* ─────────────────────────────────────────────
+       INTERACTIVE - Feedback colors
+       ─────────────────────────────────────────────*/
+    --interactive-hover: 0 0% 100% / 0.10;
+    --interactive-active: 0 0% 100% / 0.15;
 
-    /* Primaire - Corail doux (aurore) */
-    --primary: 15 70% 60%;
-    --primary-foreground: 220 25% 8%;
+    /* ─────────────────────────────────────────────
+       SEMANTIC - Intent-based colors
+       ─────────────────────────────────────────────*/
+    --color-danger: 0 72% 51%;
+    --color-success: 142 71% 45%;
 
-    /* Secondaire - Bleu nuit */
-    --secondary: 220 30% 18%;
-    --secondary-foreground: 35 30% 92%;
+    /* ─────────────────────────────────────────────
+       ACCENT - Brand purple (subtle)
+       ─────────────────────────────────────────────*/
+    --accent-primary: 270 60% 60%;
+    --accent-muted: 270 40% 50% / 0.20;
 
-    /* Muted */
-    --muted: 220 20% 18%;
-    --muted-foreground: 35 15% 55%;
+    /* ─────────────────────────────────────────────
+       SHADOWS
+       ─────────────────────────────────────────────*/
+    --shadow-sm: 0 2px 8px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 4px 16px hsl(0 0% 0% / 0.4);
+    --shadow-lg: 0 8px 32px hsl(0 0% 0% / 0.5);
 
-    /* Accent - Ambre doré */
-    --accent: 35 80% 55%;
-    --accent-foreground: 220 25% 8%;
+    /* ─────────────────────────────────────────────
+       SPACING & RADIUS
+       ─────────────────────────────────────────────*/
+    --radius-sm: 0.5rem;
+    --radius-md: 0.75rem;
+    --radius-lg: 1rem;
+    --radius-xl: 1.25rem;
+    --radius-full: 9999px;
 
-    /* Destructive */
-    --destructive: 0 65% 55%;
-    --destructive-foreground: 35 30% 92%;
+    /* ─────────────────────────────────────────────
+       TRANSITIONS
+       ─────────────────────────────────────────────*/
+    --transition-fast: 150ms ease;
+    --transition-base: 200ms ease;
+    --transition-slow: 300ms ease;
 
-    /* Bordures et inputs */
-    --border: 220 15% 20%;
-    --input: 220 15% 20%;
-    --ring: 15 70% 60%;
-
-    /* Player */
-    --player-bg: 220 25% 6%;
-    --player-card: 220 20% 10%;
-    --progress-bg: 220 15% 22%;
-    --volume-bg: 220 15% 18%;
-
-    /* Radius plus doux */
-    --radius: 1rem;
+    /* ─────────────────────────────────────────────
+       LEGACY - Keeping for compatibility
+       (Gradually migrate away from these)
+       ─────────────────────────────────────────────*/
+    --background: var(--surface-base);
+    --foreground: var(--text-primary);
+    --muted-foreground: var(--text-tertiary);
+    --border: var(--glass-border);
+    --card: var(--surface-elevated);
+    --card-foreground: var(--text-primary);
   }
 }
+
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
 
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    border-color: hsl(var(--glass-border));
   }
 
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    background-color: hsl(var(--surface-base));
+    color: hsl(var(--text-primary));
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Scrollbar élégante */
+  /* Scrollbar - Minimal */
   ::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
-    background-color: transparent;
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--primary) / 0.3);
-    border-radius: 9999px;
+    background: hsl(var(--text-muted));
+    border-radius: var(--radius-full);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--primary) / 0.5);
+    background: hsl(var(--text-tertiary));
+  }
+
+  /* Focus visible - Accessibility */
+  :focus-visible {
+    outline: 2px solid hsl(var(--accent-primary));
+    outline-offset: 2px;
   }
 }
 
-/* Range slider - Style organique */
+/* =============================================================================
+   UTILITY CLASSES - Reusable patterns
+   ============================================================================= */
+
+@layer utilities {
+  /* Glass morphism surfaces */
+  .glass {
+    background: hsl(var(--glass-bg));
+    border: 1px solid hsl(var(--glass-border));
+  }
+
+  .glass-strong {
+    background: hsl(var(--surface-overlay) / 0.80);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+  }
+
+  .glass-hover:hover {
+    background: hsl(var(--glass-bg-hover));
+  }
+
+  .glass-active:active {
+    background: hsl(var(--glass-bg-active));
+  }
+
+  /* Text hierarchy */
+  .text-primary {
+    color: hsl(var(--text-primary));
+  }
+
+  .text-secondary {
+    color: hsl(var(--text-secondary));
+  }
+
+  .text-tertiary {
+    color: hsl(var(--text-tertiary));
+  }
+
+  .text-muted {
+    color: hsl(var(--text-muted));
+  }
+
+  /* Aurora background */
+  .aurora-bg {
+    background:
+      radial-gradient(ellipse at 20% 80%, hsl(var(--accent-primary) / 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 20%, hsl(var(--accent-primary) / 0.04) 0%, transparent 50%),
+      hsl(var(--surface-base));
+  }
+
+  /* Safe area for mobile */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* =============================================================================
+   ANIMATIONS - Single source
+   ============================================================================= */
+
+@layer utilities {
+  @keyframes spin-slow {
+    to { transform: rotate(360deg); }
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+  }
+
+  .animate-spin-slow {
+    animation: spin-slow 8s linear infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 2s ease-in-out infinite;
+  }
+
+  .animate-breathe {
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  .animate-paused {
+    animation-play-state: paused;
+  }
+}
+
+/* =============================================================================
+   FORM ELEMENTS - Range slider
+   ============================================================================= */
+
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
@@ -91,9 +234,9 @@ input[type="range"] {
 }
 
 input[type="range"]::-webkit-slider-track {
-  background-color: hsl(var(--progress-bg));
+  background: hsl(var(--glass-bg-active));
   height: 4px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -101,11 +244,11 @@ input[type="range"]::-webkit-slider-thumb {
   appearance: none;
   height: 14px;
   width: 14px;
-  border-radius: 9999px;
-  background-color: hsl(var(--primary));
-  border: 2px solid hsl(var(--foreground));
+  border-radius: var(--radius-full);
+  background: hsl(var(--text-primary));
+  border: none;
   margin-top: -5px;
-  transition: transform 0.2s ease;
+  transition: transform var(--transition-fast);
 }
 
 input[type="range"]::-webkit-slider-thumb:hover {
@@ -113,75 +256,16 @@ input[type="range"]::-webkit-slider-thumb:hover {
 }
 
 input[type="range"]::-moz-range-track {
-  background-color: hsl(var(--progress-bg));
+  background: hsl(var(--glass-bg-active));
   height: 4px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full);
   border: 0;
 }
 
 input[type="range"]::-moz-range-thumb {
   height: 14px;
   width: 14px;
-  border-radius: 9999px;
-  background-color: hsl(var(--primary));
-  border: 2px solid hsl(var(--foreground));
-}
-
-/* Animation douce pour les barres audio */
-@keyframes wave {
-  0%, 100% {
-    height: 4px;
-    opacity: 0.4;
-  }
-  50% {
-    height: 24px;
-    opacity: 1;
-  }
-}
-
-.sound-wave {
-  animation: wave 1.2s ease-in-out infinite;
-}
-
-/* Animation de respiration pour le vinyle */
-@keyframes breathe {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(1.02);
-    opacity: 1;
-  }
-}
-
-.breathe {
-  animation: breathe 4s ease-in-out infinite;
-}
-
-/* Rotation vinyle */
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.vinyl-spin {
-  animation: spin-slow 8s linear infinite;
-}
-
-.vinyl-spin-paused {
-  animation-play-state: paused;
-}
-
-/* Lueur douce */
-.glow-soft {
-  box-shadow: 0 0 40px hsl(var(--primary) / 0.15);
-}
-
-/* Fond dégradé aurore */
-.aurora-bg {
-  background:
-    radial-gradient(ellipse at 20% 80%, hsl(15 70% 60% / 0.08) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, hsl(35 80% 55% / 0.06) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 50%, hsl(220 25% 8%) 0%, hsl(220 25% 4%) 100%);
+  border-radius: var(--radius-full);
+  background: hsl(var(--text-primary));
+  border: none;
 }

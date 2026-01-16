@@ -36,7 +36,7 @@ function HistoryItem({ entry, isLiked, isLiking, onLike }: HistoryItemProps) {
 
   return (
     <div className="flex items-center gap-3 py-2 group">
-      <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-secondary flex items-center justify-center">
+      <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-white/5 flex items-center justify-center">
         {entry.song.art && !imgError ? (
           <img
             src={entry.song.art}
@@ -46,29 +46,32 @@ function HistoryItem({ entry, isLiked, isLiking, onLike }: HistoryItemProps) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <Music className="w-5 h-5 text-muted-foreground" />
+          <Music className="w-5 h-5 text-white/30" />
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-foreground truncate">{entry.song.title}</p>
-        <p className="text-xs text-muted-foreground truncate">{entry.song.artist}</p>
+        <p className="text-sm text-white truncate">{entry.song.title}</p>
+        <p className="text-xs text-white/50 truncate">{entry.song.artist}</p>
       </div>
       <button
         onClick={onLike}
-        disabled={isLiking}
+        disabled={isLiking || isLiked}
         className={cn(
           'p-1.5 rounded-full transition-all',
-          'opacity-0 group-hover:opacity-100',
           isLiked
             ? 'text-red-400 opacity-100'
-            : 'text-white/40 hover:text-red-400',
+            : 'opacity-0 group-hover:opacity-100 text-white/40 hover:text-white hover:bg-white/10',
           isLiking && 'animate-pulse'
         )}
-        title={isLiked ? 'Déjà liké' : 'Ajouter aux favoris'}
+        title={isLiked ? 'Déjà dans votre bibliothèque' : 'Ajouter à ma bibliothèque'}
       >
-        <Heart className={cn('w-4 h-4', isLiked && 'fill-current')} />
+        {isLiked ? (
+          <Heart className="w-4 h-4 fill-current" />
+        ) : (
+          <Plus className="w-4 h-4" />
+        )}
       </button>
-      <span className="text-xs text-muted-foreground shrink-0">
+      <span className="text-xs text-white/40 shrink-0">
         {formatTimeAgo(entry.played_at)}
       </span>
     </div>

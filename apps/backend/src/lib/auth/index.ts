@@ -8,7 +8,7 @@ import { db } from '../../db/index';
 import { user, session, verification, account } from '../../db/schema';
 import { sendBetterAuthEmail } from './sendBetterAuthEmail';
 
-const isProd: boolean = process.env.ENV === 'production';
+const isProd: boolean = process.env.NODE_ENV === 'production' || process.env.ENV === 'production';
 
 export const auth = betterAuth({
   url: env.BETTER_AUTH_URL,
@@ -36,7 +36,6 @@ export const auth = betterAuth({
       secure: isProd,
       httpOnly: true,
       sameSite: isProd ? 'none' : 'lax',
-      partitioned: isProd ? true : false,
     },
   },
 
