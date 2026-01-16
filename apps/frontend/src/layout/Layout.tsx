@@ -58,30 +58,6 @@ export default function Layout({ children }: LayoutProps) {
                   </div>
                 </button>
 
-                {/* User Menu Dropdown */}
-                {isUserMenuOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-[200]"
-                      onClick={() => setIsUserMenuOpen(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-black/90 backdrop-blur-md border border-white/10 shadow-xl z-[201] overflow-hidden">
-                      <div className="px-4 py-3 border-b border-white/10">
-                        <p className="text-sm font-medium text-white truncate">
-                          {user.name || 'Utilisateur'}
-                        </p>
-                        <p className="text-xs text-white/50 truncate">{user.email}</p>
-                      </div>
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
-                      >
-                        <LogOut className="w-4 h-4" />
-                        Déconnexion
-                      </button>
-                    </div>
-                  </>
-                )}
               </>
             ) : (
               <button
@@ -115,6 +91,50 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Auth Modal */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+      {/* User Menu Modal */}
+      {isUserMenuOpen && user && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200]"
+            onClick={() => setIsUserMenuOpen(false)}
+          />
+
+          {/* Modal */}
+          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto z-[201]">
+            <div className="bg-black/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+              {/* User Info */}
+              <div className="px-5 py-4 border-b border-white/10 text-center">
+                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
+                  <span className="text-2xl font-medium text-white/80">
+                    {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <p className="text-base font-medium text-white truncate">
+                  {user.name || 'Utilisateur'}
+                </p>
+                <p className="text-sm text-white/50 truncate">{user.email}</p>
+              </div>
+
+              {/* Actions */}
+              <div className="p-2">
+                <button
+                  onClick={handleSignOut}
+                  className={cn(
+                    'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl',
+                    'text-red-400 hover:text-red-300 hover:bg-white/5',
+                    'transition-all duration-200 cursor-pointer'
+                  )}
+                >
+                  <LogOut className="w-5 h-5" />
+                  <span>Déconnexion</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
