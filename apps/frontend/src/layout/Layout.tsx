@@ -46,7 +46,7 @@ export default function Layout({ children }: LayoutProps) {
                 <button
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   className={cn(
-                    'flex items-center gap-2 p-2 rounded-full',
+                    'flex items-center gap-2 p-2 rounded-full cursor-pointer',
                     'bg-white/5 hover:bg-white/10 border border-white/10',
                     'transition-all duration-200'
                   )}
@@ -62,10 +62,10 @@ export default function Layout({ children }: LayoutProps) {
                 {isUserMenuOpen && (
                   <>
                     <div
-                      className="fixed inset-0 z-40"
+                      className="fixed inset-0 z-[200]"
                       onClick={() => setIsUserMenuOpen(false)}
                     />
-                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-black/90 backdrop-blur-md border border-white/10 shadow-xl z-50 overflow-hidden">
+                    <div className="absolute right-0 mt-2 w-48 rounded-xl bg-black/90 backdrop-blur-md border border-white/10 shadow-xl z-[201] overflow-hidden">
                       <div className="px-4 py-3 border-b border-white/10">
                         <p className="text-sm font-medium text-white truncate">
                           {user.name || 'Utilisateur'}
@@ -74,7 +74,7 @@ export default function Layout({ children }: LayoutProps) {
                       </div>
                       <button
                         onClick={handleSignOut}
-                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200"
+                        className="w-full flex items-center gap-2 px-4 py-3 text-sm text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
                       >
                         <LogOut className="w-4 h-4" />
                         Déconnexion
@@ -87,7 +87,7 @@ export default function Layout({ children }: LayoutProps) {
               <button
                 onClick={() => setIsAuthModalOpen(true)}
                 className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-full',
+                  'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
                   'bg-white/5 hover:bg-white/10',
                   'border border-white/10',
                   'transition-all duration-200 text-sm text-white/70 hover:text-white'
