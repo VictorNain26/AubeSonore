@@ -111,8 +111,8 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
         <p className="text-xs text-white/50 truncate">{track.artist}</p>
       </div>
 
-      {/* Actions - always visible on mobile */}
-      <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+      {/* Actions - always visible */}
+      <div className="flex items-center gap-1">
         <a
           href={link}
           target="_blank"

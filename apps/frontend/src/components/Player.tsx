@@ -62,7 +62,7 @@ function HistoryItem({ entry, isLiked, isLiking, onToggle }: HistoryItemProps) {
           'active:scale-90',
           isLiked
             ? 'text-red-500 hover:text-red-400'
-            : 'text-white/30 hover:text-red-400 md:opacity-60 md:group-hover:opacity-100',
+            : 'text-white/30 hover:text-red-400',
           isLiking && 'animate-pulse pointer-events-none'
         )}
         title={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
@@ -600,9 +600,9 @@ export default function Player() {
               </div>
             )}
 
-            {/* Like toggle button overlay - always visible on mobile, hover on desktop */}
+            {/* Like toggle button overlay - always visible */}
             {nowPlaying && (
-              <div className="absolute inset-0 md:bg-black/0 md:group-hover:bg-black/30 transition-all duration-300 flex items-end justify-end p-3">
+              <div className="absolute inset-0 flex items-end justify-end p-3">
                 <button
                   onClick={() =>
                     handleToggleLike(
@@ -613,10 +613,8 @@ export default function Player() {
                   }
                   disabled={likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}`}
                   className={cn(
-                    'p-3 rounded-full transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center',
-                    'backdrop-blur-md shadow-lg',
-                    // Mobile: always visible, Desktop: hover
-                    'md:opacity-0 md:group-hover:opacity-100 md:translate-y-2 md:group-hover:translate-y-0',
+                    'p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center',
+                    'backdrop-blur-md shadow-lg active:scale-95',
                     isCurrentTrackLiked
                       ? 'bg-red-500 text-white'
                       : 'bg-black/40 text-white hover:bg-black/60',
