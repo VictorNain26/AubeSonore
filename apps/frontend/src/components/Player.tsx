@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Square, Volume2, VolumeX, Radio, Users, Music, Heart, Library, Plus } from 'lucide-react';
+import { Play, Square, Volume2, VolumeX, Radio, Users, Music, Heart, Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlayer, getAnalyser } from '../lib/player';
 import { useNowPlaying, type SongEntry } from '../lib/azuracast';
@@ -28,10 +28,10 @@ interface HistoryItemProps {
   entry: SongEntry;
   isLiked: boolean;
   isLiking: boolean;
-  onLike: () => void;
+  onToggle: () => void;
 }
 
-function HistoryItem({ entry, isLiked, isLiking, onLike }: HistoryItemProps) {
+function HistoryItem({ entry, isLiked, isLiking, onToggle }: HistoryItemProps) {
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -53,23 +53,23 @@ function HistoryItem({ entry, isLiked, isLiking, onLike }: HistoryItemProps) {
         <p className="text-sm text-white truncate">{entry.song.title}</p>
         <p className="text-xs text-white/50 truncate">{entry.song.artist}</p>
       </div>
+      {/* Heart toggle - 44px touch target, single tap to add/remove */}
       <button
-        onClick={onLike}
-        disabled={isLiking || isLiked}
+        onClick={onToggle}
+        disabled={isLiking}
         className={cn(
-          'p-2 rounded-full transition-all min-w-[36px] min-h-[36px] flex items-center justify-center',
+          'p-2.5 rounded-full transition-all min-w-[44px] min-h-[44px] flex items-center justify-center',
+          'active:scale-90',
           isLiked
-            ? 'text-red-400'
-            : 'text-white/40 hover:text-white hover:bg-white/10 md:opacity-0 md:group-hover:opacity-100',
-          isLiking && 'animate-pulse'
+            ? 'text-red-500 hover:text-red-400'
+            : 'text-white/30 hover:text-red-400 md:opacity-60 md:group-hover:opacity-100',
+          isLiking && 'animate-pulse pointer-events-none'
         )}
-        title={isLiked ? 'Déjà dans votre bibliothèque' : 'Ajouter à ma bibliothèque'}
+        title={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
+        aria-label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
+        aria-pressed={isLiked}
       >
-        {isLiked ? (
-          <Heart className="w-5 h-5 fill-current" />
-        ) : (
-          <Plus className="w-5 h-5" />
-        )}
+        <Heart className={cn('w-5 h-5 transition-all', isLiked && 'fill-current scale-110')} />
       </button>
       <span className="text-xs text-white/40 shrink-0">
         {formatTimeAgo(entry.played_at)}
@@ -434,7 +434,7 @@ export default function Player() {
 
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
   const { data: np } = useNowPlaying();
-  const { likeTrack, isTrackLiked, tracks } = useLikedTracks();
+  const { likeTrack, unlikeTrack, isTrackLiked, tracks } = useLikedTracks();
   const { isAuthenticated } = useAuth();
   const animationRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
@@ -509,8 +509,8 @@ export default function Player() {
     ? isTrackLiked(nowPlaying.song.title, nowPlaying.song.artist)
     : false;
 
-  // Handle like for any track (current or history)
-  const handleLikeTrack = useCallback(
+  // Handle toggle like/unlike for any track (current or history)
+  const handleToggleLike = useCallback(
     async (title: string, artist: string, artworkUrl?: string) => {
       // Check authentication first
       if (!isAuthenticated) {
@@ -523,21 +523,37 @@ export default function Player() {
 
       setLikingTrackId(trackKey);
       try {
-        const requestData: Parameters<typeof likeTrack>[0] = {
-          title,
-          artist,
-          youtubeUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} ${artist}`)}`,
-        };
-        if (artworkUrl) {
-          requestData.artworkUrl = artworkUrl;
+        // Check if already liked
+        const existingTrack = tracks.find(
+          (t) =>
+            t.title.toLowerCase() === title.toLowerCase() &&
+            t.artist.toLowerCase() === artist.toLowerCase()
+        );
+
+        if (existingTrack) {
+          // Unlike
+          const success = await unlikeTrack(existingTrack.id);
+          if (success) {
+            toast.success('Retiré de votre bibliothèque');
+          }
+        } else {
+          // Like
+          const requestData: Parameters<typeof likeTrack>[0] = {
+            title,
+            artist,
+            youtubeUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} ${artist}`)}`,
+          };
+          if (artworkUrl) {
+            requestData.artworkUrl = artworkUrl;
+          }
+          await likeTrack(requestData);
+          toast.success('Ajouté à votre bibliothèque');
         }
-        await likeTrack(requestData);
-        toast.success('Ajouté à votre bibliothèque');
       } finally {
         setLikingTrackId(null);
       }
     },
-    [likeTrack, likingTrackId, isAuthenticated]
+    [likeTrack, unlikeTrack, tracks, likingTrackId, isAuthenticated]
   );
 
   // Handle opening library modal
@@ -584,12 +600,12 @@ export default function Player() {
               </div>
             )}
 
-            {/* Like button overlay - appears on hover */}
+            {/* Like toggle button overlay - appears on hover */}
             {nowPlaying && (
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-end justify-end p-3">
                 <button
                   onClick={() =>
-                    handleLikeTrack(
+                    handleToggleLike(
                       nowPlaying.song.title,
                       nowPlaying.song.artist,
                       nowPlaying.song.art
@@ -605,13 +621,11 @@ export default function Player() {
                       : 'bg-white/20 text-white hover:bg-white/30',
                     likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}` && 'animate-pulse'
                   )}
-                  title={isCurrentTrackLiked ? 'Déjà dans votre bibliothèque' : 'Ajouter à ma bibliothèque'}
+                  title={isCurrentTrackLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
+                  aria-label={isCurrentTrackLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
+                  aria-pressed={isCurrentTrackLiked}
                 >
-                  {isCurrentTrackLiked ? (
-                    <Heart className="w-5 h-5 fill-current" />
-                  ) : (
-                    <Plus className="w-5 h-5" />
-                  )}
+                  <Heart className={cn('w-5 h-5 transition-all', isCurrentTrackLiked && 'fill-current')} />
                 </button>
               </div>
             )}
@@ -751,8 +765,8 @@ export default function Player() {
               entry={historyEntry}
               isLiked={isHistoryTrackLiked(historyEntry)}
               isLiking={likingTrackId === `${historyEntry.song.title}-${historyEntry.song.artist}`}
-              onLike={() =>
-                handleLikeTrack(
+              onToggle={() =>
+                handleToggleLike(
                   historyEntry.song.title,
                   historyEntry.song.artist,
                   historyEntry.song.art
