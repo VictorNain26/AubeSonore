@@ -1,24 +1,30 @@
 #!/usr/bin/env python3
 """
 Upload tracks to AzuraCast with daypart-based playlist assignment.
-Reads mood from ID3 tags (set by analyze.py) and routes to daypart playlists.
-Professional radio approach: tracks assigned to time-based playlists.
+
+Features:
+- Reads mood from ID3 tags (set by analyze.py)
+- Routes tracks to daypart playlists
+- Professional radio approach with time-based scheduling
+- Robust HTTP client with retry logic and circuit breaker
 """
 
 from __future__ import annotations
 
 import logging
-import os
 import sys
 import time
 from pathlib import Path
 from typing import Any, TypedDict
 
-import requests
 from mutagen.id3 import ID3
 
-# Add parent directory to path for config import
+# Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from http_client import AzuraCastClient as BaseAzuraCastClient, ClientError, ConnectionError, ServerError
+from settings import get_settings, validate_environment
 
 try:
     from config import get_dayparts_for_mood, get_enabled_dayparts, should_reject_track, ROTATION
@@ -27,11 +33,14 @@ except ImportError:
     sys.exit(1)
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 # Constants
-REQUEST_TIMEOUT = 30
 UPLOAD_TIMEOUT = 180
 
 
@@ -48,79 +57,29 @@ class TrackFeatures(TypedDict):
     mood_sad: float
 
 
-class AzuraCastClient:
-    """Client for AzuraCast API interactions."""
+class ClassifyClient(BaseAzuraCastClient):
+    """
+    Extended AzuraCast client for classify operations.
 
-    def __init__(self, url: str, api_key: str, station_id: str) -> None:
-        """
-        Initialize AzuraCast client.
+    Inherits robust HTTP handling from BaseAzuraCastClient.
+    """
 
-        Args:
-            url: AzuraCast server URL.
-            api_key: API key for authentication.
-            station_id: Station ID.
-        """
-        self.url = url.rstrip("/")
-        self.station_id = station_id
-        self.headers = {"X-API-Key": api_key}
-
-    def _api_get(self, endpoint: str) -> Any | None:
-        """
-        GET request to AzuraCast API.
-
-        Args:
-            endpoint: API endpoint (relative to station).
-
-        Returns:
-            JSON response or None on error.
-        """
-        try:
-            response = requests.get(
-                f"{self.url}/api/station/{self.station_id}/{endpoint}",
-                headers=self.headers,
-                timeout=REQUEST_TIMEOUT
-            )
-            if response.status_code == 200:
-                return response.json()
-            logger.debug(f"API GET {endpoint} failed: HTTP {response.status_code}")
-            return None
-        except requests.RequestException as e:
-            logger.debug(f"API GET {endpoint} error: {e}")
-            return None
-
-    def _api_put(self, endpoint: str, data: dict[str, Any]) -> bool:
-        """
-        PUT request to AzuraCast API.
-
-        Args:
-            endpoint: API endpoint (relative to station).
-            data: JSON data to send.
-
-        Returns:
-            True if successful.
-        """
-        try:
-            response = requests.put(
-                f"{self.url}/api/station/{self.station_id}/{endpoint}",
-                headers={**self.headers, "Content-Type": "application/json"},
-                json=data,
-                timeout=REQUEST_TIMEOUT
-            )
-            return response.status_code == 200
-        except requests.RequestException:
-            return False
-
-    def get_playlists(self) -> dict[str, int]:
+    def get_playlists_map(self) -> dict[str, int]:
         """
         Get playlist name to ID mapping.
 
         Returns:
             Dictionary of playlist names to IDs.
+
+        Raises:
+            ConnectionError: If AzuraCast is unreachable.
         """
-        data = self._api_get("playlists")
-        if data:
+        try:
+            data = self.get_playlists()
             return {p["name"]: p["id"] for p in data}
-        return {}
+        except (ClientError, ServerError, ConnectionError) as e:
+            logger.error(f"Failed to fetch playlists: {e}")
+            raise
 
     def get_existing_paths(self) -> set[str]:
         """
@@ -128,11 +87,16 @@ class AzuraCastClient:
 
         Returns:
             Set of lowercase file paths.
+
+        Raises:
+            ConnectionError: If AzuraCast is unreachable.
         """
-        data = self._api_get("files")
-        if data:
+        try:
+            data = self.get_station_files()
             return {f["path"].lower() for f in data}
-        return set()
+        except (ClientError, ServerError, ConnectionError) as e:
+            logger.error(f"Failed to fetch existing files: {e}")
+            raise
 
     def get_all_files(self) -> list[dict[str, Any]]:
         """
@@ -140,9 +104,15 @@ class AzuraCastClient:
 
         Returns:
             List of file dictionaries with id, path, mtime.
+
+        Raises:
+            ConnectionError: If AzuraCast is unreachable.
         """
-        data = self._api_get("files")
-        return data if data else []
+        try:
+            return self.get_station_files()
+        except (ClientError, ServerError, ConnectionError) as e:
+            logger.error(f"Failed to fetch files: {e}")
+            raise
 
     def delete_file(self, file_id: int) -> bool:
         """
@@ -152,21 +122,18 @@ class AzuraCastClient:
             file_id: File ID to delete.
 
         Returns:
-            True if successful.
+            True if successful, False otherwise.
         """
         try:
-            response = requests.delete(
-                f"{self.url}/api/station/{self.station_id}/file/{file_id}",
-                headers=self.headers,
-                timeout=REQUEST_TIMEOUT
-            )
+            response = self.delete(f"/api/station/{self.station_id}/file/{file_id}")
             return response.status_code in [200, 204]
-        except requests.RequestException:
+        except (ClientError, ServerError, ConnectionError) as e:
+            logger.warning(f"Failed to delete file {file_id}: {e}")
             return False
 
     def upload_file(self, filepath: Path) -> int | None:
         """
-        Upload file to AzuraCast.
+        Upload file to AzuraCast with retry logic.
 
         Args:
             filepath: Path to file.
@@ -178,11 +145,10 @@ class AzuraCastClient:
 
         try:
             with open(filepath, "rb") as f:
-                response = requests.post(
-                    f"{self.url}/api/station/{self.station_id}/files/upload",
-                    headers=self.headers,
+                response = self.post(
+                    f"/api/station/{self.station_id}/files/upload",
                     files={"file": (filename, f, "audio/mpeg")},
-                    timeout=UPLOAD_TIMEOUT
+                    timeout=UPLOAD_TIMEOUT,
                 )
 
             if response.status_code not in [200, 201]:
@@ -195,7 +161,11 @@ class AzuraCastClient:
             time.sleep(1)
 
             # Find the uploaded file
-            data = self._api_get("files")
+            try:
+                data = self.get_station_files()
+            except (ClientError, ServerError, ConnectionError):
+                return None
+
             if not data:
                 return None
 
@@ -210,10 +180,13 @@ class AzuraCastClient:
                     return f["id"]
 
             # Fallback: most recent
-            return data[0]["id"]
+            return data[0]["id"] if data else None
 
-        except Exception as e:
+        except (ClientError, ServerError, ConnectionError) as e:
             logger.warning(f"  Upload error: {e}")
+            return None
+        except OSError as e:
+            logger.warning(f"  File read error: {e}")
             return None
 
     def assign_playlists(self, file_id: int, playlist_ids: list[int]) -> bool:
@@ -227,7 +200,15 @@ class AzuraCastClient:
         Returns:
             True if successful.
         """
-        return self._api_put(f"file/{file_id}", {"playlists": playlist_ids})
+        try:
+            response = self.put(
+                f"/api/station/{self.station_id}/file/{file_id}",
+                json={"playlists": playlist_ids},
+            )
+            return response.status_code == 200
+        except (ClientError, ServerError, ConnectionError) as e:
+            logger.warning(f"Failed to assign playlists: {e}")
+            return False
 
 
 def get_features_from_tags(filepath: str) -> TrackFeatures | None:
@@ -298,7 +279,7 @@ def get_features_from_tags(filepath: str) -> TrackFeatures | None:
 
 def process_track(
     filepath: Path,
-    client: AzuraCastClient,
+    client: ClassifyClient,
     playlists: dict[str, int],
     existing: set[str]
 ) -> tuple[str, list[str]]:
@@ -372,7 +353,7 @@ def process_track(
         return "failed", []
 
 
-def enforce_rotation(client: AzuraCastClient, new_tracks_count: int) -> int:
+def enforce_rotation(client: ClassifyClient, new_tracks_count: int) -> int:
     """
     Enforce track rotation by removing oldest tracks if needed.
 
@@ -449,14 +430,16 @@ def main() -> int:
     Returns:
         Exit code (0 for success, 1 for failure).
     """
-    # Get configuration from environment
-    url = os.environ.get("AZURACAST_URL", "").rstrip("/")
-    api_key = os.environ.get("AZURACAST_API_KEY", "")
-    station_id = os.environ.get("AZURACAST_STATION_ID", "1")
+    logger.info("=== Upload to AzuraCast ===")
 
-    if not url or not api_key:
-        logger.error("Error: AZURACAST_URL and AZURACAST_API_KEY required")
+    # Validate configuration
+    is_valid, errors = validate_environment()
+    if not is_valid:
+        for error in errors:
+            logger.error(f"Config error: {error}")
         return 1
+
+    settings = get_settings()
 
     # Get music files
     music_dir = Path(__file__).parent.parent / "music"
@@ -468,16 +451,30 @@ def main() -> int:
 
     # Show enabled dayparts
     enabled_dayparts = get_enabled_dayparts()
-    logger.info("=== Upload to AzuraCast ===")
     logger.info(f"Files: {len(files)}")
-    logger.info(f"Server: {url}")
+    logger.info(f"Server: {settings.azuracast_url}")
     logger.info(f"Daypart playlists: {', '.join(enabled_dayparts)}")
 
-    # Initialize client
-    client = AzuraCastClient(url, api_key, station_id)
+    # Initialize robust client with retry logic
+    client = ClassifyClient(
+        base_url=settings.azuracast_url,
+        api_key=settings.azuracast_api_key,
+        station_id=settings.azuracast_station_id,
+        timeout=settings.http_timeout,
+    )
 
-    # Get playlists
-    playlists = client.get_playlists()
+    # Health check before proceeding
+    if not client.health_check():
+        logger.error("AzuraCast is not reachable. Aborting.")
+        return 1
+
+    # Get playlists (with retry logic)
+    try:
+        playlists = client.get_playlists_map()
+    except (ClientError, ServerError, ConnectionError) as e:
+        logger.error(f"Cannot connect to AzuraCast: {e}")
+        return 1
+
     if not playlists:
         logger.error("Error: Could not fetch playlists")
         return 1
@@ -489,15 +486,28 @@ def main() -> int:
         logger.warning(f"Warning: Missing playlists for: {', '.join(missing)}")
         logger.warning("Run: ./scripts/setup_playlists.sh")
 
-    # Get existing files
-    existing = client.get_existing_paths()
+    # Get existing files (with retry logic)
+    try:
+        existing = client.get_existing_paths()
+    except (ClientError, ServerError, ConnectionError) as e:
+        logger.error(f"Cannot fetch existing files: {e}")
+        logger.error("Aborting to prevent duplicates.")
+        return 1
+
     logger.info(f"Existing files: {len(existing)}")
 
     # Enforce rotation before uploading new tracks
-    enforce_rotation(client, len(files))
+    try:
+        enforce_rotation(client, len(files))
+    except (ClientError, ServerError, ConnectionError) as e:
+        logger.warning(f"Rotation check failed: {e}")
+        # Continue anyway - rotation is not critical
 
     # Refresh existing paths after rotation
-    existing = client.get_existing_paths()
+    try:
+        existing = client.get_existing_paths()
+    except (ClientError, ServerError, ConnectionError):
+        pass  # Use previous set if refresh fails
 
     # Initialize stats
     results: dict[str, int] = {

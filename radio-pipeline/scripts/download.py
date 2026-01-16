@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
 Download tracks from YouTube with proper HypeMachine metadata.
+
+Features:
 - Downloads audio with yt-dlp
 - Renames to {artist} - {title}.mp3
 - Embeds cover from HypeMachine
 - Writes ID3 tags from HypeMachine data
+- Checks AzuraCast library for duplicates (with robust HTTP client)
 """
 
 from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import shutil
 import subprocess
@@ -19,25 +21,26 @@ import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
-from typing import Any, Literal, TypedDict
+from typing import Literal, TypedDict
 
-import requests
-
-# Add parent directory to path for config import
+# Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from http_client import AzuraCastClient, ClientError, ConnectionError, ServerError
+from settings import get_settings, validate_environment
 
 try:
     from config import AUDIO_FILTERS
 except ImportError:
-    AUDIO_FILTERS = {"duration_max": 450}  # Default 7m30
-
-# AzuraCast configuration
-AZURACAST_URL = os.environ.get("AZURACAST_URL", "").rstrip("/")
-AZURACAST_API_KEY = os.environ.get("AZURACAST_API_KEY", "")
-AZURACAST_STATION_ID = os.environ.get("AZURACAST_STATION_ID", "1")
+    AUDIO_FILTERS = {"duration_max": 450}
 
 # Configure logging
-logging.basicConfig(level=logging.INFO, format="%(message)s")
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
 logger = logging.getLogger(__name__)
 
 # Constants
@@ -53,6 +56,15 @@ REQUEST_TIMEOUT = 30
 DownloadResult = Literal["downloaded", "skipped", "filtered", "failed"]
 
 
+class Track(TypedDict):
+    """Track data from HypeMachine."""
+    id: str
+    artist: str
+    title: str
+    cover: str | None
+    search: str
+
+
 def normalize_track_key(artist: str, title: str) -> str:
     """
     Create normalized key for track comparison.
@@ -64,42 +76,31 @@ def normalize_track_key(artist: str, title: str) -> str:
     Returns:
         Normalized lowercase key "artist - title".
     """
-    # Lowercase and strip
     artist = artist.lower().strip()
     title = title.lower().strip()
-    # Remove common variations
+
     for char in ['(', ')', '[', ']', '"', "'"]:
         artist = artist.replace(char, '')
         title = title.replace(char, '')
-    # Normalize whitespace
+
     artist = ' '.join(artist.split())
     title = ' '.join(title.split())
+
     return f"{artist} - {title}"
 
 
-def fetch_azuracast_library() -> set[str]:
+def fetch_azuracast_library(client: AzuraCastClient) -> set[str]:
     """
     Fetch existing tracks from AzuraCast.
+
+    Args:
+        client: Configured AzuraCast client.
 
     Returns:
         Set of normalized "artist - title" keys.
     """
-    if not AZURACAST_URL or not AZURACAST_API_KEY:
-        logger.warning("AzuraCast not configured, skipping library check")
-        return set()
-
     try:
-        response = requests.get(
-            f"{AZURACAST_URL}/api/station/{AZURACAST_STATION_ID}/files",
-            headers={"X-API-Key": AZURACAST_API_KEY},
-            timeout=REQUEST_TIMEOUT
-        )
-
-        if response.status_code != 200:
-            logger.warning(f"Failed to fetch AzuraCast library: HTTP {response.status_code}")
-            return set()
-
-        files = response.json()
+        files = client.get_station_files()
         existing = set()
 
         for f in files:
@@ -113,18 +114,14 @@ def fetch_azuracast_library() -> set[str]:
         logger.info(f"AzuraCast library: {len(existing)} tracks")
         return existing
 
-    except requests.RequestException as e:
-        logger.warning(f"Failed to fetch AzuraCast library: {e}")
-        return set()
+    except ClientError as e:
+        logger.error(f"AzuraCast authentication error: {e}")
+        raise SystemExit(1)
 
-
-class Track(TypedDict):
-    """Track data from HypeMachine."""
-    id: str
-    artist: str
-    title: str
-    cover: str | None
-    search: str
+    except (ServerError, ConnectionError) as e:
+        logger.error(f"Cannot connect to AzuraCast: {e}")
+        logger.error("Aborting to prevent duplicates. Fix connection and retry.")
+        raise SystemExit(1)
 
 
 def sanitize_filename(name: str) -> str:
@@ -137,11 +134,8 @@ def sanitize_filename(name: str) -> str:
     Returns:
         Sanitized filename safe for filesystem.
     """
-    # Remove invalid characters
     name = re.sub(r'[<>:"/\\|?*]', '', name)
-    # Normalize whitespace
     name = re.sub(r'\s+', ' ', name).strip()
-    # Limit length
     return name[:MAX_FILENAME_LENGTH]
 
 
@@ -159,7 +153,7 @@ def download_cover(url: str, output_path: Path) -> bool:
     if not url:
         return False
 
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {"User-Agent": "Mozilla/5.0 (RadioPipeline/2.0)"}
     req = urllib.request.Request(url, headers=headers)
 
     try:
@@ -194,7 +188,6 @@ def write_id3_tags(
         from mutagen.id3 import APIC, ID3, ID3NoHeaderError
         from mutagen.mp3 import MP3
 
-        # Write basic tags
         try:
             audio = EasyID3(str(filepath))
         except ID3NoHeaderError:
@@ -207,19 +200,15 @@ def write_id3_tags(
         audio['title'] = title
         audio.save()
 
-        # Embed cover if provided
         if cover_path and cover_path.exists():
             audio = ID3(str(filepath))
             cover_data = cover_path.read_bytes()
 
-            # Remove existing covers
             audio.delall('APIC')
-
-            # Add new cover
             audio.add(APIC(
                 encoding=3,
                 mime='image/jpeg',
-                type=3,  # Cover (front)
+                type=3,
                 desc='Cover',
                 data=cover_data
             ))
@@ -277,14 +266,12 @@ def download_track(track: Track, existing_library: set[str]) -> DownloadResult:
         "--no-warnings",
     ]
 
-    # Add duration filter if configured (filter BEFORE download)
     duration_max = AUDIO_FILTERS.get("duration_max")
     if duration_max:
         cmd.extend(["--match-filter", f"duration < {duration_max}"])
 
     cmd.append(f"ytsearch1:{search}")
 
-    # Run yt-dlp
     result = subprocess.run(cmd, capture_output=True, text=True)
 
     # Find the downloaded file
@@ -293,7 +280,6 @@ def download_track(track: Track, existing_library: set[str]) -> DownloadResult:
         temp_files = list(TEMP_DIR.glob("temp_download.*"))
 
     if not temp_files:
-        # Check if filtered by duration (yt-dlp outputs "does not pass filter")
         if "does not pass filter" in result.stderr or "does not pass filter" in result.stdout:
             logger.info("  Filtered (too long)")
             return 'filtered'
@@ -302,13 +288,11 @@ def download_track(track: Track, existing_library: set[str]) -> DownloadResult:
 
     temp_file = temp_files[0]
 
-    # Ensure it's mp3
     if temp_file.suffix != '.mp3':
         logger.warning(f"  Unexpected format: {temp_file.suffix}")
         temp_file.unlink()
         return 'failed'
 
-    # Move to final location with proper name
     DOWNLOAD_DIR.mkdir(exist_ok=True)
     shutil.move(str(temp_file), str(final_path))
 
@@ -338,8 +322,8 @@ def cleanup_temp() -> None:
         for f in TEMP_DIR.glob("*"):
             try:
                 f.unlink()
-            except OSError:
-                pass
+            except OSError as e:
+                logger.warning(f"Failed to delete temp file {f}: {e}")
         try:
             TEMP_DIR.rmdir()
         except OSError:
@@ -370,9 +354,18 @@ def main() -> int:
     Main entry point.
 
     Returns:
-        Exit code (0 for success).
+        Exit code (0 for success, 1 for error).
     """
     logger.info("=== Download with HypeMachine Metadata ===")
+
+    # Validate configuration
+    is_valid, errors = validate_environment()
+    if not is_valid:
+        for error in errors:
+            logger.error(f"Config error: {error}")
+        return 1
+
+    settings = get_settings()
 
     # Show duration filter if active
     duration_max = AUDIO_FILTERS.get("duration_max")
@@ -386,13 +379,24 @@ def main() -> int:
 
     logger.info(f"Tracks to process: {len(tracks)}")
 
-    # Fetch existing library from AzuraCast (source of truth for duplicates)
-    existing_library = fetch_azuracast_library()
+    # Create AzuraCast client with retry logic
+    client = AzuraCastClient(
+        base_url=settings.azuracast_url,
+        api_key=settings.azuracast_api_key,
+        station_id=settings.azuracast_station_id,
+        timeout=settings.http_timeout,
+    )
 
-    # Create download directory
+    # Health check before proceeding
+    if not client.health_check():
+        logger.error("AzuraCast is not reachable. Aborting.")
+        return 1
+
+    # Fetch existing library (REQUIRED to prevent duplicates)
+    existing_library = fetch_azuracast_library(client)
+
     DOWNLOAD_DIR.mkdir(exist_ok=True)
 
-    # Stats
     stats = {"downloaded": 0, "skipped": 0, "filtered": 0, "failed": 0}
 
     for i, track in enumerate(tracks, 1):

@@ -575,33 +575,9 @@ export default function Player() {
           SECTION 2: Track Info
           ================================================================= */}
       <div className="text-center mb-5">
-        <div className="flex items-center justify-center gap-2">
-          <h2 className="text-lg md:text-xl font-medium text-foreground truncate">
-            {nowPlaying?.song.title || 'En attente...'}
-          </h2>
-          {nowPlaying && (
-            <button
-              onClick={() =>
-                handleLikeTrack(
-                  nowPlaying.song.title,
-                  nowPlaying.song.artist,
-                  nowPlaying.song.art
-                )
-              }
-              disabled={isCurrentTrackLiked || likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}`}
-              className={cn(
-                'p-1.5 rounded-full transition-all shrink-0',
-                isCurrentTrackLiked
-                  ? 'text-red-400'
-                  : 'text-white/40 hover:text-red-400',
-                likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}` && 'animate-pulse'
-              )}
-              title={isCurrentTrackLiked ? 'Déjà liké' : 'Ajouter aux favoris'}
-            >
-              <Heart className={cn('w-5 h-5', isCurrentTrackLiked && 'fill-current')} />
-            </button>
-          )}
-        </div>
+        <h2 className="text-lg md:text-xl font-medium text-foreground truncate">
+          {nowPlaying?.song.title || 'En attente...'}
+        </h2>
         <p className="text-sm text-muted-foreground truncate px-2 mt-0.5">
           {nowPlaying?.song.artist || '—'}
         </p>

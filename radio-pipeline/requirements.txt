@@ -1,0 +1,20 @@
+# Radio Pipeline Dependencies
+# Python 3.10+ required
+
+# HTTP client with retry support
+requests>=2.31.0,<3.0.0
+urllib3>=2.0.0,<3.0.0
+
+# Audio processing
+essentia-tensorflow>=2.1b6.dev1110
+librosa>=0.10.0,<1.0.0
+numpy>=1.24.0,<2.0.0
+
+# Audio metadata
+mutagen>=1.47.0,<2.0.0
+
+# Configuration
+python-dotenv>=1.0.0,<2.0.0
+
+# Validation
+pydantic>=2.5.0,<3.0.0
