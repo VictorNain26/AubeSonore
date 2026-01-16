@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Library, ExternalLink, Music, Trash2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLikedTracks } from '../hooks/useLikedTracks';
@@ -156,11 +157,25 @@ interface PlatformSelectorProps {
 
 function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const selectedPlatform = PLATFORMS.find((p) => p.id === selected);
+
+  // Calculer la position du dropdown quand il s'ouvre
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.top - 8, // 8px de marge au-dessus du bouton
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [isOpen]);
 
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
@@ -171,10 +186,17 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
         <span className="text-white/60">{selectedPlatform?.name}</span>
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 bottom-full mb-2 w-44 rounded-xl bg-black/90 backdrop-blur-md border border-white/10 shadow-xl z-50 overflow-hidden">
+          <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
+          <div
+            className="fixed w-44 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[101] overflow-hidden"
+            style={{
+              top: dropdownPosition.top,
+              right: dropdownPosition.right,
+              transform: 'translateY(-100%)',
+            }}
+          >
             <div className="p-1 max-h-[280px] overflow-y-auto">
               {PLATFORMS.map((platform) => (
                 <button
@@ -196,7 +218,8 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
               ))}
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );
