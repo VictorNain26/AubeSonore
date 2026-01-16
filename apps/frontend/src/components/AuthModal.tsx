@@ -62,29 +62,38 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop - style Player */}
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
         onClick={onClose}
       />
 
-      {/* Modal */}
+      {/* Modal - glassmorphism subtil comme le Player */}
       <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto z-50">
-        <div className="bg-gradient-to-b from-gray-900 to-black rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
+        <div
+          className={cn(
+            'bg-black/80 backdrop-blur-md rounded-2xl',
+            'border border-white/10 shadow-2xl overflow-hidden'
+          )}
+        >
           {/* Header */}
           <div className="relative px-6 pt-6 pb-4">
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+              className={cn(
+                'absolute top-4 right-4 p-2 rounded-full',
+                'text-white/40 hover:text-white hover:bg-white/10',
+                'transition-all duration-200'
+              )}
             >
               <X className="w-5 h-5" />
             </button>
 
             <div className="text-center">
-              <h2 className="text-xl font-semibold text-white mb-1">
-                {mode === 'signin' ? 'Bon retour !' : 'Créer un compte'}
+              <h2 className="text-xl font-medium text-white mb-1">
+                {mode === 'signin' ? 'Bon retour' : 'Créer un compte'}
               </h2>
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-white/50">
                 {mode === 'signin'
                   ? 'Connectez-vous pour retrouver vos morceaux'
                   : 'Inscrivez-vous pour sauvegarder vos likes'}
@@ -96,7 +105,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
           <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
             {mode === 'signup' && (
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
                 <input
                   type="text"
                   placeholder="Nom"
@@ -106,16 +115,16 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                   className={cn(
                     'w-full pl-11 pr-4 py-3 rounded-xl',
                     'bg-white/5 border border-white/10',
-                    'text-white placeholder:text-white/40',
-                    'focus:outline-none focus:border-purple-500/50 focus:bg-white/10',
-                    'transition-all'
+                    'text-white placeholder:text-white/30',
+                    'focus:outline-none focus:border-white/20 focus:bg-white/10',
+                    'transition-all duration-200'
                   )}
                 />
               </div>
             )}
 
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
               <input
                 type="email"
                 placeholder="Email"
@@ -125,15 +134,15 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                 className={cn(
                   'w-full pl-11 pr-4 py-3 rounded-xl',
                   'bg-white/5 border border-white/10',
-                  'text-white placeholder:text-white/40',
-                  'focus:outline-none focus:border-purple-500/50 focus:bg-white/10',
-                  'transition-all'
+                  'text-white placeholder:text-white/30',
+                  'focus:outline-none focus:border-white/20 focus:bg-white/10',
+                  'transition-all duration-200'
                 )}
               />
             </div>
 
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
               <input
                 type="password"
                 placeholder="Mot de passe"
@@ -144,9 +153,9 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                 className={cn(
                   'w-full pl-11 pr-4 py-3 rounded-xl',
                   'bg-white/5 border border-white/10',
-                  'text-white placeholder:text-white/40',
-                  'focus:outline-none focus:border-purple-500/50 focus:bg-white/10',
-                  'transition-all'
+                  'text-white placeholder:text-white/30',
+                  'focus:outline-none focus:border-white/20 focus:bg-white/10',
+                  'transition-all duration-200'
                 )}
               />
             </div>
@@ -155,10 +164,9 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
               type="submit"
               disabled={isLoading}
               className={cn(
-                'w-full py-3 rounded-xl font-medium transition-all',
-                'bg-gradient-to-r from-purple-600 to-purple-500',
-                'hover:from-purple-500 hover:to-purple-400',
-                'text-white shadow-lg shadow-purple-500/25',
+                'w-full py-3 rounded-xl font-medium',
+                'bg-white/10 hover:bg-white/15 border border-white/10',
+                'text-white transition-all duration-200',
                 'disabled:opacity-50 disabled:cursor-not-allowed',
                 'flex items-center justify-center gap-2'
               )}
@@ -179,17 +187,17 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
               <button
                 type="button"
                 onClick={switchMode}
-                className="text-sm text-white/60 hover:text-white transition-colors"
+                className="text-sm text-white/50 hover:text-white transition-all duration-200"
               >
                 {mode === 'signin' ? (
                   <>
                     Pas encore de compte ?{' '}
-                    <span className="text-purple-400 hover:text-purple-300">S'inscrire</span>
+                    <span className="text-white/70 hover:text-white">S'inscrire</span>
                   </>
                 ) : (
                   <>
                     Déjà un compte ?{' '}
-                    <span className="text-purple-400 hover:text-purple-300">Se connecter</span>
+                    <span className="text-white/70 hover:text-white">Se connecter</span>
                   </>
                 )}
               </button>
