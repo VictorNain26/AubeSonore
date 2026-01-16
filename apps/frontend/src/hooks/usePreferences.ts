@@ -60,13 +60,13 @@ export function usePreferences(): UsePreferencesReturn {
 // Constantes pour les plateformes
 // ─────────────────────────────────────────────
 
-export const PLATFORMS: { id: PreferredPlatform; name: string; icon: string; color: string }[] = [
-  { id: 'spotify', name: 'Spotify', icon: '🟢', color: '#1DB954' },
-  { id: 'appleMusic', name: 'Apple Music', icon: '🍎', color: '#FA243C' },
-  { id: 'deezer', name: 'Deezer', icon: '🎵', color: '#FEAA2D' },
-  { id: 'youtubeMusic', name: 'YouTube Music', icon: '🔴', color: '#FF0000' },
-  { id: 'youtube', name: 'YouTube', icon: '▶️', color: '#FF0000' },
-  { id: 'tidal', name: 'Tidal', icon: '🌊', color: '#000000' },
-  { id: 'amazonMusic', name: 'Amazon Music', icon: '📦', color: '#FF9900' },
-  { id: 'soundcloud', name: 'SoundCloud', icon: '☁️', color: '#FF5500' },
+export const PLATFORMS: { id: PreferredPlatform; name: string; color: string }[] = [
+  { id: 'spotify', name: 'Spotify', color: '#1DB954' },
+  { id: 'appleMusic', name: 'Apple Music', color: '#FA243C' },
+  { id: 'deezer', name: 'Deezer', color: '#FEAA2D' },
+  { id: 'youtubeMusic', name: 'YouTube Music', color: '#FF0000' },
+  { id: 'youtube', name: 'YouTube', color: '#FF0000' },
+  { id: 'tidal', name: 'Tidal', color: '#000000' },
+  { id: 'amazonMusic', name: 'Amazon Music', color: '#FF9900' },
+  { id: 'soundcloud', name: 'SoundCloud', color: '#FF5500' },
 ];

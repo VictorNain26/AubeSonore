@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { trackApi, type LikedTrack, type LikeTrackRequest } from '../lib/api';
 
 // ─────────────────────────────────────────────
 // Hook pour gérer les morceaux likés
+// Pattern: Optimistic update pour UX instantanée
 // ─────────────────────────────────────────────
 
 interface UseLikedTracksReturn {
@@ -39,29 +40,68 @@ export function useLikedTracks(): UseLikedTracksReturn {
     refreshTracks();
   }, [refreshTracks]);
 
-  // Liker un morceau
+  // Liker un morceau - Optimistic update
   const likeTrack = useCallback(async (data: LikeTrackRequest): Promise<LikedTrack | null> => {
+    // Créer un track temporaire pour affichage immédiat
+    const tempId = `temp-${Date.now()}`;
+    const optimisticTrack: LikedTrack = {
+      id: tempId,
+      userId: '',
+      title: data.title,
+      artist: data.artist,
+      album: null,
+      artworkUrl: data.artworkUrl || null,
+      artworkBase64: null,
+      youtubeUrl: data.youtubeUrl,
+      isrc: null,
+      songlinkUrl: null,
+      platformLinks: null,
+      createdAt: new Date(),
+    };
+
+    // Ajouter immédiatement à l'UI (optimistic)
+    setTracks((prev) => [...prev, optimisticTrack]);
+
     try {
       const result = await trackApi.likeTrack(data);
-      setTracks((prev) => [...prev, result.track]);
+      // Remplacer le track temporaire par le vrai
+      setTracks((prev) =>
+        prev.map((t) => (t.id === tempId ? result.track : t))
+      );
       return result.track;
     } catch (err) {
+      // Rollback en cas d'erreur
+      setTracks((prev) => prev.filter((t) => t.id !== tempId));
       setError(err instanceof Error ? err.message : 'Erreur lors du like');
       return null;
     }
   }, []);
 
-  // Supprimer un like
+  // Supprimer un like - Optimistic update
   const unlikeTrack = useCallback(async (trackId: string): Promise<boolean> => {
+    // Sauvegarder pour rollback potentiel
+    const trackToRemove = tracks.find((t) => t.id === trackId);
+    const previousIndex = tracks.findIndex((t) => t.id === trackId);
+
+    // Retirer immédiatement de l'UI (optimistic)
+    setTracks((prev) => prev.filter((t) => t.id !== trackId));
+
     try {
       await trackApi.unlikeTrack(trackId);
-      setTracks((prev) => prev.filter((t) => t.id !== trackId));
       return true;
     } catch (err) {
+      // Rollback: remettre le track à sa position
+      if (trackToRemove) {
+        setTracks((prev) => {
+          const newTracks = [...prev];
+          newTracks.splice(previousIndex, 0, trackToRemove);
+          return newTracks;
+        });
+      }
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
       return false;
     }
-  }, []);
+  }, [tracks]);
 
   // Vérifier si un morceau est liké (via API)
   const checkLiked = useCallback(async (title: string, artist: string): Promise<LikedTrack | null> => {

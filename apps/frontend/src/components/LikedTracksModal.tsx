@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Library, ExternalLink, Music, Trash2 } from 'lucide-react';
+import { X, Library, ExternalLink, Music, Trash2, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLikedTracks } from '../hooks/useLikedTracks';
 import { usePreferences, PLATFORMS } from '../hooks/usePreferences';
@@ -15,24 +15,49 @@ interface LikedTracksModalProps {
 }
 
 // ─────────────────────────────────────────────
+// Helper: URLs de recherche par plateforme
+// ─────────────────────────────────────────────
+
+function getSearchUrl(platform: PreferredPlatform, query: string): string {
+  const encoded = encodeURIComponent(query);
+  const urls: Record<PreferredPlatform, string> = {
+    spotify: `https://open.spotify.com/search/${encoded}`,
+    appleMusic: `https://music.apple.com/search?term=${encoded}`,
+    deezer: `https://www.deezer.com/search/${encoded}`,
+    youtubeMusic: `https://music.youtube.com/search?q=${encoded}`,
+    youtube: `https://www.youtube.com/results?search_query=${encoded}`,
+    tidal: `https://listen.tidal.com/search?q=${encoded}`,
+    amazonMusic: `https://music.amazon.com/search/${encoded}`,
+    soundcloud: `https://soundcloud.com/search?q=${encoded}`,
+  };
+  return urls[platform];
+}
+
+// ─────────────────────────────────────────────
 // Helper: récupérer le lien de la plateforme préférée
 // ─────────────────────────────────────────────
 
 function getPreferredLink(
   track: LikedTrack,
   preferredPlatform: PreferredPlatform
-): string | null {
+): { url: string; isSearch: boolean } {
+  // Si on a des liens enrichis, utiliser la plateforme préférée
   if (track.platformLinks) {
     const platformKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
     const preferred = track.platformLinks[platformKey as keyof PlatformLinks];
-    if (preferred) return preferred;
+    if (preferred) return { url: preferred, isSearch: false };
 
+    // Fallback: premier lien disponible
     const firstAvailable = Object.values(track.platformLinks).find(Boolean);
-    if (firstAvailable) return firstAvailable;
+    if (firstAvailable) return { url: firstAvailable, isSearch: false };
   }
 
-  if (track.songlinkUrl) return track.songlinkUrl;
-  return track.youtubeUrl;
+  // Fallback: lien Songlink global
+  if (track.songlinkUrl) return { url: track.songlinkUrl, isSearch: false };
+
+  // Dernier recours: URL de recherche sur la plateforme préférée
+  const query = `${track.title} ${track.artist}`;
+  return { url: getSearchUrl(preferredPlatform, query), isSearch: true };
 }
 
 // ─────────────────────────────────────────────
@@ -50,7 +75,7 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
   const [isDeleting, setIsDeleting] = useState(false);
 
   const artwork = imgError ? null : (track.artworkBase64 || track.artworkUrl);
-  const link = getPreferredLink(track, preferredPlatform);
+  const { url: link, isSearch } = getPreferredLink(track, preferredPlatform);
   const selectedPlatform = PLATFORMS.find((p) => p.id === preferredPlatform);
 
   const handleDelete = async () => {
@@ -86,29 +111,27 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
         <p className="text-xs text-white/50 truncate">{track.artist}</p>
       </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-        {link && (
-          <a
-            href={link}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              'p-1.5 rounded-full',
-              'text-white/40 hover:text-white hover:bg-white/10',
-              'transition-all duration-200'
-            )}
-            title={`Ouvrir sur ${selectedPlatform?.name}`}
-          >
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        )}
+      {/* Actions - always visible on mobile */}
+      <div className="flex items-center gap-1 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center',
+            'text-white/40 hover:text-white hover:bg-white/10',
+            'transition-all duration-200'
+          )}
+          title={isSearch ? `Rechercher sur ${selectedPlatform?.name}` : `Ouvrir sur ${selectedPlatform?.name}`}
+        >
+          {isSearch ? <Search className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
+        </a>
 
         <button
           onClick={handleDelete}
           disabled={isDeleting}
           className={cn(
-            'p-1.5 rounded-full',
+            'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center',
             'text-white/40 hover:text-red-400 hover:bg-white/10',
             'transition-all duration-200',
             isDeleting && 'cursor-not-allowed'
@@ -140,12 +163,15 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-1.5 px-2.5 py-1 rounded-full',
+          'flex items-center gap-2 px-2.5 py-1 rounded-full',
           'bg-white/5 hover:bg-white/10 border border-white/10',
           'transition-all duration-200 text-sm'
         )}
       >
-        <span>{selectedPlatform?.icon}</span>
+        <span
+          className="w-2.5 h-2.5 rounded-full shrink-0"
+          style={{ backgroundColor: selectedPlatform?.color }}
+        />
         <span className="text-white/60">{selectedPlatform?.name}</span>
       </button>
 
@@ -162,14 +188,17 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
                     setIsOpen(false);
                   }}
                   className={cn(
-                    'w-full flex items-center gap-2 px-3 py-2 rounded-lg text-left text-sm',
+                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm',
                     'transition-all duration-200',
                     selected === platform.id
                       ? 'bg-white/10 text-white'
                       : 'text-white/50 hover:text-white hover:bg-white/5'
                   )}
                 >
-                  <span>{platform.icon}</span>
+                  <span
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ backgroundColor: platform.color }}
+                  />
                   <span>{platform.name}</span>
                 </button>
               ))}

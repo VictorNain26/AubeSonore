@@ -600,9 +600,9 @@ export default function Player() {
               </div>
             )}
 
-            {/* Like toggle button overlay - appears on hover */}
+            {/* Like toggle button overlay - always visible on mobile, hover on desktop */}
             {nowPlaying && (
-              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-end justify-end p-3">
+              <div className="absolute inset-0 md:bg-black/0 md:group-hover:bg-black/30 transition-all duration-300 flex items-end justify-end p-3">
                 <button
                   onClick={() =>
                     handleToggleLike(
@@ -613,12 +613,13 @@ export default function Player() {
                   }
                   disabled={likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}`}
                   className={cn(
-                    'p-3 rounded-full transition-all duration-300',
-                    'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0',
+                    'p-3 rounded-full transition-all duration-300 min-w-[44px] min-h-[44px] flex items-center justify-center',
                     'backdrop-blur-md shadow-lg',
+                    // Mobile: always visible, Desktop: hover
+                    'md:opacity-0 md:group-hover:opacity-100 md:translate-y-2 md:group-hover:translate-y-0',
                     isCurrentTrackLiked
                       ? 'bg-red-500 text-white'
-                      : 'bg-white/20 text-white hover:bg-white/30',
+                      : 'bg-black/40 text-white hover:bg-black/60',
                     likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}` && 'animate-pulse'
                   )}
                   title={isCurrentTrackLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}

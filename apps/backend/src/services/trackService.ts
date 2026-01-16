@@ -26,7 +26,7 @@ interface ServiceResponse<T = LikedTrack> {
 }
 
 // ─────────────────────────────────────────────
-// Like un morceau
+// Like un morceau - Fast insert + background enrichment
 // ─────────────────────────────────────────────
 
 export async function likeTrack({ user, body }: { user: User; body: LikeTrackBody }): Promise<ServiceResponse> {
@@ -50,40 +50,23 @@ export async function likeTrack({ user, body }: { user: User; body: LikeTrackBod
     return { status: 400, error: 'Morceau déjà liké' };
   }
 
-  // Télécharger la cover en base64 pour persistence
-  let artworkBase64: string | null = null;
-  if (artworkUrl) {
-    const imageResult = await downloadImageAsBase64(artworkUrl);
-    if (imageResult) {
-      artworkBase64 = imageResult.base64;
-    }
-  }
+  const trackId = randomUUID();
 
-  // Récupérer les liens multi-plateformes via Songlink
-  let songlinkUrl: string | null = null;
-  let platformLinks: PlatformLinks | null = null;
-
-  const songlinkData = await getSonglinkData(youtubeUrl);
-  if (songlinkData) {
-    songlinkUrl = songlinkData.pageUrl;
-    platformLinks = songlinkData.platformLinks;
-  }
-
-  // Insérer le morceau liké
+  // 🚀 FAST INSERT - Données minimales, réponse immédiate
   const [likedTrack] = await db
     .insert(schema.likedTracks)
     .values({
-      id: randomUUID(),
+      id: trackId,
       userId: user.id,
       title,
       artist,
       album: album || null,
       artworkUrl: artworkUrl || null,
-      artworkBase64,
+      artworkBase64: null, // Enrichi en background
       youtubeUrl,
       isrc: isrc || null,
-      songlinkUrl,
-      platformLinks,
+      songlinkUrl: null, // Enrichi en background
+      platformLinks: null, // Enrichi en background
     })
     .returning();
 
@@ -91,10 +74,51 @@ export async function likeTrack({ user, body }: { user: User; body: LikeTrackBod
     return { status: 500, error: 'Failed to like track' };
   }
 
+  // 🔄 BACKGROUND ENRICHMENT - Non-bloquant
+  enrichTrackInBackground(trackId, artworkUrl, youtubeUrl).catch((err) => {
+    console.error(`[enrichTrackInBackground] Error for track ${trackId}:`, err);
+  });
+
   return {
     message: 'Morceau liké avec succès',
     track: likedTrack,
   };
+}
+
+// ─────────────────────────────────────────────
+// Enrichissement asynchrone (non-bloquant)
+// ─────────────────────────────────────────────
+
+async function enrichTrackInBackground(trackId: string, artworkUrl: string | undefined, youtubeUrl: string): Promise<void> {
+  const updates: Partial<{
+    artworkBase64: string;
+    songlinkUrl: string;
+    platformLinks: PlatformLinks;
+  }> = {};
+
+  // Télécharger la cover en base64 (parallel avec Songlink)
+  const [imageResult, songlinkData] = await Promise.all([
+    artworkUrl ? downloadImageAsBase64(artworkUrl) : Promise.resolve(null),
+    getSonglinkData(youtubeUrl),
+  ]);
+
+  if (imageResult?.base64) {
+    updates.artworkBase64 = imageResult.base64;
+  }
+
+  if (songlinkData) {
+    updates.songlinkUrl = songlinkData.pageUrl;
+    updates.platformLinks = songlinkData.platformLinks;
+  }
+
+  // Mettre à jour si on a des données enrichies
+  if (Object.keys(updates).length > 0) {
+    await db
+      .update(schema.likedTracks)
+      .set(updates)
+      .where(eq(schema.likedTracks.id, trackId));
+    console.log(`[enrichTrackInBackground] Track ${trackId} enriched with:`, Object.keys(updates));
+  }
 }
 
 // ─────────────────────────────────────────────
