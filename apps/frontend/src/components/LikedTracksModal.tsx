@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Heart, ExternalLink, Music, Trash2, RefreshCw, Settings } from 'lucide-react';
+import { X, Library, ExternalLink, Music, Trash2, ChevronRight, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLikedTracks } from '../hooks/useLikedTracks';
 import { usePreferences, PLATFORMS } from '../hooks/usePreferences';
@@ -22,40 +22,35 @@ function getPreferredLink(
   track: LikedTrack,
   preferredPlatform: PreferredPlatform
 ): string | null {
-  // Si le track a des liens par plateforme
   if (track.platformLinks) {
-    // Essayer d'abord la plateforme préférée
     const platformKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
     const preferred = track.platformLinks[platformKey as keyof PlatformLinks];
     if (preferred) return preferred;
 
-    // Sinon, prendre le premier lien disponible
     const firstAvailable = Object.values(track.platformLinks).find(Boolean);
     if (firstAvailable) return firstAvailable;
   }
 
-  // Fallback: lien Songlink universel
   if (track.songlinkUrl) return track.songlinkUrl;
-
-  // Dernier recours: lien YouTube original
   return track.youtubeUrl;
 }
 
 // ─────────────────────────────────────────────
-// Composant TrackItem
+// Composant TrackCard - Design Spotify-like
 // ─────────────────────────────────────────────
 
-interface TrackItemProps {
+interface TrackCardProps {
   track: LikedTrack;
   preferredPlatform: PreferredPlatform;
   onDelete: (id: string) => void;
+  index: number;
 }
 
-function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
+function TrackCard({ track, preferredPlatform, onDelete, index }: TrackCardProps) {
   const [imgError, setImgError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showActions, setShowActions] = useState(false);
 
-  // Déterminer l'image à utiliser (URL ou base64)
   const artwork = imgError ? null : (track.artworkBase64 || track.artworkUrl);
   const link = getPreferredLink(track, preferredPlatform);
 
@@ -64,16 +59,26 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
     await onDelete(track.id);
   };
 
-  // Trouver l'info de la plateforme pour afficher son nom
-  const availablePlatforms = track.platformLinks
-    ? PLATFORMS.filter((p) => track.platformLinks?.[p.id as keyof PlatformLinks])
-    : [];
+  const selectedPlatform = PLATFORMS.find((p) => p.id === preferredPlatform);
 
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 hover:bg-white/10 transition-colors group">
-      {/* Artwork */}
-      <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-secondary flex items-center justify-center">
-        {artwork && !imgError ? (
+    <div
+      className={cn(
+        'group relative flex items-center gap-3 p-3 rounded-xl',
+        'bg-white/[0.03] hover:bg-white/[0.08]',
+        'transition-all duration-300 ease-out',
+        'border border-transparent hover:border-white/10',
+        isDeleting && 'opacity-50 scale-95'
+      )}
+      style={{
+        animationDelay: `${index * 50}ms`,
+      }}
+      onMouseEnter={() => setShowActions(true)}
+      onMouseLeave={() => setShowActions(false)}
+    >
+      {/* Artwork with gradient overlay */}
+      <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 shadow-lg">
+        {artwork ? (
           <img
             src={artwork}
             alt={track.title}
@@ -82,91 +87,121 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
             onError={() => setImgError(true)}
           />
         ) : (
-          <Music className="w-6 h-6 text-muted-foreground" />
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
-        <p className="text-xs text-muted-foreground truncate">{track.artist}</p>
-        {availablePlatforms.length > 0 && (
-          <div className="flex gap-1 mt-1">
-            {availablePlatforms.slice(0, 4).map((p) => (
-              <span key={p.id} className="text-xs" title={p.name}>
-                {p.icon}
-              </span>
-            ))}
-            {availablePlatforms.length > 4 && (
-              <span className="text-xs text-muted-foreground">+{availablePlatforms.length - 4}</span>
-            )}
+          <div className="w-full h-full bg-gradient-to-br from-purple-600/40 to-pink-600/30 flex items-center justify-center">
+            <Music className="w-6 h-6 text-white/60" />
           </div>
         )}
-      </div>
 
-      {/* Actions */}
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        {/* Ouvrir sur la plateforme */}
+        {/* Play overlay on hover */}
         {link && (
           <a
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-            title="Ouvrir sur la plateforme"
+            className={cn(
+              'absolute inset-0 flex items-center justify-center',
+              'bg-black/50 opacity-0 group-hover:opacity-100',
+              'transition-opacity duration-200'
+            )}
+          >
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-lg">
+              <span className="text-base">{selectedPlatform?.icon || '▶'}</span>
+            </div>
+          </a>
+        )}
+      </div>
+
+      {/* Track info */}
+      <div className="flex-1 min-w-0 py-1">
+        <p className="text-sm font-medium text-white truncate mb-0.5">
+          {track.title}
+        </p>
+        <p className="text-xs text-white/50 truncate">
+          {track.artist}
+        </p>
+      </div>
+
+      {/* Actions */}
+      <div
+        className={cn(
+          'flex items-center gap-1 transition-all duration-200',
+          showActions ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'
+        )}
+      >
+        {link && (
+          <a
+            href={link}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              'p-2 rounded-full',
+              'text-white/40 hover:text-white hover:bg-white/10',
+              'transition-all duration-200'
+            )}
+            title={`Ouvrir sur ${selectedPlatform?.name}`}
           >
             <ExternalLink className="w-4 h-4" />
           </a>
         )}
 
-        {/* Supprimer */}
         <button
           onClick={handleDelete}
           disabled={isDeleting}
           className={cn(
-            'p-2 rounded-full hover:bg-red-500/20 text-white/60 hover:text-red-400 transition-colors',
-            isDeleting && 'opacity-50 cursor-not-allowed'
+            'p-2 rounded-full',
+            'text-white/40 hover:text-red-400 hover:bg-red-500/10',
+            'transition-all duration-200',
+            isDeleting && 'cursor-not-allowed'
           )}
-          title="Supprimer"
+          title="Retirer de la bibliothèque"
         >
           <Trash2 className="w-4 h-4" />
         </button>
+      </div>
+
+      {/* Mobile: Chevron indicator */}
+      <div className="sm:hidden">
+        <ChevronRight className="w-4 h-4 text-white/20" />
       </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────
-// Composant PlatformSelector
+// Composant PlatformPill - Compact selector
 // ─────────────────────────────────────────────
 
-interface PlatformSelectorProps {
+interface PlatformPillProps {
   selected: PreferredPlatform;
   onChange: (platform: PreferredPlatform) => void;
 }
 
-function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
+function PlatformPill({ selected, onChange }: PlatformPillProps) {
   const [isOpen, setIsOpen] = useState(false);
-
   const selectedPlatform = PLATFORMS.find((p) => p.id === selected);
 
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-sm"
+        className={cn(
+          'flex items-center gap-1.5 px-3 py-1.5 rounded-full',
+          'bg-white/5 hover:bg-white/10 border border-white/10',
+          'transition-all duration-200 text-sm'
+        )}
       >
-        <Settings className="w-4 h-4" />
         <span>{selectedPlatform?.icon}</span>
-        <span className="hidden sm:inline">{selectedPlatform?.name}</span>
+        <span className="text-white/70">{selectedPlatform?.name}</span>
       </button>
 
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 mt-2 w-48 rounded-lg bg-black/90 backdrop-blur-md border border-white/10 shadow-xl z-50">
-            <div className="p-2">
-              <p className="text-xs text-muted-foreground px-2 py-1">Plateforme par défaut</p>
+          <div className="absolute right-0 mt-2 w-44 rounded-xl bg-black/95 backdrop-blur-xl border border-white/10 shadow-2xl z-50 overflow-hidden">
+            <div className="p-1.5">
+              <p className="text-[10px] uppercase tracking-wider text-white/30 px-3 py-2 font-medium">
+                Ouvrir avec
+              </p>
               {PLATFORMS.map((platform) => (
                 <button
                   key={platform.id}
@@ -175,14 +210,18 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
                     setIsOpen(false);
                   }}
                   className={cn(
-                    'w-full flex items-center gap-2 px-2 py-2 rounded-md text-left text-sm transition-colors',
+                    'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-left text-sm',
+                    'transition-all duration-150',
                     selected === platform.id
-                      ? 'bg-white/10 text-white'
+                      ? 'bg-purple-500/20 text-white'
                       : 'text-white/60 hover:text-white hover:bg-white/5'
                   )}
                 >
-                  <span>{platform.icon}</span>
+                  <span className="text-base">{platform.icon}</span>
                   <span>{platform.name}</span>
+                  {selected === platform.id && (
+                    <span className="ml-auto text-purple-400">✓</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -194,11 +233,38 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
 }
 
 // ─────────────────────────────────────────────
-// Composant Principal
+// Composant EmptyState - Motivational design
+// ─────────────────────────────────────────────
+
+function EmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+      <div className="relative mb-6">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center">
+          <Library className="w-10 h-10 text-purple-400/60" />
+        </div>
+        <div className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-purple-500/30 flex items-center justify-center">
+          <Sparkles className="w-3.5 h-3.5 text-purple-300" />
+        </div>
+      </div>
+      <h3 className="text-lg font-medium text-white mb-2">
+        Votre bibliothèque est vide
+      </h3>
+      <p className="text-sm text-white/40 max-w-[240px] leading-relaxed">
+        Survolez la pochette d'album et appuyez sur{' '}
+        <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-white/10 text-xs">+</span>{' '}
+        pour sauvegarder vos morceaux préférés
+      </p>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// Composant Principal - Modal
 // ─────────────────────────────────────────────
 
 export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
-  const { tracks, isLoading, unlikeTrack, refreshTracks } = useLikedTracks();
+  const { tracks, isLoading, unlikeTrack } = useLikedTracks();
   const { preferences, updatePlatform } = usePreferences();
 
   const preferredPlatform = preferences?.preferredPlatform || 'spotify';
@@ -207,73 +273,96 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop with blur */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+        className="fixed inset-0 bg-black/70 backdrop-blur-md z-50"
         onClick={onClose}
       />
 
-      {/* Modal */}
-      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-lg mx-auto max-h-[80vh] z-50">
-        <div className="bg-gradient-to-b from-gray-900 to-black rounded-2xl border border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
-          {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
-            <div className="flex items-center gap-2">
-              <Heart className="w-5 h-5 text-red-400 fill-red-400" />
-              <h2 className="text-lg font-semibold text-foreground">
-                Mes morceaux likés
-              </h2>
-              <span className="text-sm text-muted-foreground">
-                ({tracks.length})
-              </span>
-            </div>
+      {/* Modal Container */}
+      <div className="fixed inset-x-0 bottom-0 sm:inset-x-4 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 max-w-md mx-auto z-50">
+        <div
+          className={cn(
+            'bg-gradient-to-b from-gray-900/98 to-black/98',
+            'rounded-t-3xl sm:rounded-2xl',
+            'border border-white/10 border-b-0 sm:border-b',
+            'shadow-2xl shadow-black/50',
+            'overflow-hidden flex flex-col',
+            'max-h-[85vh] sm:max-h-[75vh]'
+          )}
+        >
+          {/* Header - Sleek design */}
+          <div className="relative px-5 pt-5 pb-4 shrink-0">
+            {/* Mobile drag indicator */}
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-white/20 sm:hidden" />
 
-            <div className="flex items-center gap-2">
-              <PlatformSelector
-                selected={preferredPlatform}
-                onChange={updatePlatform}
-              />
-              <button
-                onClick={refreshTracks}
-                className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
-                title="Rafraîchir"
-              >
-                <RefreshCw className="w-4 h-4" />
-              </button>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/25">
+                  <Library className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-semibold text-white">
+                    Ma Bibliothèque
+                  </h2>
+                  <p className="text-xs text-white/40">
+                    {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
+                  </p>
+                </div>
+              </div>
+
               <button
                 onClick={onClose}
-                className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                className={cn(
+                  'p-2 rounded-full',
+                  'bg-white/5 hover:bg-white/10',
+                  'text-white/60 hover:text-white',
+                  'transition-all duration-200'
+                )}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Platform selector - only show if has tracks */}
+            {tracks.length > 0 && (
+              <div className="flex items-center justify-between mt-4 pt-4 border-t border-white/5">
+                <span className="text-xs text-white/40">Plateforme préférée</span>
+                <PlatformPill
+                  selected={preferredPlatform}
+                  onChange={updatePlatform}
+                />
+              </div>
+            )}
           </div>
 
           {/* Content */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+          <div className="flex-1 overflow-y-auto px-4 pb-6 overscroll-contain">
             {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              <div className="flex items-center justify-center py-16">
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full border-2 border-white/10 border-t-purple-500 animate-spin" />
+                </div>
               </div>
             ) : tracks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <Heart className="w-12 h-12 text-white/20 mb-4" />
-                <p className="text-muted-foreground">Aucun morceau liké</p>
-                <p className="text-sm text-muted-foreground/60 mt-1">
-                  Cliquez sur ❤️ pendant la lecture pour sauvegarder vos morceaux préférés
-                </p>
-              </div>
+              <EmptyState />
             ) : (
-              tracks.map((track) => (
-                <TrackItem
-                  key={track.id}
-                  track={track}
-                  preferredPlatform={preferredPlatform}
-                  onDelete={unlikeTrack}
-                />
-              ))
+              <div className="space-y-2">
+                {tracks.map((track, index) => (
+                  <TrackCard
+                    key={track.id}
+                    track={track}
+                    preferredPlatform={preferredPlatform}
+                    onDelete={unlikeTrack}
+                    index={index}
+                  />
+                ))}
+              </div>
             )}
           </div>
+
+          {/* Safe area padding for mobile */}
+          <div className="h-safe-area-inset-bottom sm:hidden" />
         </div>
       </div>
     </>

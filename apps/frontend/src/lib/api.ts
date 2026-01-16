@@ -1,6 +1,30 @@
 import { API_BASE_URL } from '../utils/config';
 
 // ─────────────────────────────────────────────
+// Auth Types
+// ─────────────────────────────────────────────
+
+export interface User {
+  id: string;
+  email: string;
+  name: string | null;
+  image: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Session {
+  id: string;
+  userId: string;
+  expiresAt: string;
+}
+
+export interface AuthResponse {
+  user: User;
+  session: Session;
+}
+
+// ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
 
@@ -138,4 +162,68 @@ export const preferencesApi = {
       method: 'PUT',
       body: JSON.stringify({ preferredPlatform }),
     }),
+};
+
+// ─────────────────────────────────────────────
+// Auth API
+// ─────────────────────────────────────────────
+
+export const authApi = {
+  // Récupérer la session courante
+  getSession: async (): Promise<AuthResponse | null> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/get-session`, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      if (!data.user) return null;
+      return data as AuthResponse;
+    } catch {
+      return null;
+    }
+  },
+
+  // Inscription
+  signUp: async (email: string, password: string, name: string): Promise<AuthResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/sign-up/email`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, name }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Erreur inscription' }));
+      throw new Error(error.message || 'Erreur inscription');
+    }
+    return response.json();
+  },
+
+  // Connexion
+  signIn: async (email: string, password: string): Promise<AuthResponse> => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/sign-in/email`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Erreur connexion' }));
+      throw new Error(error.message || 'Erreur connexion');
+    }
+    return response.json();
+  },
+
+  // Déconnexion
+  signOut: async (): Promise<void> => {
+    await fetch(`${API_BASE_URL}/api/auth/sign-out`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+  },
+
+  // Connexion Google
+  getGoogleAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=google`,
 };

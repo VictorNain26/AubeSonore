@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Square, Volume2, VolumeX, Radio, Users, Music, Heart } from 'lucide-react';
+import { Play, Square, Volume2, VolumeX, Radio, Users, Music, Heart, Library, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlayer, getAnalyser } from '../lib/player';
 import { useNowPlaying, type SongEntry } from '../lib/azuracast';
 import { useLikedTracks } from '../hooks/useLikedTracks';
+import { useAuth } from '../hooks/useAuth';
 import { LikedTracksModal } from './LikedTracksModal';
+import { AuthModal } from './AuthModal';
+import toast from 'react-hot-toast';
 
 function formatTime(seconds: number): string {
   if (!seconds || seconds < 0) return '0:00';
@@ -423,11 +426,13 @@ export default function Player() {
   const [prevVolume, setPrevVolume] = useState(1);
   const [artError, setArtError] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [likingTrackId, setLikingTrackId] = useState<string | null>(null);
 
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
   const { data: np } = useNowPlaying();
   const { likeTrack, isTrackLiked, tracks } = useLikedTracks();
+  const { isAuthenticated } = useAuth();
   const animationRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
   const baseElapsedRef = useRef<number>(0);
@@ -504,6 +509,12 @@ export default function Player() {
   // Handle like for any track (current or history)
   const handleLikeTrack = useCallback(
     async (title: string, artist: string, artworkUrl?: string) => {
+      // Check authentication first
+      if (!isAuthenticated) {
+        setIsAuthModalOpen(true);
+        return;
+      }
+
       const trackKey = `${title}-${artist}`;
       if (likingTrackId === trackKey) return; // Prevent double-click
 
@@ -518,12 +529,22 @@ export default function Player() {
           requestData.artworkUrl = artworkUrl;
         }
         await likeTrack(requestData);
+        toast.success('Ajouté à votre bibliothèque');
       } finally {
         setLikingTrackId(null);
       }
     },
-    [likeTrack, likingTrackId]
+    [likeTrack, likingTrackId, isAuthenticated]
   );
+
+  // Handle opening library modal
+  const handleOpenLibrary = useCallback(() => {
+    if (!isAuthenticated) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setIsModalOpen(true);
+  }, [isAuthenticated]);
 
   // Check if a history track is liked
   const isHistoryTrackLiked = useCallback(
@@ -534,10 +555,10 @@ export default function Player() {
   return (
     <div className="w-full max-w-lg mx-auto px-4">
       {/* =================================================================
-          SECTION 1: Album Art (Focal Point)
+          SECTION 1: Album Art (Focal Point) + Like Button
           ================================================================= */}
       <div className="flex flex-col items-center mb-5">
-        <div className="relative">
+        <div className="relative group">
           <div
             className={cn(
               'w-52 h-52 md:w-60 md:h-60 rounded-2xl overflow-hidden',
@@ -559,11 +580,43 @@ export default function Player() {
                 <Radio className="w-16 h-16 text-foreground/30" />
               </div>
             )}
+
+            {/* Like button overlay - appears on hover */}
+            {nowPlaying && (
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-end justify-end p-3">
+                <button
+                  onClick={() =>
+                    handleLikeTrack(
+                      nowPlaying.song.title,
+                      nowPlaying.song.artist,
+                      nowPlaying.song.art
+                    )
+                  }
+                  disabled={likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}`}
+                  className={cn(
+                    'p-3 rounded-full transition-all duration-300',
+                    'opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0',
+                    'backdrop-blur-md shadow-lg',
+                    isCurrentTrackLiked
+                      ? 'bg-red-500 text-white'
+                      : 'bg-white/20 text-white hover:bg-white/30',
+                    likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}` && 'animate-pulse'
+                  )}
+                  title={isCurrentTrackLiked ? 'Déjà dans votre bibliothèque' : 'Ajouter à ma bibliothèque'}
+                >
+                  {isCurrentTrackLiked ? (
+                    <Heart className="w-5 h-5 fill-current" />
+                  ) : (
+                    <Plus className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Live indicator */}
           {np?.live.is_live && (
-            <div className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 rounded-full text-xs font-medium text-white flex items-center gap-1">
+            <div className="absolute -top-2 -right-2 px-2 py-1 bg-red-500 rounded-full text-xs font-medium text-white flex items-center gap-1 z-10">
               <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
               LIVE
             </div>
@@ -642,19 +695,19 @@ export default function Player() {
 
         {/* Right: flex-1 distributes equal space, justify-end aligns content */}
         <div className="flex-1 flex justify-end items-center gap-2">
-          {/* Liked tracks button */}
+          {/* Library button - opens saved tracks */}
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={handleOpenLibrary}
             className={cn(
               'p-2 rounded-full transition-all duration-200 relative',
               'text-white/60 hover:text-white hover:bg-white/10',
-              tracks.length > 0 && 'text-red-400/80 hover:text-red-400'
+              isAuthenticated && tracks.length > 0 && 'text-purple-400/80 hover:text-purple-400'
             )}
-            title="Mes morceaux likés"
+            title="Ma bibliothèque"
           >
-            <Heart className={cn('w-5 h-5', tracks.length > 0 && 'fill-current')} />
-            {tracks.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-medium">
+            <Library className="w-5 h-5" />
+            {isAuthenticated && tracks.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-purple-500 text-white text-[10px] flex items-center justify-center font-medium">
                 {tracks.length > 9 ? '9+' : tracks.length}
               </span>
             )}
@@ -711,6 +764,11 @@ export default function Player() {
           MODAL: Liked Tracks
           ================================================================= */}
       <LikedTracksModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+
+      {/* =================================================================
+          MODAL: Authentication
+          ================================================================= */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 }
