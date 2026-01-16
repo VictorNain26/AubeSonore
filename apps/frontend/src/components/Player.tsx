@@ -433,22 +433,25 @@ export default function Player() {
         </button>
       </div>
 
-      {/* Volume */}
-      <div className="flex items-center gap-3 mb-6 px-2">
-        <button
-          onClick={toggleMute}
-          className="text-white/60 hover:text-white transition-colors shrink-0"
-        >
-          {isMuted || volume === 0 ? (
-            <VolumeX className="w-5 h-5" />
-          ) : (
-            <Volume2 className="w-5 h-5" />
-          )}
-        </button>
-        <VolumeSlider value={volume} onChange={handleVolumeChange} />
-        <span className="text-xs text-white/40 w-8 text-right tabular-nums shrink-0">
-          {Math.round(volume * 100)}
-        </span>
+      {/* Volume - Hover expand design */}
+      <div className="flex justify-center mb-6">
+        <div className="group relative flex items-center">
+          <button
+            onClick={toggleMute}
+            className="text-white/60 hover:text-white transition-colors z-10"
+          >
+            {isMuted || volume === 0 ? (
+              <VolumeX className="w-5 h-5" />
+            ) : (
+              <Volume2 className="w-5 h-5" />
+            )}
+          </button>
+          <div className="overflow-hidden transition-all duration-300 ease-out w-0 group-hover:w-28 group-hover:ml-3">
+            <div className="w-28">
+              <VolumeSlider value={volume} onChange={handleVolumeChange} />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Listeners count */}
