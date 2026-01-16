@@ -57,18 +57,18 @@ function HistoryItem({ entry, isLiked, isLiking, onLike }: HistoryItemProps) {
         onClick={onLike}
         disabled={isLiking || isLiked}
         className={cn(
-          'p-1.5 rounded-full transition-all',
+          'p-2 rounded-full transition-all min-w-[36px] min-h-[36px] flex items-center justify-center',
           isLiked
-            ? 'text-red-400 opacity-100'
-            : 'opacity-0 group-hover:opacity-100 text-white/40 hover:text-white hover:bg-white/10',
+            ? 'text-red-400'
+            : 'text-white/40 hover:text-white hover:bg-white/10 md:opacity-0 md:group-hover:opacity-100',
           isLiking && 'animate-pulse'
         )}
         title={isLiked ? 'Déjà dans votre bibliothèque' : 'Ajouter à ma bibliothèque'}
       >
         {isLiked ? (
-          <Heart className="w-4 h-4 fill-current" />
+          <Heart className="w-5 h-5 fill-current" />
         ) : (
-          <Plus className="w-4 h-4" />
+          <Plus className="w-5 h-5" />
         )}
       </button>
       <span className="text-xs text-white/40 shrink-0">
