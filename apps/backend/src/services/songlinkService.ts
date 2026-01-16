@@ -53,11 +53,10 @@ export interface SonglinkResult {
 }
 
 /**
- * Récupère les liens multi-plateformes pour un morceau
- * @param url - URL du morceau (YouTube, Spotify, etc.)
- * @returns Liens vers toutes les plateformes disponibles
+ * Récupère les liens multi-plateformes à partir d'une URL de plateforme
+ * Usage interne uniquement - utiliser searchSonglink() pour la recherche par titre/artiste
  */
-export async function getSonglinkData(url: string): Promise<SonglinkResult | null> {
+async function getSonglinkData(url: string): Promise<SonglinkResult | null> {
   try {
     const encodedUrl = encodeURIComponent(url);
     const response = await fetch(`${SONGLINK_API_BASE}?url=${encodedUrl}&userCountry=FR`);
@@ -122,16 +121,62 @@ export async function getSonglinkData(url: string): Promise<SonglinkResult | nul
   }
 }
 
+interface ItunesSearchResponse {
+  resultCount: number;
+  results: Array<{
+    trackViewUrl: string;
+    trackName: string;
+    artistName: string;
+  }>;
+}
+
 /**
- * Recherche un morceau par titre et artiste sur Songlink
- * Utilise une recherche YouTube comme proxy
+ * Recherche un morceau sur iTunes Search API
+ * Doc: https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/
+ */
+async function searchItunes(title: string, artist: string): Promise<string | null> {
+  try {
+    const query = encodeURIComponent(`${title} ${artist}`);
+    const response = await fetch(
+      `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=1&country=FR`
+    );
+
+    if (!response.ok) {
+      console.warn(`[iTunes] API error: ${response.status}`);
+      return null;
+    }
+
+    const data = (await response.json()) as ItunesSearchResponse;
+
+    if (data.resultCount > 0 && data.results[0]?.trackViewUrl) {
+      console.log(`[iTunes] Found: ${data.results[0].trackName} by ${data.results[0].artistName}`);
+      return data.results[0].trackViewUrl;
+    }
+
+    console.warn(`[iTunes] No results for: ${title} - ${artist}`);
+    return null;
+  } catch (error) {
+    console.error('[iTunes] Search error:', error);
+    return null;
+  }
+}
+
+/**
+ * Recherche un morceau par titre et artiste
+ * Utilise iTunes pour trouver l'URL Apple Music, puis Songlink pour les autres plateformes
  * @param title - Titre du morceau
  * @param artist - Nom de l'artiste
  */
-export async function searchSonglink(_title: string, _artist: string): Promise<SonglinkResult | null> {
-  // Songlink ne supporte pas la recherche directe
-  // On pourrait implémenter une recherche YouTube puis utiliser getSonglinkData
-  // Pour l'instant, on retourne null - le frontend devra fournir une URL
-  console.warn('[Songlink] Recherche par titre/artiste non implémentée');
-  return null;
+export async function searchSonglink(title: string, artist: string): Promise<SonglinkResult | null> {
+  // Étape 1: Chercher sur iTunes pour obtenir une vraie URL
+  const appleMusicUrl = await searchItunes(title, artist);
+
+  if (!appleMusicUrl) {
+    console.warn(`[Songlink] Could not find track on iTunes: ${title} - ${artist}`);
+    return null;
+  }
+
+  // Étape 2: Passer l'URL Apple Music à Songlink
+  console.log(`[Songlink] Resolving links from Apple Music URL: ${appleMusicUrl}`);
+  return getSonglinkData(appleMusicUrl);
 }

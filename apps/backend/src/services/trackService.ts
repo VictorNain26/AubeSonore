@@ -2,7 +2,7 @@ import { db, schema } from '../db/index';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { User, LikedTrack, PlatformLinks } from '../db/schema';
-import { getSonglinkData } from './songlinkService';
+import { searchSonglink } from './songlinkService';
 import { downloadImageAsBase64 } from './imageService';
 
 // ─────────────────────────────────────────────
@@ -75,7 +75,7 @@ export async function likeTrack({ user, body }: { user: User; body: LikeTrackBod
   }
 
   // 🔄 BACKGROUND ENRICHMENT - Non-bloquant
-  enrichTrackInBackground(trackId, artworkUrl, youtubeUrl).catch((err) => {
+  enrichTrackInBackground(trackId, title, artist, artworkUrl).catch((err) => {
     console.error(`[enrichTrackInBackground] Error for track ${trackId}:`, err);
   });
 
@@ -89,17 +89,22 @@ export async function likeTrack({ user, body }: { user: User; body: LikeTrackBod
 // Enrichissement asynchrone (non-bloquant)
 // ─────────────────────────────────────────────
 
-async function enrichTrackInBackground(trackId: string, artworkUrl: string | undefined, youtubeUrl: string): Promise<void> {
+async function enrichTrackInBackground(
+  trackId: string,
+  title: string,
+  artist: string,
+  artworkUrl: string | undefined
+): Promise<void> {
   const updates: Partial<{
     artworkBase64: string;
     songlinkUrl: string;
     platformLinks: PlatformLinks;
   }> = {};
 
-  // Télécharger la cover en base64 (parallel avec Songlink)
+  // Télécharger la cover et récupérer les liens en parallèle
   const [imageResult, songlinkData] = await Promise.all([
     artworkUrl ? downloadImageAsBase64(artworkUrl) : Promise.resolve(null),
-    getSonglinkData(youtubeUrl),
+    searchSonglink(title, artist),
   ]);
 
   if (imageResult?.base64) {
@@ -111,7 +116,6 @@ async function enrichTrackInBackground(trackId: string, artworkUrl: string | und
     updates.platformLinks = songlinkData.platformLinks;
   }
 
-  // Mettre à jour si on a des données enrichies
   if (Object.keys(updates).length > 0) {
     await db
       .update(schema.likedTracks)
@@ -198,7 +202,7 @@ export async function getLikedTrackByTitleArtist({ user, title, artist }: { user
 }
 
 // ─────────────────────────────────────────────
-// Mettre à jour les liens d'un morceau (refresh Songlink)
+// Mettre à jour les liens d'un morceau (refresh)
 // ─────────────────────────────────────────────
 
 export async function refreshTrackLinks({ user, id }: { user: User; id: string }): Promise<ServiceResponse> {
@@ -213,7 +217,7 @@ export async function refreshTrackLinks({ user, id }: { user: User; id: string }
     return { status: 404, error: 'Morceau non trouvé' };
   }
 
-  const songlinkData = await getSonglinkData(track.youtubeUrl);
+  const songlinkData = await searchSonglink(track.title, track.artist);
   if (!songlinkData) {
     return { status: 400, error: 'Impossible de récupérer les liens pour ce morceau' };
   }

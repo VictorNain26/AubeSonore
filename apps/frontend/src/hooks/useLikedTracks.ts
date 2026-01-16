@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { trackApi, type LikedTrack, type LikeTrackRequest } from '../lib/api';
 
 // ─────────────────────────────────────────────
@@ -56,7 +56,7 @@ export function useLikedTracks(): UseLikedTracksReturn {
       isrc: null,
       songlinkUrl: null,
       platformLinks: null,
-      createdAt: new Date(),
+      createdAt: new Date().toISOString(),
     };
 
     // Ajouter immédiatement à l'UI (optimistic)
