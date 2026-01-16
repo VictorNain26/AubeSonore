@@ -182,6 +182,7 @@ interface VolumeControlProps {
 function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: VolumeControlProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [localVolume, setLocalVolume] = useState(volume);
@@ -194,6 +195,25 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // Clear timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
+  }, []);
+
+  const handleMouseEnter = () => {
+    if (isMobile) return;
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    if (isMobile || isDragging) return;
+    // Delay before closing to allow reaching the slider
+    closeTimeoutRef.current = window.setTimeout(() => setIsOpen(false), 300);
+  };
 
   // Sync local volume with prop when not dragging
   useEffect(() => {
@@ -216,27 +236,27 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
     };
   }, [isOpen, isMobile]);
 
-  // Calculate volume from mouse/touch position
-  const calculateVolume = useCallback((clientX: number) => {
+  // Calculate volume from vertical position (bottom = 0, top = 1)
+  const calculateVolumeVertical = useCallback((clientY: number) => {
     if (!sliderRef.current) return;
     const rect = sliderRef.current.getBoundingClientRect();
-    const percent = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    // Invert: top of slider = 100%, bottom = 0%
+    const percent = Math.max(0, Math.min(1, (rect.bottom - clientY) / rect.height));
     setLocalVolume(percent);
     onVolumeChange(percent);
   }, [onVolumeChange]);
 
-  // Handle drag events
+  // Handle drag events (vertical)
   useEffect(() => {
     if (!isDragging) return;
 
-    const handleMove = (clientX: number) => calculateVolume(clientX);
     const handleMouseMove = (e: MouseEvent) => {
       e.preventDefault();
-      handleMove(e.clientX);
+      calculateVolumeVertical(e.clientY);
     };
     const handleTouchMove = (e: TouchEvent) => {
       const touch = e.touches[0];
-      if (touch) handleMove(touch.clientX);
+      if (touch) calculateVolumeVertical(touch.clientY);
     };
     const handleEnd = () => setIsDragging(false);
 
@@ -251,7 +271,7 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleEnd);
     };
-  }, [isDragging, calculateVolume]);
+  }, [isDragging, calculateVolumeVertical]);
 
   // Keyboard support
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -272,9 +292,9 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
     }
   }, [localVolume, onVolumeChange, onToggleMute]);
 
-  const handleSliderInteraction = (clientX: number) => {
+  const handleSliderInteractionVertical = (clientY: number) => {
     setIsDragging(true);
-    calculateVolume(clientX);
+    calculateVolumeVertical(clientY);
   };
 
   // Icon click: mobile = toggle slider, desktop = mute
@@ -295,8 +315,8 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
     <div
       ref={containerRef}
       className="relative"
-      onMouseEnter={() => !isMobile && setIsOpen(true)}
-      onMouseLeave={() => !isMobile && !isDragging && setIsOpen(false)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="group"
@@ -316,45 +336,48 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
         <VolumeIcon className="w-5 h-5" />
       </button>
 
-      {/* Slider - Absolute positioned overlay, appears to the right */}
+      {/* Slider - Absolute positioned overlay, opens UPWARD */}
       <div
         className={cn(
-          'absolute left-full top-1/2 -translate-y-1/2 ml-1 z-50',
+          'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50',
           'transition-all duration-200 ease-out',
           isExpanded
-            ? 'opacity-100 pointer-events-auto translate-x-0'
-            : 'opacity-0 pointer-events-none -translate-x-2'
+            ? 'opacity-100 pointer-events-auto translate-y-0'
+            : 'opacity-0 pointer-events-none translate-y-2'
         )}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
-        <div className="bg-black/80 backdrop-blur-md rounded-full px-3 py-2 shadow-lg border border-white/10">
-          {/* Slider Track */}
+        <div className="bg-black/80 backdrop-blur-md rounded-xl p-3 shadow-lg border border-white/10">
+          {/* Vertical Slider Track */}
           <div
             ref={sliderRef}
-            className="relative h-1.5 w-24 rounded-full cursor-pointer bg-white/20"
-            onMouseDown={(e) => handleSliderInteraction(e.clientX)}
+            className="relative w-1.5 h-24 rounded-full cursor-pointer bg-white/20"
+            onMouseDown={(e) => handleSliderInteractionVertical(e.clientY)}
             onTouchStart={(e) => {
               const touch = e.touches[0];
-              if (touch) handleSliderInteraction(touch.clientX);
+              if (touch) handleSliderInteractionVertical(touch.clientY);
             }}
             role="slider"
             aria-label="Volume"
             aria-valuenow={Math.round(displayVolume * 100)}
             aria-valuemin={0}
             aria-valuemax={100}
+            aria-orientation="vertical"
           >
-            {/* Track Fill */}
+            {/* Track Fill (from bottom) */}
             <div
               className={cn(
-                'absolute inset-y-0 left-0 rounded-full bg-white/80',
-                !isDragging && 'transition-[width] duration-75'
+                'absolute inset-x-0 bottom-0 rounded-full bg-white/80',
+                !isDragging && 'transition-[height] duration-75'
               )}
-              style={{ width: `${displayVolume * 100}%` }}
+              style={{ height: `${displayVolume * 100}%` }}
             />
 
             {/* Thumb with 44px touch target */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
-              style={{ left: `${displayVolume * 100}%` }}
+              className="absolute left-1/2 -translate-x-1/2 translate-y-1/2"
+              style={{ bottom: `${displayVolume * 100}%` }}
             >
               {/* Touch target (44px) */}
               <div className="absolute w-11 h-11 -top-5 -left-5" />
