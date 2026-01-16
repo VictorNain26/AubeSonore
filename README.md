@@ -2,6 +2,12 @@
 
 Une webradio moderne avec interface React et backend TypeScript/Bun, organisee en monorepo.
 
+## Production
+
+- **Frontend**: https://www.ourmusic.fr
+- **Backend API**: https://ourmusic-backend-tomia-f4ec3e9e.koyeb.app
+- **Database**: Railway PostgreSQL
+
 ## Architecture
 
 ```
@@ -17,13 +23,36 @@ ourmusic/
 └── docker-compose.dev.yml # Development (DB only)
 ```
 
+## Features
+
+### Like & Multi-Platform Links
+- Like les morceaux en cours ou dans l'historique
+- Integration **Songlink/Odesli** pour liens multi-plateformes automatiques
+- Liens directs vers: Spotify, Apple Music, Deezer, YouTube Music, Tidal, Amazon Music, SoundCloud
+- Persistence des covers en base64 (les covers ne disparaissent plus)
+- Choix de la plateforme preferee par utilisateur
+
+### Backend
+- Better Auth (email + Google OAuth)
+- Songlink/Odesli API (liens multi-plateformes)
+- Covers persistees en base64
+- TypeScript strict mode
+- Drizzle ORM + PostgreSQL
+
+### Frontend
+- React 19
+- Zustand (state management)
+- Tailwind CSS + shadcn/ui
+- PWA ready
+- TypeScript strict
+
 ## Quick Start
 
 ### Prerequis
 - Node.js >=20
 - PNPM >=10.13.1
 - Bun (pour le backend)
-- Docker & Docker Compose (optionnel)
+- Docker (optionnel, pour PostgreSQL local)
 
 ### Installation locale
 
@@ -35,11 +64,18 @@ pnpm install
 cp apps/backend/.env.example apps/backend/.env
 cp apps/frontend/.env.example apps/frontend/.env
 
-# Demarrer PostgreSQL (via Docker)
-docker compose -f docker-compose.dev.yml up -d
+# Option 1: PostgreSQL via Docker
+docker run -d --name ourmusic-db \
+  -e POSTGRES_USER=ourmusic \
+  -e POSTGRES_PASSWORD=ourmusic123 \
+  -e POSTGRES_DB=ourmusic \
+  -p 5432:5432 \
+  postgres:16-alpine
 
-# Appliquer les migrations
-pnpm --filter @ourmusic/backend db:push
+# Option 2: Utiliser Railway/Neon (modifier DATABASE_URL dans .env)
+
+# Appliquer le schema
+cd apps/backend && bun run db:push
 
 # Demarrer le projet
 pnpm dev
@@ -49,52 +85,58 @@ L'application sera disponible sur:
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:3000
 
-### Demarrage avec Docker (Production)
+## Configuration
 
+### Variables d'environnement
+
+#### Backend (.env)
 ```bash
-# Copier et configurer les variables d'environnement
-cp .env.example .env
-# Editer .env avec vos valeurs
+PORT=3000
+DATABASE_URL=postgresql://user:pass@localhost:5432/ourmusic
 
-# Demarrer tous les services
-docker compose up -d
+# Better Auth
+BETTER_AUTH_SECRET=your-secret-key-min-32-chars
+BETTER_AUTH_URL=http://localhost:3000
 
-# Voir les logs
-docker compose logs -f
+# URLs
+FRONTEND_BASE_URL=http://localhost:5173
+BACKEND_BASE_URL=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8080
+
+# OAuth (optionnel)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 ```
 
-Services disponibles:
-- Frontend: http://localhost:8080
-- Backend API: http://localhost:3000
-- PostgreSQL: localhost:5432
+#### Frontend (.env)
+```bash
+VITE_API_URL=http://localhost:3000
+VITE_AZURACAST_BASE_URL=https://your-azuracast-instance.com
+```
 
-## Packages
+## API Endpoints
 
-### Apps
+### Authentication
+- `POST /api/auth/sign-in` - Connexion
+- `POST /api/auth/sign-up` - Inscription
+- `POST /api/auth/sign-out` - Deconnexion
+- `GET /api/auth/session` - Session courante
+- `GET /api/auth/callback/google` - Google OAuth callback
 
-#### @ourmusic/backend
-API REST avec Bun, Elysia, Drizzle ORM et Better Auth
-- **Port**: 3000
-- **Tech**: Bun, Elysia, PostgreSQL, Drizzle ORM
-- **Auth**: Better Auth (email + Google OAuth + Spotify OAuth)
-- **Features**: HypeMachine scraping, Spotify sync
+### Tracks
+- `GET /api/track/like` - Recuperer les morceaux likes
+- `POST /api/track/like` - Liker un morceau (+ fetch Songlink automatique)
+- `DELETE /api/track/like/:id` - Supprimer un morceau like
+- `POST /api/track/check-liked` - Verifier si un morceau est like
+- `POST /api/track/:id/refresh-links` - Rafraichir les liens Songlink
 
-#### @ourmusic/frontend
-Application React 19 avec Vite et Tailwind CSS
-- **Port**: 5173 (dev) / 8080 (docker)
-- **Tech**: React 19, Vite, Tailwind CSS, Zustand
-- **Features**: PWA, SSE real-time, React Query
+### Preferences
+- `GET /api/preferences` - Recuperer les preferences utilisateur
+- `PUT /api/preferences` - Mettre a jour la plateforme preferee
 
-### Shared Packages
-
-#### @ourmusic/shared-types
-Types TypeScript partages entre backend et frontend
-
-#### @ourmusic/shared-utils
-Utilitaires communs (error handling, string utils, constants)
-
-#### @ourmusic/logger
-Logging utilities
+### Utils
+- `GET /health` - Health check
+- `GET /` - API info
 
 ## Commandes
 
@@ -117,112 +159,51 @@ pnpm build:frontend      # Build frontend
 pnpm lint             # Lint tous les packages
 pnpm lint:fix         # Fix automatiquement
 pnpm typecheck        # Verification TypeScript
-pnpm format           # Formater avec Prettier
 ```
 
 ### Base de donnees
 ```bash
-pnpm --filter @ourmusic/backend db:generate    # Generer migrations
-pnpm --filter @ourmusic/backend db:push        # Appliquer migrations
-pnpm --filter @ourmusic/backend seed:admin     # Creer admin
+cd apps/backend
+bun run db:generate    # Generer migrations
+bun run db:push        # Appliquer schema
 ```
-
-## Configuration
-
-### Variables d'environnement
-
-Voir `.env.example` a la racine pour la configuration Docker complete.
-
-#### Backend (.env)
-```bash
-PORT=3000
-DATABASE_URL=postgresql://user:pass@localhost:5432/ourmusic
-BETTER_AUTH_SECRET=your-secret-key-min-32-chars
-BETTER_AUTH_URL=http://localhost:3000
-FRONTEND_BASE_URL=http://localhost:5173
-BACKEND_BASE_URL=http://localhost:3000
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8080
-
-# OAuth (optionnel)
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-SPOTIFY_CLIENT_ID=
-SPOTIFY_CLIENT_SECRET=
-```
-
-#### Frontend (.env)
-```bash
-VITE_API_BASE_URL=http://localhost:3000
-VITE_AZURACAST_BASE_URL=https://your-azuracast-instance.com
-VITE_SITE_BASE_URL=http://localhost:5173
-```
-
-### AzuraCast
-
-Ce projet necessite une instance AzuraCast pour le streaming audio.
-AzuraCast doit etre installe separement sur son propre serveur/port.
-
-Installation AzuraCast: https://www.azuracast.com/docs/getting-started/installation/
-
-## Features
-
-### Backend
-- Better Auth (email + Google OAuth + Spotify OAuth)
-- Spotify API integration (sync liked tracks)
-- Web scraping HypeMachine (trending tracks)
-- Cron jobs (auto-sync)
-- TypeScript strict mode
-- Drizzle ORM + PostgreSQL
-
-### Frontend
-- React 19
-- Server-Sent Events (SSE) real-time
-- React Query (cache)
-- Zustand (state management)
-- Tailwind CSS
-- PWA ready
-- TypeScript strict
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/sign-in` - Connexion
-- `POST /api/auth/sign-up` - Inscription
-- `POST /api/auth/sign-out` - Deconnexion
-- `GET /api/auth/session` - Session courante
-- `GET /api/auth/callback/google` - Google OAuth callback
-- `GET /api/auth/callback/spotify` - Spotify OAuth callback
-
-### Tracks
-- `GET /api/track/like` - Recuperer les morceaux aimes
-- `POST /api/track/like` - Ajouter un morceau
-- `DELETE /api/track/like/:id` - Supprimer un morceau
-
-### Utils
-- `GET /health` - Health check
-- `GET /` - API info
 
 ## Deploiement
 
-### Docker (recommande)
-```bash
-docker compose up -d --build
-```
+### Backend (Koyeb)
+Le backend est deploye automatiquement sur Koyeb depuis la branche `master`.
 
-### CI/CD
-Le projet inclut un workflow GitHub Actions pour:
-- Lint & TypeCheck
-- Build des apps
-- Deploy backend sur Koyeb
-- Deploy frontend sur Vercel
+Variables d'environnement requises sur Koyeb:
+- `DATABASE_URL` - Railway PostgreSQL
+- `BETTER_AUTH_SECRET` - Secret pour l'auth
+- `BETTER_AUTH_URL` - URL du backend
+- `FRONTEND_BASE_URL` - https://www.ourmusic.fr
+- `ALLOWED_ORIGINS` - https://www.ourmusic.fr,https://ourmusic.fr
 
-## Securite
+### Frontend (Vercel)
+Le frontend est deploye automatiquement sur Vercel depuis la branche `master`.
 
-- Better Auth pour l'authentification
-- Variables d'environnement pour les secrets
-- TypeScript strict mode
-- CORS configure
-- Validation des donnees (Valibot)
+Variables d'environnement requises sur Vercel:
+- `VITE_API_URL` - URL du backend Koyeb
+- `VITE_AZURACAST_BASE_URL` - URL de l'instance AzuraCast
+
+### Database (Railway)
+PostgreSQL heberge sur Railway avec connexion externe.
+
+## Stack Technique
+
+| Composant | Technologie |
+|-----------|-------------|
+| Runtime | Bun |
+| Framework Backend | Elysia |
+| Framework Frontend | React 19 + Vite |
+| Database | PostgreSQL |
+| ORM | Drizzle |
+| Auth | Better Auth |
+| State | Zustand |
+| Styling | Tailwind CSS + shadcn/ui |
+| Validation | Valibot |
+| Multi-platform links | Songlink/Odesli API |
 
 ## License
 
