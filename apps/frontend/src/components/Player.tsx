@@ -59,7 +59,7 @@ function HistoryItem({ entry, isLiked, isLiking, onToggle }: HistoryItemProps) {
         disabled={isLiking}
         className={cn(
           'p-2.5 rounded-full transition-all min-w-[44px] min-h-[44px] flex items-center justify-center',
-          'active:scale-90',
+          'active:scale-90 cursor-pointer',
           isLiked
             ? 'text-red-500 hover:text-red-400'
             : 'text-white/30 hover:text-red-400',
@@ -352,7 +352,7 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
       <button
         onClick={handleIconClick}
         className={cn(
-          'p-2 rounded-full transition-all duration-200',
+          'p-2 rounded-full transition-all duration-200 cursor-pointer',
           'text-white/60 hover:text-white hover:bg-white/10',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50'
         )}
@@ -613,7 +613,7 @@ export default function Player() {
                   }
                   disabled={likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}`}
                   className={cn(
-                    'p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center',
+                    'p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer',
                     'backdrop-blur-md shadow-lg active:scale-95',
                     isCurrentTrackLiked
                       ? 'bg-red-500 text-white'
@@ -695,7 +695,7 @@ export default function Player() {
         <button
           onClick={togglePlay}
           className={cn(
-            'w-14 h-14 rounded-full flex items-center justify-center shrink-0',
+            'w-14 h-14 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
             'border border-white/20 transition-all duration-200',
             'hover:scale-105 hover:bg-white/10 active:scale-95',
             'bg-white/5 backdrop-blur-sm'
@@ -715,7 +715,7 @@ export default function Player() {
           <button
             onClick={handleOpenLibrary}
             className={cn(
-              'p-2 rounded-full transition-all duration-200 relative',
+              'p-2 rounded-full transition-all duration-200 relative cursor-pointer',
               'text-white/60 hover:text-white hover:bg-white/10',
               isAuthenticated && tracks.length > 0 && 'text-purple-400/80 hover:text-purple-400'
             )}

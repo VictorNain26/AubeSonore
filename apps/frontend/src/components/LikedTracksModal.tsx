@@ -118,7 +118,7 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
           target="_blank"
           rel="noopener noreferrer"
           className={cn(
-            'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center',
+            'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer',
             'text-white/40 hover:text-white hover:bg-white/10',
             'transition-all duration-200'
           )}
@@ -134,7 +134,7 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
             'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center',
             'text-white/40 hover:text-red-400 hover:bg-white/10',
             'transition-all duration-200',
-            isDeleting && 'cursor-not-allowed'
+            isDeleting ? 'cursor-not-allowed' : 'cursor-pointer'
           )}
           title="Retirer"
         >
@@ -163,15 +163,11 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          'flex items-center gap-2 px-2.5 py-1 rounded-full',
+          'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
           'bg-white/5 hover:bg-white/10 border border-white/10',
           'transition-all duration-200 text-sm'
         )}
       >
-        <span
-          className="w-2.5 h-2.5 rounded-full shrink-0"
-          style={{ backgroundColor: selectedPlatform?.color }}
-        />
         <span className="text-white/60">{selectedPlatform?.name}</span>
       </button>
 
@@ -188,18 +184,14 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
                     setIsOpen(false);
                   }}
                   className={cn(
-                    'w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-left text-sm',
+                    'w-full flex items-center px-3 py-2 rounded-lg text-left text-sm cursor-pointer',
                     'transition-all duration-200',
                     selected === platform.id
                       ? 'bg-white/10 text-white'
                       : 'text-white/50 hover:text-white hover:bg-white/5'
                   )}
                 >
-                  <span
-                    className="w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: platform.color }}
-                  />
-                  <span>{platform.name}</span>
+                  {platform.name}
                 </button>
               ))}
             </div>
@@ -277,7 +269,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
               <button
                 onClick={onClose}
                 className={cn(
-                  'p-2 rounded-full',
+                  'p-2 rounded-full cursor-pointer',
                   'text-white/40 hover:text-white hover:bg-white/10',
                   'transition-all duration-200'
                 )}
