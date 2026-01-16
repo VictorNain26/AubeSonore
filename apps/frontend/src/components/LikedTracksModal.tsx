@@ -174,8 +174,8 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
       {isOpen && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          <div className="absolute right-0 mt-2 w-40 rounded-xl bg-black/90 backdrop-blur-md border border-white/10 shadow-xl z-50 overflow-hidden">
-            <div className="p-1">
+          <div className="absolute right-0 bottom-full mb-2 w-44 rounded-xl bg-black/90 backdrop-blur-md border border-white/10 shadow-xl z-50 overflow-hidden">
+            <div className="p-1 max-h-[280px] overflow-y-auto">
               {PLATFORMS.map((platform) => (
                 <button
                   key={platform.id}
@@ -184,7 +184,7 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
                     setIsOpen(false);
                   }}
                   className={cn(
-                    'w-full flex items-center px-3 py-2 rounded-lg text-left text-sm cursor-pointer',
+                    'w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm cursor-pointer',
                     'transition-all duration-200',
                     selected === platform.id
                       ? 'bg-white/10 text-white'
