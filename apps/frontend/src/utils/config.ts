@@ -1,5 +1,5 @@
-// API Backend (si nécessaire)
-export const API_BASE_URL: string = import.meta.env.VITE_API_BASE_URL || '';
+// API Backend
+export const API_BASE_URL: string = import.meta.env.VITE_API_URL || '';
 
 // AzuraCast Configuration
 export const AZURACAST_URL: string = import.meta.env.VITE_AZURACAST_BASE_URL || 'https://116.203.46.203';
