@@ -281,6 +281,7 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
       calculateVolumeVertical(e.clientY);
     };
     const handleTouchMove = (e: TouchEvent) => {
+      e.preventDefault();
       const touch = e.touches[0];
       if (touch) calculateVolumeVertical(touch.clientY);
     };
@@ -288,14 +289,16 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
 
     document.addEventListener('mousemove', handleMouseMove, { passive: false });
     document.addEventListener('mouseup', handleEnd);
-    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
     document.addEventListener('touchend', handleEnd);
+    document.addEventListener('touchcancel', handleEnd);
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleEnd);
       document.removeEventListener('touchmove', handleTouchMove);
       document.removeEventListener('touchend', handleEnd);
+      document.removeEventListener('touchcancel', handleEnd);
     };
   }, [isDragging, calculateVolumeVertical]);
 
@@ -375,12 +378,13 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
         onMouseLeave={handleMouseLeave}
       >
         <div className="bg-black/80 backdrop-blur-md rounded-xl p-3 shadow-lg border border-white/10">
-          {/* Vertical Slider Track */}
+          {/* Vertical Slider Track - wider touch area */}
           <div
             ref={sliderRef}
-            className="relative w-1.5 h-24 rounded-full cursor-pointer bg-white/20"
+            className="relative w-8 h-28 rounded-full cursor-pointer flex justify-center touch-none"
             onMouseDown={(e) => handleSliderInteractionVertical(e.clientY)}
             onTouchStart={(e) => {
+              e.preventDefault();
               const touch = e.touches[0];
               if (touch) handleSliderInteractionVertical(touch.clientY);
             }}
@@ -391,28 +395,29 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
             aria-valuemax={100}
             aria-orientation="vertical"
           >
-            {/* Track Fill (from bottom) */}
-            <div
-              className={cn(
-                'absolute inset-x-0 bottom-0 rounded-full bg-white/80',
-                !isDragging && 'transition-[height] duration-75'
-              )}
-              style={{ height: `${displayVolume * 100}%` }}
-            />
+            {/* Visual track (narrow) */}
+            <div className="relative w-1.5 h-full rounded-full bg-white/20">
+              {/* Track Fill (from bottom) */}
+              <div
+                className={cn(
+                  'absolute inset-x-0 bottom-0 rounded-full bg-white/80',
+                  !isDragging && 'transition-[height] duration-75'
+                )}
+                style={{ height: `${displayVolume * 100}%` }}
+              />
+            </div>
 
-            {/* Thumb with 44px touch target */}
+            {/* Thumb */}
             <div
               className="absolute left-1/2 -translate-x-1/2 translate-y-1/2"
               style={{ bottom: `${displayVolume * 100}%` }}
             >
-              {/* Touch target (44px) */}
-              <div className="absolute w-11 h-11 -top-5 -left-5" />
               {/* Visible thumb */}
               <div
                 className={cn(
-                  'w-3 h-3 rounded-full bg-white shadow-md',
+                  'w-4 h-4 rounded-full bg-white shadow-md',
                   'transition-transform duration-150',
-                  isDragging && 'scale-125'
+                  isDragging && 'scale-110'
                 )}
               />
             </div>
@@ -602,7 +607,7 @@ export default function Player() {
 
             {/* Like toggle button overlay - always visible */}
             {nowPlaying && (
-              <div className="absolute inset-0 flex items-end justify-end p-3">
+              <div className="absolute inset-0 flex items-end justify-end p-2 sm:p-3">
                 <button
                   onClick={() =>
                     handleToggleLike(
@@ -613,11 +618,11 @@ export default function Player() {
                   }
                   disabled={likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}`}
                   className={cn(
-                    'p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer',
-                    'backdrop-blur-md shadow-lg active:scale-95',
+                    'p-2.5 sm:p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer',
+                    'backdrop-blur-md shadow-lg active:scale-95 border',
                     isCurrentTrackLiked
-                      ? 'bg-red-500 text-white'
-                      : 'bg-black/40 text-white hover:bg-black/60',
+                      ? 'bg-red-500 text-white border-red-400'
+                      : 'bg-black/60 text-white hover:bg-black/70 border-white/20',
                     likingTrackId === `${nowPlaying.song.title}-${nowPlaying.song.artist}` && 'animate-pulse'
                   )}
                   title={isCurrentTrackLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
