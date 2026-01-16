@@ -11,9 +11,11 @@ HypeMachine (API) → yt-dlp (YouTube) → Essentia-TensorFlow (analyse) → Azu
 ## Fonctionnalités
 
 - **Découverte** : Récupération automatique des tracks populaires via HypeMachine
+- **Détection doublons** : Vérification contre la bibliothèque AzuraCast (artist + title)
 - **Téléchargement** : Download via yt-dlp avec métadonnées et cover art
 - **Analyse audio** : Classification par mood avec modèles MTG pré-entraînés (~97% accuracy)
 - **Dayparting** : Assignation aux playlists par créneau horaire (approche radio professionnelle)
+- **Rotation** : Gestion automatique de la taille de bibliothèque (FIFO avec protection)
 
 ## Classification des Moods
 
@@ -97,13 +99,14 @@ radio-pipeline/
 ├── scripts/
 │   ├── setup.sh            # Installation dépendances
 │   ├── setup_playlists.sh  # Création playlists AzuraCast (scheduled)
+│   ├── setup_cron.sh       # Installation cron job (3h quotidien)
 │   ├── download_models.sh  # Téléchargement modèles Essentia
 │   ├── discover.py         # HypeMachine API
 │   ├── download.py         # yt-dlp + métadonnées
 │   ├── download.sh         # Wrapper download
 │   ├── analyze.py          # Analyse Essentia-TensorFlow (BPM, mood)
 │   ├── analyze.sh          # Wrapper analyse
-│   ├── classify.py         # Upload AzuraCast + routage daypart
+│   ├── classify.py         # Upload AzuraCast + rotation + routage daypart
 │   └── upload.sh           # Wrapper upload
 ├── models/                 # Modèles Essentia pré-entraînés
 ├── downloads/              # Fichiers téléchargés
@@ -113,7 +116,42 @@ radio-pipeline/
 └── README.md
 ```
 
+## Détection des doublons
+
+La détection des doublons utilise **AzuraCast comme source de vérité**:
+
+1. Au démarrage du téléchargement, la bibliothèque AzuraCast est récupérée
+2. Chaque track est comparée par `artist + title` (normalisé)
+3. Les tracks déjà présents sont ignorés
+
+**Avantage:** Un track supprimé par rotation peut revenir s'il redevient populaire sur HypeMachine.
+
+## Rotation de la bibliothèque
+
+Le pipeline gère automatiquement la taille de la bibliothèque AzuraCast:
+
+- **Maximum 450 tracks** - Les plus anciennes sont supprimées pour faire place aux nouvelles
+- **Protection 7 jours** - Un track ne peut pas être supprimé avant 7 jours (temps de passer à l'antenne)
+- **FIFO** - First In, First Out (les plus anciens partent en premier)
+
+Configuration dans `config.py`:
+
+```python
+ROTATION = {
+    "max_tracks": 450,    # Maximum tracks in AzuraCast library
+    "min_age_days": 7,    # Never delete tracks younger than 7 days
+}
+```
+
 ## Automatisation (Cron)
+
+### Installation automatique
+
+```bash
+./scripts/setup_cron.sh
+```
+
+### Installation manuelle
 
 ```bash
 # Exécuter le pipeline tous les jours à 3h

@@ -21,7 +21,7 @@ from mutagen.id3 import ID3
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
-    from config import get_dayparts_for_mood, get_enabled_dayparts, should_reject_track
+    from config import get_dayparts_for_mood, get_enabled_dayparts, should_reject_track, ROTATION
 except ImportError:
     print("Error: config.py not found in pipeline root")
     sys.exit(1)
@@ -133,6 +133,36 @@ class AzuraCastClient:
         if data:
             return {f["path"].lower() for f in data}
         return set()
+
+    def get_all_files(self) -> list[dict[str, Any]]:
+        """
+        Get all files with metadata.
+
+        Returns:
+            List of file dictionaries with id, path, mtime.
+        """
+        data = self._api_get("files")
+        return data if data else []
+
+    def delete_file(self, file_id: int) -> bool:
+        """
+        Delete a file from AzuraCast.
+
+        Args:
+            file_id: File ID to delete.
+
+        Returns:
+            True if successful.
+        """
+        try:
+            response = requests.delete(
+                f"{self.url}/api/station/{self.station_id}/file/{file_id}",
+                headers=self.headers,
+                timeout=REQUEST_TIMEOUT
+            )
+            return response.status_code in [200, 204]
+        except requests.RequestException:
+            return False
 
     def upload_file(self, filepath: Path) -> int | None:
         """
@@ -342,6 +372,76 @@ def process_track(
         return "failed", []
 
 
+def enforce_rotation(client: AzuraCastClient, new_tracks_count: int) -> int:
+    """
+    Enforce track rotation by removing oldest tracks if needed.
+
+    Args:
+        client: AzuraCast client.
+        new_tracks_count: Number of new tracks to be added.
+
+    Returns:
+        Number of tracks deleted.
+    """
+    max_tracks = ROTATION["max_tracks"]
+    min_age_days = ROTATION["min_age_days"]
+
+    # Get all files
+    files = client.get_all_files()
+    current_count = len(files)
+
+    logger.info(f"\n=== Rotation Check ===")
+    logger.info(f"Current tracks: {current_count}")
+    logger.info(f"New tracks to add: {new_tracks_count}")
+    logger.info(f"Max allowed: {max_tracks}")
+
+    # Calculate how many we need to delete
+    total_after_upload = current_count + new_tracks_count
+    to_delete_count = max(0, total_after_upload - max_tracks)
+
+    if to_delete_count == 0:
+        logger.info("No rotation needed")
+        return 0
+
+    logger.info(f"Need to delete: {to_delete_count} tracks")
+
+    # Sort files by mtime (oldest first)
+    # mtime is Unix timestamp in AzuraCast API
+    files_with_mtime = [f for f in files if f.get("mtime")]
+    files_with_mtime.sort(key=lambda x: x.get("mtime", 0))
+
+    # Calculate cutoff timestamp (min_age_days ago)
+    cutoff_timestamp = time.time() - (min_age_days * 24 * 60 * 60)
+
+    deleted_count = 0
+    for file_info in files_with_mtime:
+        if deleted_count >= to_delete_count:
+            break
+
+        file_mtime = file_info.get("mtime", 0)
+        file_id = file_info.get("id")
+        file_path = file_info.get("path", "unknown")
+
+        # Skip if file is younger than min_age_days
+        if file_mtime > cutoff_timestamp:
+            logger.info(f"  Skipping {file_path} (< {min_age_days} days old)")
+            continue
+
+        # Delete the file
+        if client.delete_file(file_id):
+            logger.info(f"  Deleted: {file_path}")
+            deleted_count += 1
+        else:
+            logger.warning(f"  Failed to delete: {file_path}")
+
+    logger.info(f"Rotation complete: {deleted_count}/{to_delete_count} deleted")
+
+    if deleted_count < to_delete_count:
+        logger.warning(f"Could not delete enough tracks (protected by {min_age_days}-day rule)")
+
+    return deleted_count
+
+
 def main() -> int:
     """
     Main entry point.
@@ -392,6 +492,12 @@ def main() -> int:
     # Get existing files
     existing = client.get_existing_paths()
     logger.info(f"Existing files: {len(existing)}")
+
+    # Enforce rotation before uploading new tracks
+    enforce_rotation(client, len(files))
+
+    # Refresh existing paths after rotation
+    existing = client.get_existing_paths()
 
     # Initialize stats
     results: dict[str, int] = {

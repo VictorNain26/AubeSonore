@@ -21,6 +21,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any, Literal, TypedDict
 
+import requests
+
 # Add parent directory to path for config import
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -28,6 +30,11 @@ try:
     from config import AUDIO_FILTERS
 except ImportError:
     AUDIO_FILTERS = {"duration_max": 450}  # Default 7m30
+
+# AzuraCast configuration
+AZURACAST_URL = os.environ.get("AZURACAST_URL", "").rstrip("/")
+AZURACAST_API_KEY = os.environ.get("AZURACAST_API_KEY", "")
+AZURACAST_STATION_ID = os.environ.get("AZURACAST_STATION_ID", "1")
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -38,13 +45,77 @@ SCRIPT_DIR = Path(__file__).parent
 PIPELINE_DIR = SCRIPT_DIR.parent
 TRACKS_FILE = PIPELINE_DIR / "tracks-to-download.json"
 DOWNLOAD_DIR = PIPELINE_DIR / "downloads"
-ARCHIVE_FILE = PIPELINE_DIR / "archive" / "yt-dlp-archive.txt"
 TEMP_DIR = PIPELINE_DIR / "temp"
 
 MAX_FILENAME_LENGTH = 200
 REQUEST_TIMEOUT = 30
 
 DownloadResult = Literal["downloaded", "skipped", "filtered", "failed"]
+
+
+def normalize_track_key(artist: str, title: str) -> str:
+    """
+    Create normalized key for track comparison.
+
+    Args:
+        artist: Artist name.
+        title: Track title.
+
+    Returns:
+        Normalized lowercase key "artist - title".
+    """
+    # Lowercase and strip
+    artist = artist.lower().strip()
+    title = title.lower().strip()
+    # Remove common variations
+    for char in ['(', ')', '[', ']', '"', "'"]:
+        artist = artist.replace(char, '')
+        title = title.replace(char, '')
+    # Normalize whitespace
+    artist = ' '.join(artist.split())
+    title = ' '.join(title.split())
+    return f"{artist} - {title}"
+
+
+def fetch_azuracast_library() -> set[str]:
+    """
+    Fetch existing tracks from AzuraCast.
+
+    Returns:
+        Set of normalized "artist - title" keys.
+    """
+    if not AZURACAST_URL or not AZURACAST_API_KEY:
+        logger.warning("AzuraCast not configured, skipping library check")
+        return set()
+
+    try:
+        response = requests.get(
+            f"{AZURACAST_URL}/api/station/{AZURACAST_STATION_ID}/files",
+            headers={"X-API-Key": AZURACAST_API_KEY},
+            timeout=REQUEST_TIMEOUT
+        )
+
+        if response.status_code != 200:
+            logger.warning(f"Failed to fetch AzuraCast library: HTTP {response.status_code}")
+            return set()
+
+        files = response.json()
+        existing = set()
+
+        for f in files:
+            artist = f.get("artist", "") or ""
+            title = f.get("title", "") or ""
+
+            if artist and title:
+                key = normalize_track_key(artist, title)
+                existing.add(key)
+
+        logger.info(f"AzuraCast library: {len(existing)} tracks")
+        return existing
+
+    except requests.RequestException as e:
+        logger.warning(f"Failed to fetch AzuraCast library: {e}")
+        return set()
 
 
 class Track(TypedDict):
@@ -160,41 +231,13 @@ def write_id3_tags(
         return False
 
 
-def get_archive_id(search_query: str) -> str:
-    """Generate archive ID for a search query."""
-    return f"hypem {hash(search_query) & 0xFFFFFFFF}"
-
-
-def check_archive(search_query: str) -> bool:
-    """
-    Check if track was already downloaded.
-
-    Args:
-        search_query: Search query to check.
-
-    Returns:
-        True if already in archive.
-    """
-    if not ARCHIVE_FILE.exists():
-        return False
-
-    query_id = get_archive_id(search_query)
-    return query_id in ARCHIVE_FILE.read_text()
-
-
-def add_to_archive(search_query: str) -> None:
-    """Add track to archive."""
-    query_id = get_archive_id(search_query)
-    with open(ARCHIVE_FILE, 'a') as f:
-        f.write(f"{query_id}\n")
-
-
-def download_track(track: Track) -> DownloadResult:
+def download_track(track: Track, existing_library: set[str]) -> DownloadResult:
     """
     Download a single track and apply metadata.
 
     Args:
         track: Track data from HypeMachine.
+        existing_library: Set of normalized "artist - title" already in AzuraCast.
 
     Returns:
         Download result status.
@@ -204,18 +247,18 @@ def download_track(track: Track) -> DownloadResult:
     cover_url = track.get('cover')
     search = track.get('search', f"{artist} - {title}")
 
-    # Check archive
-    if check_archive(search):
+    # Check against AzuraCast library (primary duplicate detection)
+    track_key = normalize_track_key(artist, title)
+    if track_key in existing_library:
         return 'skipped'
 
     # Create safe filename
     safe_name = sanitize_filename(f"{artist} - {title}")
     final_path = DOWNLOAD_DIR / f"{safe_name}.mp3"
 
-    # Skip if already exists
+    # Skip if already exists locally
     if final_path.exists():
-        logger.info("  Already exists")
-        add_to_archive(search)
+        logger.info("  Already exists locally")
         return 'skipped'
 
     # Download to temp directory
@@ -253,7 +296,6 @@ def download_track(track: Track) -> DownloadResult:
         # Check if filtered by duration (yt-dlp outputs "does not pass filter")
         if "does not pass filter" in result.stderr or "does not pass filter" in result.stdout:
             logger.info("  Filtered (too long)")
-            add_to_archive(search)  # Don't retry this track
             return 'filtered'
         logger.warning("  No file found after download")
         return 'failed'
@@ -286,9 +328,6 @@ def download_track(track: Track) -> DownloadResult:
     # Cleanup cover
     if cover_path and cover_path.exists():
         cover_path.unlink()
-
-    # Add to archive
-    add_to_archive(search)
 
     return 'downloaded'
 
@@ -347,9 +386,11 @@ def main() -> int:
 
     logger.info(f"Tracks to process: {len(tracks)}")
 
-    # Create directories
+    # Fetch existing library from AzuraCast (source of truth for duplicates)
+    existing_library = fetch_azuracast_library()
+
+    # Create download directory
     DOWNLOAD_DIR.mkdir(exist_ok=True)
-    ARCHIVE_FILE.parent.mkdir(exist_ok=True)
 
     # Stats
     stats = {"downloaded": 0, "skipped": 0, "filtered": 0, "failed": 0}
@@ -359,13 +400,13 @@ def main() -> int:
         title = track.get('title', 'Unknown')
         logger.info(f"\n[{i}/{len(tracks)}] {artist} - {title}")
 
-        result = download_track(track)
+        result = download_track(track, existing_library)
         stats[result] += 1
 
         if result == 'downloaded':
             logger.info("  OK")
         elif result == 'skipped':
-            logger.info("  Skipped (archive)")
+            logger.info("  Skipped (already in AzuraCast)")
 
     cleanup_temp()
 

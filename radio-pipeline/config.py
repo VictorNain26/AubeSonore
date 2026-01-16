@@ -42,6 +42,12 @@ class AudioFilters(TypedDict):
     duration_max: int | None  # Maximum duration in seconds
 
 
+class RotationConfig(TypedDict):
+    """Rotation/library management settings."""
+    max_tracks: int  # Maximum tracks in library
+    min_age_days: int  # Don't delete tracks younger than this
+
+
 # =============================================================================
 # MOOD CONFIGURATION (for analysis)
 # =============================================================================
@@ -139,6 +145,17 @@ AUDIO_FILTERS: AudioFilters = {
     "bpm_max": None,      # Disabled for now
     "energy_max": None,   # Disabled for now
     "duration_max": 450,  # 7m30 max
+}
+
+# =============================================================================
+# ROTATION CONFIGURATION (library management)
+# =============================================================================
+# Controls how tracks are rotated to maintain freshness while ensuring
+# each track has time to be played before removal.
+
+ROTATION: RotationConfig = {
+    "max_tracks": 450,    # Maximum tracks in AzuraCast library
+    "min_age_days": 7,    # Never delete tracks younger than 7 days
 }
 
 
