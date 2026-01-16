@@ -424,22 +424,14 @@ export default function Player() {
 
   return (
     <div className="w-full max-w-lg mx-auto px-4">
-      {/* Playlist badge */}
-      {playlistName && (
-        <div className="flex justify-center mb-4">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/5 backdrop-blur-sm rounded-full text-xs text-muted-foreground border border-white/10">
-            <Music className="w-3 h-3" />
-            {playlistName}
-          </span>
-        </div>
-      )}
-
-      {/* Album Art */}
-      <div className="flex flex-col items-center mb-6">
-        <div className="relative mb-6">
+      {/* =================================================================
+          SECTION 1: Album Art (Focal Point)
+          ================================================================= */}
+      <div className="flex flex-col items-center mb-5">
+        <div className="relative">
           <div
             className={cn(
-              'w-48 h-48 md:w-56 md:h-56 rounded-2xl overflow-hidden',
+              'w-52 h-52 md:w-60 md:h-60 rounded-2xl overflow-hidden',
               'shadow-2xl border border-white/10',
               'transition-transform duration-500',
               isPlaying && 'scale-[1.02]'
@@ -468,20 +460,24 @@ export default function Player() {
             </div>
           )}
         </div>
-
-        {/* Track info */}
-        <div className="text-center w-full max-w-sm">
-          <h2 className="text-lg md:text-xl font-medium text-foreground truncate px-2">
-            {nowPlaying?.song.title || 'En attente...'}
-          </h2>
-          <p className="text-sm text-muted-foreground truncate px-2 mt-1">
-            {nowPlaying?.song.artist || '—'}
-          </p>
-        </div>
       </div>
 
-      {/* Waveform Progress avec temps */}
-      <div className="flex items-center gap-3 mb-6">
+      {/* =================================================================
+          SECTION 2: Track Info
+          ================================================================= */}
+      <div className="text-center mb-5">
+        <h2 className="text-lg md:text-xl font-medium text-foreground truncate px-2">
+          {nowPlaying?.song.title || 'En attente...'}
+        </h2>
+        <p className="text-sm text-muted-foreground truncate px-2 mt-0.5">
+          {nowPlaying?.song.artist || '—'}
+        </p>
+      </div>
+
+      {/* =================================================================
+          SECTION 3: Waveform Progress
+          ================================================================= */}
+      <div className="flex items-center gap-3 mb-5">
         <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
           {formatTime(elapsed)}
         </span>
@@ -497,16 +493,31 @@ export default function Player() {
         </span>
       </div>
 
-      {/* Play/Stop Button */}
-      <div className="flex justify-center mb-6">
+      {/* =================================================================
+          SECTION 4: Playback Controls (Grouped)
+          Layout: [Volume] ——— [Play] ——— [Listeners]
+          ================================================================= */}
+      <div className="flex items-center justify-between mb-6 px-2">
+        {/* Left: Volume Control */}
+        <div className="w-24">
+          <VolumeControl
+            volume={volume}
+            isMuted={isMuted}
+            onVolumeChange={handleVolumeChange}
+            onToggleMute={toggleMute}
+          />
+        </div>
+
+        {/* Center: Play/Stop Button */}
         <button
           onClick={togglePlay}
           className={cn(
             'w-14 h-14 rounded-full flex items-center justify-center',
             'border border-white/20 transition-all duration-200',
-            'hover:scale-105 hover:bg-white/15 active:scale-95',
-            'bg-white/10 backdrop-blur-sm'
+            'hover:scale-105 hover:bg-white/10 active:scale-95',
+            'bg-white/5 backdrop-blur-sm'
           )}
+          aria-label={isPlaying ? 'Stop' : 'Play'}
         >
           {isPlaying ? (
             <Square className="w-5 h-5 text-white" />
@@ -514,32 +525,38 @@ export default function Player() {
             <Play className="w-6 h-6 text-white ml-0.5" />
           )}
         </button>
+
+        {/* Right: Listeners count */}
+        <div className="w-24 flex justify-end">
+          {np?.listeners ? (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Users className="w-3.5 h-3.5" />
+              <span>{np.listeners.current}</span>
+            </div>
+          ) : (
+            <div className="w-8" />
+          )}
+        </div>
       </div>
 
-      {/* Volume Control */}
-      <div className="flex justify-center mb-6">
-        <VolumeControl
-          volume={volume}
-          isMuted={isMuted}
-          onVolumeChange={handleVolumeChange}
-          onToggleMute={toggleMute}
-        />
-      </div>
-
-      {/* Listeners count */}
-      {np?.listeners && (
-        <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-4">
-          <Users className="w-3.5 h-3.5" />
-          <span>{np.listeners.current} auditeur{np.listeners.current > 1 ? 's' : ''}</span>
+      {/* =================================================================
+          SECTION 5: Playlist Badge (Subtle)
+          ================================================================= */}
+      {playlistName && (
+        <div className="flex justify-center mb-5">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full text-xs text-muted-foreground">
+            <Music className="w-3 h-3" />
+            {playlistName}
+          </span>
         </div>
       )}
 
-      {/* Dernier morceau joué */}
+      {/* =================================================================
+          SECTION 6: History (Previous Track)
+          ================================================================= */}
       {np?.song_history?.[0] && (
         <div className="border-t border-white/10 pt-4">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-            <span>Précédemment</span>
-          </div>
+          <p className="text-xs text-muted-foreground mb-2">Précédemment</p>
           <HistoryItem entry={np.song_history[0]} />
         </div>
       )}
