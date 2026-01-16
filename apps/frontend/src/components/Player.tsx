@@ -168,8 +168,8 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
 
 // =============================================================================
 // VOLUME CONTROL - Expert UX/UI Implementation
-// Pattern: Hover expand (YouTube/NewsKit style)
-// Features: 44px touch target, smooth transitions, keyboard support
+// Pattern: Overlay slider (no layout shift)
+// Features: 44px touch target, mobile tap toggle, keyboard support, ARIA
 // =============================================================================
 
 interface VolumeControlProps {
@@ -183,13 +183,38 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
   const sliderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [localVolume, setLocalVolume] = useState(volume);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile (no hover)
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.matchMedia('(hover: none)').matches);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Sync local volume with prop when not dragging
   useEffect(() => {
     if (!isDragging) setLocalVolume(volume);
   }, [volume, isDragging]);
+
+  // Close slider when clicking outside (mobile)
+  useEffect(() => {
+    if (!isOpen || !isMobile) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [isOpen, isMobile]);
 
   // Calculate volume from mouse/touch position
   const calculateVolume = useCallback((clientX: number) => {
@@ -228,7 +253,7 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
     };
   }, [isDragging, calculateVolume]);
 
-  // Keyboard support (arrow keys when focused)
+  // Keyboard support
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     const step = e.shiftKey ? 0.1 : 0.05;
     if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
@@ -247,98 +272,101 @@ function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: Volume
     }
   }, [localVolume, onVolumeChange, onToggleMute]);
 
-  const handleSliderMouseDown = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleSliderInteraction = (clientX: number) => {
     setIsDragging(true);
-    calculateVolume(e.clientX);
+    calculateVolume(clientX);
   };
 
-  const handleSliderTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    if (!touch) return;
-    setIsDragging(true);
-    calculateVolume(touch.clientX);
+  // Icon click: mobile = toggle slider, desktop = mute
+  const handleIconClick = () => {
+    if (isMobile) {
+      setIsOpen(prev => !prev);
+    } else {
+      onToggleMute();
+    }
   };
 
   const displayVolume = localVolume;
-  const isExpanded = isHovered || isDragging;
+  const isExpanded = isOpen || isDragging || (!isMobile && containerRef.current?.matches(':hover'));
   const showMuted = isMuted || displayVolume === 0;
-
-  // Get appropriate volume icon
   const VolumeIcon = showMuted ? VolumeX : Volume2;
 
   return (
     <div
       ref={containerRef}
-      className="relative flex items-center justify-center"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => !isDragging && setIsHovered(false)}
+      className="relative"
+      onMouseEnter={() => !isMobile && setIsOpen(true)}
+      onMouseLeave={() => !isMobile && !isDragging && setIsOpen(false)}
       onKeyDown={handleKeyDown}
       tabIndex={0}
       role="group"
       aria-label="Volume control"
     >
-      {/* Mute/Unmute Button - Always visible */}
+      {/* Volume Icon Button - Fixed position, never moves */}
       <button
-        onClick={onToggleMute}
+        onClick={handleIconClick}
         className={cn(
-          'relative z-10 p-2 rounded-full transition-all duration-200',
+          'p-2 rounded-full transition-all duration-200',
           'text-white/60 hover:text-white hover:bg-white/10',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50'
         )}
         aria-label={showMuted ? 'Unmute' : 'Mute'}
-        title={showMuted ? 'Unmute (M)' : 'Mute (M)'}
+        title={isMobile ? 'Volume' : (showMuted ? 'Unmute (M)' : 'Mute (M)')}
       >
         <VolumeIcon className="w-5 h-5" />
       </button>
 
-      {/* Slider Container - Expands on hover */}
+      {/* Slider - Absolute positioned overlay, appears to the right */}
       <div
         className={cn(
-          'overflow-hidden transition-all duration-300 ease-out',
-          isExpanded ? 'w-24 ml-2 opacity-100' : 'w-0 ml-0 opacity-0'
+          'absolute left-full top-1/2 -translate-y-1/2 ml-1 z-50',
+          'transition-all duration-200 ease-out',
+          isExpanded
+            ? 'opacity-100 pointer-events-auto translate-x-0'
+            : 'opacity-0 pointer-events-none -translate-x-2'
         )}
       >
-        {/* Slider Track */}
-        <div
-          ref={sliderRef}
-          className={cn(
-            'relative h-1.5 w-24 rounded-full cursor-pointer',
-            'bg-white/20'
-          )}
-          onMouseDown={handleSliderMouseDown}
-          onTouchStart={handleSliderTouchStart}
-          role="slider"
-          aria-label="Volume"
-          aria-valuenow={Math.round(displayVolume * 100)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        >
-          {/* Track Fill */}
+        <div className="bg-black/80 backdrop-blur-md rounded-full px-3 py-2 shadow-lg border border-white/10">
+          {/* Slider Track */}
           <div
-            className={cn(
-              'absolute inset-y-0 left-0 rounded-full',
-              'bg-white/70',
-              !isDragging && 'transition-[width] duration-75'
-            )}
-            style={{ width: `${displayVolume * 100}%` }}
-          />
-
-          {/* Thumb - 44px touch target with visual 12px appearance */}
-          <div
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
-            style={{ left: `${displayVolume * 100}%` }}
+            ref={sliderRef}
+            className="relative h-1.5 w-24 rounded-full cursor-pointer bg-white/20"
+            onMouseDown={(e) => handleSliderInteraction(e.clientX)}
+            onTouchStart={(e) => {
+              const touch = e.touches[0];
+              if (touch) handleSliderInteraction(touch.clientX);
+            }}
+            role="slider"
+            aria-label="Volume"
+            aria-valuenow={Math.round(displayVolume * 100)}
+            aria-valuemin={0}
+            aria-valuemax={100}
           >
-            {/* Invisible touch target (44px) */}
-            <div className="absolute inset-0 w-11 h-11 -translate-x-1/2 -translate-y-1/2" />
-            {/* Visible thumb */}
+            {/* Track Fill */}
             <div
               className={cn(
-                'w-3 h-3 rounded-full bg-white shadow-md',
-                'transition-transform duration-150',
-                isDragging && 'scale-125'
+                'absolute inset-y-0 left-0 rounded-full bg-white/80',
+                !isDragging && 'transition-[width] duration-75'
               )}
+              style={{ width: `${displayVolume * 100}%` }}
             />
+
+            {/* Thumb with 44px touch target */}
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2"
+              style={{ left: `${displayVolume * 100}%` }}
+            >
+              {/* Touch target (44px) */}
+              <div className="absolute w-11 h-11 -top-5 -left-5" />
+              {/* Visible thumb */}
+              <div
+                className={cn(
+                  'w-3 h-3 rounded-full bg-white shadow-md',
+                  'transition-transform duration-150',
+                  isDragging && 'scale-125'
+                )}
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -498,15 +526,13 @@ export default function Player() {
           Layout: [Volume] ——— [Play] ——— [Listeners]
           ================================================================= */}
       <div className="flex items-center justify-between mb-6 px-2">
-        {/* Left: Volume Control */}
-        <div className="w-24">
-          <VolumeControl
-            volume={volume}
-            isMuted={isMuted}
-            onVolumeChange={handleVolumeChange}
-            onToggleMute={toggleMute}
-          />
-        </div>
+        {/* Left: Volume Control (slider overlays, no layout shift) */}
+        <VolumeControl
+          volume={volume}
+          isMuted={isMuted}
+          onVolumeChange={handleVolumeChange}
+          onToggleMute={toggleMute}
+        />
 
         {/* Center: Play/Stop Button */}
         <button
