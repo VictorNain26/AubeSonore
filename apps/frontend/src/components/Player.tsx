@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Square, Volume2, VolumeX, Radio, Users, Music, Heart, Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePlayer, getAnalyser } from '../lib/player';
+import { usePlayer } from '../lib/player';
 import { useNowPlaying, type SongEntry } from '../lib/azuracast';
 import { useLikedTracks } from '../hooks/useLikedTracks';
 import { useAuth } from '../hooks/useAuth';
@@ -78,7 +78,7 @@ function HistoryItem({ entry, isLiked, isLiking, onToggle }: HistoryItemProps) {
   );
 }
 
-// Waveform avec progression intégrée
+// Waveform Radio-Style - Animation fluide et harmonieuse
 interface WaveformProgressProps {
   progress: number;
   isPlaying: boolean;
@@ -88,8 +88,9 @@ interface WaveformProgressProps {
 function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
+  const timeRef = useRef<number>(0);
   const waveformRef = useRef<number[]>([]);
-  const barsCount = 64;
+  const barsCount = 48; // Moins de barres, plus élégant
 
   // Générer une waveform pseudo-aléatoire basée sur le songId
   useEffect(() => {
@@ -97,10 +98,13 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
     const waveform: number[] = [];
 
     for (let i = 0; i < barsCount; i++) {
-      const centerFactor = 1 - Math.abs(i - barsCount / 2) / (barsCount / 2) * 0.3;
-      const random = Math.sin(seed * (i + 1) * 0.1) * 0.5 + 0.5;
-      const variation = Math.sin(i * 0.5) * 0.2 + 0.8;
-      waveform.push(Math.max(0.15, Math.min(1, random * centerFactor * variation)));
+      // Distribution plus naturelle - forme de vague douce
+      const position = i / barsCount;
+      const wave1 = Math.sin(position * Math.PI * 2 + seed * 0.01) * 0.3;
+      const wave2 = Math.sin(position * Math.PI * 4 + seed * 0.02) * 0.2;
+      const wave3 = Math.sin(position * Math.PI * 1.5 + seed * 0.015) * 0.25;
+      const base = 0.4 + wave1 + wave2 + wave3;
+      waveform.push(Math.max(0.2, Math.min(0.95, base)));
     }
 
     waveformRef.current = waveform;
@@ -113,8 +117,17 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const draw = () => {
-      const analyser = getAnalyser();
+    let lastTime = performance.now();
+
+    const draw = (currentTime: number) => {
+      const deltaTime = (currentTime - lastTime) / 1000;
+      lastTime = currentTime;
+
+      if (isPlaying) {
+        timeRef.current += deltaTime;
+      }
+
+      const time = timeRef.current;
       const width = canvas.width;
       const height = canvas.height;
       const waveform = waveformRef.current;
@@ -122,49 +135,64 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
       ctx.clearRect(0, 0, width, height);
 
       const barWidth = width / barsCount;
-      const gap = 2;
+      const gap = 3;
       const progressX = (progress / 100) * width;
 
       for (let i = 0; i < barsCount; i++) {
         const x = i * barWidth;
-        const baseHeight = (waveform[i] || 0.5) * height * 0.85;
+        const baseHeight = (waveform[i] || 0.5) * height * 0.8;
 
         let barHeight = baseHeight;
 
-        // Animation temps réel si lecture en cours
-        if (analyser && isPlaying) {
-          const dataArray = new Uint8Array(analyser.frequencyBinCount);
-          analyser.getByteFrequencyData(dataArray);
-          const dataIndex = Math.floor((i / barsCount) * dataArray.length);
-          const audioValue = (dataArray[dataIndex] || 0) / 255;
-          barHeight = baseHeight * (0.4 + audioValue * 0.6);
+        // Animation fluide basée sur des ondes sinusoïdales
+        if (isPlaying) {
+          // Plusieurs ondes avec des fréquences et phases différentes
+          const wave1 = Math.sin(time * 3 + i * 0.15) * 0.15;
+          const wave2 = Math.sin(time * 5 + i * 0.25) * 0.1;
+          const wave3 = Math.sin(time * 2 + i * 0.1) * 0.12;
+          const pulse = Math.sin(time * 1.5) * 0.05; // Pulsation globale
+
+          const animFactor = 1 + wave1 + wave2 + wave3 + pulse;
+          barHeight = baseHeight * Math.max(0.3, Math.min(1.2, animFactor));
+        } else {
+          // Animation subtile au repos - respiration douce
+          const breath = Math.sin(time * 0.8 + i * 0.1) * 0.08;
+          barHeight = baseHeight * (0.6 + breath);
         }
 
         const y = (height - barHeight) / 2;
         const barX = x + gap / 2;
         const barW = barWidth - gap;
 
-        // Partie colorée (progression)
+        // Partie colorée (progression passée)
         if (x < progressX) {
           const fillWidth = Math.min(barW, progressX - barX);
           if (fillWidth > 0) {
+            // Gradient vertical avec glow
             const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
-            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.9)');
+            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.7)');
             gradient.addColorStop(0.5, 'rgba(168, 85, 247, 1)');
-            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.9)');
+            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.7)');
+
+            // Glow effect
+            ctx.shadowColor = 'rgba(168, 85, 247, 0.5)';
+            ctx.shadowBlur = isPlaying ? 8 : 4;
+
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.roundRect(barX, y, fillWidth, barHeight, 2);
             ctx.fill();
+
+            ctx.shadowBlur = 0;
           }
         }
 
-        // Partie non colorée (reste)
+        // Partie non colorée (reste à jouer)
         if (x + barW > progressX) {
           const startX = Math.max(barX, progressX);
           const remainingWidth = barX + barW - startX;
           if (remainingWidth > 0) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
             ctx.beginPath();
             ctx.roundRect(startX, y, remainingWidth, barHeight, 2);
             ctx.fill();
@@ -172,10 +200,21 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
         }
       }
 
+      // Ligne de progression (curseur)
+      if (progress > 0 && progress < 100) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.roundRect(progressX - 1, 4, 2, height - 8, 1);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
       animationRef.current = requestAnimationFrame(draw);
     };
 
-    draw();
+    animationRef.current = requestAnimationFrame(draw);
 
     return () => {
       cancelAnimationFrame(animationRef.current);
@@ -186,8 +225,8 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
     <canvas
       ref={canvasRef}
       width={384}
-      height={56}
-      className="w-full h-14"
+      height={48}
+      className="w-full h-12"
     />
   );
 }
