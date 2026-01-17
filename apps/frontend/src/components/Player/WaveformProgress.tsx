@@ -69,33 +69,34 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
         let barHeight: number;
 
         if (frequencyData) {
-          // Distribution centrée: basses au milieu, aigus sur les côtés
-          // On utilise seulement les 40% premiers bins (où se trouve l'énergie)
-          const binCount = frequencyData.length;
-          const usableBins = Math.floor(binCount * 0.4); // ~25 bins sur 64
+          // Filtrer: garder seulement les mid-range (bins 4-25 sur 64)
+          // Cela correspond environ à 150Hz - 4kHz où la musique est la plus dynamique
+          const startBin = 4;   // Skip sub-bass (souvent saturé ou vide)
+          const endBin = 25;    // Skip hautes fréquences (souvent au max)
+          const usableBins = endBin - startBin;
 
-          // Calculer la distance au centre (0 = centre, 1 = bords)
+          // Distribution centrée en miroir
           const center = barsCount / 2;
           const distFromCenter = Math.abs(i - center) / center; // 0-1
 
-          // Mapper: centre -> basses fréquences, bords -> mi-hautes fréquences
-          // Distribution en miroir avec les basses au centre
-          const binIndex = Math.floor(distFromCenter * usableBins);
+          // Mapper la distance au centre vers les bins mid-range
+          const binOffset = Math.floor(distFromCenter * usableBins);
+          const binIndex = startBin + binOffset;
 
           // Average nearby bins for smoother result
-          const binStart = Math.max(0, binIndex - 1);
-          const binEnd = Math.min(usableBins - 1, binIndex + 2);
+          const binStart = Math.max(startBin, binIndex - 1);
+          const binEnd = Math.min(endBin, binIndex + 2);
           let sum = 0;
           for (let b = binStart; b <= binEnd; b++) {
             sum += frequencyData[b] ?? 0;
           }
           const avgValue = sum / (binEnd - binStart + 1);
 
-          // Normalize (0-255 -> 0.15-0.95)
-          const normalized = 0.15 + (avgValue / 255) * 0.8;
+          // Normalize avec plus de contraste (0-255 -> 0.2-0.9)
+          const normalized = 0.2 + (avgValue / 255) * 0.7;
 
           // Smooth transition (lerp with previous value)
-          const smoothingFactor = 0.25;
+          const smoothingFactor = 0.3;
           const prevValue = smoothedDataRef.current[i] ?? 0.3;
           const newValue = prevValue * (1 - smoothingFactor) + normalized * smoothingFactor;
           smoothedDataRef.current[i] = newValue;
