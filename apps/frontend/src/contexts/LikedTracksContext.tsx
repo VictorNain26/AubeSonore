@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { trackApi, type LikedTrack, type LikeTrackRequest } from '../lib/api';
+import { useAuth } from '../hooks/useAuth';
 
 // ─────────────────────────────────────────────
 // Context pour partager l'état des tracks likés
@@ -25,11 +26,18 @@ interface LikedTracksProviderProps {
 
 export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
   const [tracks, setTracks] = useState<LikedTrack[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const prevAuthRef = useRef<boolean | null>(null);
 
-  // Charger les morceaux likés au montage
+  // Charger les morceaux likés (seulement si authentifié)
   const refreshTracks = useCallback(async () => {
+    if (!isAuthenticated) {
+      setTracks([]);
+      setIsLoading(false);
+      return;
+    }
     try {
       setIsLoading(true);
       setError(null);
@@ -40,14 +48,31 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isAuthenticated]);
 
+  // Réagir aux changements d'authentification
   useEffect(() => {
-    refreshTracks();
-  }, [refreshTracks]);
+    // Attendre que l'auth soit chargée
+    if (authLoading) return;
+
+    // Détecter les changements d'état d'auth
+    const wasAuthenticated = prevAuthRef.current;
+    prevAuthRef.current = isAuthenticated;
+
+    if (isAuthenticated && wasAuthenticated !== true) {
+      // Vient de se connecter -> charger les tracks
+      refreshTracks();
+    } else if (!isAuthenticated && wasAuthenticated === true) {
+      // Vient de se déconnecter -> vider les tracks
+      setTracks([]);
+      setError(null);
+    }
+  }, [isAuthenticated, authLoading, refreshTracks]);
 
   // Liker un morceau - Optimistic update
   const likeTrack = useCallback(async (data: LikeTrackRequest): Promise<LikedTrack | null> => {
+    if (!isAuthenticated) return null;
+
     // Créer un track temporaire pour affichage immédiat
     const tempId = `temp-${Date.now()}`;
     const optimisticTrack: LikedTrack = {
@@ -81,10 +106,12 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
       setError(err instanceof Error ? err.message : 'Erreur lors du like');
       return null;
     }
-  }, []);
+  }, [isAuthenticated]);
 
   // Supprimer un like - Optimistic update
   const unlikeTrack = useCallback(async (trackId: string): Promise<boolean> => {
+    if (!isAuthenticated) return false;
+
     // Sauvegarder pour rollback potentiel
     const trackToRemove = tracks.find((t) => t.id === trackId);
     const previousIndex = tracks.findIndex((t) => t.id === trackId);
@@ -107,17 +134,19 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
       setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
       return false;
     }
-  }, [tracks]);
+  }, [tracks, isAuthenticated]);
 
   // Vérifier si un morceau est liké (via API)
   const checkLiked = useCallback(async (title: string, artist: string): Promise<LikedTrack | null> => {
+    if (!isAuthenticated) return null;
+
     try {
       const result = await trackApi.checkLiked({ title, artist });
       return result.track || null;
     } catch {
       return null;
     }
-  }, []);
+  }, [isAuthenticated]);
 
   // Vérifier si un morceau est liké (via cache local)
   const isTrackLiked = useCallback(
