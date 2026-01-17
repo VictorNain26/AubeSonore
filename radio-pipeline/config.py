@@ -144,7 +144,7 @@ AUDIO_FILTERS: AudioFilters = {
     "bpm_min": None,      # Disabled for now
     "bpm_max": None,      # Disabled for now
     "energy_max": None,   # Disabled for now
-    "duration_max": 450,  # 7m30 max
+    "duration_max": 360,  # 6 minutes max
 }
 
 # =============================================================================
