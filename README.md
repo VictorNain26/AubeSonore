@@ -4,7 +4,7 @@ Une webradio moderne avec interface React et backend TypeScript/Bun, organisee e
 
 ## Production
 
-- **Frontend**: https://www.ourmusic.fr
+- **Frontend**: https://aubesonore.fr
 - **Backend API**: https://ourmusic-backend-tomia-f4ec3e9e.koyeb.app
 - **Database**: Railway PostgreSQL
 
@@ -177,8 +177,8 @@ Variables d'environnement requises sur Koyeb:
 - `DATABASE_URL` - Railway PostgreSQL
 - `BETTER_AUTH_SECRET` - Secret pour l'auth
 - `BETTER_AUTH_URL` - URL du backend
-- `FRONTEND_BASE_URL` - https://www.ourmusic.fr
-- `ALLOWED_ORIGINS` - https://www.ourmusic.fr,https://ourmusic.fr
+- `FRONTEND_BASE_URL` - https://aubesonore.fr
+- `ALLOWED_ORIGINS` - https://aubesonore.fr
 
 ### Frontend (Vercel)
 Le frontend est deploye automatiquement sur Vercel depuis la branche `master`.

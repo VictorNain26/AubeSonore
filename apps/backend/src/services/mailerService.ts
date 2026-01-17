@@ -43,7 +43,7 @@ export async function sendMail({ to, subject, variables = {} }: SendMailOptions)
     const text = htmlToText(html, { wordwrap: 130 });
 
     const info = await transporter.sendMail({
-      from: 'OurMusic <noreply@ourmusic.fr>',
+      from: 'AubeSonore <noreply@aubesonore.fr>',
       to,
       subject,
       html,

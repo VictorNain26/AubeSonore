@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     azuracast_url: str = Field(
         ...,
         description="AzuraCast server URL (must be HTTPS in production)",
-        examples=["https://radio.ourmusic.fr"],
+        examples=["https://radio.aubesonore.fr"],
     )
     azuracast_api_key: str = Field(
         ...,

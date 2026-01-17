@@ -42,7 +42,7 @@ app.get('/health', (): { status: string; uptime: number } => ({
 
 // ✅ Accueil
 app.get('/', (): { message: string } => ({
-  message: "Bienvenue sur l'API OurMusic 🎶",
+  message: "Bienvenue sur l'API AubeSonore 🎶",
 }));
 
 // ❌ Gestion des erreurs
