@@ -22,9 +22,9 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.svg', 'robots.txt', 'apple-touch-icon.png'],
         manifest: {
-          name: 'OurMusic',
-          short_name: 'OurMusic',
-          description: 'Webradio collaborative',
+          name: 'AubeSonore',
+          short_name: 'AubeSonore',
+          description: 'Webradio - Éveillez vos sens',
           theme_color: '#ffffff',
           background_color: '#ffffff',
           display: 'standalone',
