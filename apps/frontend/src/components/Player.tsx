@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Square, Volume2, VolumeX, Radio, Users, Music, Heart, Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { usePlayer } from '../lib/player';
+import { usePlayer, getAnalyser } from '../lib/player';
 import { useNowPlaying, type SongEntry } from '../lib/azuracast';
 import { useLikedTracks } from '../hooks/useLikedTracks';
 import { useAuth } from '../hooks/useAuth';
@@ -78,7 +78,7 @@ function HistoryItem({ entry, isLiked, isLiking, onToggle }: HistoryItemProps) {
   );
 }
 
-// Waveform Radio-Style - Animation fluide et harmonieuse
+// Waveform Radio-Style - Audio-reactive with Web Audio API
 interface WaveformProgressProps {
   progress: number;
   isPlaying: boolean;
@@ -89,26 +89,16 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const timeRef = useRef<number>(0);
-  const waveformRef = useRef<number[]>([]);
-  const barsCount = 48; // Moins de barres, plus élégant
+  const frequencyDataRef = useRef<Uint8Array | null>(null);
+  const smoothedDataRef = useRef<number[]>([]);
+  const barsCount = 48;
 
-  // Générer une waveform pseudo-aléatoire basée sur le songId
+  // Initialize smoothed data array
   useEffect(() => {
-    const seed = songId || Date.now();
-    const waveform: number[] = [];
-
-    for (let i = 0; i < barsCount; i++) {
-      // Distribution plus naturelle - forme de vague douce
-      const position = i / barsCount;
-      const wave1 = Math.sin(position * Math.PI * 2 + seed * 0.01) * 0.3;
-      const wave2 = Math.sin(position * Math.PI * 4 + seed * 0.02) * 0.2;
-      const wave3 = Math.sin(position * Math.PI * 1.5 + seed * 0.015) * 0.25;
-      const base = 0.4 + wave1 + wave2 + wave3;
-      waveform.push(Math.max(0.2, Math.min(0.95, base)));
+    if (smoothedDataRef.current.length !== barsCount) {
+      smoothedDataRef.current = new Array(barsCount).fill(0.3);
     }
-
-    waveformRef.current = waveform;
-  }, [songId]);
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -122,15 +112,11 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
     const draw = (currentTime: number) => {
       const deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
-
-      if (isPlaying) {
-        timeRef.current += deltaTime;
-      }
+      timeRef.current += deltaTime;
 
       const time = timeRef.current;
       const width = canvas.width;
       const height = canvas.height;
-      const waveform = waveformRef.current;
 
       ctx.clearRect(0, 0, width, height);
 
@@ -138,26 +124,65 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
       const gap = 3;
       const progressX = (progress / 100) * width;
 
+      // Get real audio data when playing
+      const analyser = getAnalyser();
+      let frequencyData: Uint8Array | null = null;
+
+      if (isPlaying && analyser) {
+        // Initialize frequency array if needed (analyser created after play)
+        if (!frequencyDataRef.current) {
+          frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount);
+        }
+        // Type assertion needed for strict TypeScript
+        analyser.getByteFrequencyData(frequencyDataRef.current as Uint8Array<ArrayBuffer>);
+        frequencyData = frequencyDataRef.current;
+      }
+
       for (let i = 0; i < barsCount; i++) {
         const x = i * barWidth;
-        const baseHeight = (waveform[i] || 0.5) * height * 0.8;
+        let barHeight: number;
 
-        let barHeight = baseHeight;
+        if (frequencyData) {
+          // Map 64 frequency bins to 48 bars
+          const binCount = frequencyData.length;
+          const binIndex = Math.floor((i / barsCount) * binCount);
+          // Average nearby bins for smoother result
+          const binStart = Math.max(0, binIndex - 1);
+          const binEnd = Math.min(binCount - 1, binIndex + 1);
+          let sum = 0;
+          for (let b = binStart; b <= binEnd; b++) {
+            sum += frequencyData[b] ?? 0;
+          }
+          const avgValue = sum / (binEnd - binStart + 1);
 
-        // Animation fluide basée sur des ondes sinusoïdales
-        if (isPlaying) {
-          // Plusieurs ondes avec des fréquences et phases différentes
-          const wave1 = Math.sin(time * 3 + i * 0.15) * 0.15;
-          const wave2 = Math.sin(time * 5 + i * 0.25) * 0.1;
-          const wave3 = Math.sin(time * 2 + i * 0.1) * 0.12;
-          const pulse = Math.sin(time * 1.5) * 0.05; // Pulsation globale
+          // Normalize (0-255 -> 0.15-0.95)
+          const normalized = 0.15 + (avgValue / 255) * 0.8;
 
-          const animFactor = 1 + wave1 + wave2 + wave3 + pulse;
-          barHeight = baseHeight * Math.max(0.3, Math.min(1.2, animFactor));
+          // Smooth transition (lerp with previous value)
+          const smoothingFactor = 0.25;
+          const prevValue = smoothedDataRef.current[i] ?? 0.3;
+          const newValue = prevValue * (1 - smoothingFactor) + normalized * smoothingFactor;
+          smoothedDataRef.current[i] = newValue;
+
+          barHeight = newValue * height * 0.9;
         } else {
-          // Animation subtile au repos - respiration douce
-          const breath = Math.sin(time * 0.8 + i * 0.1) * 0.08;
-          barHeight = baseHeight * (0.6 + breath);
+          // Fallback animation when not playing or no analyser
+          const position = i / barsCount;
+          const seed = songId || 1;
+
+          if (isPlaying) {
+            // Animated sine waves
+            const wave1 = Math.sin(time * 3 + i * 0.15 + seed * 0.01) * 0.15;
+            const wave2 = Math.sin(time * 5 + i * 0.25 + seed * 0.02) * 0.1;
+            const wave3 = Math.sin(time * 2 + position * Math.PI * 2) * 0.12;
+            const base = 0.45 + wave1 + wave2 + wave3;
+            barHeight = Math.max(0.2, Math.min(0.9, base)) * height * 0.85;
+          } else {
+            // Subtle breathing animation when stopped
+            const breath = Math.sin(time * 0.8 + i * 0.1) * 0.08;
+            const baseWave = Math.sin(position * Math.PI * 2 + seed * 0.01) * 0.15;
+            barHeight = (0.35 + baseWave + breath) * height * 0.7;
+          }
         }
 
         const y = (height - barHeight) / 2;
@@ -174,9 +199,9 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
             gradient.addColorStop(0.5, 'rgba(168, 85, 247, 1)');
             gradient.addColorStop(1, 'rgba(139, 92, 246, 0.7)');
 
-            // Glow effect
+            // Glow effect - stronger when using real audio
             ctx.shadowColor = 'rgba(168, 85, 247, 0.5)';
-            ctx.shadowBlur = isPlaying ? 8 : 4;
+            ctx.shadowBlur = frequencyData ? 10 : (isPlaying ? 8 : 4);
 
             ctx.fillStyle = gradient;
             ctx.beginPath();
@@ -219,7 +244,7 @@ function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps
     return () => {
       cancelAnimationFrame(animationRef.current);
     };
-  }, [isPlaying, progress]);
+  }, [isPlaying, progress, songId]);
 
   return (
     <canvas
