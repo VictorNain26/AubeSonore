@@ -12,7 +12,7 @@ type ErrorCallback = (error: string) => void;
 
 class AzuraCastWebSocket {
   private ws: WebSocket | null = null;
-  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private onNowPlayingCallbacks: Set<NowPlayingCallback> = new Set();
   private onConnectionCallbacks: Set<ConnectionCallback> = new Set();
   private onErrorCallbacks: Set<ErrorCallback> = new Set();

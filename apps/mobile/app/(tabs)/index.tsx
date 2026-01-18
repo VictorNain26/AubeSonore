@@ -6,6 +6,7 @@ import { useCallback } from 'react';
 import { usePlayerStore } from '../../src/stores/playerStore';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useLikedTracksStore } from '../../src/stores/likedTracksStore';
+import { useAudio } from '../../src/providers/AudioProvider';
 import {
   AlbumArt,
   PlayButton,
@@ -17,16 +18,17 @@ import {
 export default function PlayerScreen() {
   const router = useRouter();
 
-  // Player state
+  // Audio controls from provider
+  const { play, stop, setVolume: setPlayerVolume } = useAudio();
+
+  // Player state from store
   const {
     isPlaying,
     isLoading,
     volume,
     currentSong,
     nowPlaying,
-    play,
-    stop,
-    setVolume,
+    setVolume: setStoreVolume,
   } = usePlayerStore();
 
   // Auth state
@@ -44,6 +46,15 @@ export default function PlayerScreen() {
   const handleTogglePlay = useCallback(() => {
     isPlaying ? stop() : play();
   }, [isPlaying, play, stop]);
+
+  // Handle volume change - update both player and store
+  const handleVolumeChange = useCallback(
+    (value: number) => {
+      setPlayerVolume(value);
+      setStoreVolume(value);
+    },
+    [setPlayerVolume, setStoreVolume]
+  );
 
   // Handle like/unlike
   const handleToggleLike = useCallback(async () => {
@@ -122,7 +133,7 @@ export default function PlayerScreen() {
 
           {/* Volume Slider */}
           <View className="mt-8 w-full px-4">
-            <VolumeSlider volume={volume} onVolumeChange={setVolume} />
+            <VolumeSlider volume={volume} onVolumeChange={handleVolumeChange} />
           </View>
 
           {/* Listeners count */}

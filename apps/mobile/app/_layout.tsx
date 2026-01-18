@@ -3,11 +3,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import TrackPlayer from 'react-native-track-player';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { setupTrackPlayer, PlaybackService } from '../src/services/trackPlayer';
+import { AudioProvider } from '../src/providers/AudioProvider';
 import { useAuthStore } from '../src/stores/authStore';
 import { usePlayerStore } from '../src/stores/playerStore';
 
@@ -21,9 +20,6 @@ export const unstable_settings = {
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
-
-// Register playback service
-TrackPlayer.registerPlaybackService(() => PlaybackService);
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -41,9 +37,6 @@ export default function RootLayout() {
   useEffect(() => {
     async function initialize() {
       try {
-        // Setup track player
-        await setupTrackPlayer();
-
         // Initialize auth and player stores
         await Promise.all([initializeAuth(), initializePlayer()]);
 
@@ -77,22 +70,24 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: '#0f1118' },
-        }}
-      >
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen
-          name="auth"
-          options={{
-            presentation: 'modal',
+      <AudioProvider>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
             headerShown: false,
+            contentStyle: { backgroundColor: '#0f1118' },
           }}
-        />
-      </Stack>
+        >
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen
+            name="auth"
+            options={{
+              presentation: 'modal',
+              headerShown: false,
+            }}
+          />
+        </Stack>
+      </AudioProvider>
     </GestureHandlerRootView>
   );
 }

@@ -7,7 +7,7 @@ import Constants from 'expo-constants';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useLikedTracksStore } from '../../src/stores/likedTracksStore';
 import { usePreferencesStore } from '../../src/stores/preferencesStore';
-import { usePlayerStore } from '../../src/stores/playerStore';
+import { useAudio } from '../../src/providers/AudioProvider';
 
 // ─────────────────────────────────────────────
 // Setting Item Component
@@ -105,7 +105,7 @@ export default function SettingsScreen() {
   // Clear other stores on logout
   const clearTracks = useLikedTracksStore((state) => state.clearTracks);
   const clearPreferences = usePreferencesStore((state) => state.clearPreferences);
-  const stopPlayer = usePlayerStore((state) => state.stop);
+  const { stop: stopPlayer } = useAudio();
 
   const appVersion = Constants.expoConfig?.version || '1.0.0';
 
@@ -120,7 +120,7 @@ export default function SettingsScreen() {
           text: 'Déconnecter',
           style: 'destructive',
           onPress: async () => {
-            await stopPlayer();
+            stopPlayer();
             await signOut();
             clearTracks();
             clearPreferences();
