@@ -1,5 +1,5 @@
 {
-  "name": "@ourmusic/shared-utils",
+  "name": "@aubesonore/shared-utils",
   "version": "1.0.0",
   "type": "module",
   "main": "./dist/index.js",

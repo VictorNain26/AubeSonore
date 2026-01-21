@@ -1,5 +1,5 @@
 {
-  "name": "ourmusic",
+  "name": "aubesonore",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -10,11 +10,11 @@
   },
   "scripts": {
     "dev": "turbo dev",
-    "dev:backend": "turbo dev --filter=@ourmusic/backend",
-    "dev:frontend": "turbo dev --filter=@ourmusic/frontend",
+    "dev:backend": "turbo dev --filter=@aubesonore/backend",
+    "dev:frontend": "turbo dev --filter=@aubesonore/frontend",
     "build": "turbo build",
-    "build:backend": "turbo build --filter=@ourmusic/backend",
-    "build:frontend": "turbo build --filter=@ourmusic/frontend",
+    "build:backend": "turbo build --filter=@aubesonore/backend",
+    "build:frontend": "turbo build --filter=@aubesonore/frontend",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "turbo typecheck",

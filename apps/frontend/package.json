@@ -1,5 +1,5 @@
 {
-  "name": "@ourmusic/frontend",
+  "name": "@aubesonore/frontend",
   "version": "1.0.0",
   "private": true,
   "type": "module",
@@ -15,8 +15,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@ourmusic/shared-types": "workspace:*",
-    "@ourmusic/shared-utils": "workspace:*",
+    "@aubesonore/shared-types": "workspace:*",
+    "@aubesonore/shared-utils": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.14",
     "@radix-ui/react-label": "^2.1.7",
     "@radix-ui/react-separator": "^1.1.7",

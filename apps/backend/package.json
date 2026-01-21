@@ -1,5 +1,5 @@
 {
-  "name": "@ourmusic/backend",
+  "name": "@aubesonore/backend",
   "version": "1.0.0",
   "private": true,
   "module": "index.js",
@@ -20,8 +20,8 @@
   "dependencies": {
     "@elysiajs/cors": "^1.3.0",
     "@elysiajs/cron": "^1.3.0",
-    "@ourmusic/shared-types": "workspace:*",
-    "@ourmusic/shared-utils": "workspace:*",
+    "@aubesonore/shared-types": "workspace:*",
+    "@aubesonore/shared-utils": "workspace:*",
     "axios": "^1.9.0",
     "better-auth": "^1.2.7",
     "cheerio": "^1.0.0",

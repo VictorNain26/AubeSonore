@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "pnpm turbo build --filter=@ourmusic/frontend",
+  "buildCommand": "pnpm turbo build --filter=@aubesonore/frontend",
   "installCommand": "pnpm install --frozen-lockfile",
   "outputDirectory": "apps/frontend/dist",
   "framework": "vite",

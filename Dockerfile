@@ -1,5 +1,5 @@
 # =============================================================================
-# OurMusic Backend - Dockerfile for Koyeb Deployment
+# AubeSonore Backend - Dockerfile for Koyeb Deployment
 # Based on official Node.js + corepack + Bun documentation
 # =============================================================================
 
@@ -16,6 +16,7 @@ WORKDIR /app
 
 # Copy only files needed for dependency resolution
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY patches ./patches
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/shared-types/package.json ./packages/shared-types/
 COPY packages/shared-utils/package.json ./packages/shared-utils/
@@ -35,8 +36,8 @@ COPY apps/backend ./apps/backend
 COPY tsconfig.base.json ./
 
 # Build shared packages that export from dist/
-RUN pnpm --filter @ourmusic/shared-types build && \
-    pnpm --filter @ourmusic/shared-utils build
+RUN pnpm --filter @aubesonore/shared-types build && \
+    pnpm --filter @aubesonore/shared-utils build
 
 # -----------------------------------------------------------------------------
 # Stage 3: Production Runtime
