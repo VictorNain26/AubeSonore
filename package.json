@@ -34,6 +34,12 @@
     ],
     "onlyBuiltDependencies": [
       "esbuild"
-    ]
+    ],
+    "overrides": {
+      "esbuild": ">=0.25.0"
+    },
+    "patchedDependencies": {
+      "react-native-css-interop": "patches/react-native-css-interop.patch"
+    }
   }
 }
