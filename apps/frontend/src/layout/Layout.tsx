@@ -57,7 +57,6 @@ export default function Layout({ children }: LayoutProps) {
                     </span>
                   </div>
                 </button>
-
               </>
             ) : (
               <button
@@ -78,9 +77,7 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main - scrollable content area */}
-      <main className="flex-1 flex flex-col">
-        {children}
-      </main>
+      <main className="flex-1 flex flex-col">{children}</main>
 
       {/* Footer */}
       <footer className="shrink-0 py-3 md:py-4">

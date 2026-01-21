@@ -1,19 +1,8 @@
 // Auth types
-export type {
-  User,
-  Session,
-  Account,
-  AuthContext,
-  PublicUser,
-} from './auth.js';
+export type { User, Session, Account, AuthContext, PublicUser } from './auth.js';
 
 // Track types
-export type {
-  LikedTrack,
-  NewLikedTrack,
-  ScrapedTrack,
-  ScrapeResults,
-} from './track.js';
+export type { LikedTrack, NewLikedTrack, ScrapedTrack, ScrapeResults } from './track.js';
 
 // Spotify types
 export type {
@@ -27,15 +16,7 @@ export type {
 } from './spotify.js';
 
 // SSE types
-export type {
-  SSEEvent,
-  SSEMessage,
-  AzuracastNowPlaying,
-} from './sse.js';
+export type { SSEEvent, SSEMessage, AzuracastNowPlaying } from './sse.js';
 
 // API types
-export type {
-  ApiErrorResponse,
-  ApiSuccessResponse,
-  PaginatedResponse,
-} from './api.js';
+export type { ApiErrorResponse, ApiSuccessResponse, PaginatedResponse } from './api.js';

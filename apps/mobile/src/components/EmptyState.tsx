@@ -15,9 +15,7 @@ export function EmptyState({ icon, title, description }: EmptyStateProps) {
       </View>
       <Text className="text-sm text-white/50 mb-1">{title}</Text>
       {description && (
-        <Text className="text-xs text-white/30 text-center max-w-[200px]">
-          {description}
-        </Text>
+        <Text className="text-xs text-white/30 text-center max-w-[200px]">{description}</Text>
       )}
     </View>
   );

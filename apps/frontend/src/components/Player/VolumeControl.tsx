@@ -15,7 +15,12 @@ interface VolumeControlProps {
   onToggleMute: () => void;
 }
 
-export function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }: VolumeControlProps) {
+export function VolumeControl({
+  volume,
+  isMuted,
+  onVolumeChange,
+  onToggleMute,
+}: VolumeControlProps) {
   const sliderRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const closeTimeoutRef = useRef<number | null>(null);
@@ -73,14 +78,17 @@ export function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }:
   }, [isOpen, isMobile]);
 
   // Calculate volume from vertical position (bottom = 0, top = 1)
-  const calculateVolumeVertical = useCallback((clientY: number) => {
-    if (!sliderRef.current) return;
-    const rect = sliderRef.current.getBoundingClientRect();
-    // Invert: top of slider = 100%, bottom = 0%
-    const percent = Math.max(0, Math.min(1, (rect.bottom - clientY) / rect.height));
-    setLocalVolume(percent);
-    onVolumeChange(percent);
-  }, [onVolumeChange]);
+  const calculateVolumeVertical = useCallback(
+    (clientY: number) => {
+      if (!sliderRef.current) return;
+      const rect = sliderRef.current.getBoundingClientRect();
+      // Invert: top of slider = 100%, bottom = 0%
+      const percent = Math.max(0, Math.min(1, (rect.bottom - clientY) / rect.height));
+      setLocalVolume(percent);
+      onVolumeChange(percent);
+    },
+    [onVolumeChange]
+  );
 
   // Handle drag events (vertical)
   useEffect(() => {
@@ -113,23 +121,26 @@ export function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }:
   }, [isDragging, calculateVolumeVertical]);
 
   // Keyboard support
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const step = e.shiftKey ? 0.1 : 0.05;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      const newVolume = Math.min(1, localVolume + step);
-      setLocalVolume(newVolume);
-      onVolumeChange(newVolume);
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      const newVolume = Math.max(0, localVolume - step);
-      setLocalVolume(newVolume);
-      onVolumeChange(newVolume);
-    } else if (e.key === 'm' || e.key === 'M') {
-      e.preventDefault();
-      onToggleMute();
-    }
-  }, [localVolume, onVolumeChange, onToggleMute]);
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const step = e.shiftKey ? 0.1 : 0.05;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        const newVolume = Math.min(1, localVolume + step);
+        setLocalVolume(newVolume);
+        onVolumeChange(newVolume);
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const newVolume = Math.max(0, localVolume - step);
+        setLocalVolume(newVolume);
+        onVolumeChange(newVolume);
+      } else if (e.key === 'm' || e.key === 'M') {
+        e.preventDefault();
+        onToggleMute();
+      }
+    },
+    [localVolume, onVolumeChange, onToggleMute]
+  );
 
   const handleSliderInteractionVertical = (clientY: number) => {
     setIsDragging(true);
@@ -139,7 +150,7 @@ export function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }:
   // Icon click: mobile = toggle slider, desktop = mute
   const handleIconClick = () => {
     if (isMobile) {
-      setIsOpen(prev => !prev);
+      setIsOpen((prev) => !prev);
     } else {
       onToggleMute();
     }
@@ -170,7 +181,7 @@ export function VolumeControl({ volume, isMuted, onVolumeChange, onToggleMute }:
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50'
         )}
         aria-label={showMuted ? 'Unmute' : 'Mute'}
-        title={isMobile ? 'Volume' : (showMuted ? 'Unmute (M)' : 'Mute (M)')}
+        title={isMobile ? 'Volume' : showMuted ? 'Unmute (M)' : 'Mute (M)'}
       >
         <VolumeIcon className="w-5 h-5" />
       </button>

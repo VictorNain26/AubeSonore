@@ -3,7 +3,8 @@
 
 export const ENV = {
   // API Backend
-  API_BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'https://ourmusic-backend-tomia-f4ec3e9e.koyeb.app',
+  API_BASE_URL:
+    process.env.EXPO_PUBLIC_API_URL || 'https://ourmusic-backend-tomia-f4ec3e9e.koyeb.app',
 
   // AzuraCast Configuration
   AZURACAST_URL: process.env.EXPO_PUBLIC_AZURACAST_URL || 'https://116.203.46.203',

@@ -3,7 +3,7 @@
  * Dynamically loads the Cast Web Sender SDK
  */
 
-/// <reference path="../../types/google-cast.d.ts" />
+// Type imports for Google Cast SDK (ambient types from google-cast.d.ts)
 
 const CAST_SDK_URL = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
 

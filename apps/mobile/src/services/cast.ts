@@ -3,12 +3,8 @@
  * Provides abstraction layer for casting functionality
  */
 
-import GoogleCast, {
-  CastState,
-  MediaInfo,
-  MediaPlayerState,
-  MediaStreamType,
-} from 'react-native-google-cast';
+import type { MediaInfo } from 'react-native-google-cast';
+import GoogleCast, { CastState, MediaPlayerState, MediaStreamType } from 'react-native-google-cast';
 import { STREAM_URL } from '../config/env';
 import type { CastMediaMetadata } from '../types/cast';
 
@@ -95,9 +91,7 @@ export async function loadMedia(metadata: CastMediaMetadata): Promise<void> {
       title: metadata.title,
       artist: metadata.artist,
       albumTitle: metadata.album,
-      images: metadata.artworkUrl
-        ? [{ url: metadata.artworkUrl }]
-        : undefined,
+      images: metadata.artworkUrl ? [{ url: metadata.artworkUrl }] : undefined,
     },
   };
 

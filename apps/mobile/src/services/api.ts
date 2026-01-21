@@ -37,10 +37,7 @@ export async function removeAuthToken(): Promise<void> {
 // API Client
 // ─────────────────────────────────────────────
 
-async function fetchApi<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = await getAuthToken();
 
   const headers: HeadersInit = {
@@ -78,7 +75,7 @@ export const authApi = {
       const response = await fetch(`${ENV.API_BASE_URL}/api/auth/get-session`, {
         headers: {
           'Content-Type': 'application/json',
-          'Cookie': `better_auth.session_token=${token}`,
+          Cookie: `better_auth.session_token=${token}`,
         },
       });
 
@@ -146,18 +143,16 @@ export const authApi = {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Cookie': `better_auth.session_token=${token}`,
+          Cookie: `better_auth.session_token=${token}`,
         },
       });
     }
     await removeAuthToken();
   },
 
-  getGoogleAuthUrl: (): string =>
-    `${ENV.API_BASE_URL}/api/auth/sign-in/social?provider=google`,
+  getGoogleAuthUrl: (): string => `${ENV.API_BASE_URL}/api/auth/sign-in/social?provider=google`,
 
-  getSpotifyAuthUrl: (): string =>
-    `${ENV.API_BASE_URL}/api/auth/sign-in/social?provider=spotify`,
+  getSpotifyAuthUrl: (): string => `${ENV.API_BASE_URL}/api/auth/sign-in/social?provider=spotify`,
 };
 
 // ─────────────────────────────────────────────
@@ -165,8 +160,7 @@ export const authApi = {
 // ─────────────────────────────────────────────
 
 export const trackApi = {
-  getLikedTracks: (): Promise<LikedTrack[]> =>
-    fetchApi('/api/track/like'),
+  getLikedTracks: (): Promise<LikedTrack[]> => fetchApi('/api/track/like'),
 
   likeTrack: (data: LikeTrackRequest): Promise<{ message: string; track: LikedTrack }> =>
     fetchApi('/api/track/like', {
@@ -196,10 +190,11 @@ export const trackApi = {
 // ─────────────────────────────────────────────
 
 export const preferencesApi = {
-  getPreferences: (): Promise<UserPreferences> =>
-    fetchApi('/api/preferences'),
+  getPreferences: (): Promise<UserPreferences> => fetchApi('/api/preferences'),
 
-  updatePreferences: (preferredPlatform: PreferredPlatform): Promise<{ message: string; preferences: UserPreferences }> =>
+  updatePreferences: (
+    preferredPlatform: PreferredPlatform
+  ): Promise<{ message: string; preferences: UserPreferences }> =>
     fetchApi('/api/preferences', {
       method: 'PUT',
       body: JSON.stringify({ preferredPlatform }),

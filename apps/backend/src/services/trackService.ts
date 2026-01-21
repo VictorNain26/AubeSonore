@@ -29,7 +29,13 @@ interface ServiceResponse<T = LikedTrack> {
 // Like un morceau - Fast insert + background enrichment
 // ─────────────────────────────────────────────
 
-export async function likeTrack({ user, body }: { user: User; body: LikeTrackBody }): Promise<ServiceResponse> {
+export async function likeTrack({
+  user,
+  body,
+}: {
+  user: User;
+  body: LikeTrackBody;
+}): Promise<ServiceResponse> {
   const { title, artist, album, artworkUrl, youtubeUrl, isrc } = body;
 
   // Vérifie si le morceau est déjà liké (par titre + artiste)
@@ -40,8 +46,8 @@ export async function likeTrack({ user, body }: { user: User; body: LikeTrackBod
       and(
         eq(schema.likedTracks.userId, user.id),
         eq(schema.likedTracks.title, title),
-        eq(schema.likedTracks.artist, artist),
-      ),
+        eq(schema.likedTracks.artist, artist)
+      )
     )
     .limit(1)
     .then((res: LikedTrack[]) => res[0]);
@@ -117,10 +123,7 @@ async function enrichTrackInBackground(
   }
 
   if (Object.keys(updates).length > 0) {
-    await db
-      .update(schema.likedTracks)
-      .set(updates)
-      .where(eq(schema.likedTracks.id, trackId));
+    await db.update(schema.likedTracks).set(updates).where(eq(schema.likedTracks.id, trackId));
     console.log(`[enrichTrackInBackground] Track ${trackId} enriched with:`, Object.keys(updates));
   }
 }
@@ -143,7 +146,13 @@ export async function getLikedTracks({ user }: { user: User }): Promise<LikedTra
 // Supprimer un morceau liké
 // ─────────────────────────────────────────────
 
-export async function unlikeTrack({ user, id }: { user: User; id: string }): Promise<ServiceResponse> {
+export async function unlikeTrack({
+  user,
+  id,
+}: {
+  user: User;
+  id: string;
+}): Promise<ServiceResponse> {
   const [deletedTrack] = await db
     .delete(schema.likedTracks)
     .where(and(eq(schema.likedTracks.userId, user.id), eq(schema.likedTracks.id, id)))
@@ -163,7 +172,15 @@ export async function unlikeTrack({ user, id }: { user: User; id: string }): Pro
 // Vérifier si un morceau est liké
 // ─────────────────────────────────────────────
 
-export async function isTrackLiked({ user, title, artist }: { user: User; title: string; artist: string }): Promise<boolean> {
+export async function isTrackLiked({
+  user,
+  title,
+  artist,
+}: {
+  user: User;
+  title: string;
+  artist: string;
+}): Promise<boolean> {
   const track = await db
     .select({ id: schema.likedTracks.id })
     .from(schema.likedTracks)
@@ -171,8 +188,8 @@ export async function isTrackLiked({ user, title, artist }: { user: User; title:
       and(
         eq(schema.likedTracks.userId, user.id),
         eq(schema.likedTracks.title, title),
-        eq(schema.likedTracks.artist, artist),
-      ),
+        eq(schema.likedTracks.artist, artist)
+      )
     )
     .limit(1)
     .then((res) => res[0]);
@@ -184,7 +201,15 @@ export async function isTrackLiked({ user, title, artist }: { user: User; title:
 // Récupérer un morceau liké par titre/artiste
 // ─────────────────────────────────────────────
 
-export async function getLikedTrackByTitleArtist({ user, title, artist }: { user: User; title: string; artist: string }): Promise<LikedTrack | null> {
+export async function getLikedTrackByTitleArtist({
+  user,
+  title,
+  artist,
+}: {
+  user: User;
+  title: string;
+  artist: string;
+}): Promise<LikedTrack | null> {
   const track = await db
     .select()
     .from(schema.likedTracks)
@@ -192,8 +217,8 @@ export async function getLikedTrackByTitleArtist({ user, title, artist }: { user
       and(
         eq(schema.likedTracks.userId, user.id),
         eq(schema.likedTracks.title, title),
-        eq(schema.likedTracks.artist, artist),
-      ),
+        eq(schema.likedTracks.artist, artist)
+      )
     )
     .limit(1)
     .then((res) => res[0] || null);
@@ -205,7 +230,13 @@ export async function getLikedTrackByTitleArtist({ user, title, artist }: { user
 // Mettre à jour les liens d'un morceau (refresh)
 // ─────────────────────────────────────────────
 
-export async function refreshTrackLinks({ user, id }: { user: User; id: string }): Promise<ServiceResponse> {
+export async function refreshTrackLinks({
+  user,
+  id,
+}: {
+  user: User;
+  id: string;
+}): Promise<ServiceResponse> {
   const track = await db
     .select()
     .from(schema.likedTracks)

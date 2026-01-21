@@ -37,9 +37,7 @@ export function AlbumArt({
     artUrl.includes('default') ||
     artUrl.includes('placeholder');
 
-  const imageSource = isDefaultCover
-    ? { uri: DEFAULT_ARTWORK }
-    : { uri: artUrl };
+  const imageSource = isDefaultCover ? { uri: DEFAULT_ARTWORK } : { uri: artUrl };
 
   return (
     <View className="relative">
@@ -76,16 +74,10 @@ export function AlbumArt({
               onPress={onToggleLike}
               disabled={isLiking}
               className={`p-3 rounded-full border ${
-                isLiked
-                  ? 'bg-red-500 border-red-400'
-                  : 'bg-black/60 border-white/20'
+                isLiked ? 'bg-red-500 border-red-400' : 'bg-black/60 border-white/20'
               } ${isLiking ? 'opacity-50' : ''}`}
             >
-              <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
-                size={20}
-                color="white"
-              />
+              <Ionicons name={isLiked ? 'heart' : 'heart-outline'} size={20} color="white" />
             </Pressable>
           </View>
         )}

@@ -47,17 +47,12 @@ export function PlatformSelector({ selected, onChange }: PlatformSelectorProps) 
         animationType="fade"
         onRequestClose={() => setIsOpen(false)}
       >
-        <Pressable
-          className="flex-1 bg-black/60"
-          onPress={() => setIsOpen(false)}
-        >
+        <Pressable className="flex-1 bg-black/60" onPress={() => setIsOpen(false)}>
           <View className="flex-1 justify-end">
             <View className="bg-surface-elevated rounded-t-3xl border-t border-white/10">
               {/* Header */}
               <View className="flex-row items-center justify-between px-5 py-4 border-b border-white/10">
-                <Text className="text-lg font-medium text-white">
-                  Choisir une plateforme
-                </Text>
+                <Text className="text-lg font-medium text-white">Choisir une plateforme</Text>
                 <Pressable onPress={() => setIsOpen(false)} className="p-2">
                   <Ionicons name="close" size={24} color="rgba(255,255,255,0.5)" />
                 </Pressable>

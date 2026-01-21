@@ -63,10 +63,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
   return (
     <>
       {/* Backdrop - style Player */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
 
       {/* Modal - glassmorphism subtil comme le Player */}
       <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-sm mx-auto z-50">
@@ -192,7 +189,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                 {mode === 'signin' ? (
                   <>
                     Pas encore de compte ?{' '}
-                    <span className="text-white/70 hover:text-white">S'inscrire</span>
+                    <span className="text-white/70 hover:text-white">S&apos;inscrire</span>
                   </>
                 ) : (
                   <>

@@ -74,7 +74,11 @@ export default function Player() {
   }, [duration]);
 
   const togglePlay = useCallback(() => {
-    isPlaying ? stop() : play();
+    if (isPlaying) {
+      stop();
+    } else {
+      play();
+    }
   }, [isPlaying, play, stop]);
 
   const toggleMute = useCallback(() => {
@@ -88,11 +92,14 @@ export default function Player() {
     }
   }, [isMuted, prevVolume, volume, setVolume]);
 
-  const handleVolumeChange = useCallback((val: number) => {
-    setVolume(val);
-    setIsMuted(val === 0);
-    if (val > 0) setPrevVolume(val);
-  }, [setVolume]);
+  const handleVolumeChange = useCallback(
+    (val: number) => {
+      setVolume(val);
+      setIsMuted(val === 0);
+      if (val > 0) setPrevVolume(val);
+    },
+    [setVolume]
+  );
 
   const playlistName = nowPlaying?.playlist?.replace(/_/g, ' ');
 
@@ -178,11 +185,7 @@ export default function Player() {
           isLive={np?.live.is_live}
           onToggleLike={() =>
             nowPlaying &&
-            handleToggleLike(
-              nowPlaying.song.title,
-              nowPlaying.song.artist,
-              nowPlaying.song.art
-            )
+            handleToggleLike(nowPlaying.song.title, nowPlaying.song.artist, nowPlaying.song.art)
           }
         />
       </div>
@@ -207,11 +210,7 @@ export default function Player() {
           {formatTime(elapsed)}
         </span>
         <div className="flex-1">
-          <WaveformProgress
-            progress={progress}
-            isPlaying={isPlaying}
-            songId={nowPlaying?.sh_id}
-          />
+          <WaveformProgress progress={progress} isPlaying={isPlaying} songId={nowPlaying?.sh_id} />
         </div>
         <span className="text-xs text-muted-foreground tabular-nums w-10">
           {formatTime(duration)}

@@ -50,18 +50,21 @@ export function usePreferences(): UsePreferencesReturn {
   }, [isAuthenticated, authLoading]);
 
   // Mettre à jour la plateforme préférée
-  const updatePlatform = useCallback(async (platform: PreferredPlatform): Promise<boolean> => {
-    if (!isAuthenticated) return false;
+  const updatePlatform = useCallback(
+    async (platform: PreferredPlatform): Promise<boolean> => {
+      if (!isAuthenticated) return false;
 
-    try {
-      const result = await preferencesApi.updatePreferences(platform);
-      setPreferences(result.preferences);
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
-      return false;
-    }
-  }, [isAuthenticated]);
+      try {
+        const result = await preferencesApi.updatePreferences(platform);
+        setPreferences(result.preferences);
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Erreur lors de la mise à jour');
+        return false;
+      }
+    },
+    [isAuthenticated]
+  );
 
   return {
     preferences,

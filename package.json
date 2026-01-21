@@ -2,6 +2,7 @@
   "name": "ourmusic",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=20",
@@ -14,19 +15,35 @@
     "build": "turbo build",
     "build:backend": "turbo build --filter=@ourmusic/backend",
     "build:frontend": "turbo build --filter=@ourmusic/frontend",
-    "lint": "turbo lint",
-    "lint:fix": "turbo lint --continue -- --fix",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "typecheck": "turbo typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "clean": "turbo clean && rm -rf node_modules .turbo"
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "clean": "turbo clean && rm -rf node_modules .turbo",
+    "prepare": "husky"
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^8.36.0",
-    "@typescript-eslint/parser": "^8.36.0",
+    "@eslint/js": "^9.26.0",
     "eslint": "^9.26.0",
+    "eslint-config-prettier": "^10.1.0",
+    "eslint-plugin-react": "^7.37.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.4.0",
     "prettier": "^3.5.3",
     "turbo": "^2.3.3",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{js,jsx,json,md,css,html}": [
+      "prettier --write"
+    ]
   },
   "pnpm": {
     "ignoredBuiltDependencies": [

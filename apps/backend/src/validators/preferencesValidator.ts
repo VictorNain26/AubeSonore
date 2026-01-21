@@ -6,7 +6,16 @@ import { object, picklist, type InferOutput } from 'valibot';
 
 export const updatePreferencesSchema = object({
   preferredPlatform: picklist(
-    ['spotify', 'appleMusic', 'deezer', 'youtubeMusic', 'tidal', 'amazonMusic', 'soundcloud', 'youtube'],
+    [
+      'spotify',
+      'appleMusic',
+      'deezer',
+      'youtubeMusic',
+      'tidal',
+      'amazonMusic',
+      'soundcloud',
+      'youtube',
+    ],
     'Plateforme invalide'
   ),
 });

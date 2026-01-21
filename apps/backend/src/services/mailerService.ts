@@ -13,10 +13,7 @@ interface SendMailOptions {
   variables?: MailVariables;
 }
 
-const htmlTemplate = readFileSync(
-  resolve('src/services/templates/mailTemplate.html'),
-  'utf-8',
-);
+const htmlTemplate = readFileSync(resolve('src/services/templates/mailTemplate.html'), 'utf-8');
 
 function compileTemplate(template: string, variables: MailVariables = {}): string {
   return template

@@ -13,7 +13,7 @@ app.onRequest(({ request }): void => {
   const origin = headers.get('origin');
   const isPreflight = method === 'OPTIONS';
   console.log(
-    `[${new Date().toISOString()}] 📥 ${method} ${url} ${isPreflight ? '(Preflight)' : ''} – Origin: ${origin}`,
+    `[${new Date().toISOString()}] 📥 ${method} ${url} ${isPreflight ? '(Preflight)' : ''} – Origin: ${origin}`
   );
 });
 
@@ -24,7 +24,7 @@ app.use(
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-  }),
+  })
 );
 
 // ✅ Auth BetterAuth
@@ -56,9 +56,7 @@ app.onError(({ error }): { status: number; error: string } => {
 
 // ✅ Log sortie
 app.onAfterHandle(({ request }): void => {
-  console.log(
-    `[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → 200`,
-  );
+  console.log(`[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → 200`);
 });
 
 // ✅ Lancement du serveur

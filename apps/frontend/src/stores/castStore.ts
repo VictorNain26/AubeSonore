@@ -1,4 +1,4 @@
-/// <reference path="../types/google-cast.d.ts" />
+// Type imports for Google Cast SDK (ambient types from google-cast.d.ts)
 
 import { create } from 'zustand';
 import {

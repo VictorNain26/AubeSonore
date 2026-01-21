@@ -133,7 +133,7 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
 
             // Glow effect - stronger when using real audio
             ctx.shadowColor = 'rgba(168, 85, 247, 0.5)';
-            ctx.shadowBlur = frequencyData ? 10 : (isPlaying ? 8 : 4);
+            ctx.shadowBlur = frequencyData ? 10 : isPlaying ? 8 : 4;
 
             ctx.fillStyle = gradient;
             ctx.beginPath();
@@ -178,12 +178,5 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
     };
   }, [isPlaying, progress, songId]);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      width={384}
-      height={48}
-      className="w-full h-12"
-    />
-  );
+  return <canvas ref={canvasRef} width={384} height={48} className="w-full h-12" />;
 }

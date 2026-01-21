@@ -92,10 +92,7 @@ export interface CheckLikedResponse {
 // API Client
 // ─────────────────────────────────────────────
 
-async function fetchApi<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     credentials: 'include',
@@ -157,7 +154,9 @@ export const preferencesApi = {
   getPreferences: (): Promise<UserPreferences> => fetchApi('/api/preferences'),
 
   // Mettre à jour les préférences
-  updatePreferences: (preferredPlatform: PreferredPlatform): Promise<{ message: string; preferences: UserPreferences }> =>
+  updatePreferences: (
+    preferredPlatform: PreferredPlatform
+  ): Promise<{ message: string; preferences: UserPreferences }> =>
     fetchApi('/api/preferences', {
       method: 'PUT',
       body: JSON.stringify({ preferredPlatform }),

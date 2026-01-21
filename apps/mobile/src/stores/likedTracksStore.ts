@@ -74,9 +74,7 @@ export const useLikedTracksStore = create<LikedTracksStore>((set, get) => ({
       const result = await trackApi.likeTrack(data);
       // Replace temp track with real one
       set((state) => ({
-        tracks: state.tracks.map((t) =>
-          t.id === tempId ? result.track : t
-        ),
+        tracks: state.tracks.map((t) => (t.id === tempId ? result.track : t)),
       }));
       return result.track;
     } catch (err) {
@@ -141,9 +139,7 @@ export const useLikedTracksStore = create<LikedTracksStore>((set, get) => ({
       const result = await trackApi.refreshLinks(trackId);
       // Update track in the list
       set((state) => ({
-        tracks: state.tracks.map((t) =>
-          t.id === trackId ? result.track : t
-        ),
+        tracks: state.tracks.map((t) => (t.id === trackId ? result.track : t)),
       }));
       return result.track;
     } catch (err) {

@@ -75,7 +75,7 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
   const [imgError, setImgError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const artwork = imgError ? null : (track.artworkBase64 || track.artworkUrl);
+  const artwork = imgError ? null : track.artworkBase64 || track.artworkUrl;
   const { url: link, isSearch } = getPreferredLink(track, preferredPlatform);
   const selectedPlatform = PLATFORMS.find((p) => p.id === preferredPlatform);
 
@@ -85,12 +85,7 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
   };
 
   return (
-    <div
-      className={cn(
-        'group flex items-center gap-3 py-2',
-        isDeleting && 'opacity-50'
-      )}
-    >
+    <div className={cn('group flex items-center gap-3 py-2', isDeleting && 'opacity-50')}>
       {/* Artwork */}
       <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-white/5 flex items-center justify-center">
         {artwork ? (
@@ -123,7 +118,11 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
             'text-white/40 hover:text-white hover:bg-white/10',
             'transition-all duration-200'
           )}
-          title={isSearch ? `Rechercher sur ${selectedPlatform?.name}` : `Ouvrir sur ${selectedPlatform?.name}`}
+          title={
+            isSearch
+              ? `Rechercher sur ${selectedPlatform?.name}`
+              : `Ouvrir sur ${selectedPlatform?.name}`
+          }
         >
           {isSearch ? <Search className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
         </a>
@@ -186,41 +185,42 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
         <span className="text-white/60">{selectedPlatform?.name}</span>
       </button>
 
-      {isOpen && createPortal(
-        <>
-          <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
-          <div
-            className="fixed w-44 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[101] overflow-hidden"
-            style={{
-              top: dropdownPosition.top,
-              right: dropdownPosition.right,
-              transform: 'translateY(-100%)',
-            }}
-          >
-            <div className="p-1 max-h-[280px] overflow-y-auto">
-              {PLATFORMS.map((platform) => (
-                <button
-                  key={platform.id}
-                  onClick={() => {
-                    onChange(platform.id);
-                    setIsOpen(false);
-                  }}
-                  className={cn(
-                    'w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm cursor-pointer',
-                    'transition-all duration-200',
-                    selected === platform.id
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/50 hover:text-white hover:bg-white/5'
-                  )}
-                >
-                  {platform.name}
-                </button>
-              ))}
+      {isOpen &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
+            <div
+              className="fixed w-44 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[101] overflow-hidden"
+              style={{
+                top: dropdownPosition.top,
+                right: dropdownPosition.right,
+                transform: 'translateY(-100%)',
+              }}
+            >
+              <div className="p-1 max-h-[280px] overflow-y-auto">
+                {PLATFORMS.map((platform) => (
+                  <button
+                    key={platform.id}
+                    onClick={() => {
+                      onChange(platform.id);
+                      setIsOpen(false);
+                    }}
+                    className={cn(
+                      'w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm cursor-pointer',
+                      'transition-all duration-200',
+                      selected === platform.id
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/50 hover:text-white hover:bg-white/5'
+                    )}
+                  >
+                    {platform.name}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
-        </>,
-        document.body
-      )}
+          </>,
+          document.body
+        )}
     </div>
   );
 }
@@ -258,10 +258,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   return (
     <>
       {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
-        onClick={onClose}
-      />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
 
       {/* Modal - style Player */}
       <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto z-50">
@@ -280,9 +277,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                   <Library className="w-5 h-5 text-white/60" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-medium text-white">
-                    Ma Bibliothèque
-                  </h2>
+                  <h2 className="text-lg font-medium text-white">Ma Bibliothèque</h2>
                   <p className="text-xs text-white/40">
                     {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
                   </p>
@@ -305,10 +300,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
             {tracks.length > 0 && (
               <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
                 <span className="text-xs text-white/40">Ouvrir avec</span>
-                <PlatformSelector
-                  selected={preferredPlatform}
-                  onChange={updatePlatform}
-                />
+                <PlatformSelector selected={preferredPlatform} onChange={updatePlatform} />
               </div>
             )}
           </div>

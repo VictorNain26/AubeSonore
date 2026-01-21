@@ -22,7 +22,7 @@ export async function downloadImageAsBase64(url: string): Promise<ImageResult | 
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'OurMusic/1.0',
-        'Accept': 'image/*',
+        Accept: 'image/*',
       },
     });
 

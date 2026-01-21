@@ -47,7 +47,9 @@ const excludedTags: string[] = [
   //  Vérification des doublons
   // ------------------------------
   const flat: ScrapedTrack[] = Object.values(results).flat();
-  const uniq: Set<string> = new Set(flat.map((t: ScrapedTrack) => `${t.artist.toLowerCase()}-${t.title.toLowerCase()}`));
+  const uniq: Set<string> = new Set(
+    flat.map((t: ScrapedTrack) => `${t.artist.toLowerCase()}-${t.title.toLowerCase()}`)
+  );
   const total: number = flat.length;
 
   console.log(`\n🎧  Total récupéré : ${total}`);

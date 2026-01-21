@@ -9,18 +9,17 @@ import { usePlayerStore } from '../../src/stores/playerStore';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useLikedTracksStore } from '../../src/stores/likedTracksStore';
 import { useAudio } from '../../src/providers/AudioProvider';
-import {
-  AlbumArt,
-  CastButton,
-  PlayButton,
-  ListenerCount,
-} from '../../src/components';
+import { AlbumArt, CastButton, PlayButton, ListenerCount } from '../../src/components';
 
 // ─────────────────────────────────────────────
 // Precise Timer Hook
 // ─────────────────────────────────────────────
 
-function usePreciseTimer(serverElapsed: number | undefined, duration: number, trackId: string | undefined) {
+function usePreciseTimer(
+  serverElapsed: number | undefined,
+  duration: number,
+  trackId: string | undefined
+) {
   const [elapsed, setElapsed] = useState(0);
   const startTimeRef = useRef<number>(0);
   const baseElapsedRef = useRef<number>(0);
@@ -105,7 +104,11 @@ export default function PlayerScreen() {
   const handleTogglePlay = useCallback(() => {
     if (isLoading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    isPlaying ? stop() : play();
+    if (isPlaying) {
+      stop();
+    } else {
+      play();
+    }
   }, [isPlaying, play, stop, isLoading]);
 
   // Handle like/unlike with haptic feedback
@@ -195,9 +198,7 @@ export default function PlayerScreen() {
                 <View style={[styles.progressFill, { width: `${progress}%` }]} />
               </View>
             </View>
-            <Text style={[styles.timeText, styles.timeTextRight]}>
-              {formatTime(duration)}
-            </Text>
+            <Text style={[styles.timeText, styles.timeTextRight]}>{formatTime(duration)}</Text>
           </View>
         </View>
 

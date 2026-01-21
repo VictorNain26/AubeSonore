@@ -70,28 +70,17 @@ export function CastButton({ className }: CastButtonProps) {
       className={cn(
         'p-2 rounded-full transition-all duration-200 cursor-pointer',
         'hover:bg-white/10',
-        isCasting
-          ? 'text-purple-400 hover:text-purple-300'
-          : 'text-white/60 hover:text-white',
+        isCasting ? 'text-purple-400 hover:text-purple-300' : 'text-white/60 hover:text-white',
         isConnecting && 'opacity-50 cursor-wait',
         className
       )}
-      title={
-        isCasting
-          ? `Diffusion sur ${deviceName || 'appareil'}`
-          : 'Diffuser'
-      }
+      title={isCasting ? `Diffusion sur ${deviceName || 'appareil'}` : 'Diffuser'}
       aria-label={isCasting ? 'Arrêter la diffusion' : 'Diffuser sur un appareil'}
     >
       {isConnecting ? (
         <Loader2 className="w-5 h-5 animate-spin" />
       ) : (
-        <Cast
-          className={cn(
-            'w-5 h-5',
-            isCasting && 'fill-current'
-          )}
-        />
+        <Cast className={cn('w-5 h-5', isCasting && 'fill-current')} />
       )}
     </button>
   );

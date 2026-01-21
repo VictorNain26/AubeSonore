@@ -3,7 +3,6 @@
  * Minimal types for the Cast Web Sender SDK
  */
 
-/* eslint-disable @typescript-eslint/no-namespace */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 declare global {

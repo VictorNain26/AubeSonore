@@ -33,12 +33,7 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
   const currentSongRef = useRef<ReturnType<typeof usePlayerStore.getState>['currentSong']>(null);
 
   // Cast store actions
-  const {
-    setCasting,
-    setConnecting,
-    setError,
-    setChromecastAvailable,
-  } = useCastStore();
+  const { setCasting, setConnecting, setError, setChromecastAvailable } = useCastStore();
 
   // Player store for now playing info
   const currentSong = usePlayerStore((s) => s.currentSong);
@@ -202,11 +197,7 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
     updateNowPlaying,
   };
 
-  return (
-    <CastContext.Provider value={value}>
-      {children}
-    </CastContext.Provider>
-  );
+  return <CastContext.Provider value={value}>{children}</CastContext.Provider>;
 }
 
 // ─────────────────────────────────────────────

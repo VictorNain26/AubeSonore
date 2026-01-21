@@ -26,6 +26,7 @@ ourmusic/
 ## Features
 
 ### Like & Multi-Platform Links
+
 - Like les morceaux en cours ou dans l'historique
 - Integration **Songlink/Odesli** pour liens multi-plateformes automatiques
 - Liens directs vers: Spotify, Apple Music, Deezer, YouTube Music, Tidal, Amazon Music, SoundCloud
@@ -33,6 +34,7 @@ ourmusic/
 - Choix de la plateforme preferee par utilisateur
 
 ### Backend
+
 - Better Auth (email + Google OAuth)
 - Songlink/Odesli API (liens multi-plateformes)
 - Covers persistees en base64
@@ -40,6 +42,7 @@ ourmusic/
 - Drizzle ORM + PostgreSQL
 
 ### Frontend
+
 - React 19
 - Zustand (state management)
 - Tailwind CSS + shadcn/ui
@@ -49,6 +52,7 @@ ourmusic/
 ## Quick Start
 
 ### Prerequis
+
 - Node.js >=20
 - PNPM >=10.13.1
 - Bun (pour le backend)
@@ -82,6 +86,7 @@ pnpm dev
 ```
 
 L'application sera disponible sur:
+
 - Frontend: http://localhost:5173
 - Backend API: http://localhost:3000
 
@@ -90,6 +95,7 @@ L'application sera disponible sur:
 ### Variables d'environnement
 
 #### Backend (.env)
+
 ```bash
 PORT=3000
 DATABASE_URL=postgresql://user:pass@localhost:5432/ourmusic
@@ -109,6 +115,7 @@ GOOGLE_CLIENT_SECRET=
 ```
 
 #### Frontend (.env)
+
 ```bash
 VITE_API_URL=http://localhost:3000
 VITE_AZURACAST_BASE_URL=https://your-azuracast-instance.com
@@ -117,6 +124,7 @@ VITE_AZURACAST_BASE_URL=https://your-azuracast-instance.com
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/sign-in` - Connexion
 - `POST /api/auth/sign-up` - Inscription
 - `POST /api/auth/sign-out` - Deconnexion
@@ -124,6 +132,7 @@ VITE_AZURACAST_BASE_URL=https://your-azuracast-instance.com
 - `GET /api/auth/callback/google` - Google OAuth callback
 
 ### Tracks
+
 - `GET /api/track/like` - Recuperer les morceaux likes
 - `POST /api/track/like` - Liker un morceau (+ fetch Songlink automatique)
 - `DELETE /api/track/like/:id` - Supprimer un morceau like
@@ -131,16 +140,19 @@ VITE_AZURACAST_BASE_URL=https://your-azuracast-instance.com
 - `POST /api/track/:id/refresh-links` - Rafraichir les liens Songlink
 
 ### Preferences
+
 - `GET /api/preferences` - Recuperer les preferences utilisateur
 - `PUT /api/preferences` - Mettre a jour la plateforme preferee
 
 ### Utils
+
 - `GET /health` - Health check
 - `GET /` - API info
 
 ## Commandes
 
 ### Developpement
+
 ```bash
 pnpm dev                 # Demarrer tous les apps
 pnpm dev:backend         # Backend uniquement
@@ -148,6 +160,7 @@ pnpm dev:frontend        # Frontend uniquement
 ```
 
 ### Build
+
 ```bash
 pnpm build               # Build tous les apps
 pnpm build:backend       # Build backend
@@ -155,6 +168,7 @@ pnpm build:frontend      # Build frontend
 ```
 
 ### Qualite du code
+
 ```bash
 pnpm lint             # Lint tous les packages
 pnpm lint:fix         # Fix automatiquement
@@ -162,6 +176,7 @@ pnpm typecheck        # Verification TypeScript
 ```
 
 ### Base de donnees
+
 ```bash
 cd apps/backend
 bun run db:generate    # Generer migrations
@@ -171,9 +186,11 @@ bun run db:push        # Appliquer schema
 ## Deploiement
 
 ### Backend (Koyeb)
+
 Le backend est deploye automatiquement sur Koyeb depuis la branche `master`.
 
 Variables d'environnement requises sur Koyeb:
+
 - `DATABASE_URL` - Railway PostgreSQL
 - `BETTER_AUTH_SECRET` - Secret pour l'auth
 - `BETTER_AUTH_URL` - URL du backend
@@ -181,29 +198,32 @@ Variables d'environnement requises sur Koyeb:
 - `ALLOWED_ORIGINS` - https://aubesonore.fr
 
 ### Frontend (Vercel)
+
 Le frontend est deploye automatiquement sur Vercel depuis la branche `master`.
 
 Variables d'environnement requises sur Vercel:
+
 - `VITE_API_URL` - URL du backend Koyeb
 - `VITE_AZURACAST_BASE_URL` - URL de l'instance AzuraCast
 
 ### Database (Railway)
+
 PostgreSQL heberge sur Railway avec connexion externe.
 
 ## Stack Technique
 
-| Composant | Technologie |
-|-----------|-------------|
-| Runtime | Bun |
-| Framework Backend | Elysia |
-| Framework Frontend | React 19 + Vite |
-| Database | PostgreSQL |
-| ORM | Drizzle |
-| Auth | Better Auth |
-| State | Zustand |
-| Styling | Tailwind CSS + shadcn/ui |
-| Validation | Valibot |
-| Multi-platform links | Songlink/Odesli API |
+| Composant            | Technologie              |
+| -------------------- | ------------------------ |
+| Runtime              | Bun                      |
+| Framework Backend    | Elysia                   |
+| Framework Frontend   | React 19 + Vite          |
+| Database             | PostgreSQL               |
+| ORM                  | Drizzle                  |
+| Auth                 | Better Auth              |
+| State                | Zustand                  |
+| Styling              | Tailwind CSS + shadcn/ui |
+| Validation           | Valibot                  |
+| Multi-platform links | Songlink/Odesli API      |
 
 ## License
 

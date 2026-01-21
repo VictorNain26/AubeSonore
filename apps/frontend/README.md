@@ -25,9 +25,11 @@ Cette application permet d’écouter la radio en streaming, de liker des morcea
 ## Développement
 
 Lancez le serveur Vite avec :
+
 ```bash
 pnpm dev
 ```
+
 L’application est disponible sur <http://localhost:5173>.
 
 ## Build production
@@ -35,11 +37,13 @@ L’application est disponible sur <http://localhost:5173>.
 ```bash
 pnpm build
 ```
+
 Le répertoire `dist/` contient alors les fichiers statiques.
 
 ### Docker
 
 Un `Dockerfile` est fourni pour servir l’application via Nginx :
+
 ```bash
 docker build -t ourmusic-frontend .
 docker run -p 80:80 ourmusic-frontend
@@ -48,6 +52,7 @@ docker run -p 80:80 ourmusic-frontend
 ## Tests
 
 Les tests Vitest (si configurés) peuvent être lancés avec :
+
 ```bash
 pnpm test
 ```

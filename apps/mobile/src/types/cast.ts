@@ -4,10 +4,7 @@
 
 export type CastType = 'chromecast' | 'airplay';
 
-export type CastConnectionState =
-  | 'disconnected'
-  | 'connecting'
-  | 'connected';
+export type CastConnectionState = 'disconnected' | 'connecting' | 'connected';
 
 export interface CastDevice {
   id: string;

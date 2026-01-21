@@ -11,7 +11,7 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
-  # Quality checks (typecheck only - no ESLint config exists)
+  # Quality checks
   quality:
     name: Quality Checks
     runs-on: ubuntu-latest
@@ -29,6 +29,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Typecheck
         run: pnpm turbo typecheck

@@ -1,4 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { trackApi, type LikedTrack, type LikeTrackRequest } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -70,83 +78,90 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
   }, [isAuthenticated, authLoading, refreshTracks]);
 
   // Liker un morceau - Optimistic update
-  const likeTrack = useCallback(async (data: LikeTrackRequest): Promise<LikedTrack | null> => {
-    if (!isAuthenticated) return null;
+  const likeTrack = useCallback(
+    async (data: LikeTrackRequest): Promise<LikedTrack | null> => {
+      if (!isAuthenticated) return null;
 
-    // Créer un track temporaire pour affichage immédiat
-    const tempId = `temp-${Date.now()}`;
-    const optimisticTrack: LikedTrack = {
-      id: tempId,
-      userId: '',
-      title: data.title,
-      artist: data.artist,
-      album: null,
-      artworkUrl: data.artworkUrl || null,
-      artworkBase64: null,
-      youtubeUrl: data.youtubeUrl,
-      isrc: null,
-      songlinkUrl: null,
-      platformLinks: null,
-      createdAt: new Date().toISOString(),
-    };
+      // Créer un track temporaire pour affichage immédiat
+      const tempId = `temp-${Date.now()}`;
+      const optimisticTrack: LikedTrack = {
+        id: tempId,
+        userId: '',
+        title: data.title,
+        artist: data.artist,
+        album: null,
+        artworkUrl: data.artworkUrl || null,
+        artworkBase64: null,
+        youtubeUrl: data.youtubeUrl,
+        isrc: null,
+        songlinkUrl: null,
+        platformLinks: null,
+        createdAt: new Date().toISOString(),
+      };
 
-    // Ajouter immédiatement à l'UI (optimistic)
-    setTracks((prev) => [...prev, optimisticTrack]);
+      // Ajouter immédiatement à l'UI (optimistic)
+      setTracks((prev) => [...prev, optimisticTrack]);
 
-    try {
-      const result = await trackApi.likeTrack(data);
-      // Remplacer le track temporaire par le vrai
-      setTracks((prev) =>
-        prev.map((t) => (t.id === tempId ? result.track : t))
-      );
-      return result.track;
-    } catch (err) {
-      // Rollback en cas d'erreur
-      setTracks((prev) => prev.filter((t) => t.id !== tempId));
-      setError(err instanceof Error ? err.message : 'Erreur lors du like');
-      return null;
-    }
-  }, [isAuthenticated]);
+      try {
+        const result = await trackApi.likeTrack(data);
+        // Remplacer le track temporaire par le vrai
+        setTracks((prev) => prev.map((t) => (t.id === tempId ? result.track : t)));
+        return result.track;
+      } catch (err) {
+        // Rollback en cas d'erreur
+        setTracks((prev) => prev.filter((t) => t.id !== tempId));
+        setError(err instanceof Error ? err.message : 'Erreur lors du like');
+        return null;
+      }
+    },
+    [isAuthenticated]
+  );
 
   // Supprimer un like - Optimistic update
-  const unlikeTrack = useCallback(async (trackId: string): Promise<boolean> => {
-    if (!isAuthenticated) return false;
+  const unlikeTrack = useCallback(
+    async (trackId: string): Promise<boolean> => {
+      if (!isAuthenticated) return false;
 
-    // Sauvegarder pour rollback potentiel
-    const trackToRemove = tracks.find((t) => t.id === trackId);
-    const previousIndex = tracks.findIndex((t) => t.id === trackId);
+      // Sauvegarder pour rollback potentiel
+      const trackToRemove = tracks.find((t) => t.id === trackId);
+      const previousIndex = tracks.findIndex((t) => t.id === trackId);
 
-    // Retirer immédiatement de l'UI (optimistic)
-    setTracks((prev) => prev.filter((t) => t.id !== trackId));
+      // Retirer immédiatement de l'UI (optimistic)
+      setTracks((prev) => prev.filter((t) => t.id !== trackId));
 
-    try {
-      await trackApi.unlikeTrack(trackId);
-      return true;
-    } catch (err) {
-      // Rollback: remettre le track à sa position
-      if (trackToRemove) {
-        setTracks((prev) => {
-          const newTracks = [...prev];
-          newTracks.splice(previousIndex, 0, trackToRemove);
-          return newTracks;
-        });
+      try {
+        await trackApi.unlikeTrack(trackId);
+        return true;
+      } catch (err) {
+        // Rollback: remettre le track à sa position
+        if (trackToRemove) {
+          setTracks((prev) => {
+            const newTracks = [...prev];
+            newTracks.splice(previousIndex, 0, trackToRemove);
+            return newTracks;
+          });
+        }
+        setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
+        return false;
       }
-      setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
-      return false;
-    }
-  }, [tracks, isAuthenticated]);
+    },
+    [tracks, isAuthenticated]
+  );
 
   // Vérifier si un morceau est liké (via API)
-  const checkLiked = useCallback(async (title: string, artist: string): Promise<LikedTrack | null> => {
-    if (!isAuthenticated) return null;
+  const checkLiked = useCallback(
+    async (title: string, artist: string): Promise<LikedTrack | null> => {
+      if (!isAuthenticated) return null;
 
-    try {
-      const result = await trackApi.checkLiked({ title, artist });
-      return result.track || null;
-    } catch {
-      return null;
-    }
-  }, [isAuthenticated]);
+      try {
+        const result = await trackApi.checkLiked({ title, artist });
+        return result.track || null;
+      } catch {
+        return null;
+      }
+    },
+    [isAuthenticated]
+  );
 
   // Vérifier si un morceau est liké (via cache local)
   const isTrackLiked = useCallback(
@@ -171,11 +186,7 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
     refreshTracks,
   };
 
-  return (
-    <LikedTracksContext.Provider value={value}>
-      {children}
-    </LikedTracksContext.Provider>
-  );
+  return <LikedTracksContext.Provider value={value}>{children}</LikedTracksContext.Provider>;
 }
 
 // Hook pour utiliser le context

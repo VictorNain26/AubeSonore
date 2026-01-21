@@ -33,7 +33,8 @@ export function AlbumArt({
   }, [artUrl]);
 
   // Détecter la cover par défaut AzuraCast
-  const isDefaultCover = !artUrl ||
+  const isDefaultCover =
+    !artUrl ||
     artError ||
     artUrl.includes('generic') ||
     artUrl.includes('default') ||

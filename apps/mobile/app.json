@@ -17,14 +17,9 @@
       "supportsTablet": true,
       "bundleIdentifier": "fr.aubesonore.app",
       "infoPlist": {
-        "UIBackgroundModes": [
-          "audio"
-        ],
+        "UIBackgroundModes": ["audio"],
         "NSMicrophoneUsageDescription": "This app does not use the microphone",
-        "NSBonjourServices": [
-          "_googlecast._tcp",
-          "_CC1AD845._googlecast._tcp"
-        ],
+        "NSBonjourServices": ["_googlecast._tcp", "_CC1AD845._googlecast._tcp"],
         "NSLocalNetworkUsageDescription": "Aube Sonore utilise le réseau local pour détecter les appareils de diffusion (Chromecast, AirPlay)"
       }
     },
@@ -35,11 +30,7 @@
         "backgroundColor": "#0f1118"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": [
-        "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "WAKE_LOCK"
-      ]
+      "permissions": ["FOREGROUND_SERVICE", "FOREGROUND_SERVICE_MEDIA_PLAYBACK", "WAKE_LOCK"]
     },
     "web": {
       "bundler": "metro",

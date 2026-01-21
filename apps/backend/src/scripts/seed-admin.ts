@@ -4,7 +4,6 @@ import { sql } from 'drizzle-orm';
 import { user as userTable } from '../db/schema';
 import { APIError } from 'better-auth/api';
 
-
 const { ADMIN_EMAIL, ADMIN_USERNAME, ADMIN_PASSWORD } = process.env;
 
 if (!ADMIN_EMAIL || !ADMIN_USERNAME || !ADMIN_PASSWORD) {

@@ -22,9 +22,13 @@ export const unstable_settings = {
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 
+// Font asset path - using require to load the local font file
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const SpaceMonoFont = require('../assets/fonts/SpaceMono-Regular.ttf');
+
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
+    SpaceMono: SpaceMonoFont,
   });
 
   const initializeAuth = useAuthStore((state) => state.initialize);

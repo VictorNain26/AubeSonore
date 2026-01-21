@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { View, Text, Image, Pressable, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { LikedTrack, PreferredPlatform, PlatformLinks } from '../types';
-import { DEFAULT_ARTWORK } from '../config/env';
 
 // ─────────────────────────────────────────────
 // Helper: Search URLs by platform
@@ -60,7 +59,7 @@ export function TrackCard({ track, preferredPlatform, onDelete }: TrackCardProps
   const [imgError, setImgError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const artwork = imgError ? null : (track.artworkBase64 || track.artworkUrl);
+  const artwork = imgError ? null : track.artworkBase64 || track.artworkUrl;
   const { url: link, isSearch } = getPreferredLink(track, preferredPlatform);
 
   const handleOpen = async () => {
@@ -77,9 +76,7 @@ export function TrackCard({ track, preferredPlatform, onDelete }: TrackCardProps
   };
 
   return (
-    <View
-      className={`flex-row items-center gap-3 py-3 ${isDeleting ? 'opacity-50' : ''}`}
-    >
+    <View className={`flex-row items-center gap-3 py-3 ${isDeleting ? 'opacity-50' : ''}`}>
       {/* Artwork */}
       <View className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 items-center justify-center">
         {artwork ? (
@@ -106,10 +103,7 @@ export function TrackCard({ track, preferredPlatform, onDelete }: TrackCardProps
 
       {/* Actions */}
       <View className="flex-row items-center gap-1">
-        <Pressable
-          onPress={handleOpen}
-          className="p-2 rounded-full active:bg-white/10"
-        >
+        <Pressable onPress={handleOpen} className="p-2 rounded-full active:bg-white/10">
           <Ionicons
             name={isSearch ? 'search' : 'open-outline'}
             size={18}

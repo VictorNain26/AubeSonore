@@ -7,14 +7,18 @@
  * Check if AirPlay is available (Safari only)
  */
 export function isAirPlayAvailable(): boolean {
-  return !!(window as unknown as { WebKitPlaybackTargetAvailabilityEvent?: unknown }).WebKitPlaybackTargetAvailabilityEvent;
+  return !!(window as unknown as { WebKitPlaybackTargetAvailabilityEvent?: unknown })
+    .WebKitPlaybackTargetAvailabilityEvent;
 }
 
 /**
  * Check if currently playing to AirPlay device
  */
 export function isAirPlayConnected(audioElement: HTMLAudioElement): boolean {
-  return (audioElement as unknown as { webkitCurrentPlaybackTargetIsWireless?: boolean }).webkitCurrentPlaybackTargetIsWireless ?? false;
+  return (
+    (audioElement as unknown as { webkitCurrentPlaybackTargetIsWireless?: boolean })
+      .webkitCurrentPlaybackTargetIsWireless ?? false
+  );
 }
 
 /**

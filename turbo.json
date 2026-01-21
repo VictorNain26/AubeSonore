@@ -4,36 +4,40 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [
-        "dist/**",
-        ".next/**",
-        "!.next/cache/**",
-        "build/**"
-      ]
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$"]
     },
     "typecheck": {
       "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", "tsconfig.json"],
       "outputs": ["*.tsbuildinfo"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": ["coverage/**"]
     },
     "clean": {
       "cache": false
     }
   },
-  "globalDependencies": [
-    ".env",
-    "tsconfig.json"
-  ],
+  "globalDependencies": ["tsconfig.base.json"],
   "globalEnv": [
     "NODE_ENV",
+    "CI",
     "VITE_API_BASE_URL",
     "VITE_AZURACAST_BASE_URL",
-    "VITE_STATION_SHORTCODE"
+    "VITE_STATION_SHORTCODE",
+    "EXPO_PUBLIC_API_URL",
+    "EXPO_PUBLIC_AZURACAST_URL",
+    "EXPO_PUBLIC_STATION_SHORTCODE"
   ]
 }

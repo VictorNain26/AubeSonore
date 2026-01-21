@@ -26,12 +26,13 @@ export const auth = betterAuth({
 
   advanced: {
     useSecureCookies: isProd,
-    crossSubDomainCookies: isProd && env.COOKIE_DOMAIN
-      ? {
-        enabled: true,
-        domain: env.COOKIE_DOMAIN,
-      }
-      : { enabled: false },
+    crossSubDomainCookies:
+      isProd && env.COOKIE_DOMAIN
+        ? {
+            enabled: true,
+            domain: env.COOKIE_DOMAIN,
+          }
+        : { enabled: false },
     defaultCookieAttributes: {
       secure: isProd,
       httpOnly: true,
@@ -52,7 +53,13 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
 
-    sendResetPassword: async ({ user, url }: { user: { email: string }; url: string }): Promise<void> => {
+    sendResetPassword: async ({
+      user,
+      url,
+    }: {
+      user: { email: string };
+      url: string;
+    }): Promise<void> => {
       await sendBetterAuthEmail({
         to: user.email,
         subject: '🔒 Réinitialisez votre mot de passe',
@@ -68,7 +75,13 @@ export const auth = betterAuth({
     sendOnSignUp: false,
     autoSignInAfterVerification: true,
 
-    sendVerificationEmail: async ({ user, url }: { user: { email: string }; url: string }): Promise<void> => {
+    sendVerificationEmail: async ({
+      user,
+      url,
+    }: {
+      user: { email: string };
+      url: string;
+    }): Promise<void> => {
       await sendBetterAuthEmail({
         to: user.email,
         subject: '🎉 Confirmez votre adresse email',
@@ -85,7 +98,7 @@ export const auth = betterAuth({
   },
 
   // 🔗 Authentification Spotify native
-  /* ──────────────── Account Linking ──────────────── */
+  /* Account Linking */
   account: {
     accountLinking: {
       enabled: true,

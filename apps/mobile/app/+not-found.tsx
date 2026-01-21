@@ -12,10 +12,10 @@ export default function NotFoundScreen() {
         </View>
         <Text className="text-xl font-bold text-white mb-2">Page introuvable</Text>
         <Text className="text-sm text-white/50 text-center mb-6">
-          Cette page n'existe pas.
+          Cette page n&apos;existe pas.
         </Text>
         <Link href="/" className="bg-accent px-6 py-3 rounded-full">
-          <Text className="text-white font-medium">Retour à l'accueil</Text>
+          <Text className="text-white font-medium">Retour à l&apos;accueil</Text>
         </Link>
       </View>
     </>

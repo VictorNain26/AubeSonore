@@ -21,7 +21,10 @@ export function isError(err: unknown): err is Error {
 /**
  * Create a standardized error response
  */
-export function createErrorResponse(error: unknown, statusCode = 500): {
+export function createErrorResponse(
+  error: unknown,
+  statusCode = 500
+): {
   error: string;
   message: string;
   statusCode: number;

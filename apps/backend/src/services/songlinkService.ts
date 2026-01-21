@@ -167,7 +167,10 @@ async function searchItunes(title: string, artist: string): Promise<string | nul
  * @param title - Titre du morceau
  * @param artist - Nom de l'artiste
  */
-export async function searchSonglink(title: string, artist: string): Promise<SonglinkResult | null> {
+export async function searchSonglink(
+  title: string,
+  artist: string
+): Promise<SonglinkResult | null> {
   // Étape 1: Chercher sur iTunes pour obtenir une vraie URL
   const appleMusicUrl = await searchItunes(title, artist);
 

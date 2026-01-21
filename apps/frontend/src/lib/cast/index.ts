@@ -28,12 +28,7 @@ export {
 } from './airplay';
 
 // SDK Loader
-export {
-  loadCastSDK,
-  isCastSDKLoaded,
-  getCastFramework,
-  getCastContext,
-} from './loader';
+export { loadCastSDK, isCastSDKLoaded, getCastFramework, getCastContext } from './loader';
 
 // Types
 export type { CastMediaMetadata, CastType, CastConnectionState } from '../../types/cast';

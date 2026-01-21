@@ -12,7 +12,7 @@ export async function ensureDirectoryExists(dirPath: string): Promise<void> {
 
 export async function runCommand(
   args: string[],
-  options: Parameters<typeof Bun.spawn>[1] = {},
+  options: Parameters<typeof Bun.spawn>[1] = {}
 ): Promise<string> {
   const proc = Bun.spawn(args, {
     stdout: 'pipe',
@@ -39,7 +39,7 @@ export async function runCommand(
 }
 
 export function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 export async function fileExists(filePath: string): Promise<boolean> {

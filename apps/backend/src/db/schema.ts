@@ -14,7 +14,15 @@ export type PlatformLinks = {
   soundcloud?: string;
 };
 
-export type PreferredPlatform = 'spotify' | 'appleMusic' | 'deezer' | 'youtubeMusic' | 'tidal' | 'amazonMusic' | 'soundcloud' | 'youtube';
+export type PreferredPlatform =
+  | 'spotify'
+  | 'appleMusic'
+  | 'deezer'
+  | 'youtubeMusic'
+  | 'tidal'
+  | 'amazonMusic'
+  | 'soundcloud'
+  | 'youtube';
 
 // ─────────────────────────────────────────────
 // USER TABLE
@@ -56,9 +64,9 @@ export const account = pgTable(
     createdAt: timestamp('created_at').notNull(),
     updatedAt: timestamp('updated_at').notNull(),
   },
-  table => ({
+  (table) => ({
     providerAccountUnique: unique().on(table.providerId, table.accountId),
-  }),
+  })
 );
 
 // ─────────────────────────────────────────────
@@ -127,7 +135,10 @@ export const userPreferences = pgTable('user_preferences', {
   userId: text('user_id')
     .primaryKey()
     .references(() => user.id, { onDelete: 'cascade' }),
-  preferredPlatform: text('preferred_platform').$type<PreferredPlatform>().notNull().default('spotify'),
+  preferredPlatform: text('preferred_platform')
+    .$type<PreferredPlatform>()
+    .notNull()
+    .default('spotify'),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 

@@ -37,36 +37,33 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
   // ─────────────────────────────────────────────
   // POST /api/track/like - Liker un morceau
   // ─────────────────────────────────────────────
-  .post(
-    '/like',
-    async ({ user, body, set }): Promise<ServiceResponse> => {
-      if (!user) {
-        set.status = 401;
-        return { error: 'Non authentifié' };
-      }
+  .post('/like', async ({ user, body, set }): Promise<ServiceResponse> => {
+    if (!user) {
+      set.status = 401;
+      return { error: 'Non authentifié' };
+    }
 
-      const data = validateBody(likeTrackSchema, body);
-      if (hasError(data)) {
-        set.status = 400;
-        return data;
-      }
+    const data = validateBody(likeTrackSchema, body);
+    if (hasError(data)) {
+      set.status = 400;
+      return data;
+    }
 
-      // Build request with only defined optional fields
-      const requestBody = {
-        title: data.title,
-        artist: data.artist,
-        youtubeUrl: data.youtubeUrl,
-        ...(data.album !== undefined && { album: data.album }),
-        ...(data.artworkUrl !== undefined && { artworkUrl: data.artworkUrl }),
-        ...(data.isrc !== undefined && { isrc: data.isrc }),
-      };
-      const result = await trackService.likeTrack({ user, body: requestBody });
-      if (result.error) {
-        set.status = result.status || 400;
-      }
-      return result;
-    },
-  )
+    // Build request with only defined optional fields
+    const requestBody = {
+      title: data.title,
+      artist: data.artist,
+      youtubeUrl: data.youtubeUrl,
+      ...(data.album !== undefined && { album: data.album }),
+      ...(data.artworkUrl !== undefined && { artworkUrl: data.artworkUrl }),
+      ...(data.isrc !== undefined && { isrc: data.isrc }),
+    };
+    const result = await trackService.likeTrack({ user, body: requestBody });
+    if (result.error) {
+      set.status = result.status || 400;
+    }
+    return result;
+  })
 
   // ─────────────────────────────────────────────
   // GET /api/track/like - Récupérer les morceaux likés
@@ -104,29 +101,36 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
   // ─────────────────────────────────────────────
   // POST /api/track/check-liked - Vérifier si un morceau est liké
   // ─────────────────────────────────────────────
-  .post('/check-liked', async ({ user, body, set }): Promise<{ liked: boolean; track?: LikedTrack } | { error: string }> => {
-    if (!user) {
-      set.status = 401;
-      return { error: 'Non authentifié' };
-    }
-
-    const data = validateBody(checkLikedSchema, body);
-    if (hasError(data)) {
-      set.status = 400;
-      return data;
-    }
-
-    const track = await trackService.getLikedTrackByTitleArtist({
+  .post(
+    '/check-liked',
+    async ({
       user,
-      title: data.title,
-      artist: data.artist,
-    });
+      body,
+      set,
+    }): Promise<{ liked: boolean; track?: LikedTrack } | { error: string }> => {
+      if (!user) {
+        set.status = 401;
+        return { error: 'Non authentifié' };
+      }
 
-    if (track) {
-      return { liked: true, track };
+      const data = validateBody(checkLikedSchema, body);
+      if (hasError(data)) {
+        set.status = 400;
+        return data;
+      }
+
+      const track = await trackService.getLikedTrackByTitleArtist({
+        user,
+        title: data.title,
+        artist: data.artist,
+      });
+
+      if (track) {
+        return { liked: true, track };
+      }
+      return { liked: false };
     }
-    return { liked: false };
-  })
+  )
 
   // ─────────────────────────────────────────────
   // POST /api/track/:trackId/refresh-links - Rafraîchir les liens Songlink

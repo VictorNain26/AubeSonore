@@ -7,12 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../src/stores/authStore';
 import { useLikedTracksStore } from '../../src/stores/likedTracksStore';
 import { usePreferencesStore } from '../../src/stores/preferencesStore';
-import {
-  TrackCard,
-  LoadingSpinner,
-  EmptyState,
-  PlatformSelector,
-} from '../../src/components';
+import { TrackCard, LoadingSpinner, EmptyState, PlatformSelector } from '../../src/components';
 import type { LikedTrack } from '../../src/types';
 
 export default function LibraryScreen() {
@@ -22,12 +17,7 @@ export default function LibraryScreen() {
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
 
   // Liked tracks state
-  const {
-    tracks,
-    isLoading: tracksLoading,
-    fetchTracks,
-    unlikeTrack,
-  } = useLikedTracksStore();
+  const { tracks, isLoading: tracksLoading, fetchTracks, unlikeTrack } = useLikedTracksStore();
 
   // Preferences state
   const {
@@ -58,11 +48,7 @@ export default function LibraryScreen() {
   // Render track item
   const renderTrackItem = useCallback(
     ({ item }: { item: LikedTrack }) => (
-      <TrackCard
-        track={item}
-        preferredPlatform={preferredPlatform}
-        onDelete={unlikeTrack}
-      />
+      <TrackCard track={item} preferredPlatform={preferredPlatform} onDelete={unlikeTrack} />
     ),
     [preferredPlatform, unlikeTrack]
   );
@@ -88,7 +74,8 @@ export default function LibraryScreen() {
             Votre bibliothèque
           </Text>
           <Text className="text-sm text-white/50 text-center mb-8 max-w-[280px]">
-            Connectez-vous pour sauvegarder vos morceaux préférés et les retrouver sur vos plateformes de streaming
+            Connectez-vous pour sauvegarder vos morceaux préférés et les retrouver sur vos
+            plateformes de streaming
           </Text>
           <Pressable
             onPress={() => router.push('/auth')}
@@ -112,9 +99,7 @@ export default function LibraryScreen() {
               <Ionicons name="library" size={20} color="rgba(255,255,255,0.6)" />
             </View>
             <View>
-              <Text className="text-lg font-semibold text-white">
-                Ma Bibliothèque
-              </Text>
+              <Text className="text-lg font-semibold text-white">Ma Bibliothèque</Text>
               <Text className="text-xs text-white/40">
                 {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
               </Text>
@@ -126,10 +111,7 @@ export default function LibraryScreen() {
         {tracks.length > 0 && (
           <View className="flex-row items-center justify-between mt-4 pt-3 border-t border-white/5">
             <Text className="text-xs text-white/40">Ouvrir avec</Text>
-            <PlatformSelector
-              selected={preferredPlatform}
-              onChange={updatePreferredPlatform}
-            />
+            <PlatformSelector selected={preferredPlatform} onChange={updatePreferredPlatform} />
           </View>
         )}
       </View>
@@ -149,9 +131,7 @@ export default function LibraryScreen() {
           renderItem={renderTrackItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
-          ItemSeparatorComponent={() => (
-            <View className="h-px bg-white/5" />
-          )}
+          ItemSeparatorComponent={() => <View className="h-px bg-white/5" />}
           refreshControl={
             <RefreshControl
               refreshing={tracksLoading || prefsLoading}

@@ -26,18 +26,14 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Écouter',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="radio" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="radio" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
         name="library"
         options={{
           title: 'Bibliothèque',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="library" size={size} color={color} />
-          ),
+          tabBarIcon: ({ color, size }) => <Ionicons name="library" size={size} color={color} />,
         }}
       />
       <Tabs.Screen

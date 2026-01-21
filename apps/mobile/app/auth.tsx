@@ -65,10 +65,7 @@ export default function AuthScreen() {
       // Navigate back
       router.back();
     } catch (error) {
-      Alert.alert(
-        'Erreur',
-        error instanceof Error ? error.message : 'Une erreur est survenue'
-      );
+      Alert.alert('Erreur', error instanceof Error ? error.message : 'Une erreur est survenue');
     }
   };
 
@@ -86,10 +83,7 @@ export default function AuthScreen() {
         >
           {/* Close Button */}
           <View className="absolute top-4 right-4 z-10">
-            <Pressable
-              onPress={() => router.back()}
-              className="p-2 rounded-full bg-white/5"
-            >
+            <Pressable onPress={() => router.back()} className="p-2 rounded-full bg-white/5">
               <Ionicons name="close" size={24} color="rgba(255,255,255,0.6)" />
             </Pressable>
           </View>
@@ -187,10 +181,7 @@ export default function AuthScreen() {
               <Text className="text-white/50 text-sm">
                 {isSignUp ? 'Déjà un compte ?' : 'Pas encore de compte ?'}
               </Text>
-              <Pressable
-                onPress={() => setMode(isSignUp ? 'signin' : 'signup')}
-                className="ml-1"
-              >
+              <Pressable onPress={() => setMode(isSignUp ? 'signin' : 'signup')} className="ml-1">
                 <Text className="text-accent text-sm font-medium">
                   {isSignUp ? 'Se connecter' : "S'inscrire"}
                 </Text>

@@ -123,7 +123,7 @@ export function useNowPlaying() {
 
     // Construction de l'URL SSE avec paramètres de souscription
     const subs = {
-      [`station:${STATION_SHORTCODE}`]: { recover: true }
+      [`station:${STATION_SHORTCODE}`]: { recover: true },
     };
     const sseUrl = `${SSE_URL}?cf_connect=${encodeURIComponent(JSON.stringify({ subs }))}`;
 

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useCallback } from 'react';
-import { useAudioPlayer, setAudioModeAsync, AudioPlayer } from 'expo-audio';
+import type { AudioPlayer } from 'expo-audio';
+import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
 import { usePlayerStore } from '../stores/playerStore';
 import { STREAM_URL, DEFAULT_ARTWORK } from '../config/env';
 

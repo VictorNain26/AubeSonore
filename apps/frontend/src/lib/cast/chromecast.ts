@@ -3,7 +3,7 @@
  * Wrapper around Google Cast Web Sender API
  */
 
-/// <reference path="../../types/google-cast.d.ts" />
+// Type imports for Google Cast SDK (ambient types from google-cast.d.ts)
 
 import { loadCastSDK, getCastContext, isCastSDKLoaded } from './loader';
 import type { CastMediaMetadata } from '../../types/cast';
@@ -15,7 +15,8 @@ const DEFAULT_MEDIA_RECEIVER_APP_ID = 'CC1AD845';
 const HLS_CONTENT_TYPE = 'application/x-mpegurl';
 
 // Stream URL
-const STREAM_URL = import.meta.env.VITE_STREAM_URL || 'https://radio.aubesonore.fr/hls/aubesonore/live.m3u8';
+const STREAM_URL =
+  import.meta.env.VITE_STREAM_URL || 'https://radio.aubesonore.fr/hls/aubesonore/live.m3u8';
 
 let isInitialized = false;
 
@@ -79,7 +80,9 @@ export function isChromecastAvailable(): boolean {
  */
 export function isCasting(): boolean {
   const session = getCurrentSession();
-  return session !== null && session.getSessionState() === cast.framework.SessionState.SESSION_STARTED;
+  return (
+    session !== null && session.getSessionState() === cast.framework.SessionState.SESSION_STARTED
+  );
 }
 
 /**
@@ -150,7 +153,9 @@ export function endSession(): void {
 /**
  * Subscribe to cast state changes
  */
-export function onCastStateChanged(callback: (state: cast.framework.CastState) => void): () => void {
+export function onCastStateChanged(
+  callback: (state: cast.framework.CastState) => void
+): () => void {
   const context = getCastContext();
   if (!context) return () => {};
 
@@ -168,7 +173,9 @@ export function onCastStateChanged(callback: (state: cast.framework.CastState) =
 /**
  * Subscribe to session state changes
  */
-export function onSessionStateChanged(callback: (state: cast.framework.SessionState) => void): () => void {
+export function onSessionStateChanged(
+  callback: (state: cast.framework.SessionState) => void
+): () => void {
   const context = getCastContext();
   if (!context) return () => {};
 
@@ -179,6 +186,9 @@ export function onSessionStateChanged(callback: (state: cast.framework.SessionSt
   context.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, listener);
 
   return () => {
-    context.removeEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, listener);
+    context.removeEventListener(
+      cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
+      listener
+    );
   };
 }

@@ -32,11 +32,13 @@ class AzuraCastWebSocket {
         this.notifyConnection(true);
 
         // Subscribe to station updates
-        this.ws?.send(JSON.stringify({
-          subs: {
-            [`station:${ENV.STATION_SHORTCODE}`]: { recover: true }
-          }
-        }));
+        this.ws?.send(
+          JSON.stringify({
+            subs: {
+              [`station:${ENV.STATION_SHORTCODE}`]: { recover: true },
+            },
+          })
+        );
       };
 
       this.ws.onmessage = (event) => {
@@ -72,7 +74,7 @@ class AzuraCastWebSocket {
         // Auto-reconnect after 3 seconds
         this.scheduleReconnect();
       };
-    } catch (error) {
+    } catch {
       this.isConnecting = false;
       this.notifyError('Impossible de se connecter');
     }
@@ -98,15 +100,15 @@ class AzuraCastWebSocket {
   }
 
   private notifyNowPlaying(data: NowPlaying) {
-    this.onNowPlayingCallbacks.forEach(cb => cb(data));
+    this.onNowPlayingCallbacks.forEach((cb) => cb(data));
   }
 
   private notifyConnection(connected: boolean) {
-    this.onConnectionCallbacks.forEach(cb => cb(connected));
+    this.onConnectionCallbacks.forEach((cb) => cb(connected));
   }
 
   private notifyError(error: string) {
-    this.onErrorCallbacks.forEach(cb => cb(error));
+    this.onErrorCallbacks.forEach((cb) => cb(error));
   }
 
   subscribe(

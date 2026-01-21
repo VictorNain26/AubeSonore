@@ -35,7 +35,7 @@ type PlayerStore = PlayerState & PlayerActions;
 // Store
 // ─────────────────────────────────────────────
 
-export const usePlayerStore = create<PlayerStore>((set, get) => ({
+export const usePlayerStore = create<PlayerStore>((set, _get) => ({
   isPlaying: false,
   volume: 1,
   isLoading: false,

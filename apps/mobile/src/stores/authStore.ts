@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { authApi, getAuthToken, removeAuthToken } from '../services/api';
+import { authApi, getAuthToken } from '../services/api';
 import type { User } from '../types';
 
 // ─────────────────────────────────────────────
