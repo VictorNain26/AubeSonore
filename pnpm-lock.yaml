@@ -60,10 +60,13 @@ importers:
         version: link:../../packages/shared-utils
       '@elysiajs/cors':
         specifier: ^1.3.0
-        version: 1.4.1(elysia@1.4.22(@sinclair/typebox@0.27.8)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.27.8))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))
+        version: 1.4.1(elysia@1.4.22(@sinclair/typebox@0.34.47)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.34.47))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))
       '@elysiajs/cron':
         specifier: ^1.3.0
-        version: 1.4.1(elysia@1.4.22(@sinclair/typebox@0.27.8)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.27.8))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))
+        version: 1.4.1(elysia@1.4.22(@sinclair/typebox@0.34.47)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.34.47))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))
+      '@sinclair/typebox':
+        specifier: ^0.34.0
+        version: 0.34.47
       axios:
         specifier: ^1.9.0
         version: 1.13.2
@@ -84,7 +87,7 @@ importers:
         version: 0.41.0(@types/pg@8.16.0)(bun-types@1.3.6)(kysely@0.28.9)(pg@8.17.1)
       elysia:
         specifier: ^1.3.0
-        version: 1.4.22(@sinclair/typebox@0.27.8)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.27.8))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3)
+        version: 1.4.22(@sinclair/typebox@0.34.47)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.34.47))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3)
       html-to-text:
         specifier: ^9.0.5
         version: 9.0.5
@@ -2304,6 +2307,9 @@ packages:
 
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
+
+  '@sinclair/typebox@0.34.47':
+    resolution: {integrity: sha512-ZGIBQ+XDvO5JQku9wmwtabcVTHJsgSWAHYtVuM9pBNNR5E88v6Jcj/llpmsjivig5X8A8HHOb4/mbEKPS5EvAw==}
 
   '@sinonjs/commons@3.0.1':
     resolution: {integrity: sha512-K3mCHKQ9sVh8o1C9cxkwxaOmXoAMlDxC1mYyHrjqOWEcBjYr76t96zL2zlj5dUGZ3HSw240X1qgH3Mjf1yJWpQ==}
@@ -8374,14 +8380,14 @@ snapshots:
     dependencies:
       '@types/hammerjs': 2.0.46
 
-  '@elysiajs/cors@1.4.1(elysia@1.4.22(@sinclair/typebox@0.27.8)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.27.8))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))':
+  '@elysiajs/cors@1.4.1(elysia@1.4.22(@sinclair/typebox@0.34.47)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.34.47))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))':
     dependencies:
-      elysia: 1.4.22(@sinclair/typebox@0.27.8)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.27.8))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3)
+      elysia: 1.4.22(@sinclair/typebox@0.34.47)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.34.47))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3)
 
-  '@elysiajs/cron@1.4.1(elysia@1.4.22(@sinclair/typebox@0.27.8)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.27.8))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))':
+  '@elysiajs/cron@1.4.1(elysia@1.4.22(@sinclair/typebox@0.34.47)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.34.47))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3))':
     dependencies:
       croner: 6.0.7
-      elysia: 1.4.22(@sinclair/typebox@0.27.8)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.27.8))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3)
+      elysia: 1.4.22(@sinclair/typebox@0.34.47)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.34.47))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3)
 
   '@esbuild-kit/core-utils@3.3.2':
     dependencies:
@@ -9548,6 +9554,8 @@ snapshots:
       selderee: 0.11.0
 
   '@sinclair/typebox@0.27.8': {}
+
+  '@sinclair/typebox@0.34.47': {}
 
   '@sinonjs/commons@3.0.1':
     dependencies:
@@ -11039,11 +11047,11 @@ snapshots:
 
   electron-to-chromium@1.5.267: {}
 
-  elysia@1.4.22(@sinclair/typebox@0.27.8)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.27.8))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3):
+  elysia@1.4.22(@sinclair/typebox@0.34.47)(@types/bun@1.3.6)(exact-mirror@0.2.6(@sinclair/typebox@0.34.47))(file-type@21.3.0)(openapi-types@12.1.3)(typescript@5.9.3):
     dependencies:
-      '@sinclair/typebox': 0.27.8
+      '@sinclair/typebox': 0.34.47
       cookie: 1.1.1
-      exact-mirror: 0.2.6(@sinclair/typebox@0.27.8)
+      exact-mirror: 0.2.6(@sinclair/typebox@0.34.47)
       fast-decode-uri-component: 1.0.1
       file-type: 21.3.0
       memoirist: 0.4.0
@@ -11347,9 +11355,9 @@ snapshots:
 
   eventemitter3@5.0.4: {}
 
-  exact-mirror@0.2.6(@sinclair/typebox@0.27.8):
+  exact-mirror@0.2.6(@sinclair/typebox@0.34.47):
     optionalDependencies:
-      '@sinclair/typebox': 0.27.8
+      '@sinclair/typebox': 0.34.47
 
   exec-async@2.2.0: {}
 
