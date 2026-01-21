@@ -1,21 +1,37 @@
 /**
  * Google Cast SDK Loader
  * Dynamically loads the Cast Web Sender SDK
- * Handles HMR gracefully by checking if SDK is already loaded
+ *
+ * HMR-Safe Implementation (Best Practice 2025):
+ * - Uses customElements.get() as definitive SDK load check
+ * - Persists load promise on window to survive HMR
+ * - Proper cleanup with import.meta.hot
  */
-
-// Type imports for Google Cast SDK (ambient types from google-cast.d.ts)
 
 const CAST_SDK_URL = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
 const CAST_SCRIPT_ID = 'google-cast-sdk';
+const LOAD_PROMISE_KEY = '__CAST_SDK_LOAD_PROMISE__';
 
-let loadPromise: Promise<void> | null = null;
+// Extend window type for our HMR-safe global
+declare global {
+  interface Window {
+    [LOAD_PROMISE_KEY]?: Promise<void>;
+  }
+}
 
 /**
- * Check if the Cast SDK is already available in the window
- * This handles HMR scenarios where the script is already loaded
+ * Check if the Cast SDK custom element is registered
+ * This is the most reliable indicator that SDK is fully loaded
+ * Custom elements persist across HMR
  */
-function isSDKAlreadyLoaded(): boolean {
+function isCustomElementRegistered(): boolean {
+  return customElements.get('google-cast-button') !== undefined;
+}
+
+/**
+ * Check if the Cast SDK APIs are available in the window
+ */
+function isSDKApiAvailable(): boolean {
   return !!(window.cast?.framework && window.chrome?.cast);
 }
 
@@ -27,43 +43,55 @@ function isScriptInDOM(): boolean {
 }
 
 /**
+ * Wait for SDK to be fully ready (APIs available)
+ */
+function waitForSDKReady(timeout = 10000): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (isSDKApiAvailable()) {
+      resolve();
+      return;
+    }
+
+    const startTime = Date.now();
+    const checkInterval = setInterval(() => {
+      if (isSDKApiAvailable()) {
+        clearInterval(checkInterval);
+        resolve();
+      } else if (Date.now() - startTime > timeout) {
+        clearInterval(checkInterval);
+        reject(new Error('Google Cast SDK load timeout'));
+      }
+    }, 50);
+  });
+}
+
+/**
  * Load the Google Cast SDK
  * Returns a promise that resolves when the SDK is ready
+ *
+ * HMR-Safe: Uses customElements check and window-persisted promise
  */
 export function loadCastSDK(): Promise<void> {
-  // SDK already available (handles HMR)
-  if (isSDKAlreadyLoaded()) {
-    return Promise.resolve();
+  // Check if custom element is already registered (strongest HMR indicator)
+  // This means SDK was fully loaded in a previous module version
+  if (isCustomElementRegistered()) {
+    // SDK loaded, just wait for APIs to be available
+    return waitForSDKReady();
   }
 
-  // Return existing promise if already loading
-  if (loadPromise) {
-    return loadPromise;
+  // Check for existing load promise (persisted on window for HMR)
+  if (window[LOAD_PROMISE_KEY]) {
+    return window[LOAD_PROMISE_KEY];
   }
 
-  // Script already in DOM but SDK not ready yet - wait for it
+  // Script in DOM but loading - wait for it
   if (isScriptInDOM()) {
-    loadPromise = new Promise((resolve, reject) => {
-      const checkInterval = setInterval(() => {
-        if (isSDKAlreadyLoaded()) {
-          clearInterval(checkInterval);
-          resolve();
-        }
-      }, 100);
-
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        if (!isSDKAlreadyLoaded()) {
-          loadPromise = null;
-          reject(new Error('Google Cast SDK load timeout'));
-        }
-      }, 10000);
-    });
-    return loadPromise;
+    window[LOAD_PROMISE_KEY] = waitForSDKReady();
+    return window[LOAD_PROMISE_KEY];
   }
 
-  loadPromise = new Promise((resolve, reject) => {
+  // Create new load promise and persist on window
+  window[LOAD_PROMISE_KEY] = new Promise((resolve, reject) => {
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
     const cleanup = () => {
@@ -79,12 +107,12 @@ export function loadCastSDK(): Promise<void> {
       if (isAvailable) {
         resolve();
       } else {
-        loadPromise = null;
+        delete window[LOAD_PROMISE_KEY];
         reject(new Error('Google Cast SDK not available'));
       }
     };
 
-    // Create and append script with ID to prevent duplicates
+    // Create and append script
     const script = document.createElement('script');
     script.id = CAST_SCRIPT_ID;
     script.src = CAST_SDK_URL;
@@ -92,7 +120,7 @@ export function loadCastSDK(): Promise<void> {
 
     script.onerror = () => {
       cleanup();
-      loadPromise = null;
+      delete window[LOAD_PROMISE_KEY];
       reject(new Error('Failed to load Google Cast SDK'));
     };
 
@@ -100,21 +128,26 @@ export function loadCastSDK(): Promise<void> {
 
     // Timeout after 10 seconds
     timeoutId = setTimeout(() => {
-      if (!isSDKAlreadyLoaded()) {
-        loadPromise = null;
+      if (!isSDKApiAvailable()) {
+        delete window[LOAD_PROMISE_KEY];
         reject(new Error('Google Cast SDK load timeout'));
       }
     }, 10000);
   });
 
-  return loadPromise;
+  return window[LOAD_PROMISE_KEY];
+}
+
+// HMR support - accept updates without full reload
+if (import.meta.hot) {
+  import.meta.hot.accept();
 }
 
 /**
  * Check if the Cast SDK is loaded
  */
 export function isCastSDKLoaded(): boolean {
-  return isSDKAlreadyLoaded();
+  return isSDKApiAvailable();
 }
 
 /**

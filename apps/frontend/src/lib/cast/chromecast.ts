@@ -1,9 +1,11 @@
 /**
  * Chromecast service for web
  * Wrapper around Google Cast Web Sender API
+ *
+ * HMR-Safe Implementation (Best Practice 2025):
+ * - Uses window flag to track initialization across HMR
+ * - Proper cleanup with import.meta.hot
  */
-
-// Type imports for Google Cast SDK (ambient types from google-cast.d.ts)
 
 import { loadCastSDK, getCastContext, isCastSDKLoaded } from './loader';
 import type { CastMediaMetadata } from '../../types/cast';
@@ -18,13 +20,31 @@ const HLS_CONTENT_TYPE = 'application/x-mpegurl';
 const STREAM_URL =
   import.meta.env.VITE_STREAM_URL || 'https://radio.aubesonore.fr/hls/aubesonore/live.m3u8';
 
-let isInitialized = false;
+// HMR-safe initialization flag on window
+const INIT_FLAG_KEY = '__CHROMECAST_INITIALIZED__';
+
+declare global {
+  interface Window {
+    [INIT_FLAG_KEY]?: boolean;
+  }
+}
+
+/**
+ * Check if Chromecast is already initialized (HMR-safe)
+ */
+function isAlreadyInitialized(): boolean {
+  return window[INIT_FLAG_KEY] === true;
+}
 
 /**
  * Initialize Chromecast
+ * HMR-Safe: Uses window flag to prevent re-initialization
  */
 export async function initializeChromecast(): Promise<void> {
-  if (isInitialized) return;
+  // Check HMR-safe flag
+  if (isAlreadyInitialized()) {
+    return;
+  }
 
   try {
     await loadCastSDK();
@@ -35,17 +55,23 @@ export async function initializeChromecast(): Promise<void> {
       return;
     }
 
-    // Configure cast options
+    // Configure cast options (safe to call multiple times)
     context.setOptions({
       receiverApplicationId: DEFAULT_MEDIA_RECEIVER_APP_ID,
       autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
     });
 
-    isInitialized = true;
+    // Mark as initialized (persists across HMR)
+    window[INIT_FLAG_KEY] = true;
     console.log('[Chromecast] Initialized');
   } catch (error) {
     console.error('[Chromecast] Initialization failed:', error);
   }
+}
+
+// HMR support
+if (import.meta.hot) {
+  import.meta.hot.accept();
 }
 
 /**

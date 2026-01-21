@@ -1,6 +1,8 @@
 /**
  * AirPlay service for web (Safari only)
  * Uses WebKit's AirPlay API
+ *
+ * Note: No HMR handling needed - pure utility functions without module state
  */
 
 /**

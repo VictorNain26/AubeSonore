@@ -1,4 +1,10 @@
-// Type imports for Google Cast SDK (ambient types from google-cast.d.ts)
+/**
+ * Cast Store - Zustand state management for casting
+ *
+ * HMR-Safe Implementation (Best Practice 2025):
+ * - Uses window to persist cleanup functions across HMR
+ * - Zustand store naturally persists through HMR
+ */
 
 import { create } from 'zustand';
 import {
@@ -14,9 +20,27 @@ import {
 } from '../lib/cast';
 import type { CastType, CastMediaMetadata } from '../types/cast';
 
-// Track cleanup functions to prevent duplicate listeners
-let castStateCleanup: (() => void) | null = null;
-let sessionStateCleanup: (() => void) | null = null;
+// HMR-safe cleanup function storage
+const CLEANUP_KEY = '__CAST_STORE_CLEANUP__';
+
+interface CastCleanupFunctions {
+  castState: (() => void) | null;
+  sessionState: (() => void) | null;
+}
+
+declare global {
+  interface Window {
+    [CLEANUP_KEY]?: CastCleanupFunctions;
+  }
+}
+
+// Get or create cleanup storage
+function getCleanupStorage(): CastCleanupFunctions {
+  if (!window[CLEANUP_KEY]) {
+    window[CLEANUP_KEY] = { castState: null, sessionState: null };
+  }
+  return window[CLEANUP_KEY];
+}
 
 interface CastStoreState {
   // Availability
@@ -71,24 +95,27 @@ export const useCastStore = create<CastStore>((set, get) => ({
     try {
       await initializeChromecast();
 
+      // Get HMR-safe cleanup storage
+      const cleanup = getCleanupStorage();
+
       // Clean up existing listeners if any (prevent duplicates on hot reload)
-      if (castStateCleanup) {
-        castStateCleanup();
-        castStateCleanup = null;
+      if (cleanup.castState) {
+        cleanup.castState();
+        cleanup.castState = null;
       }
-      if (sessionStateCleanup) {
-        sessionStateCleanup();
-        sessionStateCleanup = null;
+      if (cleanup.sessionState) {
+        cleanup.sessionState();
+        cleanup.sessionState = null;
       }
 
       // Set up cast state listener
-      castStateCleanup = onCastStateChanged((state) => {
+      cleanup.castState = onCastStateChanged((state) => {
         const available = state !== cast.framework.CastState.NO_DEVICES_AVAILABLE;
         set({ chromecastAvailable: available });
       });
 
       // Set up session state listener
-      sessionStateCleanup = onSessionStateChanged((state) => {
+      cleanup.sessionState = onSessionStateChanged((state) => {
         if (state === cast.framework.SessionState.SESSION_STARTED) {
           const deviceName = getChromecastDeviceName();
           set({
@@ -209,3 +236,8 @@ export const useCastStore = create<CastStore>((set, get) => ({
     });
   },
 }));
+
+// HMR support
+if (import.meta.hot) {
+  import.meta.hot.accept();
+}
