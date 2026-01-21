@@ -9,14 +9,14 @@ import GoogleCast, {
   MediaPlayerState,
   MediaStreamType,
 } from 'react-native-google-cast';
-import { HLS_STREAM_URL } from '../config/env';
+import { STREAM_URL } from '../config/env';
 import type { CastMediaMetadata } from '../types/cast';
 
 // Default Media Receiver App ID (provided by Google)
 const DEFAULT_MEDIA_RECEIVER_APP_ID = 'CC1AD845';
 
-// HLS MIME type
-const HLS_CONTENT_TYPE = 'application/x-mpegurl';
+// Audio stream MIME type
+const AUDIO_CONTENT_TYPE = 'audio/mpeg';
 
 /**
  * Initialize Google Cast SDK
@@ -85,10 +85,10 @@ export async function loadMedia(metadata: CastMediaMetadata): Promise<void> {
     throw new Error('No active cast session');
   }
 
-  // Create media info for HLS stream
+  // Create media info for audio stream
   const mediaInfo: MediaInfo = {
-    contentUrl: HLS_STREAM_URL,
-    contentType: HLS_CONTENT_TYPE,
+    contentUrl: STREAM_URL,
+    contentType: AUDIO_CONTENT_TYPE,
     streamType: MediaStreamType.LIVE, // Radio is a live stream
     metadata: {
       type: 'musicTrack',

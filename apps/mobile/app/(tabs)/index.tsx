@@ -13,7 +13,6 @@ import {
   AlbumArt,
   CastButton,
   PlayButton,
-  WaveformProgress,
   ListenerCount,
 } from '../../src/components';
 
@@ -78,7 +77,7 @@ export default function PlayerScreen() {
   const router = useRouter();
 
   // Audio controls
-  const { play, stop, isTransitioning } = useAudio();
+  const { play, stop } = useAudio();
 
   // Player state
   const { isPlaying, isLoading, currentSong, nowPlaying } = usePlayerStore();
@@ -104,10 +103,10 @@ export default function PlayerScreen() {
 
   // Handle play/stop with haptic feedback
   const handleTogglePlay = useCallback(() => {
-    if (isTransitioning) return;
+    if (isLoading) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     isPlaying ? stop() : play();
-  }, [isPlaying, play, stop, isTransitioning]);
+  }, [isPlaying, play, stop, isLoading]);
 
   // Handle like/unlike with haptic feedback
   const handleToggleLike = useCallback(async () => {
@@ -192,7 +191,9 @@ export default function PlayerScreen() {
           <View style={styles.progressRow}>
             <Text style={styles.timeText}>{formatTime(elapsed)}</Text>
             <View style={styles.waveformContainer}>
-              <WaveformProgress progress={progress} isPlaying={isPlaying} />
+              <View style={styles.progressBar}>
+                <View style={[styles.progressFill, { width: `${progress}%` }]} />
+              </View>
             </View>
             <Text style={[styles.timeText, styles.timeTextRight]}>
               {formatTime(duration)}
@@ -205,7 +206,7 @@ export default function PlayerScreen() {
           <CastButton size="medium" />
           <PlayButton
             isPlaying={isPlaying}
-            isLoading={isLoading || isTransitioning}
+            isLoading={isLoading}
             onPress={handleTogglePlay}
             size="large"
           />
@@ -314,6 +315,17 @@ const styles = StyleSheet.create({
   },
   waveformContainer: {
     flex: 1,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#9370DB',
+    borderRadius: 2,
   },
   controlsSection: {
     marginTop: 28,

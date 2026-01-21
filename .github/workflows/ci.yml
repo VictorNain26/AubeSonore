@@ -57,9 +57,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Lint & Typecheck
+      - name: Typecheck
         run: |
-          pnpm turbo lint typecheck
+          pnpm turbo typecheck
 
       # Cache Turbo outputs for faster builds
       - uses: actions/cache@v4

@@ -4,7 +4,6 @@ import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import 'react-native-reanimated';
 
 import { AudioProvider } from '../src/providers/AudioProvider';
@@ -72,28 +71,26 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <BottomSheetModalProvider>
-        <CastProvider>
-          <AudioProvider>
-            <StatusBar style="light" />
-            <Stack
-              screenOptions={{
+      <CastProvider>
+        <AudioProvider>
+          <StatusBar style="light" />
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: '#0f1118' },
+            }}
+          >
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="auth"
+              options={{
+                presentation: 'modal',
                 headerShown: false,
-                contentStyle: { backgroundColor: '#0f1118' },
               }}
-            >
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="auth"
-                options={{
-                  presentation: 'modal',
-                  headerShown: false,
-                }}
-              />
-            </Stack>
-          </AudioProvider>
-        </CastProvider>
-      </BottomSheetModalProvider>
+            />
+          </Stack>
+        </AudioProvider>
+      </CastProvider>
     </GestureHandlerRootView>
   );
 }
