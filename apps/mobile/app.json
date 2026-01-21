@@ -2,7 +2,7 @@
   "expo": {
     "name": "Aube Sonore",
     "slug": "aube-sonore",
-    "version": "1.0.0",
+    "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "aubesonore",
@@ -20,7 +20,12 @@
         "UIBackgroundModes": [
           "audio"
         ],
-        "NSMicrophoneUsageDescription": "This app does not use the microphone"
+        "NSMicrophoneUsageDescription": "This app does not use the microphone",
+        "NSBonjourServices": [
+          "_googlecast._tcp",
+          "_CC1AD845._googlecast._tcp"
+        ],
+        "NSLocalNetworkUsageDescription": "Aube Sonore utilise le réseau local pour détecter les appareils de diffusion (Chromecast, AirPlay)"
       }
     },
     "android": {
@@ -45,6 +50,13 @@
       "expo-router",
       "expo-secure-store",
       [
+        "react-native-google-cast",
+        {
+          "receiverAppId": "CC1AD845",
+          "androidPlayServicesCastFrameworkVersion": "21.5.0"
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#0f1118",
@@ -66,7 +78,19 @@
           }
         }
       ],
-      "expo-audio",
+      [
+        "react-native-audio-api",
+        {
+          "iosBackgroundMode": true,
+          "androidPermissions": [
+            "android.permission.MODIFY_AUDIO_SETTINGS",
+            "android.permission.FOREGROUND_SERVICE",
+            "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+          ],
+          "androidForegroundService": true,
+          "androidFSTypes": ["mediaPlayback"]
+        }
+      ],
       "expo-asset"
     ],
     "experiments": {

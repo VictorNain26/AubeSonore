@@ -15,6 +15,7 @@ import { WaveformProgress } from './WaveformProgress';
 import { VolumeControl } from './VolumeControl';
 import { HistoryItem } from './HistoryItem';
 import { AlbumArt } from './AlbumArt';
+import { CastButton } from './CastButton';
 
 // ─────────────────────────────────────────────
 // Main Player Component
@@ -228,7 +229,8 @@ export default function Player() {
           ================================================================= */}
       <div className="flex items-center mb-6 px-2">
         {/* Left: flex-1 distributes equal space, justify-start aligns content */}
-        <div className="flex-1 flex justify-start">
+        <div className="flex-1 flex justify-start items-center gap-1">
+          <CastButton />
           <VolumeControl
             volume={volume}
             isMuted={isMuted}

@@ -21,6 +21,17 @@ const audio = new Audio();
 audio.preload = 'none';
 audio.crossOrigin = 'anonymous';
 
+// Enable AirPlay (Safari)
+audio.setAttribute('x-webkit-airplay', 'allow');
+audio.setAttribute('airplay', 'allow');
+
+/**
+ * Get the audio element for AirPlay integration
+ */
+export function getAudioElement(): HTMLAudioElement {
+  return audio;
+}
+
 // Web Audio API pour la visualisation
 let audioContext: AudioContext | null = null;
 let analyser: AnalyserNode | null = null;
