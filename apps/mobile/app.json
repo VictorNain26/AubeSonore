@@ -8,16 +8,11 @@
     "scheme": "aubesonore",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/images/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0f1118"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "fr.aubesonore.app",
       "infoPlist": {
-        "UIBackgroundModes": ["audio"],
+        "UIBackgroundModes": ["audio", "remote-notification"],
         "NSMicrophoneUsageDescription": "This app does not use the microphone",
         "NSBonjourServices": ["_googlecast._tcp", "_CC1AD845._googlecast._tcp"],
         "NSLocalNetworkUsageDescription": "Aube Sonore utilise le réseau local pour détecter les appareils de diffusion (Chromecast, AirPlay)"
@@ -30,7 +25,15 @@
         "backgroundColor": "#0f1118"
       },
       "edgeToEdgeEnabled": true,
-      "permissions": ["FOREGROUND_SERVICE", "FOREGROUND_SERVICE_MEDIA_PLAYBACK", "WAKE_LOCK"]
+      "permissions": [
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MEDIA_PLAYBACK",
+        "WAKE_LOCK",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "POST_NOTIFICATIONS",
+        "ACCESS_NETWORK_STATE"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -40,6 +43,13 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#9370DB",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "react-native-google-cast",
         {
@@ -62,28 +72,23 @@
             "minSdkVersion": 24,
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
-            "usesCleartextTraffic": true
+            "usesCleartextTraffic": true,
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
           },
           "ios": {
             "deploymentTarget": "15.1"
           }
         }
       ],
-      [
-        "react-native-audio-api",
-        {
-          "iosBackgroundMode": true,
-          "androidPermissions": [
-            "android.permission.MODIFY_AUDIO_SETTINGS",
-            "android.permission.FOREGROUND_SERVICE",
-            "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
-          ],
-          "androidForegroundService": true,
-          "androidFSTypes": ["mediaPlayback"]
-        }
-      ],
       "expo-asset"
     ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5041fb33-9c20-4b21-95d0-309f91c96b17"
+    },
     "experiments": {
       "typedRoutes": true
     },
