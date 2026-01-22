@@ -1,49 +1,64 @@
 /**
- * Chromecast service for web
- * Wrapper around Google Cast Web Sender API
+ * Chromecast Service
  *
- * HMR-Safe Implementation (Best Practice 2025):
- * - Uses window flag to track initialization across HMR
- * - Proper cleanup with import.meta.hot
+ * Based on official documentation:
+ * https://developers.google.com/cast/docs/web_sender/integrate
+ *
+ * Uses RemotePlayer and RemotePlayerController pattern
+ * for proper state synchronization with receiver
  */
 
-import { loadCastSDK, getCastContext, isCastSDKLoaded } from './loader';
+import { loadCastSDK, getCastContext, getCurrentSession, isCastSDKLoaded } from './loader';
 import type { CastMediaMetadata } from '../../types/cast';
 
-// Default Media Receiver App ID (provided by Google)
+// Default Media Receiver (no registration required)
+// https://developers.google.com/cast/docs/web_sender#registering_your_application
 const DEFAULT_MEDIA_RECEIVER_APP_ID = 'CC1AD845';
 
-// HLS MIME type
+// HLS MIME type for live streams
 const HLS_CONTENT_TYPE = 'application/x-mpegurl';
 
-// Stream URL
+// Stream URL from env
 const STREAM_URL =
   import.meta.env.VITE_STREAM_URL || 'https://radio.aubesonore.fr/hls/aubesonore/live.m3u8';
 
-// HMR-safe initialization flag on window
-const INIT_FLAG_KEY = '__CHROMECAST_INITIALIZED__';
+// Singleton state on window for HMR safety
+const STATE_KEY = '__CHROMECAST_STATE__';
+
+interface ChromecastState {
+  initialized: boolean;
+  remotePlayer: cast.framework.RemotePlayer | null;
+  remotePlayerController: cast.framework.RemotePlayerController | null;
+  eventCleanups: Array<() => void>;
+}
 
 declare global {
   interface Window {
-    [INIT_FLAG_KEY]?: boolean;
+    [STATE_KEY]?: ChromecastState;
   }
 }
 
-/**
- * Check if Chromecast is already initialized (HMR-safe)
- */
-function isAlreadyInitialized(): boolean {
-  return window[INIT_FLAG_KEY] === true;
+function getState(): ChromecastState {
+  if (!window[STATE_KEY]) {
+    window[STATE_KEY] = {
+      initialized: false,
+      remotePlayer: null,
+      remotePlayerController: null,
+      eventCleanups: [],
+    };
+  }
+  return window[STATE_KEY];
 }
 
 /**
  * Initialize Chromecast
- * HMR-Safe: Uses window flag to prevent re-initialization
+ * Sets up CastContext options and RemotePlayer
  */
-export async function initializeChromecast(): Promise<void> {
-  // Check HMR-safe flag
-  if (isAlreadyInitialized()) {
-    return;
+export async function initializeChromecast(): Promise<boolean> {
+  const state = getState();
+
+  if (state.initialized) {
+    return true;
   }
 
   try {
@@ -52,72 +67,67 @@ export async function initializeChromecast(): Promise<void> {
     const context = getCastContext();
     if (!context) {
       console.warn('[Chromecast] Context not available');
-      return;
+      return false;
     }
 
-    // Configure cast options (safe to call multiple times)
+    // Configure cast options (per documentation)
     context.setOptions({
       receiverApplicationId: DEFAULT_MEDIA_RECEIVER_APP_ID,
       autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
     });
 
-    // Mark as initialized (persists across HMR)
-    window[INIT_FLAG_KEY] = true;
-    console.log('[Chromecast] Initialized');
+    // Create RemotePlayer and Controller (official pattern)
+    state.remotePlayer = new cast.framework.RemotePlayer();
+    state.remotePlayerController = new cast.framework.RemotePlayerController(state.remotePlayer);
+
+    state.initialized = true;
+    console.log('[Chromecast] Initialized with RemotePlayer');
+    return true;
   } catch (error) {
     console.error('[Chromecast] Initialization failed:', error);
+    return false;
   }
 }
 
-// HMR support
-if (import.meta.hot) {
-  import.meta.hot.accept();
-}
-
 /**
- * Get current cast state
+ * Get RemotePlayer instance
  */
-export function getCastState(): cast.framework.CastState | null {
-  const context = getCastContext();
-  if (!context) return null;
-  return context.getCastState();
+export function getRemotePlayer(): cast.framework.RemotePlayer | null {
+  return getState().remotePlayer;
 }
 
 /**
- * Get current session
+ * Get RemotePlayerController instance
  */
-export function getCurrentSession(): cast.framework.CastSession | null {
-  const context = getCastContext();
-  if (!context) return null;
-  return context.getCurrentSession();
+export function getRemotePlayerController(): cast.framework.RemotePlayerController | null {
+  return getState().remotePlayerController;
 }
 
 /**
- * Check if casting is available
+ * Check if Chromecast devices are available
  */
 export function isChromecastAvailable(): boolean {
   if (!isCastSDKLoaded()) return false;
-  const state = getCastState();
-  return state !== null && state !== cast.framework.CastState.NO_DEVICES_AVAILABLE;
+  const context = getCastContext();
+  if (!context) return false;
+  const castState = context.getCastState();
+  return castState !== cast.framework.CastState.NO_DEVICES_AVAILABLE;
 }
 
 /**
- * Check if currently casting
+ * Check if currently connected to a Cast device
  */
-export function isCasting(): boolean {
-  const session = getCurrentSession();
-  return (
-    session !== null && session.getSessionState() === cast.framework.SessionState.SESSION_STARTED
-  );
+export function isConnected(): boolean {
+  const player = getRemotePlayer();
+  return player?.isConnected ?? false;
 }
 
 /**
  * Get connected device name
  */
-export function getConnectedDeviceName(): string | null {
+export function getDeviceName(): string | null {
   const session = getCurrentSession();
-  if (!session) return null;
-  return session.getCastDevice()?.friendlyName ?? null;
+  return session?.getCastDevice()?.friendlyName ?? null;
 }
 
 /**
@@ -128,7 +138,6 @@ export async function requestSession(): Promise<void> {
   if (!context) {
     throw new Error('Cast context not available');
   }
-
   await context.requestSession();
 }
 
@@ -141,11 +150,11 @@ export async function loadMedia(metadata: CastMediaMetadata): Promise<void> {
     throw new Error('No active cast session');
   }
 
-  // Create media info
+  // Create MediaInfo for live HLS stream
   const mediaInfo = new chrome.cast.media.MediaInfo(STREAM_URL, HLS_CONTENT_TYPE);
   mediaInfo.streamType = chrome.cast.media.StreamType.LIVE;
 
-  // Create metadata
+  // Create music metadata
   const castMetadata = new chrome.cast.media.MusicTrackMediaMetadata();
   castMetadata.title = metadata.title;
   castMetadata.artist = metadata.artist;
@@ -158,30 +167,33 @@ export async function loadMedia(metadata: CastMediaMetadata): Promise<void> {
 
   mediaInfo.metadata = castMetadata;
 
-  // Create load request
+  // Create and execute load request
   const loadRequest = new chrome.cast.media.LoadRequest(mediaInfo);
   loadRequest.autoplay = true;
 
-  // Load media
   await session.loadMedia(loadRequest);
 }
 
 /**
  * End current session
+ * @param stopCasting - If true, stops casting on all devices
  */
-export function endSession(): void {
+export function endSession(stopCasting = true): void {
   const session = getCurrentSession();
   if (session) {
-    session.endSession(true);
+    session.endSession(stopCasting);
   }
 }
 
+// Event subscription types
+type CastStateCallback = (state: cast.framework.CastState) => void;
+type SessionStateCallback = (state: cast.framework.SessionState) => void;
+type ConnectionCallback = (isConnected: boolean) => void;
+
 /**
- * Subscribe to cast state changes
+ * Subscribe to cast state changes (device availability)
  */
-export function onCastStateChanged(
-  callback: (state: cast.framework.CastState) => void
-): () => void {
+export function onCastStateChanged(callback: CastStateCallback): () => void {
   const context = getCastContext();
   if (!context) return () => {};
 
@@ -191,17 +203,18 @@ export function onCastStateChanged(
 
   context.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED, listener);
 
-  return () => {
+  const cleanup = () => {
     context.removeEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED, listener);
   };
+
+  getState().eventCleanups.push(cleanup);
+  return cleanup;
 }
 
 /**
  * Subscribe to session state changes
  */
-export function onSessionStateChanged(
-  callback: (state: cast.framework.SessionState) => void
-): () => void {
+export function onSessionStateChanged(callback: SessionStateCallback): () => void {
   const context = getCastContext();
   if (!context) return () => {};
 
@@ -211,10 +224,48 @@ export function onSessionStateChanged(
 
   context.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, listener);
 
-  return () => {
+  const cleanup = () => {
     context.removeEventListener(
       cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
       listener
     );
   };
+
+  getState().eventCleanups.push(cleanup);
+  return cleanup;
+}
+
+/**
+ * Subscribe to connection state changes (via RemotePlayerController)
+ * This is the recommended way per Google documentation
+ */
+export function onConnectionChanged(callback: ConnectionCallback): () => void {
+  const controller = getRemotePlayerController();
+  const player = getRemotePlayer();
+  if (!controller || !player) return () => {};
+
+  const listener = () => {
+    callback(player.isConnected);
+  };
+
+  controller.addEventListener(cast.framework.RemotePlayerEventType.IS_CONNECTED_CHANGED, listener);
+
+  const cleanup = () => {
+    controller.removeEventListener(
+      cast.framework.RemotePlayerEventType.IS_CONNECTED_CHANGED,
+      listener
+    );
+  };
+
+  getState().eventCleanups.push(cleanup);
+  return cleanup;
+}
+
+/**
+ * Clean up all event listeners
+ */
+export function cleanup(): void {
+  const state = getState();
+  state.eventCleanups.forEach((fn) => fn());
+  state.eventCleanups = [];
 }

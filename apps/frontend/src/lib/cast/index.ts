@@ -1,34 +1,36 @@
 /**
- * Cast services - unified exports
+ * Cast Services - Unified exports for Chromecast and AirPlay
  */
+
+// SDK Loader
+export { loadCastSDK, isCastSDKLoaded, getCastContext, getCurrentSession } from './loader';
 
 // Chromecast
 export {
   initializeChromecast,
-  getCastState,
-  getCurrentSession,
+  getRemotePlayer,
+  getRemotePlayerController,
   isChromecastAvailable,
-  isCasting as isChromecastCasting,
-  getConnectedDeviceName as getChromecastDeviceName,
+  isConnected as isChromecastConnected,
+  getDeviceName as getChromecastDeviceName,
   requestSession as requestChromecastSession,
   loadMedia as loadChromecastMedia,
   endSession as endChromecastSession,
   onCastStateChanged,
   onSessionStateChanged,
+  onConnectionChanged as onChromecastConnectionChanged,
+  cleanup as cleanupChromecast,
 } from './chromecast';
 
 // AirPlay
 export {
-  isAirPlayAvailable,
-  isAirPlayConnected,
+  isAirPlaySupported,
   enableAirPlay,
+  isAirPlayActive,
   showAirPlayPicker,
   onAirPlayAvailabilityChanged,
   onAirPlayConnectionChanged,
 } from './airplay';
-
-// SDK Loader
-export { loadCastSDK, isCastSDKLoaded, getCastFramework, getCastContext } from './loader';
 
 // Types
 export type { CastMediaMetadata, CastType, CastConnectionState } from '../../types/cast';

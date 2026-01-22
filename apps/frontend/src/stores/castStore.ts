@@ -1,9 +1,10 @@
 /**
- * Cast Store - Zustand state management for casting
+ * Cast Store - Zustand state management for Chromecast and AirPlay
  *
- * HMR-Safe Implementation (Best Practice 2025):
- * - Uses window to persist cleanup functions across HMR
- * - Zustand store naturally persists through HMR
+ * Integrates:
+ * - Google Cast SDK (via RemotePlayerController events)
+ * - Safari AirPlay (via WebKit events)
+ * - Local player coordination
  */
 
 import { create } from 'zustand';
@@ -16,32 +17,54 @@ import {
   endChromecastSession,
   onCastStateChanged,
   onSessionStateChanged,
-  isAirPlayAvailable,
+  isAirPlaySupported,
+  onAirPlayAvailabilityChanged,
+  onAirPlayConnectionChanged,
+  showAirPlayPicker,
 } from '../lib/cast';
+import { getAudioElement } from '../lib/player';
 import type { CastType, CastMediaMetadata } from '../types/cast';
 
-// HMR-safe cleanup function storage
+// Singleton cleanup storage on window for HMR safety
 const CLEANUP_KEY = '__CAST_STORE_CLEANUP__';
 
-interface CastCleanupFunctions {
+interface CleanupFunctions {
   castState: (() => void) | null;
   sessionState: (() => void) | null;
+  airplayAvailability: (() => void) | null;
+  airplayConnection: (() => void) | null;
 }
 
 declare global {
   interface Window {
-    [CLEANUP_KEY]?: CastCleanupFunctions;
+    [CLEANUP_KEY]?: CleanupFunctions;
   }
 }
 
-// Get or create cleanup storage
-function getCleanupStorage(): CastCleanupFunctions {
+function getCleanups(): CleanupFunctions {
   if (!window[CLEANUP_KEY]) {
-    window[CLEANUP_KEY] = { castState: null, sessionState: null };
+    window[CLEANUP_KEY] = {
+      castState: null,
+      sessionState: null,
+      airplayAvailability: null,
+      airplayConnection: null,
+    };
   }
   return window[CLEANUP_KEY];
 }
 
+function cleanupAll(): void {
+  const cleanups = getCleanups();
+  Object.values(cleanups).forEach((fn) => fn?.());
+  window[CLEANUP_KEY] = {
+    castState: null,
+    sessionState: null,
+    airplayAvailability: null,
+    airplayConnection: null,
+  };
+}
+
+// Store types
 interface CastStoreState {
   // Availability
   chromecastAvailable: boolean;
@@ -59,17 +82,10 @@ interface CastStoreState {
 }
 
 interface CastStoreActions {
-  // Initialization
   initialize: () => Promise<void>;
-
-  // Chromecast
   startChromecast: () => Promise<void>;
+  startAirPlay: () => void;
   updateNowPlaying: (metadata: CastMediaMetadata) => Promise<void>;
-
-  // AirPlay (handled via audio element)
-  setAirPlayConnected: (connected: boolean) => void;
-
-  // General
   stopCasting: () => void;
   setError: (error: string | null) => void;
   reset: () => void;
@@ -80,7 +96,7 @@ type CastStore = CastStoreState & CastStoreActions;
 export const useCastStore = create<CastStore>((set, get) => ({
   // Initial state
   chromecastAvailable: false,
-  airplayAvailable: isAirPlayAvailable(),
+  airplayAvailable: isAirPlaySupported(),
   isCasting: false,
   castType: null,
   deviceName: null,
@@ -88,87 +104,134 @@ export const useCastStore = create<CastStore>((set, get) => ({
   isInitialized: false,
   error: null,
 
-  // Initialize cast SDK and listeners
+  /**
+   * Initialize casting capabilities
+   * Sets up Chromecast SDK and AirPlay listeners
+   */
   initialize: async () => {
     if (get().isInitialized) return;
 
+    // Clean up any existing listeners
+    cleanupAll();
+    const cleanups = getCleanups();
+
     try {
-      await initializeChromecast();
+      // Initialize Chromecast
+      const chromecastReady = await initializeChromecast();
 
-      // Get HMR-safe cleanup storage
-      const cleanup = getCleanupStorage();
+      if (chromecastReady) {
+        // Listen to cast state changes (device availability)
+        cleanups.castState = onCastStateChanged((state) => {
+          const available = state !== cast.framework.CastState.NO_DEVICES_AVAILABLE;
+          set({ chromecastAvailable: available });
+        });
 
-      // Clean up existing listeners if any (prevent duplicates on hot reload)
-      if (cleanup.castState) {
-        cleanup.castState();
-        cleanup.castState = null;
+        // Listen to session state changes
+        cleanups.sessionState = onSessionStateChanged((state) => {
+          switch (state) {
+            case cast.framework.SessionState.SESSION_STARTING:
+              set({ isConnecting: true });
+              break;
+
+            case cast.framework.SessionState.SESSION_STARTED:
+            case cast.framework.SessionState.SESSION_RESUMED: {
+              const deviceName = getChromecastDeviceName();
+              set({
+                isCasting: true,
+                castType: 'chromecast',
+                deviceName,
+                isConnecting: false,
+                error: null,
+              });
+              break;
+            }
+
+            case cast.framework.SessionState.SESSION_ENDED:
+            case cast.framework.SessionState.SESSION_START_FAILED:
+              // Only reset if was casting via Chromecast
+              if (get().castType === 'chromecast') {
+                set({
+                  isCasting: false,
+                  castType: null,
+                  deviceName: null,
+                  isConnecting: false,
+                });
+              }
+              break;
+          }
+        });
+
+        // Set initial Chromecast availability
+        set({ chromecastAvailable: isChromecastAvailable() });
       }
-      if (cleanup.sessionState) {
-        cleanup.sessionState();
-        cleanup.sessionState = null;
-      }
 
-      // Set up cast state listener
-      cleanup.castState = onCastStateChanged((state) => {
-        const available = state !== cast.framework.CastState.NO_DEVICES_AVAILABLE;
-        set({ chromecastAvailable: available });
-      });
+      // Initialize AirPlay listeners (Safari only)
+      if (isAirPlaySupported()) {
+        const audio = getAudioElement();
 
-      // Set up session state listener
-      cleanup.sessionState = onSessionStateChanged((state) => {
-        if (state === cast.framework.SessionState.SESSION_STARTED) {
-          const deviceName = getChromecastDeviceName();
-          set({
-            isCasting: true,
-            castType: 'chromecast',
-            deviceName,
-            isConnecting: false,
-            error: null,
-          });
-        } else if (
-          state === cast.framework.SessionState.SESSION_ENDED ||
-          state === cast.framework.SessionState.SESSION_START_FAILED
-        ) {
-          // Only reset if we were casting via Chromecast
-          if (get().castType === 'chromecast') {
+        // Listen to AirPlay availability
+        cleanups.airplayAvailability = onAirPlayAvailabilityChanged(audio, (available) => {
+          set({ airplayAvailable: available });
+        });
+
+        // Listen to AirPlay connection changes
+        cleanups.airplayConnection = onAirPlayConnectionChanged(audio, (isWireless) => {
+          if (isWireless) {
+            set({
+              isCasting: true,
+              castType: 'airplay',
+              deviceName: 'AirPlay',
+              isConnecting: false,
+              error: null,
+            });
+          } else if (get().castType === 'airplay') {
             set({
               isCasting: false,
               castType: null,
               deviceName: null,
-              isConnecting: false,
             });
           }
-        } else if (state === cast.framework.SessionState.SESSION_STARTING) {
-          set({ isConnecting: true });
-        }
-      });
+        });
+      }
 
-      // Check initial availability
-      set({
-        chromecastAvailable: isChromecastAvailable(),
-        isInitialized: true,
-      });
+      set({ isInitialized: true });
     } catch (error) {
-      console.warn('[CastStore] Failed to initialize:', error);
-      set({ isInitialized: true }); // Mark as initialized even on failure
+      console.warn('[CastStore] Initialization error:', error);
+      set({ isInitialized: true });
     }
   },
 
-  // Start Chromecast session
+  /**
+   * Start Chromecast session (opens device picker)
+   */
   startChromecast: async () => {
     try {
       set({ isConnecting: true, error: null });
       await requestChromecastSession();
+      // Session state listener will update the rest
     } catch (error) {
-      console.error('[CastStore] Failed to start Chromecast:', error);
-      set({
-        isConnecting: false,
-        error: error instanceof Error ? error.message : 'Failed to connect',
-      });
+      const message = error instanceof Error ? error.message : 'Failed to connect';
+      // User cancelled is not an error
+      if (!message.includes('cancel')) {
+        console.error('[CastStore] Chromecast error:', error);
+        set({ error: message });
+      }
+      set({ isConnecting: false });
     }
   },
 
-  // Update now playing on cast device
+  /**
+   * Start AirPlay (opens native device picker)
+   */
+  startAirPlay: () => {
+    const audio = getAudioElement();
+    showAirPlayPicker(audio);
+    // AirPlay connection listener will update the rest
+  },
+
+  /**
+   * Update now playing metadata on cast device
+   */
   updateNowPlaying: async (metadata: CastMediaMetadata) => {
     const { isCasting, castType } = get();
 
@@ -181,36 +244,16 @@ export const useCastStore = create<CastStore>((set, get) => ({
     }
   },
 
-  // Set AirPlay connection state
-  setAirPlayConnected: (connected: boolean) => {
-    if (connected) {
-      set({
-        isCasting: true,
-        castType: 'airplay',
-        deviceName: 'AirPlay',
-        isConnecting: false,
-        error: null,
-      });
-    } else {
-      // Only reset if currently casting via AirPlay
-      if (get().castType === 'airplay') {
-        set({
-          isCasting: false,
-          castType: null,
-          deviceName: null,
-        });
-      }
-    }
-  },
-
-  // Stop casting
+  /**
+   * Stop current casting session
+   */
   stopCasting: () => {
     const { castType } = get();
 
     if (castType === 'chromecast') {
       endChromecastSession();
     }
-    // AirPlay is controlled via the system picker
+    // AirPlay: user must disconnect via system picker
 
     set({
       isCasting: false,
@@ -220,12 +263,16 @@ export const useCastStore = create<CastStore>((set, get) => ({
     });
   },
 
-  // Set error
+  /**
+   * Set error message
+   */
   setError: (error: string | null) => {
     set({ error });
   },
 
-  // Reset state
+  /**
+   * Reset store state
+   */
   reset: () => {
     set({
       isCasting: false,
@@ -236,8 +283,3 @@ export const useCastStore = create<CastStore>((set, get) => ({
     });
   },
 }));
-
-// HMR support
-if (import.meta.hot) {
-  import.meta.hot.accept();
-}

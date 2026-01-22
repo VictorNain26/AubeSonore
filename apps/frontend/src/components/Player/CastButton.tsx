@@ -2,8 +2,6 @@ import { useEffect, useCallback } from 'react';
 import { Cast, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCastStore } from '../../stores/castStore';
-import { showAirPlayPicker } from '../../lib/cast';
-import { getAudioElement } from '../../lib/player';
 
 interface CastButtonProps {
   className?: string;
@@ -23,6 +21,7 @@ export function CastButton({ className }: CastButtonProps) {
     deviceName,
     initialize,
     startChromecast,
+    startAirPlay,
   } = useCastStore();
 
   // Initialize cast SDK on mount
@@ -33,30 +32,23 @@ export function CastButton({ className }: CastButtonProps) {
   // Handle click
   const handleClick = useCallback(() => {
     if (isCasting) {
-      // If casting, clicking shows options or stops
-      // For now, just show the picker again to allow stopping
+      // If casting, clicking shows picker again to allow switching/stopping
       if (castType === 'chromecast') {
         startChromecast();
       } else if (castType === 'airplay') {
-        const audio = getAudioElement();
-        if (audio) {
-          showAirPlayPicker(audio);
-        }
+        startAirPlay();
       }
       return;
     }
 
-    // If both available, prefer Chromecast (more common)
-    // User can use Safari's native AirPlay button in the media controls
+    // Prefer Chromecast when available (more common)
+    // User can use Safari's native AirPlay button for AirPlay
     if (chromecastAvailable) {
       startChromecast();
     } else if (airplayAvailable) {
-      const audio = getAudioElement();
-      if (audio) {
-        showAirPlayPicker(audio);
-      }
+      startAirPlay();
     }
-  }, [isCasting, castType, chromecastAvailable, airplayAvailable, startChromecast]);
+  }, [isCasting, castType, chromecastAvailable, airplayAvailable, startChromecast, startAirPlay]);
 
   // Don't show if no cast options available
   if (!chromecastAvailable && !airplayAvailable) {

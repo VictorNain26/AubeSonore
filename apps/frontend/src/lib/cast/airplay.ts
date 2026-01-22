@@ -1,79 +1,110 @@
 /**
- * AirPlay service for web (Safari only)
- * Uses WebKit's AirPlay API
+ * AirPlay Service (Safari only)
  *
- * Note: No HMR handling needed - pure utility functions without module state
+ * Based on Apple documentation:
+ * https://developer.apple.com/documentation/webkitjs/adding_an_airplay_button_to_your_safari_media_controls
+ *
+ * Key APIs:
+ * - window.WebKitPlaybackTargetAvailabilityEvent - Check support
+ * - webkitplaybacktargetavailabilitychanged - Device availability
+ * - webkitShowPlaybackTargetPicker() - Show device picker
+ * - webkitCurrentPlaybackTargetIsWireless - Connection state
+ * - webkitcurrentplaybacktargetiswirelesschanged - Connection changes
+ *
+ * Note from Apple: "Because monitoring AirPlay availability may drain battery power,
+ * you should avoid registering a listener unless you have a specific need for it"
  */
 
 /**
- * Check if AirPlay is available (Safari only)
+ * Check if AirPlay is supported (Safari only)
  */
-export function isAirPlayAvailable(): boolean {
-  return !!(window as unknown as { WebKitPlaybackTargetAvailabilityEvent?: unknown })
-    .WebKitPlaybackTargetAvailabilityEvent;
+export function isAirPlaySupported(): boolean {
+  return 'WebKitPlaybackTargetAvailabilityEvent' in window;
 }
 
 /**
- * Check if currently playing to AirPlay device
+ * Enable AirPlay on an audio/video element
+ * Should be called when creating the media element
  */
-export function isAirPlayConnected(audioElement: HTMLAudioElement): boolean {
+export function enableAirPlay(element: HTMLMediaElement): void {
+  element.setAttribute('x-webkit-airplay', 'allow');
+  element.setAttribute('airplay', 'allow');
+}
+
+/**
+ * Check if currently playing to a wireless AirPlay device
+ */
+export function isAirPlayActive(element: HTMLMediaElement): boolean {
   return (
-    (audioElement as unknown as { webkitCurrentPlaybackTargetIsWireless?: boolean })
+    (element as HTMLMediaElement & { webkitCurrentPlaybackTargetIsWireless?: boolean })
       .webkitCurrentPlaybackTargetIsWireless ?? false
   );
 }
 
 /**
- * Enable AirPlay on an audio element
+ * Show the AirPlay device picker
+ * Must be called from a user gesture (click handler)
  */
-export function enableAirPlay(audioElement: HTMLAudioElement): void {
-  audioElement.setAttribute('x-webkit-airplay', 'allow');
-  audioElement.setAttribute('airplay', 'allow');
-}
-
-/**
- * Show AirPlay device picker
- */
-export function showAirPlayPicker(audioElement: HTMLAudioElement): void {
-  const el = audioElement as unknown as { webkitShowPlaybackTargetPicker?: () => void };
+export function showAirPlayPicker(element: HTMLMediaElement): void {
+  const el = element as HTMLMediaElement & { webkitShowPlaybackTargetPicker?: () => void };
   if (typeof el.webkitShowPlaybackTargetPicker === 'function') {
     el.webkitShowPlaybackTargetPicker();
   }
 }
 
+// Callback types
+type AvailabilityCallback = (available: boolean) => void;
+type ConnectionCallback = (isWireless: boolean) => void;
+
 /**
  * Subscribe to AirPlay availability changes
+ *
+ * From Apple docs: "When you register a listener for this event type,
+ * an initial event is automatically dispatched to inform you of the current availability state"
+ *
+ * @returns Cleanup function to remove listener
  */
 export function onAirPlayAvailabilityChanged(
-  audioElement: HTMLAudioElement,
-  callback: (available: boolean) => void
+  element: HTMLMediaElement,
+  callback: AvailabilityCallback
 ): () => void {
+  if (!isAirPlaySupported()) {
+    return () => {};
+  }
+
   const handler = (event: Event) => {
-    const e = event as unknown as { availability?: string };
+    const e = event as Event & { availability?: 'available' | 'not-available' };
     callback(e.availability === 'available');
   };
 
-  audioElement.addEventListener('webkitplaybacktargetavailabilitychanged', handler);
+  element.addEventListener('webkitplaybacktargetavailabilitychanged', handler);
 
   return () => {
-    audioElement.removeEventListener('webkitplaybacktargetavailabilitychanged', handler);
+    element.removeEventListener('webkitplaybacktargetavailabilitychanged', handler);
   };
 }
 
 /**
  * Subscribe to AirPlay connection state changes
+ * Fires when user connects/disconnects from AirPlay device
+ *
+ * @returns Cleanup function to remove listener
  */
 export function onAirPlayConnectionChanged(
-  audioElement: HTMLAudioElement,
-  callback: (isConnected: boolean) => void
+  element: HTMLMediaElement,
+  callback: ConnectionCallback
 ): () => void {
+  if (!isAirPlaySupported()) {
+    return () => {};
+  }
+
   const handler = () => {
-    callback(isAirPlayConnected(audioElement));
+    callback(isAirPlayActive(element));
   };
 
-  audioElement.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', handler);
+  element.addEventListener('webkitcurrentplaybacktargetiswirelesschanged', handler);
 
   return () => {
-    audioElement.removeEventListener('webkitcurrentplaybacktargetiswirelesschanged', handler);
+    element.removeEventListener('webkitcurrentplaybacktargetiswirelesschanged', handler);
   };
 }

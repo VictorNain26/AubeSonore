@@ -1,168 +1,127 @@
 /**
  * Google Cast SDK Loader
- * Dynamically loads the Cast Web Sender SDK
  *
- * HMR-Safe Implementation (Best Practice 2025):
- * - Uses customElements.get() as definitive SDK load check
- * - Persists load promise on window to survive HMR
- * - Proper cleanup with import.meta.hot
+ * Based on official documentation:
+ * https://developers.google.com/cast/docs/web_sender/integrate
+ *
+ * Key points:
+ * - Set window.__onGCastApiAvailable BEFORE loading script
+ * - Use loadCastFramework=1 query parameter
+ * - SDK updates automatically for all users
  */
 
 const CAST_SDK_URL = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
-const CAST_SCRIPT_ID = 'google-cast-sdk';
-const LOAD_PROMISE_KEY = '__CAST_SDK_LOAD_PROMISE__';
 
-// Extend window type for our HMR-safe global
+// Singleton state persisted on window for HMR safety
+const STATE_KEY = '__CAST_SDK_STATE__';
+
+interface CastSDKState {
+  loadPromise: Promise<void> | null;
+  isLoaded: boolean;
+}
+
 declare global {
   interface Window {
-    [LOAD_PROMISE_KEY]?: Promise<void>;
+    __onGCastApiAvailable?: (isAvailable: boolean) => void;
+    [STATE_KEY]?: CastSDKState;
   }
 }
 
-/**
- * Check if the Cast SDK custom element is registered
- * This is the most reliable indicator that SDK is fully loaded
- * Custom elements persist across HMR
- */
-function isCustomElementRegistered(): boolean {
-  return customElements.get('google-cast-button') !== undefined;
+function getState(): CastSDKState {
+  if (!window[STATE_KEY]) {
+    window[STATE_KEY] = { loadPromise: null, isLoaded: false };
+  }
+  return window[STATE_KEY];
 }
 
 /**
- * Check if the Cast SDK APIs are available in the window
+ * Check if Cast SDK is fully loaded and ready
  */
-function isSDKApiAvailable(): boolean {
+export function isCastSDKLoaded(): boolean {
   return !!(window.cast?.framework && window.chrome?.cast);
 }
 
 /**
- * Check if the script tag is already in the DOM
- */
-function isScriptInDOM(): boolean {
-  return !!document.getElementById(CAST_SCRIPT_ID);
-}
-
-/**
- * Wait for SDK to be fully ready (APIs available)
- */
-function waitForSDKReady(timeout = 10000): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (isSDKApiAvailable()) {
-      resolve();
-      return;
-    }
-
-    const startTime = Date.now();
-    const checkInterval = setInterval(() => {
-      if (isSDKApiAvailable()) {
-        clearInterval(checkInterval);
-        resolve();
-      } else if (Date.now() - startTime > timeout) {
-        clearInterval(checkInterval);
-        reject(new Error('Google Cast SDK load timeout'));
-      }
-    }, 50);
-  });
-}
-
-/**
  * Load the Google Cast SDK
- * Returns a promise that resolves when the SDK is ready
- *
- * HMR-Safe: Uses customElements check and window-persisted promise
+ * Returns a promise that resolves when SDK is ready
  */
 export function loadCastSDK(): Promise<void> {
-  // Check if custom element is already registered (strongest HMR indicator)
-  // This means SDK was fully loaded in a previous module version
-  if (isCustomElementRegistered()) {
-    // SDK loaded, just wait for APIs to be available
-    return waitForSDKReady();
+  const state = getState();
+
+  // Already loaded
+  if (state.isLoaded || isCastSDKLoaded()) {
+    state.isLoaded = true;
+    return Promise.resolve();
   }
 
-  // Check for existing load promise (persisted on window for HMR)
-  if (window[LOAD_PROMISE_KEY]) {
-    return window[LOAD_PROMISE_KEY];
+  // Already loading
+  if (state.loadPromise) {
+    return state.loadPromise;
   }
 
-  // Script in DOM but loading - wait for it
-  if (isScriptInDOM()) {
-    window[LOAD_PROMISE_KEY] = waitForSDKReady();
-    return window[LOAD_PROMISE_KEY];
-  }
-
-  // Create new load promise and persist on window
-  window[LOAD_PROMISE_KEY] = new Promise((resolve, reject) => {
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-    const cleanup = () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-        timeoutId = null;
-      }
-    };
-
-    // Set up callback before loading script
+  state.loadPromise = new Promise((resolve, reject) => {
+    // Set callback BEFORE loading script (per documentation)
     window.__onGCastApiAvailable = (isAvailable: boolean) => {
-      cleanup();
       if (isAvailable) {
+        state.isLoaded = true;
         resolve();
       } else {
-        delete window[LOAD_PROMISE_KEY];
+        state.loadPromise = null;
         reject(new Error('Google Cast SDK not available'));
       }
     };
 
-    // Create and append script
+    // Check if script already exists (HMR scenario)
+    const existingScript = document.querySelector(
+      `script[src^="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js"]`
+    );
+
+    if (existingScript) {
+      // Script exists, wait for callback or check if already loaded
+      if (isCastSDKLoaded()) {
+        state.isLoaded = true;
+        resolve();
+        return;
+      }
+      // Wait for the callback to fire
+      return;
+    }
+
+    // Load script
     const script = document.createElement('script');
-    script.id = CAST_SCRIPT_ID;
     script.src = CAST_SDK_URL;
     script.async = true;
 
     script.onerror = () => {
-      cleanup();
-      delete window[LOAD_PROMISE_KEY];
+      state.loadPromise = null;
       reject(new Error('Failed to load Google Cast SDK'));
     };
 
     document.head.appendChild(script);
 
-    // Timeout after 10 seconds
-    timeoutId = setTimeout(() => {
-      if (!isSDKApiAvailable()) {
-        delete window[LOAD_PROMISE_KEY];
+    // Timeout after 15 seconds
+    setTimeout(() => {
+      if (!state.isLoaded) {
+        state.loadPromise = null;
         reject(new Error('Google Cast SDK load timeout'));
       }
-    }, 10000);
+    }, 15000);
   });
 
-  return window[LOAD_PROMISE_KEY];
-}
-
-// HMR support - accept updates without full reload
-if (import.meta.hot) {
-  import.meta.hot.accept();
+  return state.loadPromise;
 }
 
 /**
- * Check if the Cast SDK is loaded
- */
-export function isCastSDKLoaded(): boolean {
-  return isSDKApiAvailable();
-}
-
-/**
- * Get the Cast framework
- */
-export function getCastFramework(): typeof cast.framework | null {
-  if (!isCastSDKLoaded()) return null;
-  return window.cast?.framework ?? null;
-}
-
-/**
- * Get the Cast context
+ * Get the Cast context singleton
  */
 export function getCastContext(): cast.framework.CastContext | null {
-  const framework = getCastFramework();
-  if (!framework) return null;
-  return framework.CastContext.getInstance();
+  if (!isCastSDKLoaded()) return null;
+  return cast.framework.CastContext.getInstance();
+}
+
+/**
+ * Get current cast session
+ */
+export function getCurrentSession(): cast.framework.CastSession | null {
+  return getCastContext()?.getCurrentSession() ?? null;
 }
