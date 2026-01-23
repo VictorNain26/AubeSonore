@@ -116,13 +116,15 @@ async function main() {
   console.log(`Platform: ${colors.cyan}${PLATFORM}${colors.reset}`);
   console.log('');
 
-  // Start the build with live output (no shell needed)
+  // Start the build with live output
+  // On Windows, we need shell: true for .cmd files
   const easCmd = getEasCommand();
   const buildProcess = spawn(
     easCmd,
     ['build', '--profile', PROFILE, '--platform', PLATFORM, '--non-interactive'],
     {
       stdio: 'inherit',
+      shell: process.platform === 'win32',
     }
   );
 
