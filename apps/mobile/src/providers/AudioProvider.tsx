@@ -6,6 +6,61 @@ import { usePlayerStore } from '../stores/playerStore';
 import { STREAM_URL, DEFAULT_ARTWORK } from '../config/env';
 
 // ─────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────
+
+/**
+ * Parse song metadata from AzuraCast
+ *
+ * AzuraCast sometimes returns `title` as "Song Title - Artist Name"
+ * This causes duplication on lock screen when displayed with separate artist field.
+ * We need to extract clean title and artist.
+ */
+function parseSongMetadata(
+  title: string | undefined,
+  artist: string | undefined
+): { title: string; artist: string } {
+  const defaultTitle = 'AubeSonore';
+  const defaultArtist = 'Radio en direct';
+
+  if (!title && !artist) {
+    return { title: defaultTitle, artist: defaultArtist };
+  }
+
+  // If title contains " - " it might be "Title - Artist" format
+  if (title && title.includes(' - ')) {
+    const parts = title.split(' - ');
+
+    // Case: "Title - Artist" where Artist matches the artist field
+    if (parts.length === 2) {
+      const [titlePart, artistPart] = parts;
+
+      // If artist field matches the second part, use only the title part
+      if (artist && artistPart.toLowerCase().trim() === artist.toLowerCase().trim()) {
+        return {
+          title: titlePart.trim() || defaultTitle,
+          artist: artist || defaultArtist,
+        };
+      }
+
+      // If no separate artist field, use parsed parts
+      if (!artist || artist === artistPart.trim()) {
+        return {
+          title: titlePart.trim() || defaultTitle,
+          artist: artistPart.trim() || defaultArtist,
+        };
+      }
+    }
+  }
+
+  // Default: use fields as-is
+  return {
+    title: title || defaultTitle,
+    artist: artist || defaultArtist,
+  };
+}
+
+// ─────────────────────────────────────────────
 // Context
 // ─────────────────────────────────────────────
 
@@ -79,10 +134,12 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // ─────────────────────────────────────────────
   useEffect(() => {
     if (status.playing) {
-      // Build metadata - NO albumTitle to avoid duplication
+      // Parse metadata - handles "Title - Artist" format from AzuraCast
+      const { title, artist } = parseSongMetadata(currentSong?.title, currentSong?.artist);
+
       const metadata = {
-        title: currentSong?.title || 'Aube Sonore',
-        artist: currentSong?.artist || 'Radio en direct',
+        title,
+        artist,
         artworkUrl: currentSong?.art || DEFAULT_ARTWORK,
       };
 
