@@ -1,9 +1,14 @@
 export { AlbumArt } from './AlbumArt';
+export { AnimatedProgressBar } from './AnimatedProgressBar';
+export { AudioWaveform } from './AudioWaveform';
 export { CastButton } from './CastButton';
 export { EmptyState } from './EmptyState';
-export { PlayButton } from './PlayButton';
-export { TrackCard } from './TrackCard';
-export { LoadingSpinner } from './LoadingSpinner';
 export { ListenerCount } from './ListenerCount';
-export { VolumeSlider } from './VolumeSlider';
+export { LoadingSpinner } from './LoadingSpinner';
+export { MiniPlayer } from './MiniPlayer';
 export { PlatformSelector, PLATFORMS } from './PlatformSelector';
+export { PlayButton } from './PlayButton';
+export { SimpleWaveform } from './SimpleWaveform';
+export { TrackCard } from './TrackCard';
+export { TrackInfo } from './TrackInfo';
+export { VolumeSlider } from './VolumeSlider';

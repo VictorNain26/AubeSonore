@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useEffect, useRef, useCallback } from 'react';
-import type { AudioPlayer } from 'expo-audio';
-import { useAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { createContext, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
+
 import { usePlayerStore } from '../stores/playerStore';
 import { STREAM_URL, DEFAULT_ARTWORK } from '../config/env';
 
@@ -9,8 +9,7 @@ import { STREAM_URL, DEFAULT_ARTWORK } from '../config/env';
 // ─────────────────────────────────────────────
 
 interface AudioContextValue {
-  player: AudioPlayer;
-  play: () => Promise<void>;
+  play: () => void;
   stop: () => void;
   setVolume: (volume: number) => void;
 }
@@ -23,118 +22,114 @@ const AudioContext = createContext<AudioContextValue | null>(null);
 
 export function AudioProvider({ children }: { children: React.ReactNode }) {
   const player = useAudioPlayer(STREAM_URL);
-  const isAudioModeConfigured = useRef(false);
+  const status = useAudioPlayerStatus(player);
 
-  // Store actions
+  // Store selectors
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const volume = usePlayerStore((s) => s.volume);
   const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
   const setIsLoading = usePlayerStore((s) => s.setIsLoading);
   const setError = usePlayerStore((s) => s.setError);
-  const currentSong = usePlayerStore((s) => s.currentSong);
-  const volume = usePlayerStore((s) => s.volume);
 
-  // Configure audio mode on mount
+  // Track if lock screen has been activated
+  const lockScreenActiveRef = useRef(false);
+
+  // ─────────────────────────────────────────────
+  // 1. Configure Audio Mode
+  // ─────────────────────────────────────────────
   useEffect(() => {
-    async function configure() {
-      if (isAudioModeConfigured.current) return;
-
-      try {
-        await setAudioModeAsync({
-          playsInSilentMode: true,
-          shouldPlayInBackground: true,
-          interruptionMode: 'doNotMix',
-          interruptionModeAndroid: 'doNotMix',
-        });
-        isAudioModeConfigured.current = true;
-      } catch (error) {
-        console.error('Failed to configure audio mode:', error);
-      }
-    }
-
-    configure();
+    setAudioModeAsync({
+      playsInSilentMode: true,
+      shouldPlayInBackground: true,
+      interruptionMode: 'doNotMix',
+      interruptionModeAndroid: 'doNotMix',
+    }).catch(console.error);
   }, []);
 
-  // Sync player state with store
+  // ─────────────────────────────────────────────
+  // 2. Sync status with store
+  // ─────────────────────────────────────────────
   useEffect(() => {
-    setIsPlaying(player.playing);
-  }, [player.playing, setIsPlaying]);
+    setIsPlaying(status.playing);
+    setIsLoading(status.isBuffering);
+  }, [status.playing, status.isBuffering, setIsPlaying, setIsLoading]);
 
-  // Apply stored volume to player
+  // ─────────────────────────────────────────────
+  // 3. Volume
+  // ─────────────────────────────────────────────
   useEffect(() => {
     player.volume = volume;
   }, [player, volume]);
 
-  // Update lock screen when song changes and playing
+  // ─────────────────────────────────────────────
+  // 4. Lock Screen - SINGLE SOURCE OF TRUTH
+  //    Activate once on first play, then only update metadata
+  // ─────────────────────────────────────────────
   useEffect(() => {
-    async function updateLockScreen() {
-      if (!player.playing || !currentSong) return;
+    // Only activate lock screen when playing starts
+    if (!status.playing) return;
 
-      try {
-        await player.updateLockScreenMetadata({
-          title: currentSong.title,
-          artist: currentSong.artist,
-          albumTitle: 'Aube Sonore',
-          artworkUrl: currentSong.art || DEFAULT_ARTWORK,
-        });
-      } catch (error) {
-        console.error('Failed to update lock screen:', error);
+    const metadata = {
+      title: currentSong?.title || 'Aube Sonore',
+      artist: currentSong?.artist || 'Radio en direct',
+      albumTitle: 'Aube Sonore',
+      artworkUrl: currentSong?.art || DEFAULT_ARTWORK,
+    };
+
+    if (!lockScreenActiveRef.current) {
+      // First time - activate lock screen
+      player.setActiveForLockScreen(true, metadata, {
+        showSeekBackward: false,
+        showSeekForward: false,
+      });
+      lockScreenActiveRef.current = true;
+    } else {
+      // Already active - just update metadata
+      player.updateLockScreenMetadata(metadata);
+    }
+  }, [player, status.playing, currentSong]);
+
+  // ─────────────────────────────────────────────
+  // 5. Cleanup on unmount
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      player.pause();
+      if (lockScreenActiveRef.current) {
+        player.clearLockScreenControls();
+        lockScreenActiveRef.current = false;
       }
-    }
-
-    updateLockScreen();
-  }, [player, player.playing, currentSong]);
-
-  // Play function with lock screen activation
-  const play = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-
-      player.play();
-
-      // Activate lock screen after a short delay
-      setTimeout(async () => {
-        try {
-          await player.setActiveForLockScreen(true, {
-            title: currentSong?.title || 'Aube Sonore',
-            artist: currentSong?.artist || 'Radio en direct',
-            albumTitle: 'Aube Sonore',
-            artworkUrl: currentSong?.art || DEFAULT_ARTWORK,
-          });
-        } catch (error) {
-          console.error('Failed to activate lock screen:', error);
-        }
-      }, 500);
-
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-      setError(error instanceof Error ? error.message : 'Erreur de lecture');
-    }
-  }, [player, currentSong, setIsLoading, setError]);
-
-  // Stop function with lock screen deactivation
-  const stop = useCallback(() => {
-    player.pause();
-    player.clearLockScreenControls?.();
+    };
   }, [player]);
 
-  // Volume function
+  // ─────────────────────────────────────────────
+  // Actions
+  // ─────────────────────────────────────────────
+
+  const play = useCallback(() => {
+    setError(null);
+    // Reconnect fresh to live stream (webradio behavior)
+    player.replace(STREAM_URL);
+    player.play();
+  }, [player, setError]);
+
+  const stop = useCallback(() => {
+    // Fully disconnect from stream (webradio behavior - no pause/resume)
+    player.pause();
+    player.replace(null);
+  }, [player]);
+
   const setVolume = useCallback(
     (value: number) => {
-      const clamped = Math.max(0, Math.min(1, value));
-      player.volume = clamped;
+      player.volume = Math.max(0, Math.min(1, value));
     },
     [player]
   );
 
-  const value: AudioContextValue = {
-    player,
-    play,
-    stop,
-    setVolume,
-  };
+  // Memoize context value to prevent unnecessary re-renders of consumers
+  const contextValue = useMemo(() => ({ play, stop, setVolume }), [play, stop, setVolume]);
 
-  return <AudioContext.Provider value={value}>{children}</AudioContext.Provider>;
+  return <AudioContext.Provider value={contextValue}>{children}</AudioContext.Provider>;
 }
 
 // ─────────────────────────────────────────────

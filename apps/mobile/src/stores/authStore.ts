@@ -23,6 +23,13 @@ interface AuthActions {
 type AuthStore = AuthState & AuthActions;
 
 // ─────────────────────────────────────────────
+// Request Deduplication
+// Prevents race conditions when refreshSession is called multiple times
+// ─────────────────────────────────────────────
+
+let refreshPromise: Promise<void> | null = null;
+
+// ─────────────────────────────────────────────
 // Store
 // ─────────────────────────────────────────────
 
@@ -41,17 +48,29 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
   },
 
   refreshSession: async () => {
-    try {
-      set({ isLoading: true });
-      const session = await authApi.getSession();
-      set({
-        user: session?.user || null,
-        isAuthenticated: !!session?.user,
-        isLoading: false,
-      });
-    } catch {
-      set({ user: null, isAuthenticated: false, isLoading: false });
+    // If a refresh is already in progress, wait for it instead of starting a new one
+    if (refreshPromise) {
+      return refreshPromise;
     }
+
+    refreshPromise = (async () => {
+      try {
+        set({ isLoading: true });
+        const session = await authApi.getSession();
+        set({
+          user: session?.user || null,
+          isAuthenticated: !!session?.user,
+          isLoading: false,
+        });
+      } catch {
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      } finally {
+        // Clear the promise so future calls can start fresh
+        refreshPromise = null;
+      }
+    })();
+
+    return refreshPromise;
   },
 
   signIn: async (email: string, password: string) => {

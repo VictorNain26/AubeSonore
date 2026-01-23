@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,16 +9,19 @@ import {
   Platform,
   Alert,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 
 import { useAuthStore } from '../src/stores/authStore';
 import { useLikedTracksStore } from '../src/stores/likedTracksStore';
 import { usePreferencesStore } from '../src/stores/preferencesStore';
+import { authApi } from '../src/services/api';
 
-type AuthMode = 'signin' | 'signup';
+type AuthMode = 'signin' | 'signup' | 'forgot';
 
 export default function AuthScreen() {
   const router = useRouter();
@@ -32,13 +35,30 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+
+  // Refs for input focus
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   const isSignUp = mode === 'signup';
+  const isForgot = mode === 'forgot';
 
   const handleSubmit = async () => {
     // Validation
-    if (!email.trim() || !password.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs');
+    if (!email.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer votre email');
+      return;
+    }
+
+    // Forgot password flow
+    if (isForgot) {
+      await handleForgotPassword();
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer votre mot de passe');
       return;
     }
 
@@ -69,6 +89,41 @@ export default function AuthScreen() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert('Erreur', 'Veuillez entrer votre email');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      await authApi.forgotPassword(email.trim());
+      Alert.alert(
+        'Email envoyé',
+        'Si un compte existe avec cet email, vous recevrez un lien de réinitialisation.',
+        [{ text: 'OK', onPress: () => setMode('signin') }]
+      );
+    } catch (error) {
+      Alert.alert('Erreur', error instanceof Error ? error.message : 'Une erreur est survenue');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const getTitle = () => {
+    if (isForgot) return 'Mot de passe oublié';
+    if (isSignUp) return 'Créer un compte';
+    return 'Bon retour !';
+  };
+
+  const getSubtitle = () => {
+    if (isForgot) return 'Entrez votre email pour réinitialiser';
+    if (isSignUp) return 'Rejoignez la communauté Aube Sonore';
+    return 'Connectez-vous pour continuer';
+  };
+
+  const loading = isLoading || forgotLoading;
+
   return (
     <SafeAreaView className="flex-1 bg-surface-base">
       <KeyboardAvoidingView
@@ -82,111 +137,164 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Close Button */}
-          <View className="absolute top-4 right-4 z-10">
-            <Pressable onPress={() => router.back()} className="p-2 rounded-full bg-white/5">
+          <Animated.View entering={FadeIn.delay(300)} className="absolute top-4 right-4 z-10">
+            <Pressable
+              onPress={() => router.back()}
+              className="w-10 h-10 rounded-full bg-white/5 items-center justify-center"
+            >
               <Ionicons name="close" size={24} color="rgba(255,255,255,0.6)" />
             </Pressable>
-          </View>
+          </Animated.View>
 
           <View className="flex-1 justify-center px-6 py-8">
-            {/* Logo / Header */}
-            <View className="items-center mb-10">
-              <View className="w-16 h-16 rounded-2xl bg-accent/20 items-center justify-center mb-4">
-                <Ionicons name="radio" size={32} color="#9370DB" />
-              </View>
-              <Text className="text-2xl font-bold text-white">Aube Sonore</Text>
-              <Text className="text-sm text-white/50 mt-1">
-                {isSignUp ? 'Créer un compte' : 'Connexion'}
-              </Text>
-            </View>
+            {/* Logo */}
+            <Animated.View entering={FadeInDown.duration(600)} className="items-center mb-8">
+              <Image
+                source={require('../assets/images/logo.jpg')}
+                className="w-24 h-24 rounded-full"
+                resizeMode="cover"
+              />
+            </Animated.View>
+
+            {/* Title */}
+            <Animated.View
+              entering={FadeInDown.duration(600).delay(100)}
+              className="items-center mb-8"
+            >
+              <Text className="text-2xl font-bold text-white mb-2">{getTitle()}</Text>
+              <Text className="text-sm text-white/50 text-center">{getSubtitle()}</Text>
+            </Animated.View>
 
             {/* Form */}
-            <View className="space-y-4">
+            <Animated.View entering={FadeInUp.duration(600).delay(200)}>
               {/* Name (signup only) */}
               {isSignUp && (
                 <View className="mb-4">
-                  <Text className="text-sm text-white/60 mb-2">Nom</Text>
-                  <TextInput
-                    value={name}
-                    onChangeText={setName}
-                    placeholder="Votre nom"
-                    placeholderTextColor="rgba(255,255,255,0.3)"
-                    autoCapitalize="words"
-                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white"
-                  />
+                  <Text className="text-xs text-white/40 uppercase tracking-wider mb-2 ml-1">
+                    Nom
+                  </Text>
+                  <View className="flex-row items-center bg-white/5 border border-white/10 rounded-2xl px-4">
+                    <Ionicons name="person-outline" size={20} color="rgba(255,255,255,0.4)" />
+                    <TextInput
+                      value={name}
+                      onChangeText={setName}
+                      placeholder="Votre nom"
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      autoCapitalize="words"
+                      returnKeyType="next"
+                      onSubmitEditing={() => emailRef.current?.focus()}
+                      className="flex-1 py-4 px-3 text-white text-base"
+                    />
+                  </View>
                 </View>
               )}
 
               {/* Email */}
               <View className="mb-4">
-                <Text className="text-sm text-white/60 mb-2">Email</Text>
-                <TextInput
-                  value={email}
-                  onChangeText={setEmail}
-                  placeholder="votre@email.com"
-                  placeholderTextColor="rgba(255,255,255,0.3)"
-                  keyboardType="email-address"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  className="bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white"
-                />
-              </View>
-
-              {/* Password */}
-              <View className="mb-6">
-                <Text className="text-sm text-white/60 mb-2">Mot de passe</Text>
-                <View className="relative">
+                <Text className="text-xs text-white/40 uppercase tracking-wider mb-2 ml-1">
+                  Email
+                </Text>
+                <View className="flex-row items-center bg-white/5 border border-white/10 rounded-2xl px-4">
+                  <Ionicons name="mail-outline" size={20} color="rgba(255,255,255,0.4)" />
                   <TextInput
-                    value={password}
-                    onChangeText={setPassword}
-                    placeholder="••••••••"
+                    ref={emailRef}
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="votre@email.com"
                     placeholderTextColor="rgba(255,255,255,0.3)"
-                    secureTextEntry={!showPassword}
+                    keyboardType="email-address"
                     autoCapitalize="none"
-                    className="bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white pr-12"
+                    autoComplete="email"
+                    returnKeyType={isForgot ? 'done' : 'next'}
+                    onSubmitEditing={() =>
+                      isForgot ? handleSubmit() : passwordRef.current?.focus()
+                    }
+                    className="flex-1 py-4 px-3 text-white text-base"
                   />
-                  <Pressable
-                    onPress={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-3"
-                  >
-                    <Ionicons
-                      name={showPassword ? 'eye-off' : 'eye'}
-                      size={22}
-                      color="rgba(255,255,255,0.4)"
-                    />
-                  </Pressable>
                 </View>
               </View>
+
+              {/* Password (not for forgot) */}
+              {!isForgot && (
+                <View className="mb-4">
+                  <Text className="text-xs text-white/40 uppercase tracking-wider mb-2 ml-1">
+                    Mot de passe
+                  </Text>
+                  <View className="flex-row items-center bg-white/5 border border-white/10 rounded-2xl px-4">
+                    <Ionicons name="lock-closed-outline" size={20} color="rgba(255,255,255,0.4)" />
+                    <TextInput
+                      ref={passwordRef}
+                      value={password}
+                      onChangeText={setPassword}
+                      placeholder="••••••••"
+                      placeholderTextColor="rgba(255,255,255,0.3)"
+                      secureTextEntry={!showPassword}
+                      autoCapitalize="none"
+                      returnKeyType="done"
+                      onSubmitEditing={handleSubmit}
+                      className="flex-1 py-4 px-3 text-white text-base"
+                    />
+                    <Pressable onPress={() => setShowPassword(!showPassword)}>
+                      <Ionicons
+                        name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                        size={22}
+                        color="rgba(255,255,255,0.4)"
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+
+              {/* Forgot Password Link (signin only) */}
+              {mode === 'signin' && (
+                <Pressable onPress={() => setMode('forgot')} className="self-end mb-6">
+                  <Text className="text-sm text-accent">Mot de passe oublié ?</Text>
+                </Pressable>
+              )}
 
               {/* Submit Button */}
               <Pressable
                 onPress={handleSubmit}
-                disabled={isLoading}
-                className={`bg-accent rounded-xl py-4 items-center ${
-                  isLoading ? 'opacity-50' : 'active:opacity-80'
+                disabled={loading}
+                className={`bg-accent rounded-2xl py-4 items-center mt-2 ${
+                  loading ? 'opacity-50' : 'active:opacity-80'
                 }`}
               >
-                {isLoading ? (
+                {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (
                   <Text className="text-white font-semibold text-base">
-                    {isSignUp ? "S'inscrire" : 'Se connecter'}
+                    {isForgot ? 'Envoyer le lien' : isSignUp ? "S'inscrire" : 'Se connecter'}
                   </Text>
                 )}
               </Pressable>
-            </View>
+            </Animated.View>
 
             {/* Toggle Mode */}
-            <View className="flex-row items-center justify-center mt-8">
-              <Text className="text-white/50 text-sm">
-                {isSignUp ? 'Déjà un compte ?' : 'Pas encore de compte ?'}
-              </Text>
-              <Pressable onPress={() => setMode(isSignUp ? 'signin' : 'signup')} className="ml-1">
-                <Text className="text-accent text-sm font-medium">
-                  {isSignUp ? 'Se connecter' : "S'inscrire"}
-                </Text>
-              </Pressable>
-            </View>
+            <Animated.View
+              entering={FadeInUp.duration(600).delay(300)}
+              className="flex-row items-center justify-center mt-8"
+            >
+              {isForgot ? (
+                <Pressable onPress={() => setMode('signin')}>
+                  <Text className="text-accent text-sm font-medium">Retour à la connexion</Text>
+                </Pressable>
+              ) : (
+                <>
+                  <Text className="text-white/50 text-sm">
+                    {isSignUp ? 'Déjà un compte ?' : 'Pas encore de compte ?'}
+                  </Text>
+                  <Pressable
+                    onPress={() => setMode(isSignUp ? 'signin' : 'signup')}
+                    className="ml-1"
+                  >
+                    <Text className="text-accent text-sm font-medium">
+                      {isSignUp ? 'Se connecter' : "S'inscrire"}
+                    </Text>
+                  </Pressable>
+                </>
+              )}
+            </Animated.View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

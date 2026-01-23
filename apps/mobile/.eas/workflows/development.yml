@@ -1,0 +1,37 @@
+name: Development Build (Smart)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fingerprint:
+    name: Calculate Fingerprint
+    type: fingerprint
+    environment: development
+
+  android_get_build:
+    name: Check Android Dev Build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+      platform: android
+      profile: development
+
+  android_build:
+    name: Build Android Dev Client
+    needs: [android_get_build]
+    if: ${{ !needs.android_get_build.outputs.build_id }}
+    type: build
+    params:
+      platform: android
+      profile: development
+
+  android_update:
+    name: Update Android
+    needs: [android_get_build]
+    if: ${{ needs.android_get_build.outputs.build_id }}
+    type: update
+    params:
+      channel: development
+      platform: android

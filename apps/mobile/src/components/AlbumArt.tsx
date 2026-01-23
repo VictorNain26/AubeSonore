@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { View, Image, Pressable, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { DEFAULT_ARTWORK } from '../config/env';
@@ -13,7 +13,7 @@ interface AlbumArtProps {
   onToggleLike: () => void;
 }
 
-export function AlbumArt({
+export const AlbumArt = memo(function AlbumArt({
   artUrl,
   title,
   isPlaying,
@@ -92,4 +92,4 @@ export function AlbumArt({
       )}
     </View>
   );
-}
+});

@@ -23,7 +23,6 @@ export const unstable_settings = {
 SplashScreen.preventAutoHideAsync();
 
 // Font asset path - using require to load the local font file
-// eslint-disable-next-line @typescript-eslint/no-require-imports
 const SpaceMonoFont = require('../assets/fonts/SpaceMono-Regular.ttf');
 
 export default function RootLayout() {
@@ -40,32 +39,37 @@ export default function RootLayout() {
   }, [fontError]);
 
   useEffect(() => {
+    let isMounted = true;
+    let unsubscribe: (() => void) | undefined;
+
     async function initialize() {
       try {
         // Initialize auth and player stores
         await Promise.all([initializeAuth(), initializePlayer()]);
 
+        // Only proceed if still mounted
+        if (!isMounted) return;
+
         // Subscribe to real-time updates
-        const unsubscribe = subscribeToNowPlaying();
+        unsubscribe = subscribeToNowPlaying();
 
         // Hide splash screen
         if (fontsLoaded) {
           await SplashScreen.hideAsync();
         }
-
-        return unsubscribe;
       } catch (error) {
-        console.error('App initialization error:', error);
-        if (fontsLoaded) {
+        console.warn('App initialization error:', error);
+        if (isMounted && fontsLoaded) {
           await SplashScreen.hideAsync();
         }
       }
     }
 
-    const unsubscribePromise = initialize();
+    initialize();
 
     return () => {
-      unsubscribePromise.then((unsubscribe) => unsubscribe?.());
+      isMounted = false;
+      unsubscribe?.();
     };
   }, [fontsLoaded, initializeAuth, initializePlayer, subscribeToNowPlaying]);
 
@@ -85,6 +89,17 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="player"
+              options={{
+                presentation: 'modal',
+                headerShown: false,
+                animation: 'slide_from_bottom',
+                gestureEnabled: true,
+                gestureDirection: 'vertical',
+                fullScreenGestureEnabled: true,
+              }}
+            />
             <Stack.Screen
               name="auth"
               options={{

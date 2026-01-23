@@ -1,0 +1,47 @@
+name: Preview Android (Smart Build)
+
+on:
+  push:
+    branches:
+      - develop
+      - feature/*
+
+jobs:
+  fingerprint:
+    name: Calculate Fingerprint
+    type: fingerprint
+    environment: preview
+
+  get_existing_build:
+    name: Check Existing Build
+    needs: [fingerprint]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+      platform: android
+      profile: preview
+
+  repack:
+    name: Repack Existing Build
+    needs: [get_existing_build]
+    if: ${{ needs.get_existing_build.outputs.build_id }}
+    type: repack
+    params:
+      build_id: ${{ needs.get_existing_build.outputs.build_id }}
+
+  build:
+    name: Build Android APK
+    needs: [get_existing_build]
+    if: ${{ !needs.get_existing_build.outputs.build_id }}
+    type: build
+    params:
+      platform: android
+      profile: preview
+
+  update:
+    name: Publish Update
+    after: [repack, build]
+    type: update
+    params:
+      channel: preview
+      platform: android

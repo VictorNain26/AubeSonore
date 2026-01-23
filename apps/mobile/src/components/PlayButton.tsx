@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,7 +15,7 @@ const SIZES = {
   large: { button: 'w-16 h-16', icon: 28 },
 };
 
-export function PlayButton({
+export const PlayButton = memo(function PlayButton({
   isPlaying,
   isLoading = false,
   onPress,
@@ -37,4 +38,4 @@ export function PlayButton({
       )}
     </Pressable>
   );
-}
+});

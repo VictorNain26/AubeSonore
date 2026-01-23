@@ -3,15 +3,14 @@
 
 export const ENV = {
   // API Backend
-  API_BASE_URL:
-    process.env.EXPO_PUBLIC_API_URL || 'https://ourmusic-backend-tomia-f4ec3e9e.koyeb.app',
+  API_BASE_URL: process.env.EXPO_PUBLIC_API_URL || 'https://api.aubesonore.fr',
 
   // AzuraCast Configuration
-  AZURACAST_URL: process.env.EXPO_PUBLIC_AZURACAST_URL || 'https://116.203.46.203',
+  AZURACAST_URL: process.env.EXPO_PUBLIC_AZURACAST_URL || 'https://radio.aubesonore.fr',
   STATION_SHORTCODE: process.env.EXPO_PUBLIC_STATION_SHORTCODE || 'aubesonore',
 } as const;
 
-// Derived URLs
+// Derived URLs - Direct stream (MP3)
 export const STREAM_URL = `${ENV.AZURACAST_URL}/listen/${ENV.STATION_SHORTCODE}/radio.mp3`;
 export const SSE_URL = `${ENV.AZURACAST_URL}/api/live/nowplaying/sse`;
 export const WEBSOCKET_URL = `wss://${ENV.AZURACAST_URL.replace(/^https?:\/\//, '')}/api/live/nowplaying/websocket`;

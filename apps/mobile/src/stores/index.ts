@@ -1,4 +1,5 @@
 export { useAuthStore } from './authStore';
-export { usePlayerStore } from './playerStore';
+export { useCastStore } from './castStore';
 export { useLikedTracksStore } from './likedTracksStore';
+export { usePlayerStore } from './playerStore';
 export { usePreferencesStore } from './preferencesStore';

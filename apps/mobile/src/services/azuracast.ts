@@ -10,6 +10,13 @@ type NowPlayingCallback = (data: NowPlaying) => void;
 type ConnectionCallback = (connected: boolean) => void;
 type ErrorCallback = (error: string) => void;
 
+// Reconnection configuration
+const RECONNECT_CONFIG = {
+  baseDelay: 1000, // 1 second
+  maxDelay: 30000, // 30 seconds max
+  multiplier: 2, // Double delay each attempt
+} as const;
+
 class AzuraCastWebSocket {
   private ws: WebSocket | null = null;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -17,6 +24,7 @@ class AzuraCastWebSocket {
   private onConnectionCallbacks: Set<ConnectionCallback> = new Set();
   private onErrorCallbacks: Set<ErrorCallback> = new Set();
   private isConnecting = false;
+  private reconnectAttempts = 0;
 
   connect() {
     if (this.ws || this.isConnecting) return;
@@ -29,6 +37,7 @@ class AzuraCastWebSocket {
 
       this.ws.onopen = () => {
         this.isConnecting = false;
+        this.reconnectAttempts = 0; // Reset on successful connection
         this.notifyConnection(true);
 
         // Subscribe to station updates
@@ -71,12 +80,13 @@ class AzuraCastWebSocket {
         this.ws = null;
         this.notifyConnection(false);
 
-        // Auto-reconnect after 3 seconds
+        // Auto-reconnect with exponential backoff
         this.scheduleReconnect();
       };
     } catch {
       this.isConnecting = false;
       this.notifyError('Impossible de se connecter');
+      this.scheduleReconnect();
     }
   }
 
@@ -85,6 +95,7 @@ class AzuraCastWebSocket {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+    this.reconnectAttempts = 0;
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -93,10 +104,19 @@ class AzuraCastWebSocket {
 
   private scheduleReconnect() {
     if (this.reconnectTimeout) return;
+
+    // Calculate delay with exponential backoff
+    const delay = Math.min(
+      RECONNECT_CONFIG.baseDelay * Math.pow(RECONNECT_CONFIG.multiplier, this.reconnectAttempts),
+      RECONNECT_CONFIG.maxDelay
+    );
+
+    this.reconnectAttempts++;
+
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectTimeout = null;
       this.connect();
-    }, 3000);
+    }, delay);
   }
 
   private notifyNowPlaying(data: NowPlaying) {

@@ -17,6 +17,7 @@ export default tseslint.config(
       '**/*.config.js',
       '**/*.config.ts',
       '**/metro.config.js',
+      '**/scripts/**', // Build scripts (Node.js, not React Native)
     ],
   },
 
@@ -43,6 +44,14 @@ export default tseslint.config(
       ...reactHooksPlugin.configs.recommended.rules,
       'react/react-in-jsx-scope': 'off', // Not needed with React 17+
       'react/prop-types': 'off', // Using TypeScript
+    },
+  },
+
+  // React Native specific - allow require() for assets (Metro bundler standard)
+  {
+    files: ['apps/mobile/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
 

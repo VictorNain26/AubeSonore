@@ -1,7 +1,9 @@
-import { View, Platform, ActivityIndicator } from 'react-native';
-import { CastButton as GoogleCastButton } from 'react-native-google-cast';
-import { AirplayButton } from 'react-airplay';
+import { memo, useCallback } from 'react';
+import { Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useShallow } from 'zustand/react/shallow';
 import { useCastStore } from '../stores/castStore';
+import { getGoogleCast } from '../lib/cast';
 
 interface CastButtonProps {
   size?: 'small' | 'medium' | 'large';
@@ -9,65 +11,66 @@ interface CastButtonProps {
   activeTintColor?: string;
 }
 
-const SIZES = {
+const ICON_SIZES = {
+  small: 18,
+  medium: 22,
+  large: 26,
+} as const;
+
+const BUTTON_SIZES = {
   small: 32,
   medium: 40,
   large: 48,
-};
+} as const;
 
-/**
- * Unified cast button component
- * Shows Chromecast on all platforms
- * Shows AirPlay additionally on iOS
- */
-export function CastButton({
+export const CastButton = memo(function CastButton({
   size = 'medium',
-  tintColor = 'rgba(255, 255, 255, 0.6)',
-  activeTintColor = '#9370DB', // Purple when connected
+  tintColor = 'rgba(255, 255, 255, 0.5)',
+  activeTintColor = '#9370DB',
 }: CastButtonProps) {
-  const { isCasting, isConnecting, castType } = useCastStore();
+  const { chromecastAvailable, isCasting, isConnecting } = useCastStore(
+    useShallow((s) => ({
+      chromecastAvailable: s.chromecastAvailable,
+      isCasting: s.isCasting,
+      isConnecting: s.isConnecting,
+    }))
+  );
 
-  const buttonSize = SIZES[size];
-  const isIOS = Platform.OS === 'ios';
+  const handlePress = useCallback(() => {
+    const googleCast = getGoogleCast();
+    googleCast?.showCastDialog();
+  }, []);
 
-  // Show loading indicator when connecting
+  if (!chromecastAvailable) {
+    return null;
+  }
+
+  const iconSize = ICON_SIZES[size];
+  const buttonSize = BUTTON_SIZES[size];
+  const color = isCasting ? activeTintColor : tintColor;
+
   if (isConnecting) {
     return (
-      <View
-        style={{
-          width: buttonSize,
-          height: buttonSize,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
+      <Pressable style={[styles.button, { width: buttonSize, height: buttonSize }]} disabled>
         <ActivityIndicator size="small" color={tintColor} />
-      </View>
+      </Pressable>
     );
   }
 
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-      {/* Chromecast Button - Available on all platforms */}
-      <GoogleCastButton
-        style={{
-          width: buttonSize,
-          height: buttonSize,
-          tintColor: isCasting && castType === 'chromecast' ? activeTintColor : tintColor,
-        }}
-      />
-
-      {/* AirPlay Button - iOS only */}
-      {isIOS && (
-        <AirplayButton
-          style={{
-            width: buttonSize,
-            height: buttonSize,
-          }}
-          tintColor={isCasting && castType === 'airplay' ? activeTintColor : tintColor}
-          activeTintColor={activeTintColor}
-        />
-      )}
-    </View>
+    <Pressable
+      onPress={handlePress}
+      style={[styles.button, { width: buttonSize, height: buttonSize }]}
+      hitSlop={8}
+    >
+      <Ionicons name={isCasting ? 'tv' : 'tv-outline'} size={iconSize} color={color} />
+    </Pressable>
   );
-}
+});
+
+const styles = StyleSheet.create({
+  button: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

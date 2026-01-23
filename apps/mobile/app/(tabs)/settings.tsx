@@ -173,7 +173,7 @@ export default function SettingsScreen() {
           <SettingItem
             icon="globe-outline"
             title="Site web"
-            onPress={() => openLink('https://aubesonore.com')}
+            onPress={() => openLink('https://aubesonore.fr')}
           />
           <View className="h-px bg-white/5 mx-4" />
           <SettingItem
@@ -188,13 +188,13 @@ export default function SettingsScreen() {
           <SettingItem
             icon="document-text-outline"
             title="Conditions d'utilisation"
-            onPress={() => openLink('https://aubesonore.com/terms')}
+            onPress={() => openLink('https://aubesonore.fr/terms')}
           />
           <View className="h-px bg-white/5 mx-4" />
           <SettingItem
             icon="shield-outline"
             title="Politique de confidentialité"
-            onPress={() => openLink('https://aubesonore.com/privacy')}
+            onPress={() => openLink('https://aubesonore.fr/privacy')}
           />
         </Section>
 

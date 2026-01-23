@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { View, Text, Image, Pressable, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { LikedTrack, PreferredPlatform, PlatformLinks } from '../types';
@@ -46,7 +46,7 @@ function getPreferredLink(
 }
 
 // ─────────────────────────────────────────────
-// Component
+// Component (Memoized for list performance)
 // ─────────────────────────────────────────────
 
 interface TrackCardProps {
@@ -55,25 +55,33 @@ interface TrackCardProps {
   onDelete: (id: string) => void;
 }
 
-export function TrackCard({ track, preferredPlatform, onDelete }: TrackCardProps) {
+export const TrackCard = memo(function TrackCard({
+  track,
+  preferredPlatform,
+  onDelete,
+}: TrackCardProps) {
   const [imgError, setImgError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
   const artwork = imgError ? null : track.artworkBase64 || track.artworkUrl;
   const { url: link, isSearch } = getPreferredLink(track, preferredPlatform);
 
-  const handleOpen = async () => {
+  const handleOpen = useCallback(async () => {
     try {
       await Linking.openURL(link);
     } catch (error) {
-      console.error('Failed to open URL:', error);
+      console.warn('Failed to open URL:', error);
     }
-  };
+  }, [link]);
 
-  const handleDelete = async () => {
+  const handleDelete = useCallback(async () => {
     setIsDeleting(true);
     await onDelete(track.id);
-  };
+  }, [onDelete, track.id]);
+
+  const handleImageError = useCallback(() => {
+    setImgError(true);
+  }, []);
 
   return (
     <View className={`flex-row items-center gap-3 py-3 ${isDeleting ? 'opacity-50' : ''}`}>
@@ -84,7 +92,7 @@ export function TrackCard({ track, preferredPlatform, onDelete }: TrackCardProps
             source={{ uri: artwork }}
             className="w-full h-full"
             resizeMode="cover"
-            onError={() => setImgError(true)}
+            onError={handleImageError}
           />
         ) : (
           <Ionicons name="musical-notes" size={20} color="rgba(255,255,255,0.3)" />
@@ -121,4 +129,4 @@ export function TrackCard({ track, preferredPlatform, onDelete }: TrackCardProps
       </View>
     </View>
   );
-}
+});
