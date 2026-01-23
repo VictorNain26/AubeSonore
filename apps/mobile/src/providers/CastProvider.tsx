@@ -1,94 +1,104 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useCastStore } from '../stores/castStore';
 import { usePlayerStore } from '../stores/playerStore';
-import { getGoogleCast } from '../lib/cast';
+import { getSessionManager, loadMedia, isCastAvailable } from '../lib/cast';
 import { STREAM_URL } from '../config/env';
 
 /**
  * CastProvider - Manages Google Cast session lifecycle
- * No context needed - all state is in Zustand store
+ *
+ * Best Practices 2025/2026:
+ * - No context needed - all state is in Zustand store
+ * - Proper cleanup of subscriptions
+ * - Error boundary consideration
+ * - Stable callback references
  */
 export function CastProvider({ children }: { children: React.ReactNode }) {
-  const mounted = useRef(true);
-  const subscriptions = useRef<Array<{ remove: () => void }>>([]);
+  const mountedRef = useRef(true);
+  const subscriptionsRef = useRef<Array<{ remove: () => void }>>([]);
 
+  // Store actions - stable references
   const setCasting = useCastStore((s) => s.setCasting);
   const setConnecting = useCastStore((s) => s.setConnecting);
   const setError = useCastStore((s) => s.setError);
   const setChromecastAvailable = useCastStore((s) => s.setChromecastAvailable);
 
+  /**
+   * Load current track to Chromecast when session starts
+   */
+  const handleSessionStarted = useCallback(async () => {
+    if (!mountedRef.current) return;
+
+    setCasting(true, 'Chromecast', 'chromecast');
+
+    // Load current song to cast device
+    const song = usePlayerStore.getState().currentSong;
+    if (!song) return;
+
+    const success = await loadMedia(STREAM_URL, {
+      title: song.title,
+      artist: song.artist,
+      artworkUrl: song.art,
+    });
+
+    if (!success && mountedRef.current) {
+      console.warn('[CastProvider] Failed to load media to cast device');
+    }
+  }, [setCasting]);
+
   useEffect(() => {
-    mounted.current = true;
+    mountedRef.current = true;
 
-    const googleCast = getGoogleCast();
-
-    if (!googleCast) {
+    // Check if Cast is available
+    if (!isCastAvailable()) {
       setChromecastAvailable(false);
       return;
     }
 
     setChromecastAvailable(true);
 
-    const sessionManager = googleCast.getSessionManager();
+    const sessionManager = getSessionManager();
+    if (!sessionManager) {
+      setChromecastAvailable(false);
+      return;
+    }
 
-    subscriptions.current = [
+    // Subscribe to session events
+    subscriptionsRef.current = [
       sessionManager.onSessionStarting(() => {
-        if (mounted.current) setConnecting(true);
+        if (mountedRef.current) setConnecting(true);
       }),
 
       sessionManager.onSessionStarted(() => {
-        if (!mounted.current) return;
+        handleSessionStarted();
+      }),
 
-        setCasting(true, 'Chromecast', 'chromecast');
-        loadCurrentTrack(googleCast);
+      sessionManager.onSessionResumed(() => {
+        // Session resumed after app was backgrounded
+        handleSessionStarted();
       }),
 
       sessionManager.onSessionEnded(() => {
-        if (mounted.current) setCasting(false);
+        if (mountedRef.current) {
+          setCasting(false);
+          setConnecting(false);
+        }
       }),
 
-      sessionManager.onSessionStartFailed(() => {
-        if (!mounted.current) return;
+      sessionManager.onSessionStartFailed((error) => {
+        if (!mountedRef.current) return;
         setConnecting(false);
-        setError('Connexion échouée');
+        setError(error?.message ?? 'Connexion échouée');
       }),
     ];
 
+    // Cleanup subscriptions on unmount
     return () => {
-      mounted.current = false;
-      subscriptions.current.forEach((sub) => sub.remove());
-      subscriptions.current = [];
+      mountedRef.current = false;
+      subscriptionsRef.current.forEach((sub) => sub.remove());
+      subscriptionsRef.current = [];
     };
-  }, [setCasting, setConnecting, setError, setChromecastAvailable]);
+  }, [setCasting, setConnecting, setError, setChromecastAvailable, handleSessionStarted]);
 
   return <>{children}</>;
-}
-
-/**
- * Load current track to Chromecast when session starts
- */
-async function loadCurrentTrack(googleCast: NonNullable<ReturnType<typeof getGoogleCast>>) {
-  const song = usePlayerStore.getState().currentSong;
-  if (!song) return;
-
-  try {
-    const client = await googleCast.getClient();
-    if (!client) return;
-
-    await client.loadMedia({
-      mediaInfo: {
-        contentUrl: STREAM_URL,
-        contentType: 'audio/mpeg',
-        metadata: {
-          type: 'musicTrack',
-          title: song.title,
-          artist: song.artist,
-          images: song.art ? [{ url: song.art }] : [],
-        },
-      },
-      autoplay: true,
-    });
-  } catch (error) {
-    console.warn('[CastProvider] Failed to load media:', error);
-  }
 }

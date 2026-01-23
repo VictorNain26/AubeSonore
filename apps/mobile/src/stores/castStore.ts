@@ -1,11 +1,22 @@
 import { create } from 'zustand';
 import { Platform } from 'react-native';
+import { endSession } from '../lib/cast';
 import type { CastStore, CastType } from '../types/cast';
 
+/**
+ * Cast Store - Single source of truth for cast state
+ *
+ * Best Practices 2025/2026:
+ * - Store only holds state, not business logic
+ * - Actions are minimal setters
+ * - Complex logic lives in lib/cast.ts
+ */
 export const useCastStore = create<CastStore>((set, get) => ({
-  // Initial state
+  // ─────────────────────────────────────────────
+  // State
+  // ─────────────────────────────────────────────
   chromecastAvailable: false,
-  airplayAvailable: Platform.OS === 'ios', // AirPlay is always potentially available on iOS
+  airplayAvailable: Platform.OS === 'ios',
   connectionState: 'disconnected',
   isCasting: false,
   castType: null,
@@ -13,20 +24,20 @@ export const useCastStore = create<CastStore>((set, get) => ({
   isConnecting: false,
   error: null,
 
-  // Initialize cast SDK
+  // ─────────────────────────────────────────────
+  // Actions
+  // ─────────────────────────────────────────────
+
   initialize: async () => {
     // Initialization is handled by CastProvider
-    // This is a placeholder for any async init logic
   },
 
-  // Start Chromecast session (opens device picker)
   startChromecast: () => {
-    // This will be called from CastButton
-    // The actual cast session is managed by react-native-google-cast
+    // Handled by CastButton via lib/cast.showCastPicker()
   },
 
-  // Stop current cast session
-  stopCasting: () => {
+  stopCasting: async () => {
+    await endSession();
     set({
       isCasting: false,
       castType: null,
@@ -36,7 +47,6 @@ export const useCastStore = create<CastStore>((set, get) => ({
     });
   },
 
-  // Set casting state
   setCasting: (isCasting: boolean, device?: string, type?: CastType) => {
     set({
       isCasting,
@@ -44,10 +54,10 @@ export const useCastStore = create<CastStore>((set, get) => ({
       castType: type ?? null,
       connectionState: isCasting ? 'connected' : 'disconnected',
       isConnecting: false,
+      error: null,
     });
   },
 
-  // Set connecting state
   setConnecting: (isConnecting: boolean) => {
     set({
       isConnecting,
@@ -55,22 +65,18 @@ export const useCastStore = create<CastStore>((set, get) => ({
     });
   },
 
-  // Set error
   setError: (error: string | null) => {
-    set({ error });
+    set({ error, isConnecting: false });
   },
 
-  // Set Chromecast availability
   setChromecastAvailable: (available: boolean) => {
     set({ chromecastAvailable: available });
   },
 
-  // Set AirPlay availability
   setAirplayAvailable: (available: boolean) => {
     set({ airplayAvailable: available });
   },
 
-  // Reset to initial state
   reset: () => {
     set({
       connectionState: 'disconnected',

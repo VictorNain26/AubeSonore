@@ -1,5 +1,9 @@
 /**
  * Cast types for Chromecast and AirPlay integration
+ *
+ * Best Practices 2025/2026:
+ * - Strict typing for all cast-related data
+ * - Discriminated unions for connection states
  */
 
 export type CastType = 'chromecast' | 'airplay';
@@ -36,14 +40,14 @@ export interface CastState {
 }
 
 export interface CastActions {
-  // Initialization
+  // Lifecycle
   initialize: () => Promise<void>;
 
   // Session control
   startChromecast: () => void;
-  stopCasting: () => void;
+  stopCasting: () => Promise<void>;
 
-  // State updates
+  // State updates (called by CastProvider)
   setCasting: (isCasting: boolean, device?: string, type?: CastType) => void;
   setConnecting: (isConnecting: boolean) => void;
   setError: (error: string | null) => void;

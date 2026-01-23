@@ -3,7 +3,7 @@ import { Pressable, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useShallow } from 'zustand/react/shallow';
 import { useCastStore } from '../stores/castStore';
-import { getGoogleCast } from '../lib/cast';
+import { showCastPicker } from '../lib/cast';
 
 interface CastButtonProps {
   size?: 'small' | 'medium' | 'large';
@@ -37,8 +37,7 @@ export const CastButton = memo(function CastButton({
   );
 
   const handlePress = useCallback(() => {
-    const googleCast = getGoogleCast();
-    googleCast?.showCastDialog();
+    showCastPicker();
   }, []);
 
   if (!chromecastAvailable) {

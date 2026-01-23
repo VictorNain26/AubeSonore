@@ -114,9 +114,10 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   }, [player, setError]);
 
   const stop = useCallback(() => {
-    // Fully disconnect from stream (webradio behavior - no pause/resume)
+    // Stop playback - for webradio, play() will reconnect fresh to live stream
     player.pause();
-    player.replace(null);
+    // Note: Don't use replace(null) as it crashes expo-audio
+    // The next play() call will use replace(STREAM_URL) to reconnect
   }, [player]);
 
   const setVolume = useCallback(
