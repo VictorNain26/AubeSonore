@@ -1,8 +1,7 @@
-import { useMemo } from 'react';
 import { View, Text, Modal, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { useStatsStore, type MonthlyStats } from '../stores/statsStore';
+import { useStatsStore } from '../stores/statsStore';
 
 interface StatsModalProps {
   isOpen: boolean;
@@ -36,8 +35,7 @@ function StatCard({
 
 export function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const getMonthlyStats = useStatsStore((s) => s.getMonthlyStats);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const stats: MonthlyStats = useMemo(() => getMonthlyStats(), [getMonthlyStats, isOpen]);
+  const stats = getMonthlyStats();
 
   const maxCount = stats.topArtists.length > 0 ? stats.topArtists[0]!.count : 1;
 
