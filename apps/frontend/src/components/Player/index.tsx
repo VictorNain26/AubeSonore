@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Square, Users, Music, Library } from 'lucide-react';
+import { Play, Square, Users, Music, Library, TextQuote } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '../../lib/player';
 import { useNowPlaying, type SongEntry } from '../../lib/azuracast';
 import { useLikedTracks } from '../../hooks/useLikedTracks';
 import { useAuth } from '../../hooks/useAuth';
+import { useLyrics } from '../../hooks/useLyrics';
 import { LikedTracksModal } from '../LikedTracksModal';
 import { AuthModal } from '../AuthModal';
 import toast from 'react-hot-toast';
@@ -16,6 +18,13 @@ import { VolumeControl } from './VolumeControl';
 import { HistoryItem } from './HistoryItem';
 import { AlbumArt } from './AlbumArt';
 import { CastButton } from './CastButton';
+import { SleepTimer } from './SleepTimer';
+import { LyricsPanel } from './LyricsPanel';
+import { ArtistContext } from './ArtistContext';
+
+// Stores
+import { useSleepTimer } from '../../stores/sleepTimerStore';
+import { useStatsStore } from '../../stores/statsStore';
 
 // ─────────────────────────────────────────────
 // Main Player Component
@@ -28,6 +37,7 @@ export default function Player() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [likingTrackId, setLikingTrackId] = useState<string | null>(null);
+  const [showLyrics, setShowLyrics] = useState(false);
 
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
   const { data: np } = useNowPlaying();
@@ -36,10 +46,25 @@ export default function Player() {
   const animationRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
   const baseElapsedRef = useRef<number>(0);
+  const prevShIdRef = useRef<number | undefined>(undefined);
 
   const nowPlaying = np?.now_playing;
   const duration = nowPlaying?.duration || 0;
   const progress = duration > 0 ? (elapsed / duration) * 100 : 0;
+
+  // Lyrics
+  const {
+    syncedLines,
+    plainLyrics,
+    isLoading: lyricsLoading,
+  } = useLyrics(nowPlaying?.song.artist, nowPlaying?.song.title);
+
+  // Sleep timer — end-of-track mode
+  const sleepTimerTrigger = useSleepTimer((s) => s.triggerEndOfTrack);
+
+  // Stats store
+  const tickListeningTime = useStatsStore((s) => s.tickListeningTime);
+  const recordTrackChange = useStatsStore((s) => s.recordTrackChange);
 
   // Sync with server elapsed time
   useEffect(() => {
@@ -72,6 +97,34 @@ export default function Player() {
       }
     };
   }, [duration]);
+
+  // Track change detection — stats + sleep timer end-of-track
+  useEffect(() => {
+    const shId = nowPlaying?.sh_id;
+    if (shId && shId !== prevShIdRef.current) {
+      if (prevShIdRef.current !== undefined) {
+        // Track changed
+        sleepTimerTrigger();
+        if (nowPlaying?.song.artist && nowPlaying?.song.title) {
+          recordTrackChange(nowPlaying.song.artist, nowPlaying.song.title);
+        }
+      }
+      prevShIdRef.current = shId;
+    }
+  }, [
+    nowPlaying?.sh_id,
+    nowPlaying?.song.artist,
+    nowPlaying?.song.title,
+    sleepTimerTrigger,
+    recordTrackChange,
+  ]);
+
+  // Stats: tick listening time every 10s while playing
+  useEffect(() => {
+    if (!isPlaying) return;
+    const id = setInterval(() => tickListeningTime(), 10_000);
+    return () => clearInterval(id);
+  }, [isPlaying, tickListeningTime]);
 
   const togglePlay = useCallback(() => {
     if (isPlaying) {
@@ -170,15 +223,43 @@ export default function Player() {
     [isTrackLiked]
   );
 
+  // Skeleton loading state
+  if (!np) {
+    return (
+      <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4">
+        {/* Album art skeleton */}
+        <div className="flex flex-col items-center mb-5">
+          <div className="w-64 h-64 md:w-72 md:h-72 lg:w-80 lg:h-80 rounded-2xl skeleton" />
+        </div>
+        {/* Title skeleton */}
+        <div className="flex flex-col items-center gap-2 mb-5">
+          <div className="h-6 w-48 rounded skeleton" />
+          <div className="h-4 w-32 rounded skeleton" />
+        </div>
+        {/* Waveform skeleton */}
+        <div className="flex items-center gap-3 mb-5">
+          <div className="h-3 w-10 rounded skeleton" />
+          <div className="flex-1 h-8 rounded skeleton" />
+          <div className="h-3 w-10 rounded skeleton" />
+        </div>
+        {/* Controls skeleton */}
+        <div className="flex items-center justify-center mb-6">
+          <div className="w-16 h-16 rounded-full skeleton" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-lg mx-auto px-4">
+    <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4">
       {/* =================================================================
-          SECTION 1: Album Art (Focal Point) + Like Button
+          SECTION 1: Album Art (Focal Point) + Like/Share Buttons
           ================================================================= */}
       <div className="flex flex-col items-center mb-5">
         <AlbumArt
           artUrl={nowPlaying?.song.art}
           title={nowPlaying?.song.title}
+          artist={nowPlaying?.song.artist}
           isPlaying={isPlaying}
           isLiked={isCurrentTrackLiked}
           isLiking={likingTrackId === `${nowPlaying?.song.title}-${nowPlaying?.song.artist}`}
@@ -193,17 +274,37 @@ export default function Player() {
       {/* =================================================================
           SECTION 2: Track Info
           ================================================================= */}
-      <div className="text-center mb-5">
-        <h2 className="text-lg md:text-xl font-medium text-foreground truncate">
-          {nowPlaying?.song.title || 'En attente...'}
-        </h2>
-        <p className="text-sm text-muted-foreground truncate px-2 mt-0.5">
-          {nowPlaying?.song.artist || '—'}
-        </p>
-      </div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={nowPlaying?.sh_id || 'waiting'}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.3 }}
+          className="text-center mb-5"
+        >
+          <h2 className="text-lg md:text-xl font-medium text-foreground truncate">
+            {nowPlaying?.song.title || 'En attente...'}
+          </h2>
+          <p className="text-sm text-muted-foreground truncate px-2 mt-0.5">
+            {nowPlaying?.song.artist || '—'}
+          </p>
+        </motion.div>
+      </AnimatePresence>
 
       {/* =================================================================
-          SECTION 3: Waveform Progress
+          SECTION 3: Lyrics Panel (between track info and waveform)
+          ================================================================= */}
+      <LyricsPanel
+        show={showLyrics}
+        syncedLines={syncedLines}
+        plainLyrics={plainLyrics}
+        isLoading={lyricsLoading}
+        elapsed={elapsed}
+      />
+
+      {/* =================================================================
+          SECTION 4: Waveform Progress
           ================================================================= */}
       <div className="flex items-center gap-3 mb-5">
         <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
@@ -218,16 +319,10 @@ export default function Player() {
       </div>
 
       {/* =================================================================
-          SECTION 4: Playback Controls
-
-          Best Practice: "True center" with unequal siblings
-          Pattern: flex-1 on sides + shrink-0 on center
-          Source: https://chrisbracco.com/css-truly-center-a-single-child-element-horizontally-when-siblings-are-present/
-
-          [flex-1 justify-start] — [shrink-0 center] — [flex-1 justify-end]
+          SECTION 5: Playback Controls
           ================================================================= */}
       <div className="flex items-center mb-6 px-2">
-        {/* Left: flex-1 distributes equal space, justify-start aligns content */}
+        {/* Left controls */}
         <div className="flex-1 flex justify-start items-center gap-1">
           <CastButton />
           <VolumeControl
@@ -236,29 +331,45 @@ export default function Player() {
             onVolumeChange={handleVolumeChange}
             onToggleMute={toggleMute}
           />
+          <SleepTimer />
         </div>
 
-        {/* Center: shrink-0 prevents shrinking, truly centered */}
+        {/* Center: Play/Stop */}
         <button
           onClick={togglePlay}
           className={cn(
-            'w-14 h-14 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
+            'w-16 h-16 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
             'border border-white/20 transition-all duration-200',
-            'hover:scale-105 hover:bg-white/10 active:scale-95',
-            'bg-white/5 backdrop-blur-sm'
+            'hover:scale-105 hover:bg-white/15 active:scale-95',
+            'bg-white/10 backdrop-blur-sm',
+            isPlaying && 'animate-pulse-ring'
           )}
           aria-label={isPlaying ? 'Stop' : 'Play'}
         >
           {isPlaying ? (
             <Square className="w-5 h-5 text-white" />
           ) : (
-            <Play className="w-6 h-6 text-white ml-0.5" />
+            <Play className="w-7 h-7 text-white ml-0.5" />
           )}
         </button>
 
-        {/* Right: flex-1 distributes equal space, justify-end aligns content */}
+        {/* Right controls */}
         <div className="flex-1 flex justify-end items-center gap-2">
-          {/* Library button - opens saved tracks */}
+          {/* Lyrics toggle */}
+          <button
+            onClick={() => setShowLyrics(!showLyrics)}
+            className={cn(
+              'p-2 rounded-full transition-all duration-200 cursor-pointer',
+              showLyrics
+                ? 'text-purple-400 hover:text-purple-300 hover:bg-white/10'
+                : 'text-white/60 hover:text-white hover:bg-white/10'
+            )}
+            title="Paroles"
+          >
+            <TextQuote className="w-5 h-5" />
+          </button>
+
+          {/* Library button */}
           <button
             onClick={handleOpenLibrary}
             className={cn(
@@ -276,9 +387,15 @@ export default function Player() {
             )}
           </button>
 
-          {/* Listeners count */}
+          {/* Listeners count + LIVE indicator */}
           {np?.listeners ? (
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {np.live.is_live && (
+                <span className="flex items-center gap-1 text-red-400 font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  LIVE
+                </span>
+              )}
               <Users className="w-3.5 h-3.5" />
               <span>{np.listeners.current}</span>
             </div>
@@ -287,7 +404,7 @@ export default function Player() {
       </div>
 
       {/* =================================================================
-          SECTION 5: Playlist Badge (Subtle)
+          SECTION 6: Playlist Badge
           ================================================================= */}
       {playlistName && (
         <div className="flex justify-center mb-5">
@@ -299,26 +416,41 @@ export default function Player() {
       )}
 
       {/* =================================================================
-          SECTION 6: History (Previous Track)
+          SECTION 7: Artist Context
+          ================================================================= */}
+      <ArtistContext artistName={nowPlaying?.song.artist} />
+
+      {/* =================================================================
+          SECTION 8: History (Previous Tracks)
           ================================================================= */}
       {(() => {
-        const historyEntry = np?.song_history?.[0];
-        if (!historyEntry) return null;
+        const historyEntries = np?.song_history?.slice(0, 5);
+        if (!historyEntries || historyEntries.length === 0) return null;
         return (
           <div className="border-t border-white/10 pt-4">
-            <p className="text-xs text-muted-foreground mb-2">Précédemment</p>
-            <HistoryItem
-              entry={historyEntry}
-              isLiked={isHistoryTrackLiked(historyEntry)}
-              isLiking={likingTrackId === `${historyEntry.song.title}-${historyEntry.song.artist}`}
-              onToggle={() =>
-                handleToggleLike(
-                  historyEntry.song.title,
-                  historyEntry.song.artist,
-                  historyEntry.song.art
-                )
-              }
-            />
+            <div className="flex items-center gap-2 mb-2">
+              <p className="text-xs text-muted-foreground">Historique</p>
+              <span className="text-[10px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded-full">
+                {historyEntries.length}
+              </span>
+            </div>
+            {historyEntries.map((entry, index) => (
+              <motion.div
+                key={entry.sh_id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, delay: index * 0.05 }}
+              >
+                <HistoryItem
+                  entry={entry}
+                  isLiked={isHistoryTrackLiked(entry)}
+                  isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
+                  onToggle={() =>
+                    handleToggleLike(entry.song.title, entry.song.artist, entry.song.art)
+                  }
+                />
+              </motion.div>
+            ))}
           </div>
         );
       })()}

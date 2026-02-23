@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { Toaster } from 'react-hot-toast';
-import { LogOut, LogIn } from 'lucide-react';
+import { LogOut, LogIn, BarChart3 } from 'lucide-react';
+import { StatsModal } from '../components/StatsModal';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../hooks/useAuth';
 import { AuthModal } from '../components/AuthModal';
@@ -13,6 +15,7 @@ export default function Layout({ children }: LayoutProps) {
   const { user, isAuthenticated, isLoading, signOut } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -29,10 +32,25 @@ export default function Layout({ children }: LayoutProps) {
         }}
       />
 
-      {/* Header - Logo centered, auth button absolute right */}
+      {/* Header - Logo centered, stats left, auth right */}
       <header className="shrink-0 py-4 md:py-5 px-4 relative">
+        {/* Left: Stats button */}
+        <div className="absolute left-4 top-1/2 -translate-y-1/2">
+          <button
+            onClick={() => setIsStatsOpen(true)}
+            className={cn(
+              'p-2 rounded-full cursor-pointer',
+              'text-white/40 hover:text-white hover:bg-white/10',
+              'transition-all duration-200'
+            )}
+            title="Mes statistiques"
+          >
+            <BarChart3 className="w-5 h-5" />
+          </button>
+        </div>
+
         {/* Center: Logo - absolute center */}
-        <h1 className="text-center text-sm md:text-lg font-light tracking-[0.25em] md:tracking-[0.3em] text-white/70 uppercase">
+        <h1 className="text-center text-sm md:text-xl font-light tracking-[0.25em] md:tracking-[0.35em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-white/60 via-white/80 to-white/60">
           AubeSonore
         </h1>
 
@@ -57,6 +75,50 @@ export default function Layout({ children }: LayoutProps) {
                     </span>
                   </div>
                 </button>
+
+                {/* User Menu Popover */}
+                <AnimatePresence>
+                  {isUserMenuOpen && (
+                    <>
+                      {/* Invisible click-away backdrop */}
+                      <div
+                        className="fixed inset-0 z-[200]"
+                        onClick={() => setIsUserMenuOpen(false)}
+                      />
+
+                      <motion.div
+                        initial={{ opacity: 0, y: -4, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -4, scale: 0.95 }}
+                        transition={{ duration: 0.15 }}
+                        className="absolute right-0 top-full mt-2 w-56 z-[201] bg-black/90 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl overflow-hidden"
+                      >
+                        {/* User info */}
+                        <div className="px-4 py-3 border-b border-white/10">
+                          <p className="text-sm font-medium text-white truncate">
+                            {user.name || 'Utilisateur'}
+                          </p>
+                          <p className="text-xs text-white/50 truncate">{user.email}</p>
+                        </div>
+
+                        {/* Logout */}
+                        <div className="p-1">
+                          <button
+                            onClick={handleSignOut}
+                            className={cn(
+                              'w-full flex items-center gap-2 px-3 py-2 rounded-lg',
+                              'text-red-400 hover:text-red-300 hover:bg-white/5',
+                              'transition-all duration-200 cursor-pointer text-sm'
+                            )}
+                          >
+                            <LogOut className="w-4 h-4" />
+                            <span>Déconnexion</span>
+                          </button>
+                        </div>
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
               </>
             ) : (
               <button
@@ -82,56 +144,15 @@ export default function Layout({ children }: LayoutProps) {
       {/* Footer */}
       <footer className="shrink-0 py-3 md:py-4">
         <p className="text-center text-[10px] md:text-xs text-muted-foreground/50 tracking-widest">
-          Éveillez vos sens
+          AubeSonore | Éveillez vos sens
         </p>
       </footer>
 
       {/* Auth Modal */}
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
-      {/* User Menu Modal */}
-      {isUserMenuOpen && user && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200]"
-            onClick={() => setIsUserMenuOpen(false)}
-          />
-
-          {/* Modal */}
-          <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-xs mx-auto z-[201]">
-            <div className="bg-black/80 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl overflow-hidden">
-              {/* User Info */}
-              <div className="px-5 py-4 border-b border-white/10 text-center">
-                <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
-                  <span className="text-2xl font-medium text-white/80">
-                    {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <p className="text-base font-medium text-white truncate">
-                  {user.name || 'Utilisateur'}
-                </p>
-                <p className="text-sm text-white/50 truncate">{user.email}</p>
-              </div>
-
-              {/* Actions */}
-              <div className="p-2">
-                <button
-                  onClick={handleSignOut}
-                  className={cn(
-                    'w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl',
-                    'text-red-400 hover:text-red-300 hover:bg-white/5',
-                    'transition-all duration-200 cursor-pointer'
-                  )}
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span>Déconnexion</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
+      {/* Stats Modal */}
+      <StatsModal isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} />
     </div>
   );
 }

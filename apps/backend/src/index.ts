@@ -4,6 +4,8 @@ import { env } from './config/env';
 import { betterAuthPlugin } from './lib/auth/betterAuthPlugin';
 import { trackRoutes } from './routes/track.routes';
 import { preferencesRoutes } from './routes/preferences.routes';
+import { artistRoutes } from './routes/artist.routes';
+import { pushRoutes } from './routes/push.routes';
 
 const app = new Elysia();
 
@@ -33,6 +35,8 @@ app.use(betterAuthPlugin);
 // ✅ Routes
 app.use(trackRoutes);
 app.use(preferencesRoutes);
+app.use(artistRoutes);
+app.use(pushRoutes);
 
 // ✅ Healthcheck
 app.get('/health', (): { status: string; uptime: number } => ({

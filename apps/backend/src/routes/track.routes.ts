@@ -133,6 +133,22 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
   )
 
   // ─────────────────────────────────────────────
+  // POST /api/track/refresh-all-links - Rafraîchir tous les liens
+  // ─────────────────────────────────────────────
+  .post(
+    '/refresh-all-links',
+    async ({ user, set }): Promise<{ message: string; updated: number } | { error: string }> => {
+      if (!user) {
+        set.status = 401;
+        return { error: 'Non authentifié' };
+      }
+
+      const result = await trackService.refreshAllLinks({ user });
+      return result;
+    }
+  )
+
+  // ─────────────────────────────────────────────
   // POST /api/track/:trackId/refresh-links - Rafraîchir les liens Songlink
   // ─────────────────────────────────────────────
   .post('/:trackId/refresh-links', async ({ user, params, set }): Promise<ServiceResponse> => {

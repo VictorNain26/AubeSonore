@@ -143,6 +143,20 @@ export const userPreferences = pgTable('user_preferences', {
 });
 
 // ─────────────────────────────────────────────
+// PUSH_SUBSCRIPTIONS TABLE
+// ─────────────────────────────────────────────
+export const pushSubscriptions = pgTable('push_subscriptions', {
+  id: text('id').primaryKey(),
+  userId: text('user_id')
+    .notNull()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  endpoint: text('endpoint').notNull(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// ─────────────────────────────────────────────
 // TYPES INFÉRÉS
 // ─────────────────────────────────────────────
 
@@ -163,3 +177,6 @@ export type NewLikedTrack = InferInsertModel<typeof likedTracks>;
 
 export type UserPreferences = InferSelectModel<typeof userPreferences>;
 export type NewUserPreferences = InferInsertModel<typeof userPreferences>;
+
+export type PushSubscription = InferSelectModel<typeof pushSubscriptions>;
+export type NewPushSubscription = InferInsertModel<typeof pushSubscriptions>;

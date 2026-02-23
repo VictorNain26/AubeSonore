@@ -227,6 +227,44 @@ export async function getLikedTrackByTitleArtist({
 }
 
 // ─────────────────────────────────────────────
+// Rafraîchir tous les liens (batch, rate-limited)
+// ─────────────────────────────────────────────
+
+export async function refreshAllLinks({
+  user,
+}: {
+  user: User;
+}): Promise<{ message: string; updated: number }> {
+  const tracks = await db
+    .select()
+    .from(schema.likedTracks)
+    .where(eq(schema.likedTracks.userId, user.id));
+
+  let updated = 0;
+  for (const track of tracks) {
+    try {
+      const songlinkData = await searchSonglink(track.title, track.artist);
+      if (songlinkData) {
+        await db
+          .update(schema.likedTracks)
+          .set({
+            songlinkUrl: songlinkData.pageUrl,
+            platformLinks: songlinkData.platformLinks,
+          })
+          .where(eq(schema.likedTracks.id, track.id));
+        updated++;
+      }
+      // Rate limit: 500ms between requests
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    } catch (err) {
+      console.error(`[refreshAllLinks] Error for track ${track.id}:`, err);
+    }
+  }
+
+  return { message: `${updated} liens mis à jour`, updated };
+}
+
+// ─────────────────────────────────────────────
 // Mettre à jour les liens d'un morceau (refresh)
 // ─────────────────────────────────────────────
 

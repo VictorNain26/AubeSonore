@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Library, ExternalLink, Music, Trash2, Search } from 'lucide-react';
+import { Library, ExternalLink, Music, Trash2, Search, Download, RefreshCw } from 'lucide-react';
+import * as Dialog from '@radix-ui/react-dialog';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useLikedTracks } from '../hooks/useLikedTracks';
 import { usePreferences, PLATFORMS } from '../hooks/usePreferences';
 import type { LikedTrack, PreferredPlatform, PlatformLinks } from '../lib/api';
+import { trackApi } from '../lib/api';
+import { exportAsCSV, exportAsTuneMyMusic, exportAsSonglinkList } from '../lib/exportLibrary';
+import toast from 'react-hot-toast';
 
 // ─────────────────────────────────────────────
 // Types
@@ -188,9 +193,9 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
       {isOpen &&
         createPortal(
           <>
-            <div className="fixed inset-0 z-[100]" onClick={() => setIsOpen(false)} />
+            <div className="fixed inset-0 z-[200]" onClick={() => setIsOpen(false)} />
             <div
-              className="fixed w-44 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[101] overflow-hidden"
+              className="fixed w-44 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[300] overflow-hidden"
               style={{
                 top: dropdownPosition.top,
                 right: dropdownPosition.right,
@@ -247,87 +252,227 @@ function EmptyState() {
 // Composant Principal - Modal style Player
 // ─────────────────────────────────────────────
 
+function ExportDropdown({ tracks }: { tracks: LikedTrack[] }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [exportPosition, setExportPosition] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (isOpen && btnRef.current) {
+      const rect = btnRef.current.getBoundingClientRect();
+      setExportPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  }, [isOpen]);
+
+  return (
+    <div className="relative">
+      <button
+        ref={btnRef}
+        onClick={() => setIsOpen(!isOpen)}
+        className={cn(
+          'p-2 rounded-full cursor-pointer',
+          'text-white/40 hover:text-white hover:bg-white/10',
+          'transition-all duration-200'
+        )}
+        title="Exporter"
+      >
+        <Download className="w-4 h-4" />
+      </button>
+
+      {isOpen &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[200]" onClick={() => setIsOpen(false)} />
+            <div
+              className="fixed w-52 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[300] overflow-hidden"
+              style={{ top: exportPosition.top, right: exportPosition.right }}
+            >
+              <div className="p-1">
+                <button
+                  onClick={() => {
+                    exportAsCSV(tracks);
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                >
+                  CSV (Excel)
+                </button>
+                <button
+                  onClick={() => {
+                    exportAsTuneMyMusic(tracks);
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                >
+                  TuneMyMusic
+                </button>
+                <button
+                  onClick={() => {
+                    exportAsSonglinkList(tracks);
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                >
+                  Liste Songlink
+                </button>
+              </div>
+            </div>
+          </>,
+          document.body
+        )}
+    </div>
+  );
+}
+
 export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const { tracks, isLoading, unlikeTrack } = useLikedTracks();
   const { preferences, updatePlatform } = usePreferences();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefreshAll = async () => {
+    setIsRefreshing(true);
+    try {
+      await trackApi.refreshAllLinks();
+      toast.success('Liens mis à jour');
+    } catch {
+      toast.error('Erreur lors du rafraîchissement');
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const preferredPlatform = preferences?.preferredPlatform || 'spotify';
 
-  if (!isOpen) return null;
-
   return (
-    <>
-      {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50" onClick={onClose} />
+    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <AnimatePresence>
+        {isOpen && (
+          <Dialog.Portal forceMount>
+            <Dialog.Overlay asChild>
+              <motion.div
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+              />
+            </Dialog.Overlay>
 
-      {/* Modal - style Player */}
-      <div className="fixed inset-x-4 top-1/2 -translate-y-1/2 max-w-md mx-auto z-50">
-        <div
-          className={cn(
-            'bg-black/80 backdrop-blur-md rounded-2xl',
-            'border border-white/10 shadow-2xl overflow-hidden',
-            'max-h-[70vh] flex flex-col'
-          )}
-        >
-          {/* Header */}
-          <div className="px-5 pt-5 pb-4 shrink-0 border-b border-white/10">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                  <Library className="w-5 h-5 text-white/60" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-medium text-white">Ma Bibliothèque</h2>
-                  <p className="text-xs text-white/40">
-                    {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                onClick={onClose}
-                className={cn(
-                  'p-2 rounded-full cursor-pointer',
-                  'text-white/40 hover:text-white hover:bg-white/10',
-                  'transition-all duration-200'
-                )}
+            <Dialog.Content asChild>
+              <motion.div
+                className="fixed inset-x-4 top-1/2 max-w-md mx-auto z-50"
+                initial={{ opacity: 0, y: '-48%', scale: 0.96 }}
+                animate={{ opacity: 1, y: '-50%', scale: 1 }}
+                exit={{ opacity: 0, y: '-48%', scale: 0.96 }}
+                transition={{ duration: 0.2 }}
               >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+                <div
+                  className={cn(
+                    'bg-black/80 backdrop-blur-md rounded-2xl',
+                    'border border-white/10 shadow-2xl overflow-hidden',
+                    'max-h-[70vh] flex flex-col'
+                  )}
+                >
+                  {/* Header */}
+                  <div className="px-5 pt-5 pb-4 shrink-0 border-b border-white/10">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                          <Library className="w-5 h-5 text-white/60" />
+                        </div>
+                        <div>
+                          <Dialog.Title className="text-lg font-medium text-white">
+                            Ma Bibliothèque
+                          </Dialog.Title>
+                          <Dialog.Description className="text-xs text-white/40">
+                            {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
+                          </Dialog.Description>
+                        </div>
+                      </div>
 
-            {/* Platform selector */}
-            {tracks.length > 0 && (
-              <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
-                <span className="text-xs text-white/40">Ouvrir avec</span>
-                <PlatformSelector selected={preferredPlatform} onChange={updatePlatform} />
-              </div>
-            )}
-          </div>
+                      <div className="flex items-center gap-1">
+                        {tracks.length > 0 && (
+                          <>
+                            <button
+                              onClick={handleRefreshAll}
+                              disabled={isRefreshing}
+                              className={cn(
+                                'p-2 rounded-full cursor-pointer',
+                                'text-white/40 hover:text-white hover:bg-white/10',
+                                'transition-all duration-200',
+                                isRefreshing && 'animate-spin'
+                              )}
+                              title="Rafraîchir tous les liens"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                            <ExportDropdown tracks={tracks} />
+                          </>
+                        )}
+                        <Dialog.Close
+                          className={cn(
+                            'p-2 rounded-full cursor-pointer',
+                            'text-white/40 hover:text-white hover:bg-white/10',
+                            'transition-all duration-200'
+                          )}
+                        >
+                          <span className="sr-only">Fermer</span>
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </Dialog.Close>
+                      </div>
+                    </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-y-auto px-5 py-4 overscroll-contain">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-white/50 animate-spin" />
-              </div>
-            ) : tracks.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="divide-y divide-white/5">
-                {tracks.map((track) => (
-                  <TrackItem
-                    key={track.id}
-                    track={track}
-                    preferredPlatform={preferredPlatform}
-                    onDelete={unlikeTrack}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </>
+                    {/* Platform selector */}
+                    {tracks.length > 0 && (
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+                        <span className="text-xs text-white/40">Ouvrir avec</span>
+                        <PlatformSelector selected={preferredPlatform} onChange={updatePlatform} />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="flex-1 overflow-y-auto px-5 py-4 overscroll-contain">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-white/50 animate-spin" />
+                      </div>
+                    ) : tracks.length === 0 ? (
+                      <EmptyState />
+                    ) : (
+                      <div className="divide-y divide-white/5">
+                        {tracks.map((track) => (
+                          <TrackItem
+                            key={track.id}
+                            track={track}
+                            preferredPlatform={preferredPlatform}
+                            onDelete={unlikeTrack}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            </Dialog.Content>
+          </Dialog.Portal>
+        )}
+      </AnimatePresence>
+    </Dialog.Root>
   );
 }

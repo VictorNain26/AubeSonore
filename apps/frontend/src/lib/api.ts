@@ -143,6 +143,28 @@ export const trackApi = {
     fetchApi(`/api/track/${trackId}/refresh-links`, {
       method: 'POST',
     }),
+
+  // Rafraîchir tous les liens
+  refreshAllLinks: (): Promise<{ message: string; updated: number }> =>
+    fetchApi('/api/track/refresh-all-links', {
+      method: 'POST',
+    }),
+};
+
+// ─────────────────────────────────────────────
+// Artist API
+// ─────────────────────────────────────────────
+
+export interface ArtistInfo {
+  bio: string;
+  tags: string[];
+  similarArtists: string[];
+  listeners: number;
+}
+
+export const artistApi = {
+  getInfo: (name: string): Promise<ArtistInfo> =>
+    fetchApi(`/api/artist?name=${encodeURIComponent(name)}`),
 };
 
 // ─────────────────────────────────────────────
@@ -160,6 +182,26 @@ export const preferencesApi = {
     fetchApi('/api/preferences', {
       method: 'PUT',
       body: JSON.stringify({ preferredPlatform }),
+    }),
+};
+
+// ─────────────────────────────────────────────
+// Push API
+// ─────────────────────────────────────────────
+
+export const pushApi = {
+  getVapidKey: (): Promise<{ key: string }> => fetchApi('/api/push/vapid-key'),
+
+  subscribe: (subscription: PushSubscriptionJSON): Promise<{ message: string }> =>
+    fetchApi('/api/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(subscription),
+    }),
+
+  unsubscribe: (endpoint: string): Promise<{ message: string }> =>
+    fetchApi('/api/push/unsubscribe', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
     }),
 };
 
