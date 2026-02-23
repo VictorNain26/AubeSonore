@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
@@ -10,6 +10,8 @@ import { AudioProvider } from '../src/providers/AudioProvider';
 import { CastProvider } from '../src/providers/CastProvider';
 import { useAuthStore } from '../src/stores/authStore';
 import { usePlayerStore } from '../src/stores/playerStore';
+import { useStatsStore } from '../src/stores/statsStore';
+import { useSleepTimer } from '../src/stores/sleepTimerStore';
 
 import '../global.css';
 
@@ -24,6 +26,56 @@ SplashScreen.preventAutoHideAsync();
 
 // Font asset path - using require to load the local font file
 const SpaceMonoFont = require('../assets/fonts/SpaceMono-Regular.ttf');
+
+/**
+ * Global stats tracker — ticks listening time every 10s while playing,
+ * records track changes on sh_id change, and handles sleep timer end-of-track.
+ */
+function GlobalEffects() {
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  const nowPlaying = usePlayerStore((s) => s.nowPlaying);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+
+  const tickListeningTime = useStatsStore((s) => s.tickListeningTime);
+  const recordTrackChange = useStatsStore((s) => s.recordTrackChange);
+
+  const sleepTimerActive = useSleepTimer((s) => s.isActive);
+  const sleepTimerMode = useSleepTimer((s) => s.mode);
+  const triggerEndOfTrack = useSleepTimer((s) => s.triggerEndOfTrack);
+
+  const trackId = nowPlaying?.now_playing?.sh_id?.toString();
+  const prevShIdRef = useRef<string | undefined>(undefined);
+
+  // Tick listening time every 10s while playing
+  useEffect(() => {
+    if (!isPlaying) return;
+    const id = setInterval(() => tickListeningTime(), 10_000);
+    return () => clearInterval(id);
+  }, [isPlaying, tickListeningTime]);
+
+  // Watch sh_id changes for stats + sleep timer end-of-track
+  useEffect(() => {
+    if (!trackId) return;
+    if (prevShIdRef.current && prevShIdRef.current !== trackId) {
+      if (currentSong?.artist && currentSong?.title) {
+        recordTrackChange(currentSong.artist, currentSong.title);
+      }
+      if (sleepTimerActive && sleepTimerMode === 'end-of-track') {
+        triggerEndOfTrack();
+      }
+    }
+    prevShIdRef.current = trackId;
+  }, [
+    trackId,
+    currentSong,
+    recordTrackChange,
+    sleepTimerActive,
+    sleepTimerMode,
+    triggerEndOfTrack,
+  ]);
+
+  return null;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -81,6 +133,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <CastProvider>
         <AudioProvider>
+          <GlobalEffects />
           <StatusBar style="light" />
           <Stack
             screenOptions={{

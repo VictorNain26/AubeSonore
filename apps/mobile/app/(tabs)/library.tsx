@@ -1,13 +1,28 @@
-import { useEffect, useCallback } from 'react';
-import { View, Text, FlatList, RefreshControl, Pressable } from 'react-native';
+import { useEffect, useCallback, useState } from 'react';
+import {
+  View,
+  Text,
+  FlatList,
+  RefreshControl,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 import { useAuthStore } from '../../src/stores/authStore';
 import { useLikedTracksStore } from '../../src/stores/likedTracksStore';
 import { usePreferencesStore } from '../../src/stores/preferencesStore';
 import { TrackCard, LoadingSpinner, EmptyState, PlatformSelector } from '../../src/components';
+import {
+  exportAsCSV,
+  exportAsTuneMyMusic,
+  exportAsSonglinkList,
+} from '../../src/lib/exportLibrary';
+import { trackApi } from '../../src/services/api';
 import type { LikedTrack } from '../../src/types';
 
 // ─────────────────────────────────────────────
@@ -19,6 +34,8 @@ const ItemSeparator = () => <View className="h-px bg-white/5" />;
 
 export default function LibraryScreen() {
   const router = useRouter();
+  const [isExporting, setIsExporting] = useState(false);
+  const [isRefreshingLinks, setIsRefreshingLinks] = useState(false);
 
   // Auth state
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
@@ -51,6 +68,68 @@ export default function LibraryScreen() {
       fetchPreferences();
     }
   }, [isAuthenticated, fetchTracks, fetchPreferences]);
+
+  // Handle export
+  const handleExport = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert('Exporter ma bibliothèque', 'Choisissez un format', [
+      {
+        text: 'CSV (Excel)',
+        onPress: async () => {
+          setIsExporting(true);
+          try {
+            await exportAsCSV(tracks);
+          } catch {
+            Alert.alert('Erreur', "Impossible d'exporter");
+          } finally {
+            setIsExporting(false);
+          }
+        },
+      },
+      {
+        text: 'TuneMyMusic',
+        onPress: async () => {
+          setIsExporting(true);
+          try {
+            await exportAsTuneMyMusic(tracks);
+          } catch {
+            Alert.alert('Erreur', "Impossible d'exporter");
+          } finally {
+            setIsExporting(false);
+          }
+        },
+      },
+      {
+        text: 'Liens Songlink',
+        onPress: async () => {
+          setIsExporting(true);
+          try {
+            await exportAsSonglinkList(tracks);
+          } catch {
+            Alert.alert('Erreur', "Impossible d'exporter");
+          } finally {
+            setIsExporting(false);
+          }
+        },
+      },
+      { text: 'Annuler', style: 'cancel' },
+    ]);
+  }, [tracks]);
+
+  // Handle refresh all links
+  const handleRefreshLinks = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsRefreshingLinks(true);
+    try {
+      const result = await trackApi.refreshAllLinks();
+      Alert.alert('Liens rafraîchis', `${result.updated} morceaux mis à jour`);
+      fetchTracks();
+    } catch {
+      Alert.alert('Erreur', 'Impossible de rafraîchir les liens');
+    } finally {
+      setIsRefreshingLinks(false);
+    }
+  }, [fetchTracks]);
 
   // Render track item
   const renderTrackItem = useCallback(
@@ -110,6 +189,37 @@ export default function LibraryScreen() {
               </Text>
             </View>
           </View>
+
+          {/* Action buttons */}
+          {tracks.length > 0 && (
+            <View className="flex-row items-center gap-2">
+              {/* Refresh links */}
+              <Pressable
+                onPress={handleRefreshLinks}
+                disabled={isRefreshingLinks}
+                className="w-9 h-9 rounded-lg bg-white/5 items-center justify-center active:bg-white/10"
+              >
+                {isRefreshingLinks ? (
+                  <ActivityIndicator size="small" color="#9370DB" />
+                ) : (
+                  <Ionicons name="refresh-outline" size={18} color="rgba(255,255,255,0.5)" />
+                )}
+              </Pressable>
+
+              {/* Export */}
+              <Pressable
+                onPress={handleExport}
+                disabled={isExporting}
+                className="w-9 h-9 rounded-lg bg-white/5 items-center justify-center active:bg-white/10"
+              >
+                {isExporting ? (
+                  <ActivityIndicator size="small" color="#9370DB" />
+                ) : (
+                  <Ionicons name="download-outline" size={18} color="rgba(255,255,255,0.5)" />
+                )}
+              </Pressable>
+            </View>
+          )}
         </View>
 
         {/* Platform selector */}

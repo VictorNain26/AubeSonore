@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* =============================================================================
    DESIGN TOKENS - Single Source of Truth
@@ -20,7 +20,7 @@
        ─────────────────────────────────────────────*/
     --glass-bg: 0 0% 100% / 0.03;
     --glass-bg-hover: 0 0% 100% / 0.06;
-    --glass-bg-active: 0 0% 100% / 0.10;
+    --glass-bg-active: 0 0% 100% / 0.1;
     --glass-border: 0 0% 100% / 0.08;
     --glass-border-strong: 0 0% 100% / 0.12;
 
@@ -28,14 +28,14 @@
        TEXT - Opacity scale for hierarchy
        ─────────────────────────────────────────────*/
     --text-primary: 0 0% 100%;
-    --text-secondary: 0 0% 100% / 0.70;
-    --text-tertiary: 0 0% 100% / 0.50;
+    --text-secondary: 0 0% 100% / 0.7;
+    --text-tertiary: 0 0% 100% / 0.5;
     --text-muted: 0 0% 100% / 0.35;
 
     /* ─────────────────────────────────────────────
        INTERACTIVE - Feedback colors
        ─────────────────────────────────────────────*/
-    --interactive-hover: 0 0% 100% / 0.10;
+    --interactive-hover: 0 0% 100% / 0.1;
     --interactive-active: 0 0% 100% / 0.15;
 
     /* ─────────────────────────────────────────────
@@ -48,7 +48,7 @@
        ACCENT - Brand purple (subtle)
        ─────────────────────────────────────────────*/
     --accent-primary: 270 60% 60%;
-    --accent-muted: 270 40% 50% / 0.20;
+    --accent-muted: 270 40% 50% / 0.2;
 
     /* ─────────────────────────────────────────────
        SHADOWS
@@ -98,7 +98,9 @@
   body {
     background-color: hsl(var(--surface-base));
     color: hsl(var(--text-primary));
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -141,7 +143,7 @@
   }
 
   .glass-strong {
-    background: hsl(var(--surface-overlay) / 0.80);
+    background: hsl(var(--surface-overlay) / 0.8);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid hsl(var(--glass-border));
@@ -192,17 +194,29 @@
 
 @layer utilities {
   @keyframes spin-slow {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   @keyframes pulse-soft {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
   }
 
   @keyframes breathe {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.02); }
+    0%,
+    100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.02);
+    }
   }
 
   .animate-spin-slow {
@@ -220,26 +234,63 @@
   .animate-paused {
     animation-play-state: paused;
   }
+
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 hsl(var(--accent-primary) / 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 10px hsl(var(--accent-primary) / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--accent-primary) / 0);
+    }
+  }
+
+  @keyframes fade-slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-pulse-ring {
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+
+  .animate-fade-slide-up {
+    animation: fade-slide-up 0.3s ease-out both;
+  }
+
+  .skeleton {
+    background: hsl(0 0% 100% / 0.05);
+    animation: pulse-soft 2s ease-in-out infinite;
+    border-radius: var(--radius-md);
+  }
 }
 
 /* =============================================================================
    FORM ELEMENTS - Range slider
    ============================================================================= */
 
-input[type="range"] {
+input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
   cursor: pointer;
 }
 
-input[type="range"]::-webkit-slider-track {
+input[type='range']::-webkit-slider-track {
   background: hsl(var(--glass-bg-active));
   height: 4px;
   border-radius: var(--radius-full);
 }
 
-input[type="range"]::-webkit-slider-thumb {
+input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   height: 14px;
@@ -251,18 +302,18 @@ input[type="range"]::-webkit-slider-thumb {
   transition: transform var(--transition-fast);
 }
 
-input[type="range"]::-webkit-slider-thumb:hover {
+input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.15);
 }
 
-input[type="range"]::-moz-range-track {
+input[type='range']::-moz-range-track {
   background: hsl(var(--glass-bg-active));
   height: 4px;
   border-radius: var(--radius-full);
   border: 0;
 }
 
-input[type="range"]::-moz-range-thumb {
+input[type='range']::-moz-range-thumb {
   height: 14px;
   width: 14px;
   border-radius: var(--radius-full);

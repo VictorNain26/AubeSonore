@@ -96,10 +96,21 @@ export default {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-10px)' },
         },
+        'pulse-ring': {
+          '0%': { boxShadow: '0 0 0 0 hsl(270 60% 60% / 0.4)' },
+          '70%': { boxShadow: '0 0 0 10px hsl(270 60% 60% / 0)' },
+          '100%': { boxShadow: '0 0 0 0 hsl(270 60% 60% / 0)' },
+        },
+        'fade-slide-up': {
+          from: { opacity: '0', transform: 'translateY(8px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'music-bar': 'music-bar 0.6s ease-in-out infinite',
         float: 'float 3s ease-in-out infinite',
+        'pulse-ring': 'pulse-ring 2s ease-in-out infinite',
+        'fade-slide-up': 'fade-slide-up 0.3s ease-out both',
       },
 
       // ─────────────────────────────────────────────

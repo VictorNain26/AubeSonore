@@ -12,3 +12,8 @@ export { SimpleWaveform } from './SimpleWaveform';
 export { TrackCard } from './TrackCard';
 export { TrackInfo } from './TrackInfo';
 export { VolumeSlider } from './VolumeSlider';
+export { SleepTimer } from './SleepTimer';
+export { StatsModal } from './StatsModal';
+export { LyricsPanel } from './LyricsPanel';
+export { ArtistContext } from './ArtistContext';
+export { ShareButton } from './ShareButton';

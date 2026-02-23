@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { View, Text, Pressable, ScrollView, Linking, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -8,6 +9,7 @@ import { useAuthStore } from '../../src/stores/authStore';
 import { useLikedTracksStore } from '../../src/stores/likedTracksStore';
 import { usePreferencesStore } from '../../src/stores/preferencesStore';
 import { useAudio } from '../../src/providers/AudioProvider';
+import { StatsModal } from '../../src/components';
 
 // ─────────────────────────────────────────────
 // Setting Item Component
@@ -77,6 +79,7 @@ function Section({ title, children }: SectionProps) {
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
 
   // Auth state
   const { user, isAuthenticated, signOut } = useAuthStore();
@@ -162,6 +165,16 @@ export default function SettingsScreen() {
           </Section>
         )}
 
+        {/* Stats Section */}
+        <Section title="Écoute">
+          <SettingItem
+            icon="stats-chart-outline"
+            title="Mes statistiques"
+            subtitle="Temps d'écoute, artistes, séries"
+            onPress={() => setIsStatsOpen(true)}
+          />
+        </Section>
+
         {/* About Section */}
         <Section title="À propos">
           <SettingItem
@@ -204,6 +217,9 @@ export default function SettingsScreen() {
           <Text className="text-xs text-white/20 mt-1">Fait avec ❤️ en France</Text>
         </View>
       </ScrollView>
+
+      {/* Stats Modal */}
+      <StatsModal isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} />
     </SafeAreaView>
   );
 }

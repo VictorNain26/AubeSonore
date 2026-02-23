@@ -290,6 +290,31 @@ export const trackApi = {
     fetchApi(`/api/track/${trackId}/refresh-links`, {
       method: 'POST',
     }),
+
+  refreshAllLinks: (): Promise<{ message: string; updated: number }> =>
+    fetchApi('/api/track/refresh-all-links', {
+      method: 'POST',
+    }),
+};
+
+// ─────────────────────────────────────────────
+// Preferences API
+// ─────────────────────────────────────────────
+
+// ─────────────────────────────────────────────
+// Artist API
+// ─────────────────────────────────────────────
+
+export interface ArtistInfo {
+  bio: string;
+  tags: string[];
+  similarArtists: string[];
+  listeners: number;
+}
+
+export const artistApi = {
+  getInfo: (name: string): Promise<ArtistInfo> =>
+    fetchApi(`/api/artist?name=${encodeURIComponent(name)}`),
 };
 
 // ─────────────────────────────────────────────
