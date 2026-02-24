@@ -6,12 +6,6 @@ import { STREAM_URL } from '../config/env';
 
 /**
  * CastProvider - Manages Google Cast session lifecycle
- *
- * Best Practices 2025/2026:
- * - No context needed - all state is in Zustand store
- * - Proper cleanup of subscriptions
- * - Error boundary consideration
- * - Stable callback references
  */
 export function CastProvider({ children }: { children: React.ReactNode }) {
   const mountedRef = useRef(true);
@@ -23,13 +17,17 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
   const setError = useCastStore((s) => s.setError);
   const setChromecastAvailable = useCastStore((s) => s.setChromecastAvailable);
 
+  // Metadata sync subscriptions
+  const isCasting = useCastStore((s) => s.isCasting);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+
   /**
    * Load current track to Chromecast when session starts
    */
   const handleSessionStarted = useCallback(async () => {
     if (!mountedRef.current) return;
 
-    setCasting(true, 'Chromecast', 'chromecast');
+    setCasting(true, 'Chromecast');
 
     // Load current song to cast device
     const song = usePlayerStore.getState().currentSong;
@@ -46,6 +44,9 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setCasting]);
 
+  // ─────────────────────────────────────────────
+  // Session lifecycle
+  // ─────────────────────────────────────────────
   useEffect(() => {
     mountedRef.current = true;
 
@@ -74,7 +75,6 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
       }),
 
       sessionManager.onSessionResumed(() => {
-        // Session resumed after app was backgrounded
         handleSessionStarted();
       }),
 
@@ -99,6 +99,19 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
       subscriptionsRef.current = [];
     };
   }, [setCasting, setConnecting, setError, setChromecastAvailable, handleSessionStarted]);
+
+  // ─────────────────────────────────────────────
+  // Metadata sync — update cast device on track change
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!isCasting || !currentSong) return;
+
+    loadMedia(STREAM_URL, {
+      title: currentSong.title,
+      artist: currentSong.artist,
+      artworkUrl: currentSong.art,
+    });
+  }, [isCasting, currentSong]);
 
   return <>{children}</>;
 }

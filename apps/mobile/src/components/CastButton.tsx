@@ -40,6 +40,10 @@ export const CastButton = memo(function CastButton({
     showCastPicker();
   }, []);
 
+  const handleDisconnect = useCallback(() => {
+    useCastStore.getState().stopCasting();
+  }, []);
+
   if (!chromecastAvailable) {
     return null;
   }
@@ -59,6 +63,7 @@ export const CastButton = memo(function CastButton({
   return (
     <Pressable
       onPress={handlePress}
+      onLongPress={isCasting ? handleDisconnect : undefined}
       style={[styles.button, { width: buttonSize, height: buttonSize }]}
       hitSlop={8}
     >

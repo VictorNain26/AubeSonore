@@ -1,57 +1,35 @@
 import { create } from 'zustand';
-import { Platform } from 'react-native';
 import { endSession } from '../lib/cast';
-import type { CastStore, CastType } from '../types/cast';
+import type { CastStore } from '../types/cast';
 
 /**
  * Cast Store - Single source of truth for cast state
- *
- * Best Practices 2025/2026:
- * - Store only holds state, not business logic
- * - Actions are minimal setters
- * - Complex logic lives in lib/cast.ts
  */
 export const useCastStore = create<CastStore>((set, get) => ({
-  // ─────────────────────────────────────────────
   // State
-  // ─────────────────────────────────────────────
   chromecastAvailable: false,
-  airplayAvailable: Platform.OS === 'ios',
   connectionState: 'disconnected',
   isCasting: false,
-  castType: null,
   deviceName: null,
+  wasPlayingBeforeCast: false,
   isConnecting: false,
   error: null,
 
-  // ─────────────────────────────────────────────
   // Actions
-  // ─────────────────────────────────────────────
-
-  initialize: async () => {
-    // Initialization is handled by CastProvider
-  },
-
-  startChromecast: () => {
-    // Handled by CastButton via lib/cast.showCastPicker()
-  },
-
   stopCasting: async () => {
     await endSession();
     set({
       isCasting: false,
-      castType: null,
       deviceName: null,
       connectionState: 'disconnected',
       error: null,
     });
   },
 
-  setCasting: (isCasting: boolean, device?: string, type?: CastType) => {
+  setCasting: (isCasting: boolean, device?: string) => {
     set({
       isCasting,
       deviceName: device ?? null,
-      castType: type ?? null,
       connectionState: isCasting ? 'connected' : 'disconnected',
       isConnecting: false,
       error: null,
@@ -73,16 +51,16 @@ export const useCastStore = create<CastStore>((set, get) => ({
     set({ chromecastAvailable: available });
   },
 
-  setAirplayAvailable: (available: boolean) => {
-    set({ airplayAvailable: available });
+  setWasPlayingBeforeCast: (value: boolean) => {
+    set({ wasPlayingBeforeCast: value });
   },
 
   reset: () => {
     set({
       connectionState: 'disconnected',
       isCasting: false,
-      castType: null,
       deviceName: null,
+      wasPlayingBeforeCast: false,
       isConnecting: false,
       error: null,
     });

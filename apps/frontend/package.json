@@ -15,6 +15,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@aubesonore/core": "workspace:*",
     "@aubesonore/shared-types": "workspace:*",
     "@aubesonore/shared-utils": "workspace:*",
     "@radix-ui/react-dialog": "^1.1.14",

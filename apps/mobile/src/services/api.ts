@@ -1,14 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import { ENV } from '../config/env';
-import type {
-  AuthResponse,
-  LikedTrack,
-  LikeTrackRequest,
-  CheckLikedRequest,
-  CheckLikedResponse,
-  UserPreferences,
-  PreferredPlatform,
-} from '../types';
+import { createTrackApi, createArtistApi, createPreferencesApi } from '@aubesonore/core/api';
+import type { ApiClient } from '@aubesonore/core/api';
+import type { AuthResponse } from '../types';
 
 // Storage keys
 const AUTH_TOKEN_KEY = 'auth_session_token';
@@ -38,29 +32,19 @@ export async function removeAuthToken(): Promise<void> {
 // ─────────────────────────────────────────────
 
 interface FetchApiOptions extends RequestInit {
-  /** Number of retry attempts (default: 3) */
   retries?: number;
-  /** Base delay in ms for exponential backoff (default: 1000) */
   retryDelay?: number;
-  /** Skip retry for this request */
   noRetry?: boolean;
 }
 
-/** Delay helper for exponential backoff */
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Check if error is retryable (network errors, 5xx, 429) */
 function isRetryableError(error: unknown, status?: number): boolean {
-  // Network errors (fetch throws on network failure)
   if (error instanceof TypeError) return true;
-
-  // Server errors and rate limiting
   if (status && (status >= 500 || status === 429)) return true;
-
   return false;
 }
 
-/** Map HTTP status to user-friendly messages */
 function getErrorMessage(status: number, serverMessage?: string): string {
   if (serverMessage) return serverMessage;
 
@@ -115,7 +99,6 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
         const errorBody = await response.json().catch(() => ({}));
         const message = getErrorMessage(response.status, errorBody.error || errorBody.message);
 
-        // Check if we should retry
         if (isRetryableError(null, response.status) && attempts < maxAttempts - 1) {
           attempts++;
           const backoffDelay = retryDelay * Math.pow(2, attempts - 1);
@@ -130,7 +113,6 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('Erreur inconnue');
 
-      // Check if we should retry (network errors)
       if (isRetryableError(error) && attempts < maxAttempts - 1) {
         attempts++;
         const backoffDelay = retryDelay * Math.pow(2, attempts - 1);
@@ -146,7 +128,20 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
 }
 
 // ─────────────────────────────────────────────
-// Auth API
+// Shared API endpoints (from @aubesonore/core)
+// ─────────────────────────────────────────────
+
+const apiClient: ApiClient = { fetch: fetchApi };
+
+export const trackApi = createTrackApi(apiClient);
+export const artistApi = createArtistApi(apiClient);
+export const preferencesApi = createPreferencesApi(apiClient);
+
+// Re-export ArtistInfo for consumers that import from here
+export type { ArtistInfo } from '@aubesonore/shared-types/client';
+
+// ─────────────────────────────────────────────
+// Auth API (platform-specific — uses SecureStore tokens)
 // ─────────────────────────────────────────────
 
 export const authApi = {
@@ -189,8 +184,6 @@ export const authApi = {
 
     const data = await response.json();
 
-    // Extract token from response body (better-auth returns it in session.token)
-    // This is more reliable than Set-Cookie which doesn't work in React Native
     const token = data.session?.token || data.token;
     if (token) {
       await setAuthToken(token);
@@ -216,8 +209,6 @@ export const authApi = {
 
     const data = await response.json();
 
-    // Extract token from response body (better-auth returns it in session.token)
-    // This is more reliable than Set-Cookie which doesn't work in React Native
     const token = data.session?.token || data.token;
     if (token) {
       await setAuthToken(token);
@@ -260,75 +251,4 @@ export const authApi = {
   getGoogleAuthUrl: (): string => `${ENV.API_BASE_URL}/api/auth/sign-in/social?provider=google`,
 
   getSpotifyAuthUrl: (): string => `${ENV.API_BASE_URL}/api/auth/sign-in/social?provider=spotify`,
-};
-
-// ─────────────────────────────────────────────
-// Track API
-// ─────────────────────────────────────────────
-
-export const trackApi = {
-  getLikedTracks: (): Promise<LikedTrack[]> => fetchApi('/api/track/like'),
-
-  likeTrack: (data: LikeTrackRequest): Promise<{ message: string; track: LikedTrack }> =>
-    fetchApi('/api/track/like', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  unlikeTrack: (trackId: string): Promise<{ message: string; track: LikedTrack }> =>
-    fetchApi(`/api/track/like/${trackId}`, {
-      method: 'DELETE',
-    }),
-
-  checkLiked: (data: CheckLikedRequest): Promise<CheckLikedResponse> =>
-    fetchApi('/api/track/check-liked', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  refreshLinks: (trackId: string): Promise<{ message: string; track: LikedTrack }> =>
-    fetchApi(`/api/track/${trackId}/refresh-links`, {
-      method: 'POST',
-    }),
-
-  refreshAllLinks: (): Promise<{ message: string; updated: number }> =>
-    fetchApi('/api/track/refresh-all-links', {
-      method: 'POST',
-    }),
-};
-
-// ─────────────────────────────────────────────
-// Preferences API
-// ─────────────────────────────────────────────
-
-// ─────────────────────────────────────────────
-// Artist API
-// ─────────────────────────────────────────────
-
-export interface ArtistInfo {
-  bio: string;
-  tags: string[];
-  similarArtists: string[];
-  listeners: number;
-}
-
-export const artistApi = {
-  getInfo: (name: string): Promise<ArtistInfo> =>
-    fetchApi(`/api/artist?name=${encodeURIComponent(name)}`),
-};
-
-// ─────────────────────────────────────────────
-// Preferences API
-// ─────────────────────────────────────────────
-
-export const preferencesApi = {
-  getPreferences: (): Promise<UserPreferences> => fetchApi('/api/preferences'),
-
-  updatePreferences: (
-    preferredPlatform: PreferredPlatform
-  ): Promise<{ message: string; preferences: UserPreferences }> =>
-    fetchApi('/api/preferences', {
-      method: 'PUT',
-      body: JSON.stringify({ preferredPlatform }),
-    }),
 };

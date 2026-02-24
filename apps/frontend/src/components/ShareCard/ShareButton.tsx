@@ -8,9 +8,10 @@ interface ShareButtonProps {
   artUrl: string | undefined;
   title: string;
   artist: string;
+  trackUrl?: string | undefined;
 }
 
-export function ShareButton({ artUrl, title, artist }: ShareButtonProps) {
+export function ShareButton({ artUrl, title, artist, trackUrl }: ShareButtonProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -21,16 +22,19 @@ export function ShareButton({ artUrl, title, artist }: ShareButtonProps) {
     try {
       const blob = await generateShareImage(cardRef.current);
       const filename = `aubesonore-${title.replace(/\s+/g, '-').toLowerCase()}.png`;
+      const text = trackUrl
+        ? `${title} — ${artist}\n${trackUrl}`
+        : `J'écoute ${title} de ${artist} sur AubeSonore`;
       await shareOrDownload(blob, filename, {
         title: `${title} — ${artist}`,
-        text: `J'écoute ${title} de ${artist} sur AubeSonore`,
+        text,
       });
     } catch (err) {
       console.error('[ShareButton] Error generating share image:', err);
     } finally {
       setIsGenerating(false);
     }
-  }, [artUrl, title, artist, isGenerating]);
+  }, [artUrl, title, artist, trackUrl, isGenerating]);
 
   return (
     <>

@@ -1,57 +1,5 @@
-import type { LikedTrack } from './api';
-
-// BOM for Excel UTF-8 compatibility
-const BOM = '\uFEFF';
-
-export function exportAsCSV(tracks: LikedTrack[]): void {
-  const header = [
-    'Titre',
-    'Artiste',
-    'Album',
-    'Date ajout',
-    'Songlink',
-    'Spotify',
-    'Apple Music',
-    'Deezer',
-    'YouTube Music',
-  ];
-  const rows = tracks.map((t) => [
-    escapeCsv(t.title),
-    escapeCsv(t.artist),
-    escapeCsv(t.album || ''),
-    new Date(t.createdAt).toLocaleDateString('fr-FR'),
-    t.songlinkUrl || '',
-    t.platformLinks?.spotify || '',
-    t.platformLinks?.appleMusic || '',
-    t.platformLinks?.deezer || '',
-    t.platformLinks?.youtubeMusic || '',
-  ]);
-
-  const csv = BOM + [header.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
-  downloadBlob(csv, 'aubesonore-bibliotheque.csv', 'text/csv;charset=utf-8');
-}
-
-export function exportAsTuneMyMusic(tracks: LikedTrack[]): void {
-  // TuneMyMusic accepts simple "Artist - Title" text format
-  const lines = tracks.map((t) => `${t.artist} - ${t.title}`);
-  const text = lines.join('\n');
-  downloadBlob(text, 'aubesonore-tunemymusic.txt', 'text/plain;charset=utf-8');
-}
-
-export function exportAsSonglinkList(tracks: LikedTrack[]): void {
-  const lines = tracks
-    .filter((t) => t.songlinkUrl)
-    .map((t) => `${t.artist} - ${t.title}\n${t.songlinkUrl}`);
-  const text = lines.join('\n\n');
-  downloadBlob(text, 'aubesonore-liens.txt', 'text/plain;charset=utf-8');
-}
-
-function escapeCsv(value: string): string {
-  if (value.includes(';') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
-}
+import type { ClientLikedTrack } from '@aubesonore/shared-types/client';
+import { formatAsCSV, formatAsTuneMyMusic, formatAsSonglinkList } from '@aubesonore/core/export';
 
 function downloadBlob(content: string, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType });
@@ -63,4 +11,20 @@ function downloadBlob(content: string, filename: string, mimeType: string): void
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
+}
+
+export function exportAsCSV(tracks: ClientLikedTrack[]): void {
+  downloadBlob(formatAsCSV(tracks), 'aubesonore-bibliotheque.csv', 'text/csv;charset=utf-8');
+}
+
+export function exportAsTuneMyMusic(tracks: ClientLikedTrack[]): void {
+  downloadBlob(
+    formatAsTuneMyMusic(tracks),
+    'aubesonore-tunemymusic.txt',
+    'text/plain;charset=utf-8'
+  );
+}
+
+export function exportAsSonglinkList(tracks: ClientLikedTrack[]): void {
+  downloadBlob(formatAsSonglinkList(tracks), 'aubesonore-liens.txt', 'text/plain;charset=utf-8');
 }

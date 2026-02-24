@@ -26,6 +26,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@aubesonore/core": "workspace:*",
+    "@aubesonore/shared-types": "workspace:*",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/slider": "^5.0.1",
@@ -57,7 +59,6 @@
     "expo-web-browser": "~15.0.10",
     "nativewind": "^4.2.1",
     "react": "19.1.0",
-    "react-airplay": "^1.2.0",
     "react-dom": "19.1.0",
     "react-native": "0.81.5",
     "react-native-css-interop": "^0.2.1",

@@ -3,6 +3,7 @@ import { AppState, type AppStateStatus } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 
 import { usePlayerStore } from '../stores/playerStore';
+import { useCastStore } from '../stores/castStore';
 import { STREAM_URL, DEFAULT_ARTWORK } from '../config/env';
 
 // ─────────────────────────────────────────────
@@ -78,12 +79,6 @@ const AudioContext = createContext<AudioContextValue | null>(null);
 
 /**
  * AudioProvider - Manages audio playback and lock screen controls
- *
- * Best Practices 2025/2026:
- * - Single source of truth for lock screen state
- * - Proper cleanup on stop and app close
- * - No albumTitle to avoid duplicate artist display
- * - AppState listener for app lifecycle
  */
 export function AudioProvider({ children }: { children: React.ReactNode }) {
   const player = useAudioPlayer(STREAM_URL);
@@ -95,6 +90,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
   const setIsLoading = usePlayerStore((s) => s.setIsLoading);
   const setError = usePlayerStore((s) => s.setError);
+
+  // Cast state
+  const isCasting = useCastStore((s) => s.isCasting);
 
   // Lock screen state tracking
   const lockScreenActiveRef = useRef(false);
@@ -128,13 +126,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   // ─────────────────────────────────────────────
   // 4. Lock Screen Management
-  //    - Activate when playing starts
-  //    - Update metadata when song changes
-  //    - Clear when stopped
   // ─────────────────────────────────────────────
   useEffect(() => {
     if (status.playing) {
-      // Parse metadata - handles "Title - Artist" format from AzuraCast
       const { title, artist } = parseSongMetadata(currentSong?.title, currentSong?.artist);
 
       const metadata = {
@@ -144,18 +138,15 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
       };
 
       if (!lockScreenActiveRef.current) {
-        // First activation
         player.setActiveForLockScreen(true, metadata, {
           showSeekBackward: false,
           showSeekForward: false,
         });
         lockScreenActiveRef.current = true;
       } else {
-        // Just update metadata
         player.updateLockScreenMetadata(metadata);
       }
     } else if (lockScreenActiveRef.current) {
-      // Stopped playing - clear lock screen
       player.clearLockScreenControls();
       lockScreenActiveRef.current = false;
     }
@@ -166,7 +157,6 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   // ─────────────────────────────────────────────
   useEffect(() => {
     const handleAppStateChange = (nextState: AppStateStatus) => {
-      // When app is terminated or goes inactive while not playing
       if (nextState === 'inactive' && !status.playing && lockScreenActiveRef.current) {
         player.clearLockScreenControls();
         lockScreenActiveRef.current = false;
@@ -194,19 +184,45 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
   }, [player]);
 
   // ─────────────────────────────────────────────
+  // 7. Cast awareness — pause local when casting starts
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (isCasting && status.playing) {
+      useCastStore.getState().setWasPlayingBeforeCast(true);
+      player.pause();
+    }
+  }, [isCasting, status.playing, player]);
+
+  // ─────────────────────────────────────────────
+  // 8. Resume local playback when cast disconnects
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!isCasting && useCastStore.getState().wasPlayingBeforeCast) {
+      useCastStore.getState().setWasPlayingBeforeCast(false);
+      player.replace(STREAM_URL);
+      player.play();
+    }
+  }, [isCasting, player]);
+
+  // ─────────────────────────────────────────────
   // Actions
   // ─────────────────────────────────────────────
 
   const play = useCallback(() => {
+    // Don't start local audio while casting
+    if (useCastStore.getState().isCasting) return;
+
     setError(null);
-    // Reconnect fresh to live stream (webradio behavior)
     player.replace(STREAM_URL);
     player.play();
   }, [player, setError]);
 
   const stop = useCallback(() => {
+    // If casting, clear the resume flag so we don't auto-resume on disconnect
+    if (useCastStore.getState().isCasting) {
+      useCastStore.getState().setWasPlayingBeforeCast(false);
+    }
     player.pause();
-    // Lock screen will be cleared by the effect watching status.playing
   }, [player]);
 
   const setVolume = useCallback(

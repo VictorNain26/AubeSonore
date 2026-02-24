@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Music, Heart } from 'lucide-react';
 import { ShareButton } from '../ShareCard/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { useLikedTracksContext } from '../../contexts/LikedTracksContext';
+import { usePreferences } from '../../hooks/usePreferences';
+import { getTrackShareUrl } from '@aubesonore/core/share';
 
 // ─────────────────────────────────────────────
 // Album Art Component with elegant fallback
@@ -30,6 +33,19 @@ export function AlbumArt({
   onToggleLike,
 }: AlbumArtProps) {
   const [artError, setArtError] = useState(false);
+  const { tracks } = useLikedTracksContext();
+  const { preferences } = usePreferences();
+
+  // Find the best listening URL for sharing
+  const trackUrl = useMemo(() => {
+    if (!title || !artist) return undefined;
+    const likedTrack = tracks.find(
+      (t) =>
+        t.title.toLowerCase() === title.toLowerCase() &&
+        t.artist.toLowerCase() === artist.toLowerCase()
+    );
+    return getTrackShareUrl(likedTrack ?? { title, artist }, preferences?.preferredPlatform);
+  }, [title, artist, tracks, preferences]);
 
   // Reset art error when song changes
   useEffect(() => {
@@ -92,7 +108,7 @@ export function AlbumArt({
         {title && (
           <div className="absolute inset-0 flex items-end justify-between p-2 sm:p-3">
             {/* Share button - bottom left */}
-            <ShareButton artUrl={artUrl} title={title} artist={artist || ''} />
+            <ShareButton artUrl={artUrl} title={title} artist={artist || ''} trackUrl={trackUrl} />
 
             {/* Like button - bottom right */}
             <button

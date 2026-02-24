@@ -1,12 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
 import { ENV } from '../config/env';
+import type { ArtistInfo } from '@aubesonore/shared-types/client';
 
-export interface ArtistInfo {
-  bio: string;
-  tags: string[];
-  similarArtists: string[];
-  listeners: number;
-}
+export type { ArtistInfo } from '@aubesonore/shared-types/client';
 
 const cache = new Map<string, ArtistInfo>();
 

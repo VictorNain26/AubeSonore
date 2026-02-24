@@ -28,6 +28,26 @@
     "./api": {
       "types": "./dist/api.d.ts",
       "default": "./dist/api.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./azuracast": {
+      "types": "./dist/azuracast.d.ts",
+      "default": "./dist/azuracast.js"
+    },
+    "./cast": {
+      "types": "./dist/cast.d.ts",
+      "default": "./dist/cast.js"
+    },
+    "./stats": {
+      "types": "./dist/stats.d.ts",
+      "default": "./dist/stats.js"
+    },
+    "./sleep-timer": {
+      "types": "./dist/sleep-timer.d.ts",
+      "default": "./dist/sleep-timer.js"
     }
   },
   "scripts": {

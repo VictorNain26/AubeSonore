@@ -15,7 +15,7 @@
         "UIBackgroundModes": ["audio", "remote-notification"],
         "NSMicrophoneUsageDescription": "This app does not use the microphone",
         "NSBonjourServices": ["_googlecast._tcp", "_CC1AD845._googlecast._tcp"],
-        "NSLocalNetworkUsageDescription": "Aube Sonore utilise le réseau local pour détecter les appareils de diffusion (Chromecast, AirPlay)"
+        "NSLocalNetworkUsageDescription": "Aube Sonore utilise le réseau local pour détecter les appareils Chromecast"
       }
     },
     "android": {

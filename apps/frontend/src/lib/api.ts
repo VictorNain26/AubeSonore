@@ -1,92 +1,23 @@
 import { API_BASE_URL } from '../utils/config';
+import { createTrackApi, createArtistApi, createPreferencesApi } from '@aubesonore/core/api';
+import type { ApiClient } from '@aubesonore/core/api';
+import type { AuthResponse } from '@aubesonore/shared-types/client';
 
-// ─────────────────────────────────────────────
-// Auth Types
-// ─────────────────────────────────────────────
+// Re-export shared types so existing imports keep working
+export type {
+  ClientLikedTrack as LikedTrack,
+  PlatformLinks,
+  PreferredPlatform,
+  UserPreferences,
+  LikeTrackRequest,
+  CheckLikedRequest,
+  CheckLikedResponse,
+  AuthResponse,
+  ArtistInfo,
+} from '@aubesonore/shared-types/client';
 
-export interface User {
-  id: string;
-  email: string;
-  name: string | null;
-  image: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Session {
-  id: string;
-  userId: string;
-  expiresAt: string;
-}
-
-export interface AuthResponse {
-  user: User;
-  session: Session;
-}
-
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
-
-export interface PlatformLinks {
-  spotify?: string;
-  appleMusic?: string;
-  deezer?: string;
-  youtubeMusic?: string;
-  tidal?: string;
-  amazonMusic?: string;
-  soundcloud?: string;
-}
-
-export type PreferredPlatform =
-  | 'spotify'
-  | 'appleMusic'
-  | 'deezer'
-  | 'youtubeMusic'
-  | 'tidal'
-  | 'amazonMusic'
-  | 'soundcloud'
-  | 'youtube';
-
-export interface LikedTrack {
-  id: string;
-  title: string;
-  artist: string;
-  album?: string | null;
-  artworkUrl?: string | null;
-  artworkBase64?: string | null;
-  youtubeUrl: string;
-  isrc?: string | null;
-  songlinkUrl?: string | null;
-  platformLinks?: PlatformLinks | null;
-  createdAt: string;
-  userId: string;
-}
-
-export interface UserPreferences {
-  userId: string;
-  preferredPlatform: PreferredPlatform;
-  updatedAt: string;
-}
-
-export interface LikeTrackRequest {
-  title: string;
-  artist: string;
-  album?: string;
-  artworkUrl?: string;
-  youtubeUrl: string;
-  isrc?: string;
-}
-
-export interface CheckLikedRequest {
-  title: string;
-  artist: string;
-}
-
-export interface CheckLikedResponse {
-  liked: boolean;
-  track?: LikedTrack;
-}
+// Also re-export User/Session for consumers that import from here
+export type { User, Session } from '@aubesonore/shared-types/client';
 
 // ─────────────────────────────────────────────
 // API Client
@@ -110,83 +41,18 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   return response.json();
 }
 
-// ─────────────────────────────────────────────
-// Track API
-// ─────────────────────────────────────────────
-
-export const trackApi = {
-  // Récupérer les morceaux likés
-  getLikedTracks: (): Promise<LikedTrack[]> => fetchApi('/api/track/like'),
-
-  // Liker un morceau
-  likeTrack: (data: LikeTrackRequest): Promise<{ message: string; track: LikedTrack }> =>
-    fetchApi('/api/track/like', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  // Supprimer un like
-  unlikeTrack: (trackId: string): Promise<{ message: string; track: LikedTrack }> =>
-    fetchApi(`/api/track/like/${trackId}`, {
-      method: 'DELETE',
-    }),
-
-  // Vérifier si un morceau est liké
-  checkLiked: (data: CheckLikedRequest): Promise<CheckLikedResponse> =>
-    fetchApi('/api/track/check-liked', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  // Rafraîchir les liens Songlink
-  refreshLinks: (trackId: string): Promise<{ message: string; track: LikedTrack }> =>
-    fetchApi(`/api/track/${trackId}/refresh-links`, {
-      method: 'POST',
-    }),
-
-  // Rafraîchir tous les liens
-  refreshAllLinks: (): Promise<{ message: string; updated: number }> =>
-    fetchApi('/api/track/refresh-all-links', {
-      method: 'POST',
-    }),
-};
+const apiClient: ApiClient = { fetch: fetchApi };
 
 // ─────────────────────────────────────────────
-// Artist API
+// Shared API endpoints (from @aubesonore/core)
 // ─────────────────────────────────────────────
 
-export interface ArtistInfo {
-  bio: string;
-  tags: string[];
-  similarArtists: string[];
-  listeners: number;
-}
-
-export const artistApi = {
-  getInfo: (name: string): Promise<ArtistInfo> =>
-    fetchApi(`/api/artist?name=${encodeURIComponent(name)}`),
-};
+export const trackApi = createTrackApi(apiClient);
+export const artistApi = createArtistApi(apiClient);
+export const preferencesApi = createPreferencesApi(apiClient);
 
 // ─────────────────────────────────────────────
-// Preferences API
-// ─────────────────────────────────────────────
-
-export const preferencesApi = {
-  // Récupérer les préférences
-  getPreferences: (): Promise<UserPreferences> => fetchApi('/api/preferences'),
-
-  // Mettre à jour les préférences
-  updatePreferences: (
-    preferredPlatform: PreferredPlatform
-  ): Promise<{ message: string; preferences: UserPreferences }> =>
-    fetchApi('/api/preferences', {
-      method: 'PUT',
-      body: JSON.stringify({ preferredPlatform }),
-    }),
-};
-
-// ─────────────────────────────────────────────
-// Push API
+// Push API (frontend-only)
 // ─────────────────────────────────────────────
 
 export const pushApi = {
@@ -206,11 +72,10 @@ export const pushApi = {
 };
 
 // ─────────────────────────────────────────────
-// Auth API
+// Auth API (platform-specific — uses cookies)
 // ─────────────────────────────────────────────
 
 export const authApi = {
-  // Récupérer la session courante
   getSession: async (): Promise<AuthResponse | null> => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/auth/get-session`, {
@@ -226,7 +91,6 @@ export const authApi = {
     }
   },
 
-  // Inscription
   signUp: async (email: string, password: string, name: string): Promise<AuthResponse> => {
     const response = await fetch(`${API_BASE_URL}/api/auth/sign-up/email`, {
       method: 'POST',
@@ -241,7 +105,6 @@ export const authApi = {
     return response.json();
   },
 
-  // Connexion
   signIn: async (email: string, password: string): Promise<AuthResponse> => {
     const response = await fetch(`${API_BASE_URL}/api/auth/sign-in/email`, {
       method: 'POST',
@@ -256,7 +119,6 @@ export const authApi = {
     return response.json();
   },
 
-  // Déconnexion
   signOut: async (): Promise<void> => {
     await fetch(`${API_BASE_URL}/api/auth/sign-out`, {
       method: 'POST',
@@ -265,6 +127,5 @@ export const authApi = {
     });
   },
 
-  // Connexion Google
   getGoogleAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=google`,
 };

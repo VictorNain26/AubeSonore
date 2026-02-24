@@ -8,8 +8,6 @@
  * - Clear separation between module access and business logic
  */
 
-import type { MediaStreamType as MediaStreamTypeEnum } from 'react-native-google-cast';
-
 // ─────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────
@@ -25,7 +23,7 @@ interface MediaMetadata {
 interface MediaInfo {
   contentUrl: string;
   contentType: string;
-  streamType?: typeof MediaStreamTypeEnum;
+  streamType?: 'buffered' | 'live' | 'other';
   metadata?: MediaMetadata;
 }
 
@@ -212,6 +210,7 @@ export async function loadMedia(
       mediaInfo: {
         contentUrl,
         contentType: 'audio/mpeg',
+        streamType: 'live',
         metadata: {
           type: 'musicTrack',
           title: metadata.title,
