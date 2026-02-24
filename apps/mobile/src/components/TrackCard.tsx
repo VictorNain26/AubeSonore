@@ -1,49 +1,9 @@
 import { memo, useState, useCallback } from 'react';
-import { View, Text, Image, Pressable, Linking } from 'react-native';
+import { View, Text, Image, Pressable, Linking, Alert } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
-import type { LikedTrack, PreferredPlatform, PlatformLinks } from '../types';
-
-// ─────────────────────────────────────────────
-// Helper: Search URLs by platform
-// ─────────────────────────────────────────────
-
-function getSearchUrl(platform: PreferredPlatform, query: string): string {
-  const encoded = encodeURIComponent(query);
-  const urls: Record<PreferredPlatform, string> = {
-    spotify: `https://open.spotify.com/search/${encoded}`,
-    appleMusic: `https://music.apple.com/search?term=${encoded}`,
-    deezer: `https://www.deezer.com/search/${encoded}`,
-    youtubeMusic: `https://music.youtube.com/search?q=${encoded}`,
-    youtube: `https://www.youtube.com/results?search_query=${encoded}`,
-    tidal: `https://listen.tidal.com/search?q=${encoded}`,
-    amazonMusic: `https://music.amazon.com/search/${encoded}`,
-    soundcloud: `https://soundcloud.com/search?q=${encoded}`,
-  };
-  return urls[platform];
-}
-
-// ─────────────────────────────────────────────
-// Helper: Get preferred link
-// ─────────────────────────────────────────────
-
-function getPreferredLink(
-  track: LikedTrack,
-  preferredPlatform: PreferredPlatform
-): { url: string; isSearch: boolean } {
-  if (track.platformLinks) {
-    const platformKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
-    const preferred = track.platformLinks[platformKey as keyof PlatformLinks];
-    if (preferred) return { url: preferred, isSearch: false };
-
-    const firstAvailable = Object.values(track.platformLinks).find(Boolean);
-    if (firstAvailable) return { url: firstAvailable, isSearch: false };
-  }
-
-  if (track.songlinkUrl) return { url: track.songlinkUrl, isSearch: false };
-
-  const query = `${track.title} ${track.artist}`;
-  return { url: getSearchUrl(preferredPlatform, query), isSearch: true };
-}
+import { getPreferredLink } from '@aubesonore/core/share';
+import type { LikedTrack, PreferredPlatform } from '../types';
 
 // ─────────────────────────────────────────────
 // Component (Memoized for list performance)
@@ -74,17 +34,31 @@ export const TrackCard = memo(function TrackCard({
     }
   }, [link]);
 
-  const handleDelete = useCallback(async () => {
-    setIsDeleting(true);
-    await onDelete(track.id);
-  }, [onDelete, track.id]);
+  const handleLongPress = useCallback(() => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert('Supprimer', `Retirer "${track.title}" de vos favoris ?`, [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Supprimer',
+        style: 'destructive',
+        onPress: async () => {
+          setIsDeleting(true);
+          await onDelete(track.id);
+        },
+      },
+    ]);
+  }, [onDelete, track.id, track.title]);
 
   const handleImageError = useCallback(() => {
     setImgError(true);
   }, []);
 
   return (
-    <View className={`flex-row items-center gap-3 py-3 ${isDeleting ? 'opacity-50' : ''}`}>
+    <Pressable
+      onLongPress={handleLongPress}
+      disabled={isDeleting}
+      className={`flex-row items-center gap-3 py-3 ${isDeleting ? 'opacity-50' : ''}`}
+    >
       {/* Artwork */}
       <View className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 items-center justify-center">
         {artwork ? (
@@ -109,24 +83,14 @@ export const TrackCard = memo(function TrackCard({
         </Text>
       </View>
 
-      {/* Actions */}
-      <View className="flex-row items-center gap-1">
-        <Pressable onPress={handleOpen} className="p-2 rounded-full active:bg-white/10">
-          <Ionicons
-            name={isSearch ? 'search' : 'open-outline'}
-            size={18}
-            color="rgba(255,255,255,0.5)"
-          />
-        </Pressable>
-
-        <Pressable
-          onPress={handleDelete}
-          disabled={isDeleting}
-          className="p-2 rounded-full active:bg-white/10"
-        >
-          <Ionicons name="trash-outline" size={18} color="rgba(255,255,255,0.5)" />
-        </Pressable>
-      </View>
-    </View>
+      {/* Open link action */}
+      <Pressable onPress={handleOpen} className="p-2 rounded-full active:bg-white/10">
+        <Ionicons
+          name={isSearch ? 'search' : 'open-outline'}
+          size={18}
+          color="rgba(255,255,255,0.5)"
+        />
+      </Pressable>
+    </Pressable>
   );
 });

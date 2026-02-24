@@ -1,14 +1,24 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Library, ExternalLink, Music, Trash2, Search, Download, RefreshCw } from 'lucide-react';
+import {
+  Library,
+  ExternalLink,
+  Music,
+  Trash2,
+  Search,
+  MoreHorizontal,
+  RefreshCw,
+  Download,
+} from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useLikedTracks } from '../hooks/useLikedTracks';
 import { usePreferences, PLATFORMS } from '../hooks/usePreferences';
-import type { LikedTrack, PreferredPlatform, PlatformLinks } from '../lib/api';
+import type { LikedTrack, PreferredPlatform } from '../lib/api';
 import { trackApi } from '../lib/api';
 import { exportAsCSV, exportAsTuneMyMusic, exportAsSonglinkList } from '../lib/exportLibrary';
+import { getPreferredLink } from '@aubesonore/core/share';
 import toast from 'react-hot-toast';
 
 // ─────────────────────────────────────────────
@@ -18,52 +28,6 @@ import toast from 'react-hot-toast';
 interface LikedTracksModalProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-// ─────────────────────────────────────────────
-// Helper: URLs de recherche par plateforme
-// ─────────────────────────────────────────────
-
-function getSearchUrl(platform: PreferredPlatform, query: string): string {
-  const encoded = encodeURIComponent(query);
-  const urls: Record<PreferredPlatform, string> = {
-    spotify: `https://open.spotify.com/search/${encoded}`,
-    appleMusic: `https://music.apple.com/search?term=${encoded}`,
-    deezer: `https://www.deezer.com/search/${encoded}`,
-    youtubeMusic: `https://music.youtube.com/search?q=${encoded}`,
-    youtube: `https://www.youtube.com/results?search_query=${encoded}`,
-    tidal: `https://listen.tidal.com/search?q=${encoded}`,
-    amazonMusic: `https://music.amazon.com/search/${encoded}`,
-    soundcloud: `https://soundcloud.com/search?q=${encoded}`,
-  };
-  return urls[platform];
-}
-
-// ─────────────────────────────────────────────
-// Helper: récupérer le lien de la plateforme préférée
-// ─────────────────────────────────────────────
-
-function getPreferredLink(
-  track: LikedTrack,
-  preferredPlatform: PreferredPlatform
-): { url: string; isSearch: boolean } {
-  // Si on a des liens enrichis, utiliser la plateforme préférée
-  if (track.platformLinks) {
-    const platformKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
-    const preferred = track.platformLinks[platformKey as keyof PlatformLinks];
-    if (preferred) return { url: preferred, isSearch: false };
-
-    // Fallback: premier lien disponible
-    const firstAvailable = Object.values(track.platformLinks).find(Boolean);
-    if (firstAvailable) return { url: firstAvailable, isSearch: false };
-  }
-
-  // Fallback: lien Songlink global
-  if (track.songlinkUrl) return { url: track.songlinkUrl, isSearch: false };
-
-  // Dernier recours: URL de recherche sur la plateforme préférée
-  const query = `${track.title} ${track.artist}`;
-  return { url: getSearchUrl(preferredPlatform, query), isSearch: true };
 }
 
 // ─────────────────────────────────────────────
@@ -139,7 +103,8 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
             'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center',
             'text-white/40 hover:text-red-400 hover:bg-white/10',
             'transition-all duration-200',
-            isDeleting ? 'cursor-not-allowed' : 'cursor-pointer'
+            'opacity-0 group-hover:opacity-100',
+            isDeleting ? 'cursor-not-allowed !opacity-100' : 'cursor-pointer'
           )}
           title="Retirer"
         >
@@ -252,20 +217,31 @@ function EmptyState() {
 // Composant Principal - Modal style Player
 // ─────────────────────────────────────────────
 
-function ExportDropdown({ tracks }: { tracks: LikedTrack[] }) {
+function OverflowMenu({
+  tracks,
+  isRefreshing,
+  onRefresh,
+}: {
+  tracks: LikedTrack[];
+  isRefreshing: boolean;
+  onRefresh: () => void;
+}) {
   const [isOpen, setIsOpen] = useState(false);
-  const [exportPosition, setExportPosition] = useState({ top: 0, right: 0 });
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (isOpen && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect();
-      setExportPosition({
+      setMenuPosition({
         top: rect.bottom + 8,
         right: window.innerWidth - rect.right,
       });
     }
   }, [isOpen]);
+
+  const menuItemClass =
+    'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer';
 
   return (
     <div className="relative">
@@ -277,9 +253,9 @@ function ExportDropdown({ tracks }: { tracks: LikedTrack[] }) {
           'text-white/40 hover:text-white hover:bg-white/10',
           'transition-all duration-200'
         )}
-        title="Exporter"
+        title="Plus d'options"
       >
-        <Download className="w-4 h-4" />
+        <MoreHorizontal className="w-4 h-4" />
       </button>
 
       {isOpen &&
@@ -287,36 +263,51 @@ function ExportDropdown({ tracks }: { tracks: LikedTrack[] }) {
           <>
             <div className="fixed inset-0 z-[200]" onClick={() => setIsOpen(false)} />
             <div
-              className="fixed w-52 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[300] overflow-hidden"
-              style={{ top: exportPosition.top, right: exportPosition.right }}
+              className="fixed w-56 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[300] overflow-hidden"
+              style={{ top: menuPosition.top, right: menuPosition.right }}
             >
               <div className="p-1">
+                <button
+                  onClick={() => {
+                    onRefresh();
+                    setIsOpen(false);
+                  }}
+                  disabled={isRefreshing}
+                  className={cn(menuItemClass, isRefreshing && 'opacity-50')}
+                >
+                  <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
+                  Rafraîchir les liens
+                </button>
+                <div className="h-px bg-white/5 my-1" />
                 <button
                   onClick={() => {
                     exportAsCSV(tracks);
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                  className={menuItemClass}
                 >
-                  CSV (Excel)
+                  <Download className="w-4 h-4" />
+                  Exporter CSV
                 </button>
                 <button
                   onClick={() => {
                     exportAsTuneMyMusic(tracks);
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                  className={menuItemClass}
                 >
-                  TuneMyMusic
+                  <Download className="w-4 h-4" />
+                  Exporter TuneMyMusic
                 </button>
                 <button
                   onClick={() => {
                     exportAsSonglinkList(tracks);
                     setIsOpen(false);
                   }}
-                  className="w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer"
+                  className={menuItemClass}
                 >
-                  Liste Songlink
+                  <Download className="w-4 h-4" />
+                  Exporter Liens Songlink
                 </button>
               </div>
             </div>
@@ -345,6 +336,13 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   };
 
   const preferredPlatform = preferences?.preferredPlatform || 'spotify';
+
+  // Sort newest first
+  const sortedTracks = useMemo(
+    () =>
+      [...tracks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [tracks]
+  );
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -395,22 +393,11 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
                       <div className="flex items-center gap-1">
                         {tracks.length > 0 && (
-                          <>
-                            <button
-                              onClick={handleRefreshAll}
-                              disabled={isRefreshing}
-                              className={cn(
-                                'p-2 rounded-full cursor-pointer',
-                                'text-white/40 hover:text-white hover:bg-white/10',
-                                'transition-all duration-200',
-                                isRefreshing && 'animate-spin'
-                              )}
-                              title="Rafraîchir tous les liens"
-                            >
-                              <RefreshCw className="w-4 h-4" />
-                            </button>
-                            <ExportDropdown tracks={tracks} />
-                          </>
+                          <OverflowMenu
+                            tracks={tracks}
+                            isRefreshing={isRefreshing}
+                            onRefresh={handleRefreshAll}
+                          />
                         )}
                         <Dialog.Close
                           className={cn(
@@ -456,7 +443,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                       <EmptyState />
                     ) : (
                       <div className="divide-y divide-white/5">
-                        {tracks.map((track) => (
+                        {sortedTracks.map((track) => (
                           <TrackItem
                             key={track.id}
                             track={track}

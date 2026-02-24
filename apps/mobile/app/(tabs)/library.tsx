@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -53,6 +53,13 @@ export default function LibraryScreen() {
 
   const preferredPlatform = preferences?.preferredPlatform || 'spotify';
 
+  // Sort newest first
+  const sortedTracks = useMemo(
+    () =>
+      [...tracks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [tracks]
+  );
+
   // Fetch data on mount when authenticated
   useEffect(() => {
     if (isAuthenticated) {
@@ -69,12 +76,27 @@ export default function LibraryScreen() {
     }
   }, [isAuthenticated, fetchTracks, fetchPreferences]);
 
-  // Handle export
-  const handleExport = useCallback(() => {
+  // Handle overflow menu (refresh + export options)
+  const handleOverflowMenu = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert('Exporter ma bibliothèque', 'Choisissez un format', [
+    Alert.alert('Options', undefined, [
       {
-        text: 'CSV (Excel)',
+        text: 'Rafraîchir les liens',
+        onPress: async () => {
+          setIsRefreshingLinks(true);
+          try {
+            const result = await trackApi.refreshAllLinks();
+            Alert.alert('Liens rafraîchis', `${result.updated} morceaux mis à jour`);
+            fetchTracks();
+          } catch {
+            Alert.alert('Erreur', 'Impossible de rafraîchir les liens');
+          } finally {
+            setIsRefreshingLinks(false);
+          }
+        },
+      },
+      {
+        text: 'Exporter CSV',
         onPress: async () => {
           setIsExporting(true);
           try {
@@ -87,7 +109,7 @@ export default function LibraryScreen() {
         },
       },
       {
-        text: 'TuneMyMusic',
+        text: 'Exporter TuneMyMusic',
         onPress: async () => {
           setIsExporting(true);
           try {
@@ -100,7 +122,7 @@ export default function LibraryScreen() {
         },
       },
       {
-        text: 'Liens Songlink',
+        text: 'Exporter Liens Songlink',
         onPress: async () => {
           setIsExporting(true);
           try {
@@ -114,22 +136,7 @@ export default function LibraryScreen() {
       },
       { text: 'Annuler', style: 'cancel' },
     ]);
-  }, [tracks]);
-
-  // Handle refresh all links
-  const handleRefreshLinks = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setIsRefreshingLinks(true);
-    try {
-      const result = await trackApi.refreshAllLinks();
-      Alert.alert('Liens rafraîchis', `${result.updated} morceaux mis à jour`);
-      fetchTracks();
-    } catch {
-      Alert.alert('Erreur', 'Impossible de rafraîchir les liens');
-    } finally {
-      setIsRefreshingLinks(false);
-    }
-  }, [fetchTracks]);
+  }, [tracks, fetchTracks]);
 
   // Render track item
   const renderTrackItem = useCallback(
@@ -190,35 +197,19 @@ export default function LibraryScreen() {
             </View>
           </View>
 
-          {/* Action buttons */}
+          {/* Overflow menu */}
           {tracks.length > 0 && (
-            <View className="flex-row items-center gap-2">
-              {/* Refresh links */}
-              <Pressable
-                onPress={handleRefreshLinks}
-                disabled={isRefreshingLinks}
-                className="w-9 h-9 rounded-lg bg-white/5 items-center justify-center active:bg-white/10"
-              >
-                {isRefreshingLinks ? (
-                  <ActivityIndicator size="small" color="#9370DB" />
-                ) : (
-                  <Ionicons name="refresh-outline" size={18} color="rgba(255,255,255,0.5)" />
-                )}
-              </Pressable>
-
-              {/* Export */}
-              <Pressable
-                onPress={handleExport}
-                disabled={isExporting}
-                className="w-9 h-9 rounded-lg bg-white/5 items-center justify-center active:bg-white/10"
-              >
-                {isExporting ? (
-                  <ActivityIndicator size="small" color="#9370DB" />
-                ) : (
-                  <Ionicons name="download-outline" size={18} color="rgba(255,255,255,0.5)" />
-                )}
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={handleOverflowMenu}
+              disabled={isRefreshingLinks || isExporting}
+              className="w-9 h-9 rounded-lg bg-white/5 items-center justify-center active:bg-white/10"
+            >
+              {isRefreshingLinks || isExporting ? (
+                <ActivityIndicator size="small" color="#9370DB" />
+              ) : (
+                <Ionicons name="ellipsis-horizontal" size={18} color="rgba(255,255,255,0.5)" />
+              )}
+            </Pressable>
           )}
         </View>
 
@@ -242,7 +233,7 @@ export default function LibraryScreen() {
         />
       ) : (
         <FlatList
-          data={tracks}
+          data={sortedTracks}
           renderItem={renderTrackItem}
           keyExtractor={getTrackKey}
           contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 20 }}
