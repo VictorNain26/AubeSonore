@@ -378,11 +378,6 @@ export default function Player() {
             title="Ma bibliothèque"
           >
             <Library className="w-5 h-5" />
-            {isAuthenticated && tracks.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-purple-500 text-white text-[10px] flex items-center justify-center font-medium">
-                {tracks.length > 9 ? '9+' : tracks.length}
-              </span>
-            )}
           </button>
 
           {/* Listeners count + LIVE indicator */}
@@ -414,12 +409,7 @@ export default function Player() {
         if (!historyEntries || historyEntries.length === 0) return null;
         return (
           <div className="border-t border-white/10 pt-4">
-            <div className="flex items-center gap-2 mb-2">
-              <p className="text-xs text-muted-foreground">Historique</p>
-              <span className="text-[10px] text-white/30 bg-white/5 px-1.5 py-0.5 rounded-full">
-                {historyEntries.length}
-              </span>
-            </div>
+            <p className="text-xs text-muted-foreground mb-2">Historique</p>
             {historyEntries.map((entry, index) => (
               <motion.div
                 key={entry.sh_id}
