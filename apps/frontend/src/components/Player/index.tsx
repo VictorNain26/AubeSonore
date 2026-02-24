@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Square, Users, Music, Library, TextQuote } from 'lucide-react';
+import { Play, Square, Users, Library, TextQuote } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '../../lib/player';
@@ -153,8 +153,6 @@ export default function Player() {
     },
     [setVolume]
   );
-
-  const playlistName = nowPlaying?.playlist?.replace(/_/g, ' ');
 
   // Check if current track is liked
   const isCurrentTrackLiked = nowPlaying
@@ -402,18 +400,6 @@ export default function Player() {
           ) : null}
         </div>
       </div>
-
-      {/* =================================================================
-          SECTION 6: Playlist Badge
-          ================================================================= */}
-      {playlistName && (
-        <div className="flex justify-center mb-5">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full text-xs text-muted-foreground">
-            <Music className="w-3 h-3" />
-            {playlistName}
-          </span>
-        </div>
-      )}
 
       {/* =================================================================
           SECTION 7: Artist Context

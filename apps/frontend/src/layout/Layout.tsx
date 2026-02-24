@@ -33,7 +33,7 @@ export default function Layout({ children }: LayoutProps) {
       />
 
       {/* Header - Logo centered, stats left, auth right */}
-      <header className="shrink-0 py-4 md:py-5 px-4 relative">
+      <header className="shrink-0 py-4 md:py-5 px-4 relative z-20">
         {/* Left: Stats button */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2">
           <button
