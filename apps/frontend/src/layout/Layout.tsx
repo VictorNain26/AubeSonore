@@ -49,10 +49,10 @@ export default function Layout({ children }: LayoutProps) {
           </button>
         </div>
 
-        {/* Center: Logo */}
-        <div className="flex items-center justify-center">
-          <img src="/logo-header.png" alt="AubeSonore" className="h-10 md:h-12" />
-        </div>
+        {/* Center: Title */}
+        <h1 className="text-center text-sm md:text-xl font-light tracking-[0.25em] md:tracking-[0.35em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-white/60 via-white/80 to-white/60">
+          AubeSonore
+        </h1>
 
         {/* Right: Auth button - absolute positioned */}
         <div className="absolute right-4 top-1/2 -translate-y-1/2">
