@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { Play, Square, Users, Library, TextQuote } from 'lucide-react';
+import { Play, Square, Users, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '../../lib/player';
 import { useNowPlaying, type SongEntry } from '../../lib/azuracast';
 import { useLikedTracks } from '../../hooks/useLikedTracks';
 import { useAuth } from '../../hooks/useAuth';
-import { useLyrics } from '../../hooks/useLyrics';
 import { LikedTracksModal } from '../LikedTracksModal';
 import { AuthModal } from '../AuthModal';
 import toast from 'react-hot-toast';
@@ -19,7 +18,6 @@ import { HistoryItem } from './HistoryItem';
 import { AlbumArt } from './AlbumArt';
 import { CastButton } from './CastButton';
 import { SleepTimer } from './SleepTimer';
-import { LyricsPanel } from './LyricsPanel';
 import { ArtistContext } from './ArtistContext';
 
 // Stores
@@ -37,8 +35,6 @@ export default function Player() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [likingTrackId, setLikingTrackId] = useState<string | null>(null);
-  const [showLyrics, setShowLyrics] = useState(false);
-
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
   const { data: np } = useNowPlaying();
   const { likeTrack, unlikeTrack, isTrackLiked, tracks } = useLikedTracks();
@@ -51,13 +47,6 @@ export default function Player() {
   const nowPlaying = np?.now_playing;
   const duration = nowPlaying?.duration || 0;
   const progress = duration > 0 ? (elapsed / duration) * 100 : 0;
-
-  // Lyrics
-  const {
-    syncedLines,
-    plainLyrics,
-    isLoading: lyricsLoading,
-  } = useLyrics(nowPlaying?.song.artist, nowPlaying?.song.title);
 
   // Sleep timer — end-of-track mode
   const sleepTimerTrigger = useSleepTimer((s) => s.triggerEndOfTrack);
@@ -291,17 +280,6 @@ export default function Player() {
       </AnimatePresence>
 
       {/* =================================================================
-          SECTION 3: Lyrics Panel (between track info and waveform)
-          ================================================================= */}
-      <LyricsPanel
-        show={showLyrics}
-        syncedLines={syncedLines}
-        plainLyrics={plainLyrics}
-        isLoading={lyricsLoading}
-        elapsed={elapsed}
-      />
-
-      {/* =================================================================
           SECTION 4: Waveform Progress
           ================================================================= */}
       <div className="flex items-center gap-3 mb-5">
@@ -353,20 +331,6 @@ export default function Player() {
 
         {/* Right controls */}
         <div className="flex-1 flex justify-end items-center gap-2">
-          {/* Lyrics toggle */}
-          <button
-            onClick={() => setShowLyrics(!showLyrics)}
-            className={cn(
-              'p-2 rounded-full transition-all duration-200 cursor-pointer',
-              showLyrics
-                ? 'text-purple-400 hover:text-purple-300 hover:bg-white/10'
-                : 'text-white/60 hover:text-white hover:bg-white/10'
-            )}
-            title="Paroles"
-          >
-            <TextQuote className="w-5 h-5" />
-          </button>
-
           {/* Library button */}
           <button
             onClick={handleOpenLibrary}
