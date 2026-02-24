@@ -50,9 +50,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Center: Logo - absolute center */}
-        <h1 className="text-center text-sm md:text-xl font-light tracking-[0.25em] md:tracking-[0.35em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-white/60 via-white/80 to-white/60">
-          AubeSonore
-        </h1>
+        <div className="flex items-center justify-center gap-2">
+          <img src="/logo.jpg" alt="AubeSonore" className="h-8 md:h-10 rounded-lg" />
+        </div>
 
         {/* Right: Auth button - absolute positioned */}
         <div className="absolute right-4 top-1/2 -translate-y-1/2">

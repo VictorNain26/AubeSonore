@@ -2,27 +2,68 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Aubesonore - WebRadio</title>
+
+    <!-- SEO -->
+    <title>AubeSonore - Webradio de Musique Indépendante</title>
+    <meta
+      name="description"
+      content="AubeSonore est une webradio de découverte musicale indépendante. Écoutez gratuitement de la musique émergente et sauvegardez vos coups de coeur."
+    />
+    <meta
+      name="keywords"
+      content="webradio, musique indépendante, découverte musicale, radio en ligne, streaming, musique émergente, AubeSonore"
+    />
+    <meta name="author" content="AubeSonore" />
+    <meta name="theme-color" content="#0f1118" />
+    <link rel="canonical" href="https://aubesonore.fr/" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AubeSonore - Webradio de Musique Indépendante" />
+    <meta
+      property="og:description"
+      content="Écoutez gratuitement de la musique émergente et sauvegardez vos coups de coeur sur AubeSonore."
+    />
+    <meta property="og:image" content="/icons/og-image.png" />
+    <meta property="og:url" content="https://aubesonore.fr/" />
+    <meta property="og:site_name" content="AubeSonore" />
+    <meta property="og:locale" content="fr_FR" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="AubeSonore - Webradio de Musique Indépendante" />
+    <meta
+      name="twitter:description"
+      content="Écoutez gratuitement de la musique émergente et sauvegardez vos coups de coeur."
+    />
+    <meta name="twitter:image" content="/icons/og-image.png" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
 
     <!-- Style -->
-    <link href="/src/style.css" rel="stylesheet">
+    <link href="/src/style.css" rel="stylesheet" />
 
     <!-- Chromecast -->
     <script>
-      window.__onGCastApiAvailable = function(isAvailable) {
+      window.__onGCastApiAvailable = function (isAvailable) {
         if (isAvailable) {
           const context = cast.framework.CastContext.getInstance();
           context.setOptions({
-            receiverApplicationId: "4A922B9B",
+            receiverApplicationId: '4A922B9B',
             autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
           });
-          console.log("SDK Cast initialisé.");
+          console.log('SDK Cast initialisé.');
         }
       };
     </script>
-    <script src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1" async></script>
+    <script
+      src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"
+      async
+    ></script>
   </head>
 
   <body>
