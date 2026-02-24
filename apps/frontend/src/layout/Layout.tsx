@@ -49,9 +49,9 @@ export default function Layout({ children }: LayoutProps) {
           </button>
         </div>
 
-        {/* Center: Logo - absolute center */}
-        <div className="flex items-center justify-center gap-2">
-          <img src="/logo.jpg" alt="AubeSonore" className="h-8 md:h-10 rounded-lg" />
+        {/* Center: Logo */}
+        <div className="flex items-center justify-center">
+          <img src="/logo-header.png" alt="AubeSonore" className="h-10 md:h-12" />
         </div>
 
         {/* Right: Auth button - absolute positioned */}
