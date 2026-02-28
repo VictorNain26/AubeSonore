@@ -23,7 +23,7 @@
     "@sinclair/typebox": "^0.34.0",
     "@aubesonore/shared-types": "workspace:*",
     "@aubesonore/shared-utils": "workspace:*",
-    "axios": "^1.9.0",
+    "axios": "^1.13.5",
     "better-auth": "^1.2.7",
     "cheerio": "^1.0.0",
     "dayjs": "^1.11.13",
