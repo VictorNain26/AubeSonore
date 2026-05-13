@@ -14,6 +14,11 @@ interface EnvConfig {
   LASTFM_API_KEY: string | undefined;
   VAPID_PUBLIC_KEY: string | undefined;
   VAPID_PRIVATE_KEY: string | undefined;
+  SMTP_HOST: string | undefined;
+  SMTP_PORT: number;
+  SMTP_USER: string | undefined;
+  SMTP_PASSWORD: string | undefined;
+  SMTP_FROM: string;
 }
 
 export const env: EnvConfig = {
@@ -34,6 +39,11 @@ export const env: EnvConfig = {
   LASTFM_API_KEY: Bun.env.LASTFM_API_KEY,
   VAPID_PUBLIC_KEY: Bun.env.VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY: Bun.env.VAPID_PRIVATE_KEY,
+  SMTP_HOST: Bun.env.SMTP_HOST,
+  SMTP_PORT: Bun.env.SMTP_PORT ? parseInt(Bun.env.SMTP_PORT, 10) : 587,
+  SMTP_USER: Bun.env.SMTP_USER,
+  SMTP_PASSWORD: Bun.env.SMTP_PASSWORD,
+  SMTP_FROM: Bun.env.SMTP_FROM ?? 'AubeSonore <noreply@aubesonore.fr>',
 };
 
 if (!env.DATABASE_URL) {

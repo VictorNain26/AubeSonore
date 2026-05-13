@@ -2,6 +2,7 @@ import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { env } from './config/env';
 import { betterAuthPlugin } from './lib/auth/betterAuthPlugin';
+import { securityHeaders } from './lib/security/securityHeaders';
 import { trackRoutes } from './routes/track.routes';
 import { preferencesRoutes } from './routes/preferences.routes';
 import { artistRoutes } from './routes/artist.routes';
@@ -9,17 +10,14 @@ import { pushRoutes } from './routes/push.routes';
 
 const app = new Elysia();
 
-// ✅ Log propre des requêtes
 app.onRequest(({ request }): void => {
-  const { method, url, headers } = request;
-  const origin = headers.get('origin');
-  const isPreflight = method === 'OPTIONS';
-  console.log(
-    `[${new Date().toISOString()}] 📥 ${method} ${url} ${isPreflight ? '(Preflight)' : ''} – Origin: ${origin}`
-  );
+  const { method } = request;
+  const path = new URL(request.url).pathname;
+  console.log(`[${new Date().toISOString()}] ${method} ${path}`);
 });
 
-// ✅ CORS
+app.use(securityHeaders);
+
 app.use(
   cors({
     origin: env.ALLOWED_ORIGINS,
@@ -29,50 +27,40 @@ app.use(
   })
 );
 
-// ✅ Auth BetterAuth
 app.use(betterAuthPlugin);
 
-// ✅ Routes
 app.use(trackRoutes);
 app.use(preferencesRoutes);
 app.use(artistRoutes);
 app.use(pushRoutes);
 
-// ✅ Healthcheck
 app.get('/health', (): { status: string; uptime: number } => ({
   status: 'ok',
   uptime: process.uptime(),
 }));
 
-// ✅ Accueil
 app.get('/', (): { message: string } => ({
-  message: "Bienvenue sur l'API AubeSonore 🎶",
+  message: 'AubeSonore API',
 }));
 
-// ❌ Gestion des erreurs
-app.onError(({ error }): { status: number; error: string } => {
+app.onError(({ error, set }): { error: string } => {
   console.error('[Global Error]', error);
-  return {
-    status: 500,
-    error: 'Erreur interne du serveur',
-  };
+  set.status = 500;
+  return { error: 'Internal server error' };
 });
 
-// ✅ Log sortie
-app.onAfterHandle(({ request }): void => {
-  console.log(`[${new Date().toISOString()}] ✅ ${request.method} ${request.url} → 200`);
+app.onAfterHandle(({ request, set }): void => {
+  const path = new URL(request.url).pathname;
+  console.log(`[${new Date().toISOString()}] ${request.method} ${path} → ${set.status ?? 200}`);
 });
 
-// ✅ Lancement du serveur
 app.listen({ port: env.PORT, hostname: '0.0.0.0' });
 
-console.log('\n✅ OurMusic Backend est lancé et accessible :');
-console.log(`➡️ URL : http://localhost:${env.PORT}\n`);
+console.log(`\nAubeSonore backend listening on http://localhost:${env.PORT}\n`);
 
-// 🔥 Gestion erreurs fatales
 process.on('uncaughtException', (err: Error): void => {
-  console.error('❌ Uncaught Exception:', err);
+  console.error('Uncaught Exception:', err);
 });
 process.on('unhandledRejection', (reason: unknown): void => {
-  console.error('❌ Unhandled Rejection:', reason);
+  console.error('Unhandled Rejection:', reason);
 });

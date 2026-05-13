@@ -1,10 +1,9 @@
-// ─────────────────────────────────────────────
-// Image Service
-// Télécharge et convertit les images en base64
-// ─────────────────────────────────────────────
+import { assertSafeUrl } from '../lib/security/urlValidation';
 
-const MAX_IMAGE_SIZE = 500 * 1024; // 500KB max pour les covers
+const MAX_IMAGE_SIZE = 500 * 1024; // 500KB
 const SUPPORTED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const FETCH_TIMEOUT_MS = 5_000;
+const isProd: boolean = process.env.NODE_ENV === 'production' || process.env.ENV === 'production';
 
 interface ImageResult {
   base64: string;
@@ -12,30 +11,34 @@ interface ImageResult {
   size: number;
 }
 
-/**
- * Télécharge une image et la convertit en base64
- * @param url - URL de l'image
- * @returns Image en base64 avec son type MIME
- */
 export async function downloadImageAsBase64(url: string): Promise<ImageResult | null> {
+  try {
+    await assertSafeUrl(url, { requireHttps: isProd });
+  } catch (err) {
+    console.warn(`[Image] URL rejected: ${(err as Error).message}`);
+    return null;
+  }
+
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'OurMusic/1.0',
+        'User-Agent': 'AubeSonore/1.0',
         Accept: 'image/*',
       },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      redirect: 'error', // prevent redirect-based SSRF bypass
     });
 
     if (!response.ok) {
-      console.warn(`[Image] Impossible de télécharger: ${url} (${response.status})`);
+      console.warn(`[Image] Cannot download (${response.status})`);
       return null;
     }
 
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
+    const contentType = response.headers.get('content-type') ?? 'image/jpeg';
     const mimeType = (contentType.split(';')[0] ?? 'image/jpeg').trim();
 
     if (!SUPPORTED_TYPES.includes(mimeType)) {
-      console.warn(`[Image] Type non supporté: ${mimeType}`);
+      console.warn(`[Image] Unsupported type: ${mimeType}`);
       return null;
     }
 
@@ -43,14 +46,11 @@ export async function downloadImageAsBase64(url: string): Promise<ImageResult | 
     const size = arrayBuffer.byteLength;
 
     if (size > MAX_IMAGE_SIZE) {
-      console.warn(`[Image] Image trop grande: ${size} bytes (max: ${MAX_IMAGE_SIZE})`);
-      // On pourrait implémenter une compression ici
-      // Pour l'instant, on accepte quand même mais on log
+      console.warn(`[Image] Too large: ${size} bytes (max ${MAX_IMAGE_SIZE})`);
+      return null;
     }
 
-    // Convertir en base64
-    const uint8Array = new Uint8Array(arrayBuffer);
-    const base64 = btoa(String.fromCharCode(...uint8Array));
+    const base64 = Buffer.from(arrayBuffer).toString('base64');
 
     return {
       base64: `data:${mimeType};base64,${base64}`,
@@ -58,22 +58,19 @@ export async function downloadImageAsBase64(url: string): Promise<ImageResult | 
       size,
     };
   } catch (error) {
-    console.error(`[Image] Erreur lors du téléchargement de ${url}:`, error);
+    console.error('[Image] Download error:', (error as Error).message);
     return null;
   }
 }
 
-/**
- * Vérifie si une URL d'image est accessible
- * @param url - URL de l'image
- */
 export async function isImageAccessible(url: string): Promise<boolean> {
   try {
+    await assertSafeUrl(url, { requireHttps: isProd });
     const response = await fetch(url, {
       method: 'HEAD',
-      headers: {
-        'User-Agent': 'OurMusic/1.0',
-      },
+      headers: { 'User-Agent': 'AubeSonore/1.0' },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      redirect: 'error',
     });
     return response.ok;
   } catch {

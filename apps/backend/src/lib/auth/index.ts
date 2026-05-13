@@ -1,4 +1,3 @@
-// src/lib/auth/index.ts
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { admin } from 'better-auth/plugins';
@@ -20,18 +19,23 @@ export const auth = betterAuth({
     schema: { user, session, verification, account },
   }),
 
-  cookies: {
-    secure: isProd,
+  rateLimit: {
+    enabled: true,
+    window: 60,
+    max: 100,
+    customRules: {
+      '/sign-in/email': { window: 60, max: 5 },
+      '/sign-up/email': { window: 60, max: 3 },
+      '/forget-password': { window: 60, max: 3 },
+      '/verify-email': { window: 60, max: 10 },
+    },
   },
 
   advanced: {
     useSecureCookies: isProd,
     crossSubDomainCookies:
       isProd && env.COOKIE_DOMAIN
-        ? {
-            enabled: true,
-            domain: env.COOKIE_DOMAIN,
-          }
+        ? { enabled: true, domain: env.COOKIE_DOMAIN }
         : { enabled: false },
     defaultCookieAttributes: {
       secure: isProd,
@@ -40,18 +44,9 @@ export const auth = betterAuth({
     },
   },
 
-  cors: {
-    origin: env.ALLOWED_ORIGINS,
-    credentials: true,
-    optionsSuccessStatus: 200,
-  },
-
-  plugins: [admin()],
-
-  // Auth par email / mot de passe
   emailAndPassword: {
     enabled: true,
-    requireEmailVerification: false,
+    requireEmailVerification: true,
 
     sendResetPassword: async ({
       user,
@@ -63,7 +58,7 @@ export const auth = betterAuth({
       await sendBetterAuthEmail({
         to: user.email,
         subject: '🔒 Réinitialisez votre mot de passe',
-        preheader: 'Réinitialisez votre mot de passe pour continuer à profiter de OurMusic 🔒',
+        preheader: 'Réinitialisez votre mot de passe pour continuer à profiter de AubeSonore 🔒',
         buttonLink: url,
         buttonText: 'Réinitialiser mon mot de passe',
         isResetPassword: true,
@@ -72,7 +67,7 @@ export const auth = betterAuth({
   },
 
   emailVerification: {
-    sendOnSignUp: false,
+    sendOnSignUp: true,
     autoSignInAfterVerification: true,
 
     sendVerificationEmail: async ({
@@ -91,14 +86,8 @@ export const auth = betterAuth({
         isVerificationEmail: true,
       });
     },
-
-    // onVerified: async (ctx: { redirect: (url: string) => any }): Promise<any> => {
-    //   return ctx.redirect(`${env.FRONTEND_BASE_URL}?email_verified=success`);
-    // },
   },
 
-  // 🔗 Authentification Spotify native
-  /* Account Linking */
   account: {
     accountLinking: {
       enabled: true,
@@ -119,14 +108,5 @@ export const auth = betterAuth({
     },
   },
 
-  // Logs utiles
-  onSignUp(ctx: { user: { email: string } }): void {
-    console.log(`🆕 Nouvel utilisateur inscrit : ${ctx.user.email}`);
-  },
-  onLogin(ctx: { user: { email: string } }): void {
-    console.log(`✅ Connexion réussie : ${ctx.user.email}`);
-  },
-  onLogout(ctx: { user: { email: string } }): void {
-    console.log(`👋 Déconnexion : ${ctx.user.email}`);
-  },
+  plugins: [admin()],
 });
