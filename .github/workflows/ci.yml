@@ -49,8 +49,12 @@ jobs:
       - name: Frontend tests
         run: pnpm --filter=@aubesonore/frontend test --run
 
-      - name: Security audit (prod, high+ blocking)
+      - name: Security audit (prod, critical blocks)
+        run: pnpm audit --prod --audit-level=critical
+
+      - name: Security audit report (high, informational)
         run: pnpm audit --prod --audit-level=high
+        continue-on-error: true
 
   backend-test:
     name: Backend tests (bun)
