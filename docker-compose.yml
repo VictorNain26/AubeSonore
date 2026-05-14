@@ -40,14 +40,18 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
-      SPOTIFY_DELAY_MS: ${SPOTIFY_DELAY_MS:-500}
-      ENABLE_CRON: ${ENABLE_CRON:-false}
       DISABLE_EMAILS: ${DISABLE_EMAILS:-true}
       AZURACAST_BASE_URL: ${AZURACAST_BASE_URL:-}
       AZURACAST_API_KEY: ${AZURACAST_API_KEY:-}
       AZURACAST_STATION_ID: ${AZURACAST_STATION_ID:-1}
     ports:
       - "3000:3000"
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # Frontend - React + Vite (served by Nginx)
   frontend:
@@ -55,7 +59,7 @@ services:
       context: ./apps/frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000}
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
         VITE_AZURACAST_BASE_URL: ${VITE_AZURACAST_BASE_URL:-https://your-azuracast-instance.com}
         VITE_SITE_BASE_URL: ${VITE_SITE_BASE_URL:-http://localhost:8080}
     container_name: ourmusic-frontend

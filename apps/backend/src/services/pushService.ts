@@ -4,17 +4,22 @@ import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { env } from '../config/env';
 
-// Initialize web-push with VAPID keys
-if (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
+const pushEnabled = Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY);
+
+if (pushEnabled) {
   webPush.setVapidDetails(
-    'mailto:contact@aubesonore.com',
-    env.VAPID_PUBLIC_KEY,
-    env.VAPID_PRIVATE_KEY
+    env.VAPID_SUBJECT,
+    env.VAPID_PUBLIC_KEY as string,
+    env.VAPID_PRIVATE_KEY as string
   );
 }
 
 export function getVapidPublicKey(): string | null {
-  return env.VAPID_PUBLIC_KEY || null;
+  return env.VAPID_PUBLIC_KEY ?? null;
+}
+
+export function isPushEnabled(): boolean {
+  return pushEnabled;
 }
 
 export async function subscribe(
@@ -56,38 +61,53 @@ export async function unsubscribe(userId: string, endpoint: string): Promise<voi
     );
 }
 
+const PUSH_CHUNK_SIZE = 50;
+
 export async function sendToAll(
   title: string,
   body: string,
   url?: string
 ): Promise<{ sent: number; failed: number }> {
-  const subs = await db.select().from(schema.pushSubscriptions);
+  const subs = await db
+    .select({
+      id: schema.pushSubscriptions.id,
+      endpoint: schema.pushSubscriptions.endpoint,
+      p256dh: schema.pushSubscriptions.p256dh,
+      auth: schema.pushSubscriptions.auth,
+    })
+    .from(schema.pushSubscriptions);
 
+  const payload = JSON.stringify({ title, body, url: url ?? '/' });
   let sent = 0;
   let failed = 0;
 
-  for (const sub of subs) {
-    const pushSubscription = {
-      endpoint: sub.endpoint,
-      keys: {
-        p256dh: sub.p256dh,
-        auth: sub.auth,
-      },
-    };
-
-    try {
-      await webPush.sendNotification(
-        pushSubscription,
-        JSON.stringify({ title, body, url: url || '/' })
-      );
-      sent++;
-    } catch (err: unknown) {
-      const statusCode = (err as { statusCode?: number }).statusCode;
-      if (statusCode === 410 || statusCode === 404) {
-        // Subscription expired — clean up
-        await db.delete(schema.pushSubscriptions).where(eq(schema.pushSubscriptions.id, sub.id));
-      }
-      failed++;
+  for (let i = 0; i < subs.length; i += PUSH_CHUNK_SIZE) {
+    const chunk = subs.slice(i, i + PUSH_CHUNK_SIZE);
+    const results = await Promise.allSettled(
+      chunk.map(async (sub) => {
+        try {
+          await webPush.sendNotification(
+            {
+              endpoint: sub.endpoint,
+              keys: { p256dh: sub.p256dh, auth: sub.auth },
+            },
+            payload
+          );
+          return true;
+        } catch (err: unknown) {
+          const statusCode = (err as { statusCode?: number }).statusCode;
+          if (statusCode === 410 || statusCode === 404) {
+            await db
+              .delete(schema.pushSubscriptions)
+              .where(eq(schema.pushSubscriptions.id, sub.id));
+          }
+          throw err;
+        }
+      })
+    );
+    for (const r of results) {
+      if (r.status === 'fulfilled') sent++;
+      else failed++;
     }
   }
 

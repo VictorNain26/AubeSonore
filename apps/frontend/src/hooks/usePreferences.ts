@@ -41,7 +41,7 @@ export function usePreferences(): UsePreferencesReturn {
           setIsLoading(false);
         }
       };
-      loadPreferences();
+      void loadPreferences();
     } else if (!isAuthenticated && wasAuthenticated === true) {
       // Vient de se déconnecter -> vider les préférences
       setPreferences(null);

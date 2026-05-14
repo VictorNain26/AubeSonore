@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
+import { LruCache } from '@aubesonore/core/lru-cache';
 import { API_BASE_URL } from '../utils/config';
 import type { ArtistInfo } from '@aubesonore/shared-types/client';
 
 export type { ArtistInfo } from '@aubesonore/shared-types/client';
 
-const cache = new Map<string, ArtistInfo>();
+const cache = new LruCache<string, ArtistInfo>(100);
 
 export function useArtistInfo(artistName: string | undefined) {
   const [data, setData] = useState<ArtistInfo | null>(null);
@@ -41,20 +42,20 @@ export function useArtistInfo(artistName: string | undefined) {
       })
         .then((res) => {
           if (!res.ok) return null;
-          return res.json();
+          return res.json() as Promise<ArtistInfo | null>;
         })
         .then((info) => {
           if (controller.signal.aborted) return;
-          if (info && !info.error) {
+          if (info && typeof info === 'object' && !('error' in info && info.error)) {
             cache.set(key, info);
             setData(info);
           } else {
             setData(null);
           }
         })
-        .catch((err) => {
-          if (err.name !== 'AbortError') {
-            console.warn('[useArtistInfo] Fetch error:', err);
+        .catch((err: unknown) => {
+          if (err instanceof Error && err.name !== 'AbortError') {
+            console.warn('[useArtistInfo] Fetch error:', err.message);
             setData(null);
           }
         })

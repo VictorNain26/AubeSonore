@@ -1,5 +1,6 @@
 import { memo, useState, useCallback } from 'react';
-import { View, Text, Image, Pressable, Linking, Alert } from 'react-native';
+import { View, Text, Pressable, Linking, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { getPreferredLink } from '@aubesonore/core/share';
@@ -23,27 +24,27 @@ export const TrackCard = memo(function TrackCard({
   const [imgError, setImgError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const artwork = imgError ? null : track.artworkBase64 || track.artworkUrl;
+  const artwork = imgError ? null : track.artworkUrl;
   const { url: link, isSearch } = getPreferredLink(track, preferredPlatform);
 
-  const handleOpen = useCallback(async () => {
+  const handleOpen = useCallback(() => {
     try {
-      await Linking.openURL(link);
+      void Linking.openURL(link);
     } catch (error) {
       console.warn('Failed to open URL:', error);
     }
   }, [link]);
 
   const handleLongPress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert('Supprimer', `Retirer "${track.title}" de vos favoris ?`, [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Supprimer',
         style: 'destructive',
-        onPress: async () => {
+        onPress: () => {
           setIsDeleting(true);
-          await onDelete(track.id);
+          void onDelete(track.id);
         },
       },
     ]);
@@ -64,8 +65,10 @@ export const TrackCard = memo(function TrackCard({
         {artwork ? (
           <Image
             source={{ uri: artwork }}
-            className="w-full h-full"
-            resizeMode="cover"
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={150}
             onError={handleImageError}
           />
         ) : (
@@ -84,7 +87,7 @@ export const TrackCard = memo(function TrackCard({
       </View>
 
       {/* Open link action */}
-      <Pressable onPress={handleOpen} className="p-2 rounded-full active:bg-white/10">
+      <Pressable onPress={() => handleOpen()} className="p-2 rounded-full active:bg-white/10">
         <Ionicons
           name={isSearch ? 'search' : 'open-outline'}
           size={18}

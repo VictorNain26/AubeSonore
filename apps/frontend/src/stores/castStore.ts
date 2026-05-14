@@ -55,7 +55,9 @@ function getCleanups(): CleanupFunctions {
 
 function cleanupAll(): void {
   const cleanups = getCleanups();
-  Object.values(cleanups).forEach((fn) => fn?.());
+  (Object.keys(cleanups) as Array<keyof CleanupFunctions>).forEach((key) => {
+    cleanups[key]?.();
+  });
   window[CLEANUP_KEY] = {
     castState: null,
     sessionState: null,
@@ -121,8 +123,9 @@ export const useCastStore = create<CastStore>((set, get) => ({
 
       if (chromecastReady) {
         // Listen to cast state changes (device availability)
-        cleanups.castState = onCastStateChanged((state) => {
-          const available = state !== cast.framework.CastState.NO_DEVICES_AVAILABLE;
+        cleanups.castState = onCastStateChanged((state: unknown) => {
+          const available =
+            state !== (cast.framework.CastState as Record<string, unknown>).NO_DEVICES_AVAILABLE;
           set({ chromecastAvailable: available });
         });
 

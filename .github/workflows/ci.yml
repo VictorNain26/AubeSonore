@@ -11,9 +11,8 @@ env:
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
 
 jobs:
-  # Quality checks
   quality:
-    name: Quality Checks
+    name: Quality (lint, typecheck, test, audit)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,8 +23,16 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'pnpm'
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -39,18 +46,18 @@ jobs:
       - name: Typecheck
         run: pnpm turbo typecheck
 
-      # Cache Turbo outputs for faster builds
-      - uses: actions/cache@v4
-        with:
-          path: .turbo
-          key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
+      - name: Frontend tests with coverage
+        run: pnpm --filter=@aubesonore/frontend test --run --coverage
 
-  # Build validation
-  build:
-    name: Build
-    needs: quality
+      - name: Security audit (prod, critical blocks)
+        run: pnpm audit --prod --audit-level=critical
+
+      - name: Security audit report (high, informational)
+        run: pnpm audit --prod --audit-level=high
+        continue-on-error: true
+
+  backend-test:
+    name: Backend tests (bun)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -61,17 +68,74 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'pnpm'
 
       - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build all apps
-        run: pnpm turbo build
+      - name: Run backend tests
+        run: pnpm --filter=@aubesonore/backend test
 
-# Note: Deployments are handled by platform-native integrations:
-# - Vercel: Connect repo at vercel.com/new → auto-deploys on push
-# - Koyeb: Connect repo at app.koyeb.com → auto-deploys on push
+  build:
+    name: Build all
+    needs: [quality, backend-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (backend + frontend)
+        run: pnpm turbo build --filter=@aubesonore/backend --filter=@aubesonore/frontend
+
+  mobile-check:
+    name: Mobile typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.28.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck mobile
+        run: pnpm --filter=@aubesonore/mobile typecheck
+
+# Deployments handled by platform-native integrations:
+# - Vercel: connects repo, auto-deploys on push
+# - Koyeb: connects repo, auto-deploys on push

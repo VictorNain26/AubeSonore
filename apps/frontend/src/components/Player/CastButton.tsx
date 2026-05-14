@@ -26,7 +26,7 @@ export function CastButton({ className }: CastButtonProps) {
 
   // Initialize cast SDK on mount
   useEffect(() => {
-    initialize();
+    void initialize();
   }, [initialize]);
 
   // Handle click
@@ -34,9 +34,9 @@ export function CastButton({ className }: CastButtonProps) {
     if (isCasting) {
       // If casting, clicking shows picker again to allow switching/stopping
       if (castType === 'chromecast') {
-        startChromecast();
+        void startChromecast();
       } else if (castType === 'airplay') {
-        startAirPlay();
+        void startAirPlay();
       }
       return;
     }
@@ -44,9 +44,9 @@ export function CastButton({ className }: CastButtonProps) {
     // Prefer Chromecast when available (more common)
     // User can use Safari's native AirPlay button for AirPlay
     if (chromecastAvailable) {
-      startChromecast();
+      void startChromecast();
     } else if (airplayAvailable) {
-      startAirPlay();
+      void startAirPlay();
     }
   }, [isCasting, castType, chromecastAvailable, airplayAvailable, startChromecast, startAirPlay]);
 

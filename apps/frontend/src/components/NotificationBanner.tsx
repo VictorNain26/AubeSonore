@@ -16,13 +16,14 @@ export function NotificationBanner() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleEnable = useCallback(async () => {
+  const handleEnable = useCallback(() => {
     setIsLoading(true);
-    const success = await subscribe();
-    setIsLoading(false);
-    if (success) {
-      setIsDismissed(true);
-    }
+    void subscribe().then((res) => {
+      setIsLoading(false);
+      if (res.success) {
+        setIsDismissed(true);
+      }
+    });
   }, [subscribe]);
 
   const handleDismiss = useCallback(() => {
@@ -56,7 +57,7 @@ export function NotificationBanner() {
               Recevoir les notifications des sessions live ?
             </p>
             <button
-              onClick={handleEnable}
+              onClick={() => handleEnable()}
               disabled={isLoading}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer',

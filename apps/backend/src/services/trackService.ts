@@ -3,7 +3,6 @@ import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { User, LikedTrack, PlatformLinks } from '../db/schema';
 import { searchSonglink } from './songlinkService';
-import { downloadImageAsBase64 } from './imageService';
 
 // ─────────────────────────────────────────────
 // Types
@@ -58,7 +57,7 @@ export async function likeTrack({
 
   const trackId = randomUUID();
 
-  // 🚀 FAST INSERT - Données minimales, réponse immédiate
+  // Fast insert — minimal payload, immediate response.
   const [likedTrack] = await db
     .insert(schema.likedTracks)
     .values({
@@ -68,11 +67,10 @@ export async function likeTrack({
       artist,
       album: album || null,
       artworkUrl: artworkUrl || null,
-      artworkBase64: null, // Enrichi en background
       youtubeUrl,
       isrc: isrc || null,
-      songlinkUrl: null, // Enrichi en background
-      platformLinks: null, // Enrichi en background
+      songlinkUrl: null,
+      platformLinks: null,
     })
     .returning();
 
@@ -80,8 +78,8 @@ export async function likeTrack({
     return { status: 500, error: 'Failed to like track' };
   }
 
-  // 🔄 BACKGROUND ENRICHMENT - Non-bloquant
-  enrichTrackInBackground(trackId, title, artist, artworkUrl).catch((err) => {
+  // Background enrichment — non-blocking Songlink lookup.
+  void enrichTrackInBackground(trackId, title, artist).catch((err: unknown) => {
     console.error(`[enrichTrackInBackground] Error for track ${trackId}:`, err);
   });
 
@@ -91,55 +89,30 @@ export async function likeTrack({
   };
 }
 
-// ─────────────────────────────────────────────
-// Enrichissement asynchrone (non-bloquant)
-// ─────────────────────────────────────────────
-
 async function enrichTrackInBackground(
   trackId: string,
   title: string,
-  artist: string,
-  artworkUrl: string | undefined
+  artist: string
 ): Promise<void> {
-  const updates: Partial<{
-    artworkBase64: string;
-    songlinkUrl: string;
-    platformLinks: PlatformLinks;
-  }> = {};
+  const songlinkData = await searchSonglink(title, artist);
+  if (!songlinkData) return;
 
-  // Télécharger la cover et récupérer les liens en parallèle
-  const [imageResult, songlinkData] = await Promise.all([
-    artworkUrl ? downloadImageAsBase64(artworkUrl) : Promise.resolve(null),
-    searchSonglink(title, artist),
-  ]);
+  const updates: Partial<{ songlinkUrl: string; platformLinks: PlatformLinks }> = {
+    songlinkUrl: songlinkData.pageUrl,
+    platformLinks: songlinkData.platformLinks,
+  };
 
-  if (imageResult?.base64) {
-    updates.artworkBase64 = imageResult.base64;
-  }
-
-  if (songlinkData) {
-    updates.songlinkUrl = songlinkData.pageUrl;
-    updates.platformLinks = songlinkData.platformLinks;
-  }
-
-  if (Object.keys(updates).length > 0) {
-    await db.update(schema.likedTracks).set(updates).where(eq(schema.likedTracks.id, trackId));
-    console.log(`[enrichTrackInBackground] Track ${trackId} enriched with:`, Object.keys(updates));
-  }
+  await db.update(schema.likedTracks).set(updates).where(eq(schema.likedTracks.id, trackId));
 }
 
-// ─────────────────────────────────────────────
-// Récupérer les morceaux likés
-// ─────────────────────────────────────────────
+export type LikedTrackListItem = LikedTrack;
 
 export async function getLikedTracks({ user }: { user: User }): Promise<LikedTrack[]> {
-  const tracks = await db
+  return db
     .select()
     .from(schema.likedTracks)
     .where(eq(schema.likedTracks.userId, user.id))
     .orderBy(schema.likedTracks.createdAt);
-
-  return tracks;
 }
 
 // ─────────────────────────────────────────────
@@ -230,21 +203,31 @@ export async function getLikedTrackByTitleArtist({
 // Rafraîchir tous les liens (batch, rate-limited)
 // ─────────────────────────────────────────────
 
+const REFRESH_CHUNK_SIZE = 5;
+const REFRESH_CHUNK_DELAY_MS = 500;
+
 export async function refreshAllLinks({
   user,
 }: {
   user: User;
 }): Promise<{ message: string; updated: number }> {
   const tracks = await db
-    .select()
+    .select({
+      id: schema.likedTracks.id,
+      title: schema.likedTracks.title,
+      artist: schema.likedTracks.artist,
+    })
     .from(schema.likedTracks)
     .where(eq(schema.likedTracks.userId, user.id));
 
   let updated = 0;
-  for (const track of tracks) {
-    try {
-      const songlinkData = await searchSonglink(track.title, track.artist);
-      if (songlinkData) {
+
+  for (let i = 0; i < tracks.length; i += REFRESH_CHUNK_SIZE) {
+    const chunk = tracks.slice(i, i + REFRESH_CHUNK_SIZE);
+    const results = await Promise.allSettled(
+      chunk.map(async (track) => {
+        const songlinkData = await searchSonglink(track.title, track.artist);
+        if (!songlinkData) return false;
         await db
           .update(schema.likedTracks)
           .set({
@@ -252,12 +235,17 @@ export async function refreshAllLinks({
             platformLinks: songlinkData.platformLinks,
           })
           .where(eq(schema.likedTracks.id, track.id));
-        updated++;
+        return true;
+      })
+    );
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value) updated++;
+      if (r.status === 'rejected') {
+        console.error('[refreshAllLinks]', (r.reason as Error).message);
       }
-      // Rate limit: 500ms between requests
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    } catch (err) {
-      console.error(`[refreshAllLinks] Error for track ${track.id}:`, err);
+    }
+    if (i + REFRESH_CHUNK_SIZE < tracks.length) {
+      await new Promise((resolve) => setTimeout(resolve, REFRESH_CHUNK_DELAY_MS));
     }
   }
 

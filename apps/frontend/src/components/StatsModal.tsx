@@ -37,7 +37,7 @@ function formatListeningTime(minutes: number): string {
 
 export function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const getMonthlyStats = useStatsStore((s) => s.getMonthlyStats);
-  const stats = useMemo(() => getMonthlyStats(), [isOpen, getMonthlyStats]);
+  const stats = useMemo(() => getMonthlyStats(), [getMonthlyStats]);
 
   const maxCount = stats.topArtists.length > 0 ? stats.topArtists[0]!.count : 1;
 

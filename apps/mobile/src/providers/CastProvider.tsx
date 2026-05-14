@@ -71,11 +71,11 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
       }),
 
       sessionManager.onSessionStarted(() => {
-        handleSessionStarted();
+        void handleSessionStarted();
       }),
 
       sessionManager.onSessionResumed(() => {
-        handleSessionStarted();
+        void handleSessionStarted();
       }),
 
       sessionManager.onSessionEnded(() => {
@@ -106,7 +106,7 @@ export function CastProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isCasting || !currentSong) return;
 
-    loadMedia(STREAM_URL, {
+    void loadMedia(STREAM_URL, {
       title: currentSong.title,
       artist: currentSong.artist,
       artworkUrl: currentSong.art,

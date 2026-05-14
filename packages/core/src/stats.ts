@@ -3,7 +3,7 @@ import type { TrackEvent, MonthlyStats, StatsState } from '@aubesonore/shared-ty
 export type { TrackEvent, MonthlyStats, StatsState };
 
 export function getTodayKey(): string {
-  return new Date().toISOString().split('T')[0]!;
+  return new Date().toISOString().split('T')[0];
 }
 
 export function cleanOldEvents(events: TrackEvent[]): TrackEvent[] {

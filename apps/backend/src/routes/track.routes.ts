@@ -2,6 +2,7 @@ import { Elysia } from 'elysia';
 import { validateBody } from '../lib/validate';
 import { likeTrackSchema, checkLikedSchema } from '../validators/trackValidator';
 import * as trackService from '../services/trackService';
+import type { LikedTrackListItem } from '../services/trackService';
 import { auth } from '../lib/auth/index';
 import type { User, Session, LikedTrack } from '../db/schema';
 
@@ -68,7 +69,7 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
   // ─────────────────────────────────────────────
   // GET /api/track/like - Récupérer les morceaux likés
   // ─────────────────────────────────────────────
-  .get('/like', async ({ user, set }): Promise<LikedTrack[] | { error: string }> => {
+  .get('/like', async ({ user, set }): Promise<LikedTrackListItem[] | { error: string }> => {
     if (!user) {
       set.status = 401;
       return { error: 'Non authentifié' };

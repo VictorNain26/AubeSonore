@@ -14,10 +14,10 @@ export function parseLRC(lrc: string): LyricLine[] {
   for (const rawLine of lrc.split('\n')) {
     const match = rawLine.match(regex);
     if (match) {
-      const minutes = parseInt(match[1]!, 10);
-      const seconds = parseInt(match[2]!, 10);
-      const centiseconds = parseInt(match[3]!, 10);
-      const ms = match[3]!.length === 3 ? centiseconds : centiseconds * 10;
+      const minutes = parseInt(match[1], 10);
+      const seconds = parseInt(match[2], 10);
+      const centiseconds = parseInt(match[3], 10);
+      const ms = match[3].length === 3 ? centiseconds : centiseconds * 10;
       const time = minutes * 60 + seconds + ms / 1000;
       const text = match[4]?.trim() ?? '';
       if (text) {
@@ -36,7 +36,7 @@ export function parseLRC(lrc: string): LyricLine[] {
 export function findCurrentLine(lines: LyricLine[], elapsed: number): number {
   let current = -1;
   for (let i = 0; i < lines.length; i++) {
-    if (lines[i]!.time <= elapsed) {
+    if (lines[i].time <= elapsed) {
       current = i;
     } else {
       break;

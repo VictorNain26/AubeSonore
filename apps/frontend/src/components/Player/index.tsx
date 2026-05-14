@@ -1,14 +1,19 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, useCallback } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { Play, Square, Users, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ModalErrorFallback } from '../ErrorFallback';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '../../lib/player';
 import { useNowPlaying, type SongEntry } from '../../lib/azuracast';
-import { useLikedTracks } from '../../hooks/useLikedTracks';
+import { useLikedTracksContext as useLikedTracks } from '../../contexts/LikedTracksContext';
 import { useAuth } from '../../hooks/useAuth';
-import { LikedTracksModal } from '../LikedTracksModal';
-import { AuthModal } from '../AuthModal';
 import toast from 'react-hot-toast';
+
+const LikedTracksModal = lazy(() =>
+  import('../LikedTracksModal').then((m) => ({ default: m.LikedTracksModal }))
+);
+const AuthModal = lazy(() => import('../AuthModal').then((m) => ({ default: m.AuthModal })));
 
 // Sub-components
 import { formatTime } from './utils';
@@ -36,6 +41,8 @@ export default function Player() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [likingTrackId, setLikingTrackId] = useState<string | null>(null);
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
+  const playError = usePlayer((s) => s.playError);
+  const clearPlayError = usePlayer((s) => s.clearPlayError);
   const { data: np } = useNowPlaying();
   const { likeTrack, unlikeTrack, isTrackLiked, tracks } = useLikedTracks();
   const { isAuthenticated } = useAuth();
@@ -64,28 +71,24 @@ export default function Player() {
     }
   }, [nowPlaying?.elapsed, nowPlaying?.sh_id]);
 
-  // Smooth animation loop for elapsed time - always runs (live radio)
+  // Smooth animation loop for elapsed time - runs only while playing
   useEffect(() => {
-    if (duration > 0) {
-      startTimeRef.current = performance.now();
+    if (!isPlaying || duration <= 0) return;
 
-      const animate = () => {
-        const now = performance.now();
-        const deltaSeconds = (now - startTimeRef.current) / 1000;
-        const newElapsed = Math.min(baseElapsedRef.current + deltaSeconds, duration);
-        setElapsed(newElapsed);
-        animationRef.current = requestAnimationFrame(animate);
-      };
-
+    startTimeRef.current = performance.now();
+    const animate = () => {
+      const now = performance.now();
+      const deltaSeconds = (now - startTimeRef.current) / 1000;
+      const newElapsed = Math.min(baseElapsedRef.current + deltaSeconds, duration);
+      setElapsed(newElapsed);
       animationRef.current = requestAnimationFrame(animate);
-    }
+    };
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [duration]);
+  }, [duration, isPlaying]);
 
   // Track change detection — stats + sleep timer end-of-track
   useEffect(() => {
@@ -111,15 +114,24 @@ export default function Player() {
   // Stats: tick listening time every 10s while playing
   useEffect(() => {
     if (!isPlaying) return;
-    const id = setInterval(() => tickListeningTime(), 10_000);
+    const id = setInterval(() => {
+      void tickListeningTime();
+    }, 10_000);
     return () => clearInterval(id);
   }, [isPlaying, tickListeningTime]);
+
+  useEffect(() => {
+    if (playError) {
+      toast.error(`Lecture impossible : ${playError.message}`);
+      clearPlayError();
+    }
+  }, [playError, clearPlayError]);
 
   const togglePlay = useCallback(() => {
     if (isPlaying) {
       stop();
     } else {
-      play();
+      void play();
     }
   }, [isPlaying, play, stop]);
 
@@ -251,10 +263,15 @@ export default function Player() {
           isLiked={isCurrentTrackLiked}
           isLiking={likingTrackId === `${nowPlaying?.song.title}-${nowPlaying?.song.artist}`}
           isLive={np?.live.is_live}
-          onToggleLike={() =>
-            nowPlaying &&
-            handleToggleLike(nowPlaying.song.title, nowPlaying.song.artist, nowPlaying.song.art)
-          }
+          onToggleLike={() => {
+            if (nowPlaying) {
+              void handleToggleLike(
+                nowPlaying.song.title,
+                nowPlaying.song.artist,
+                nowPlaying.song.art
+              );
+            }
+          }}
         />
       </div>
 
@@ -385,9 +402,9 @@ export default function Player() {
                   entry={entry}
                   isLiked={isHistoryTrackLiked(entry)}
                   isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
-                  onToggle={() =>
-                    handleToggleLike(entry.song.title, entry.song.artist, entry.song.art)
-                  }
+                  onToggle={() => {
+                    void handleToggleLike(entry.song.title, entry.song.artist, entry.song.art);
+                  }}
                 />
               </motion.div>
             ))}
@@ -395,15 +412,29 @@ export default function Player() {
         );
       })()}
 
-      {/* =================================================================
-          MODAL: Liked Tracks
-          ================================================================= */}
-      <LikedTracksModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {isModalOpen && (
+        <Suspense fallback={null}>
+          <ErrorBoundary
+            FallbackComponent={(props) => (
+              <ModalErrorFallback {...props} onClose={() => setIsModalOpen(false)} />
+            )}
+          >
+            <LikedTracksModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
-      {/* =================================================================
-          MODAL: Authentication
-          ================================================================= */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      {isAuthModalOpen && (
+        <Suspense fallback={null}>
+          <ErrorBoundary
+            FallbackComponent={(props) => (
+              <ModalErrorFallback {...props} onClose={() => setIsAuthModalOpen(false)} />
+            )}
+          >
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+          </ErrorBoundary>
+        </Suspense>
+      )}
     </div>
   );
 }

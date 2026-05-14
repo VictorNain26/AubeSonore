@@ -7,11 +7,19 @@ interface PushState {
   isSubscribed: boolean;
 }
 
+export type SubscribeResult =
+  | { success: true }
+  | {
+      success: false;
+      reason: 'permission-denied' | 'vapid-missing' | 'server-error' | 'unknown';
+      cause?: Error;
+    };
+
 async function fetchVapidKey(): Promise<string | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/push/vapid-key`);
     if (!res.ok) return null;
-    const data = await res.json();
+    const data = (await res.json()) as { key?: string };
     return data.key || null;
   } catch {
     return null;
@@ -41,23 +49,33 @@ export function usePushNotifications() {
   useEffect(() => {
     if (!state.isSupported) return;
 
-    navigator.serviceWorker.ready.then(async (registration) => {
+    let cancelled = false;
+    void (async (): Promise<void> => {
+      const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
+      if (cancelled) return;
       setState((s) => ({ ...s, isSubscribed: !!subscription }));
-    });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [state.isSupported]);
 
-  const subscribe = useCallback(async (): Promise<boolean> => {
-    if (!state.isSupported) return false;
+  const subscribe = useCallback(async (): Promise<SubscribeResult> => {
+    if (!state.isSupported) return { success: false, reason: 'unknown' };
 
     try {
       const permission = await Notification.requestPermission();
       setState((s) => ({ ...s, permission }));
-
-      if (permission !== 'granted') return false;
+      if (permission !== 'granted') {
+        return { success: false, reason: 'permission-denied' };
+      }
 
       const vapidKey = await fetchVapidKey();
-      if (!vapidKey) return false;
+      if (!vapidKey) {
+        return { success: false, reason: 'vapid-missing' };
+      }
 
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.subscribe({
@@ -65,7 +83,6 @@ export function usePushNotifications() {
         applicationServerKey: urlBase64ToUint8Array(vapidKey),
       });
 
-      // Send subscription to backend
       const res = await fetch(`${API_BASE_URL}/api/push/subscribe`, {
         method: 'POST',
         credentials: 'include',
@@ -73,14 +90,19 @@ export function usePushNotifications() {
         body: JSON.stringify(subscription.toJSON()),
       });
 
-      if (res.ok) {
-        setState((s) => ({ ...s, isSubscribed: true }));
-        return true;
+      if (!res.ok) {
+        return { success: false, reason: 'server-error' };
       }
-      return false;
+
+      setState((s) => ({ ...s, isSubscribed: true }));
+      return { success: true };
     } catch (err) {
       console.error('[PushNotifications] Subscribe error:', err);
-      return false;
+      return {
+        success: false,
+        reason: 'unknown',
+        cause: err instanceof Error ? err : new Error(String(err)),
+      };
     }
   }, [state.isSupported]);
 
@@ -92,12 +114,17 @@ export function usePushNotifications() {
 
       await subscription.unsubscribe();
 
-      await fetch(`${API_BASE_URL}/api/push/unsubscribe`, {
+      const res = await fetch(`${API_BASE_URL}/api/push/unsubscribe`, {
         method: 'DELETE',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: subscription.endpoint }),
       });
+
+      if (!res.ok) {
+        console.error('[PushNotifications] Server failed to delete subscription:', res.status);
+        return false;
+      }
 
       setState((s) => ({ ...s, isSubscribed: false }));
       return true;

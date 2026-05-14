@@ -2,13 +2,7 @@
   "name": "@aubesonore/core",
   "version": "1.0.0",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
     "./stats": {
       "types": "./dist/stats.d.ts",
       "default": "./dist/stats.js"
@@ -28,6 +22,10 @@
     "./share": {
       "types": "./dist/share.d.ts",
       "default": "./dist/share.js"
+    },
+    "./lru-cache": {
+      "types": "./dist/lruCache.d.ts",
+      "default": "./dist/lruCache.js"
     }
   },
   "scripts": {
@@ -36,7 +34,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@aubesonore/shared-types": "workspace:*",

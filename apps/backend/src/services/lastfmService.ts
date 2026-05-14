@@ -1,4 +1,5 @@
 import { env } from '../config/env';
+import { TtlCache } from '../lib/cache/ttlCache';
 
 interface ArtistInfo {
   bio: string;
@@ -7,17 +8,13 @@ interface ArtistInfo {
   listeners: number;
 }
 
-// In-memory cache with 24h TTL
-const cache = new Map<string, { data: ArtistInfo; expiry: number }>();
 const TTL_MS = 24 * 60 * 60 * 1000;
+export const lastfmCache = new TtlCache<ArtistInfo | null>(TTL_MS);
 
 export async function getArtistInfo(name: string): Promise<ArtistInfo | null> {
   const cacheKey = name.toLowerCase();
-  const cached = cache.get(cacheKey);
-
-  if (cached && cached.expiry > Date.now()) {
-    return cached.data;
-  }
+  const cached = lastfmCache.get(cacheKey);
+  if (cached !== undefined) return cached;
 
   if (!env.LASTFM_API_KEY) {
     console.warn('[LastFM] No API key configured');
@@ -27,7 +24,7 @@ export async function getArtistInfo(name: string): Promise<ArtistInfo | null> {
   try {
     const url = `https://ws.audioscrobbler.com/2.0/?method=artist.getinfo&artist=${encodeURIComponent(name)}&api_key=${env.LASTFM_API_KEY}&format=json&lang=fr`;
 
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(5_000) });
     if (!response.ok) return null;
 
     const data = (await response.json()) as {
@@ -51,10 +48,11 @@ export async function getArtistInfo(name: string): Promise<ArtistInfo | null> {
       listeners: parseInt(artist.stats?.listeners || '0', 10),
     };
 
-    cache.set(cacheKey, { data: info, expiry: Date.now() + TTL_MS });
+    lastfmCache.set(cacheKey, info);
     return info;
   } catch (err) {
-    console.error('[LastFM] Error fetching artist info:', err);
+    console.error('[LastFM] Error fetching artist info:', (err as Error).message);
+    lastfmCache.set(cacheKey, null);
     return null;
   }
 }

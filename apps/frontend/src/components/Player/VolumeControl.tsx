@@ -168,8 +168,6 @@ export function VolumeControl({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onKeyDown={handleKeyDown}
-      tabIndex={0}
-      role="group"
       aria-label="Volume control"
     >
       {/* Volume Icon Button - Fixed position, never moves */}
@@ -210,6 +208,7 @@ export function VolumeControl({
               if (touch) handleSliderInteractionVertical(touch.clientY);
             }}
             role="slider"
+            tabIndex={0}
             aria-label="Volume"
             aria-valuenow={Math.round(displayVolume * 100)}
             aria-valuemin={0}

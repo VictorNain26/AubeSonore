@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, unique, boolean, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, unique, boolean, jsonb, index } from 'drizzle-orm/pg-core';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 // ─────────────────────────────────────────────
@@ -66,67 +66,87 @@ export const account = pgTable(
   },
   (table) => ({
     providerAccountUnique: unique().on(table.providerId, table.accountId),
+    accountUserIdIdx: index('account_user_id_idx').on(table.userId),
   })
 );
 
 // ─────────────────────────────────────────────
 // SESSION TABLE
 // ─────────────────────────────────────────────
-export const session = pgTable('session', {
-  id: text('id').primaryKey(),
-  expiresAt: timestamp('expires_at').notNull(),
-  token: text('token').notNull().unique(),
-  createdAt: timestamp('created_at').notNull(),
-  updatedAt: timestamp('updated_at').notNull(),
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
+export const session = pgTable(
+  'session',
+  {
+    id: text('id').primaryKey(),
+    expiresAt: timestamp('expires_at').notNull(),
+    token: text('token').notNull().unique(),
+    createdAt: timestamp('created_at').notNull(),
+    updatedAt: timestamp('updated_at').notNull(),
+    ipAddress: text('ip_address'),
+    userAgent: text('user_agent'),
 
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-});
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+  },
+  (table) => ({
+    sessionUserIdIdx: index('session_user_id_idx').on(table.userId),
+    sessionExpiresAtIdx: index('session_expires_at_idx').on(table.expiresAt),
+  })
+);
 
 // ─────────────────────────────────────────────
 // VERIFICATION TABLE
 // ─────────────────────────────────────────────
-export const verification = pgTable('verification', {
-  id: text('id').primaryKey(),
-  identifier: text('identifier').notNull(),
-  value: text('value').notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  createdAt: timestamp('created_at'),
-  updatedAt: timestamp('updated_at'),
-});
+export const verification = pgTable(
+  'verification',
+  {
+    id: text('id').primaryKey(),
+    identifier: text('identifier').notNull(),
+    value: text('value').notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    createdAt: timestamp('created_at'),
+    updatedAt: timestamp('updated_at'),
+  },
+  (table) => ({
+    verificationIdentifierIdx: index('verification_identifier_idx').on(table.identifier),
+    verificationExpiresIdx: index('verification_expires_at_idx').on(table.expiresAt),
+  })
+);
 
 // ─────────────────────────────────────────────
-// LIKED_TRACKS TABLE (custom pour OurMusic)
+// LIKED_TRACKS TABLE (custom pour AubeSonore)
 // ─────────────────────────────────────────────
-export const likedTracks = pgTable('liked_tracks', {
-  id: text('id').primaryKey(),
-  title: text('title').notNull(),
-  artist: text('artist').notNull(),
-  album: text('album'),
+export const likedTracks = pgTable(
+  'liked_tracks',
+  {
+    id: text('id').primaryKey(),
+    title: text('title').notNull(),
+    artist: text('artist').notNull(),
+    album: text('album'),
 
-  // Artwork - URL originale + backup base64
-  artworkUrl: text('artwork_url'), // URL externe (AzuraCast, etc.)
-  artworkBase64: text('artwork_base64'), // Backup en base64 pour persistence
+    artworkUrl: text('artwork_url'),
 
-  // Identifiants pour recherche multi-plateformes
-  youtubeUrl: text('youtube_url').notNull(),
-  isrc: text('isrc'), // International Standard Recording Code
+    youtubeUrl: text('youtube_url').notNull(),
+    isrc: text('isrc'),
 
-  // Liens vers les plateformes de streaming
-  songlinkUrl: text('songlink_url'), // Lien Odesli/Songlink universel
-  platformLinks: jsonb('platform_links').$type<PlatformLinks>(), // Liens directs par plateforme
+    songlinkUrl: text('songlink_url'),
+    platformLinks: jsonb('platform_links').$type<PlatformLinks>(),
 
-  // Métadonnées
-  createdAt: timestamp('created_at').notNull().defaultNow(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
 
-  // userId en text, cohérent avec user.id
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-});
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+  },
+  (table) => ({
+    likedTracksUserIdIdx: index('liked_tracks_user_id_idx').on(table.userId),
+    likedTracksUserTitleArtistIdx: index('liked_tracks_user_title_artist_idx').on(
+      table.userId,
+      table.title,
+      table.artist
+    ),
+  })
+);
 
 // ─────────────────────────────────────────────
 // USER_PREFERENCES TABLE
@@ -145,16 +165,23 @@ export const userPreferences = pgTable('user_preferences', {
 // ─────────────────────────────────────────────
 // PUSH_SUBSCRIPTIONS TABLE
 // ─────────────────────────────────────────────
-export const pushSubscriptions = pgTable('push_subscriptions', {
-  id: text('id').primaryKey(),
-  userId: text('user_id')
-    .notNull()
-    .references(() => user.id, { onDelete: 'cascade' }),
-  endpoint: text('endpoint').notNull(),
-  p256dh: text('p256dh').notNull(),
-  auth: text('auth').notNull(),
-  createdAt: timestamp('created_at').notNull().defaultNow(),
-});
+export const pushSubscriptions = pgTable(
+  'push_subscriptions',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => user.id, { onDelete: 'cascade' }),
+    endpoint: text('endpoint').notNull(),
+    p256dh: text('p256dh').notNull(),
+    auth: text('auth').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    pushSubsUserIdIdx: index('push_subscriptions_user_id_idx').on(table.userId),
+    pushSubsEndpointUnique: unique('push_subscriptions_endpoint_unique').on(table.endpoint),
+  })
+);
 
 // ─────────────────────────────────────────────
 // TYPES INFÉRÉS

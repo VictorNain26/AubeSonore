@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(cd /c/Users/ordiv/AubeSonore && pnpm install 2>&1)",
-      "Bash(cd /c/Users/ordiv/AubeSonore && pnpm --filter @aubesonore/shared-types build 2>&1)"
-    ]
-  }
-}

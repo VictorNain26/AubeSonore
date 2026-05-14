@@ -29,7 +29,7 @@ interface ChromecastState {
   initialized: boolean;
   remotePlayer: cast.framework.RemotePlayer | null;
   remotePlayerController: cast.framework.RemotePlayerController | null;
-  eventCleanups: Array<() => void>;
+  eventCleanups: Set<() => void>;
 }
 
 declare global {
@@ -44,10 +44,20 @@ function getState(): ChromecastState {
       initialized: false,
       remotePlayer: null,
       remotePlayerController: null,
-      eventCleanups: [],
+      eventCleanups: new Set(),
     };
   }
   return window[STATE_KEY];
+}
+
+function registerCleanup(cleanup: () => void): () => void {
+  const state = getState();
+  const wrapped = () => {
+    cleanup();
+    state.eventCleanups.delete(wrapped);
+  };
+  state.eventCleanups.add(wrapped);
+  return wrapped;
 }
 
 /**
@@ -203,12 +213,9 @@ export function onCastStateChanged(callback: CastStateCallback): () => void {
 
   context.addEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED, listener);
 
-  const cleanup = () => {
+  return registerCleanup(() => {
     context.removeEventListener(cast.framework.CastContextEventType.CAST_STATE_CHANGED, listener);
-  };
-
-  getState().eventCleanups.push(cleanup);
-  return cleanup;
+  });
 }
 
 /**
@@ -224,15 +231,12 @@ export function onSessionStateChanged(callback: SessionStateCallback): () => voi
 
   context.addEventListener(cast.framework.CastContextEventType.SESSION_STATE_CHANGED, listener);
 
-  const cleanup = () => {
+  return registerCleanup(() => {
     context.removeEventListener(
       cast.framework.CastContextEventType.SESSION_STATE_CHANGED,
       listener
     );
-  };
-
-  getState().eventCleanups.push(cleanup);
-  return cleanup;
+  });
 }
 
 /**
@@ -250,22 +254,20 @@ export function onConnectionChanged(callback: ConnectionCallback): () => void {
 
   controller.addEventListener(cast.framework.RemotePlayerEventType.IS_CONNECTED_CHANGED, listener);
 
-  const cleanup = () => {
+  return registerCleanup(() => {
     controller.removeEventListener(
       cast.framework.RemotePlayerEventType.IS_CONNECTED_CHANGED,
       listener
     );
-  };
-
-  getState().eventCleanups.push(cleanup);
-  return cleanup;
+  });
 }
 
 /**
- * Clean up all event listeners
+ * Clean up all event listeners (snapshot first so wrapped.delete during fn() is safe).
  */
 export function cleanup(): void {
   const state = getState();
-  state.eventCleanups.forEach((fn) => fn());
-  state.eventCleanups = [];
+  const fns = Array.from(state.eventCleanups);
+  state.eventCleanups.clear();
+  for (const fn of fns) fn();
 }

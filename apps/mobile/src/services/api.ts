@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { ENV } from '../config/env';
-import { createTrackApi, createArtistApi, createPreferencesApi } from '@aubesonore/core/api';
+import { createTrackApi, createPreferencesApi } from '@aubesonore/core/api';
 import type { ApiClient } from '@aubesonore/core/api';
 import type { AuthResponse } from '../types';
 
@@ -19,11 +19,11 @@ export async function getAuthToken(): Promise<string | null> {
   }
 }
 
-export async function setAuthToken(token: string): Promise<void> {
+async function setAuthToken(token: string): Promise<void> {
   await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
 }
 
-export async function removeAuthToken(): Promise<void> {
+async function removeAuthToken(): Promise<void> {
   await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
 }
 
@@ -96,8 +96,11 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
       });
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        const message = getErrorMessage(response.status, errorBody.error || errorBody.message);
+        const errorBody = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          message?: string;
+        };
+        const message = getErrorMessage(response.status, errorBody.error ?? errorBody.message);
 
         if (isRetryableError(null, response.status) && attempts < maxAttempts - 1) {
           attempts++;
@@ -109,7 +112,7 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
         throw new Error(message);
       }
 
-      return response.json();
+      return (await response.json()) as T;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('Erreur inconnue');
 
@@ -134,11 +137,7 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
 const apiClient: ApiClient = { fetch: fetchApi };
 
 export const trackApi = createTrackApi(apiClient);
-export const artistApi = createArtistApi(apiClient);
 export const preferencesApi = createPreferencesApi(apiClient);
-
-// Re-export ArtistInfo for consumers that import from here
-export type { ArtistInfo } from '@aubesonore/shared-types/client';
 
 // ─────────────────────────────────────────────
 // Auth API (platform-specific — uses SecureStore tokens)
@@ -159,9 +158,9 @@ export const authApi = {
       });
 
       if (!response.ok) return null;
-      const data = await response.json();
+      const data = (await response.json()) as AuthResponse;
       if (!data.user) return null;
-      return data as AuthResponse;
+      return data;
     } catch {
       return null;
     }
@@ -178,13 +177,18 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erreur inscription' }));
-      throw new Error(error.message || 'Erreur inscription');
+      const error = (await response.json().catch(() => ({ message: 'Erreur inscription' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message ?? 'Erreur inscription');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as AuthResponse & {
+      session: AuthResponse['session'] & { token?: string };
+      token?: string;
+    };
 
-    const token = data.session?.token || data.token;
+    const token: string | undefined = data.session.token ?? data.token;
     if (token) {
       await setAuthToken(token);
     }
@@ -203,13 +207,18 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erreur connexion' }));
-      throw new Error(error.message || 'Erreur connexion');
+      const error = (await response.json().catch(() => ({ message: 'Erreur connexion' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message ?? 'Erreur connexion');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as AuthResponse & {
+      session: AuthResponse['session'] & { token?: string };
+      token?: string;
+    };
 
-    const token = data.session?.token || data.token;
+    const token: string | undefined = data.session.token ?? data.token;
     if (token) {
       await setAuthToken(token);
     }
@@ -243,8 +252,10 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erreur' }));
-      throw new Error(error.message || 'Une erreur est survenue');
+      const error = (await response.json().catch(() => ({ message: 'Erreur' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message ?? 'Une erreur est survenue');
     }
   },
 

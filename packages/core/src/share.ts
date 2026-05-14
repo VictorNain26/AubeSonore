@@ -36,10 +36,12 @@ export function getPreferredLink(
 ): { url: string; isSearch: boolean } {
   if (track.platformLinks) {
     const platformKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
-    const preferred = track.platformLinks[platformKey as keyof PlatformLinks];
+    const preferred = track.platformLinks[platformKey];
     if (preferred) return { url: preferred, isSearch: false };
 
-    const firstAvailable = Object.values(track.platformLinks).find(Boolean);
+    const firstAvailable = (Object.values(track.platformLinks) as Array<string | undefined>).find(
+      Boolean
+    );
     if (firstAvailable) return { url: firstAvailable, isSearch: false };
   }
 
@@ -60,13 +62,15 @@ export function getTrackShareUrl(
   // Try preferred platform link
   if (track.platformLinks && preferredPlatform) {
     const platformKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
-    const preferred = track.platformLinks[platformKey as keyof PlatformLinks];
+    const preferred = track.platformLinks[platformKey];
     if (preferred) return preferred;
   }
 
   // Try any available platform link
   if (track.platformLinks) {
-    const firstLink = Object.values(track.platformLinks).find(Boolean);
+    const firstLink = (Object.values(track.platformLinks) as Array<string | undefined>).find(
+      Boolean
+    );
     if (firstLink) return firstLink;
   }
 

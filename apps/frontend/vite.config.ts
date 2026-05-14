@@ -2,11 +2,13 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { visualizer } from 'rollup-plugin-visualizer';
+import type { PluginOption } from 'vite';
 import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const apiBaseUrl = env.VITE_API_BASE_URL;
+  const apiBaseUrl = env.VITE_API_URL;
 
   return {
     base: './',
@@ -59,6 +61,12 @@ export default defineConfig(({ mode }) => {
           ],
         },
       }),
+      visualizer({
+        filename: 'stats.html',
+        emitFile: true,
+        gzipSize: true,
+        brotliSize: true,
+      }) as PluginOption,
     ],
     server: {
       host: '0.0.0.0',
@@ -74,6 +82,21 @@ export default defineConfig(({ mode }) => {
       cors: {
         origin: true,
         credentials: true,
+      },
+    },
+    build: {
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes('node_modules')) {
+              if (id.includes('framer-motion')) return 'motion';
+              if (id.includes('@radix-ui')) return 'radix';
+              if (id.includes('react-dom') || id.endsWith('/react/index.js')) return 'react-vendor';
+            }
+            return undefined;
+          },
+        },
       },
     },
   };

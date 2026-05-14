@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import Player from '../components/Player';
 import { useNowPlaying } from '../lib/azuracast';
+import { PlayerErrorFallback } from '../components/ErrorFallback';
 
 export default function HomePage() {
   const { data: np } = useNowPlaying();
@@ -23,7 +25,7 @@ export default function HomePage() {
     }
     const img = new Image();
     img.src = artUrl!;
-    img.onload = () => setLoadedArt(artUrl!);
+    img.onload = () => setLoadedArt(artUrl);
     img.onerror = () => setLoadedArt(null);
   }, [artUrl, isDefaultCover]);
 
@@ -45,7 +47,9 @@ export default function HomePage() {
 
       {/* Player content */}
       <div className="relative z-10 w-full">
-        <Player />
+        <ErrorBoundary FallbackComponent={PlayerErrorFallback}>
+          <Player />
+        </ErrorBoundary>
       </div>
     </div>
   );

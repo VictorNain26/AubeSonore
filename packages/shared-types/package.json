@@ -2,33 +2,7 @@
   "name": "@aubesonore/shared-types",
   "version": "1.0.0",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
-    "./auth": {
-      "types": "./dist/auth.d.ts",
-      "default": "./dist/auth.js"
-    },
-    "./track": {
-      "types": "./dist/track.d.ts",
-      "default": "./dist/track.js"
-    },
-    "./spotify": {
-      "types": "./dist/spotify.d.ts",
-      "default": "./dist/spotify.js"
-    },
-    "./sse": {
-      "types": "./dist/sse.d.ts",
-      "default": "./dist/sse.js"
-    },
-    "./api": {
-      "types": "./dist/api.d.ts",
-      "default": "./dist/api.js"
-    },
     "./client": {
       "types": "./dist/client.d.ts",
       "default": "./dist/client.js"
@@ -36,10 +10,6 @@
     "./azuracast": {
       "types": "./dist/azuracast.d.ts",
       "default": "./dist/azuracast.js"
-    },
-    "./cast": {
-      "types": "./dist/cast.d.ts",
-      "default": "./dist/cast.js"
     },
     "./stats": {
       "types": "./dist/stats.d.ts",

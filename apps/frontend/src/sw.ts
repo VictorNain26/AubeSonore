@@ -12,7 +12,7 @@ self.addEventListener('push', (event) => {
   if (!event.data) return;
 
   try {
-    const data = event.data.json();
+    const data = event.data.json() as { title?: string; body?: string; url?: string };
     const { title, body, url } = data;
 
     event.waitUntil(
@@ -32,18 +32,19 @@ self.addEventListener('push', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const url = event.notification.data?.url || '/';
+  const urlStr =
+    ((event.notification.data as Record<string, unknown> | null | undefined)?.url as string) || '/';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       // Focus existing tab if open
       for (const client of clients) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
+        if (client.url && client.url.includes(self.location.origin) && 'focus' in client) {
           return client.focus();
         }
       }
       // Otherwise open new tab
-      return self.clients.openWindow(url);
+      return self.clients.openWindow(urlStr);
     })
   );
 });
