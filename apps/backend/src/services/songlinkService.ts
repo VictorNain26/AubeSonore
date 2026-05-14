@@ -1,4 +1,5 @@
 import type { PlatformLinks } from '../db/schema';
+import { TtlCache } from '../lib/cache/ttlCache';
 
 // ─────────────────────────────────────────────
 // Songlink/Odesli API Service
@@ -7,6 +8,9 @@ import type { PlatformLinks } from '../db/schema';
 // ─────────────────────────────────────────────
 
 const SONGLINK_API_BASE = 'https://api.song.link/v1-alpha.1/links';
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const songlinkCache = new TtlCache<SonglinkResult | null>(SEVEN_DAYS_MS);
+const itunesCache = new TtlCache<string | null>(SEVEN_DAYS_MS);
 
 interface SonglinkPlatform {
   url: string;
@@ -135,10 +139,15 @@ interface ItunesSearchResponse {
  * Doc: https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/
  */
 async function searchItunes(title: string, artist: string): Promise<string | null> {
+  const cacheKey = `${title.toLowerCase()}|${artist.toLowerCase()}`;
+  const cached = itunesCache.get(cacheKey);
+  if (cached !== undefined) return cached;
+
   try {
     const query = encodeURIComponent(`${title} ${artist}`);
     const response = await fetch(
-      `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=1&country=FR`
+      `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=1&country=FR`,
+      { signal: AbortSignal.timeout(5_000) }
     );
 
     if (!response.ok) {
@@ -149,14 +158,15 @@ async function searchItunes(title: string, artist: string): Promise<string | nul
     const data = (await response.json()) as ItunesSearchResponse;
 
     if (data.resultCount > 0 && data.results[0]?.trackViewUrl) {
-      console.log(`[iTunes] Found: ${data.results[0].trackName} by ${data.results[0].artistName}`);
-      return data.results[0].trackViewUrl;
+      const url = data.results[0].trackViewUrl;
+      itunesCache.set(cacheKey, url);
+      return url;
     }
 
-    console.warn(`[iTunes] No results for: ${title} - ${artist}`);
+    itunesCache.set(cacheKey, null);
     return null;
   } catch (error) {
-    console.error('[iTunes] Search error:', error);
+    console.error('[iTunes] Search error:', (error as Error).message);
     return null;
   }
 }
@@ -171,15 +181,17 @@ export async function searchSonglink(
   title: string,
   artist: string
 ): Promise<SonglinkResult | null> {
-  // Étape 1: Chercher sur iTunes pour obtenir une vraie URL
-  const appleMusicUrl = await searchItunes(title, artist);
+  const cacheKey = `${title.toLowerCase()}|${artist.toLowerCase()}`;
+  const cached = songlinkCache.get(cacheKey);
+  if (cached !== undefined) return cached;
 
+  const appleMusicUrl = await searchItunes(title, artist);
   if (!appleMusicUrl) {
-    console.warn(`[Songlink] Could not find track on iTunes: ${title} - ${artist}`);
+    songlinkCache.set(cacheKey, null);
     return null;
   }
 
-  // Étape 2: Passer l'URL Apple Music à Songlink
-  console.log(`[Songlink] Resolving links from Apple Music URL: ${appleMusicUrl}`);
-  return getSonglinkData(appleMusicUrl);
+  const result = await getSonglinkData(appleMusicUrl);
+  songlinkCache.set(cacheKey, result);
+  return result;
 }

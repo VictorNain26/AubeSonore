@@ -129,12 +129,26 @@ async function enrichTrackInBackground(
 }
 
 // ─────────────────────────────────────────────
-// Récupérer les morceaux likés
+// Récupérer les morceaux likés (projection sans artworkBase64 pour alléger le payload)
 // ─────────────────────────────────────────────
 
-export async function getLikedTracks({ user }: { user: User }): Promise<LikedTrack[]> {
+export type LikedTrackListItem = Omit<LikedTrack, 'artworkBase64'>;
+
+export async function getLikedTracks({ user }: { user: User }): Promise<LikedTrackListItem[]> {
   const tracks = await db
-    .select()
+    .select({
+      id: schema.likedTracks.id,
+      title: schema.likedTracks.title,
+      artist: schema.likedTracks.artist,
+      album: schema.likedTracks.album,
+      artworkUrl: schema.likedTracks.artworkUrl,
+      youtubeUrl: schema.likedTracks.youtubeUrl,
+      isrc: schema.likedTracks.isrc,
+      songlinkUrl: schema.likedTracks.songlinkUrl,
+      platformLinks: schema.likedTracks.platformLinks,
+      createdAt: schema.likedTracks.createdAt,
+      userId: schema.likedTracks.userId,
+    })
     .from(schema.likedTracks)
     .where(eq(schema.likedTracks.userId, user.id))
     .orderBy(schema.likedTracks.createdAt);
@@ -230,21 +244,31 @@ export async function getLikedTrackByTitleArtist({
 // Rafraîchir tous les liens (batch, rate-limited)
 // ─────────────────────────────────────────────
 
+const REFRESH_CHUNK_SIZE = 5;
+const REFRESH_CHUNK_DELAY_MS = 500;
+
 export async function refreshAllLinks({
   user,
 }: {
   user: User;
 }): Promise<{ message: string; updated: number }> {
   const tracks = await db
-    .select()
+    .select({
+      id: schema.likedTracks.id,
+      title: schema.likedTracks.title,
+      artist: schema.likedTracks.artist,
+    })
     .from(schema.likedTracks)
     .where(eq(schema.likedTracks.userId, user.id));
 
   let updated = 0;
-  for (const track of tracks) {
-    try {
-      const songlinkData = await searchSonglink(track.title, track.artist);
-      if (songlinkData) {
+
+  for (let i = 0; i < tracks.length; i += REFRESH_CHUNK_SIZE) {
+    const chunk = tracks.slice(i, i + REFRESH_CHUNK_SIZE);
+    const results = await Promise.allSettled(
+      chunk.map(async (track) => {
+        const songlinkData = await searchSonglink(track.title, track.artist);
+        if (!songlinkData) return false;
         await db
           .update(schema.likedTracks)
           .set({
@@ -252,12 +276,17 @@ export async function refreshAllLinks({
             platformLinks: songlinkData.platformLinks,
           })
           .where(eq(schema.likedTracks.id, track.id));
-        updated++;
+        return true;
+      })
+    );
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value) updated++;
+      if (r.status === 'rejected') {
+        console.error('[refreshAllLinks]', (r.reason as Error).message);
       }
-      // Rate limit: 500ms between requests
-      await new Promise((resolve) => setTimeout(resolve, 500));
-    } catch (err) {
-      console.error(`[refreshAllLinks] Error for track ${track.id}:`, err);
+    }
+    if (i + REFRESH_CHUNK_SIZE < tracks.length) {
+      await new Promise((resolve) => setTimeout(resolve, REFRESH_CHUNK_DELAY_MS));
     }
   }
 
