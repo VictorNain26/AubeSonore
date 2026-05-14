@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState, useCallback } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { Play, Square, Users, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ModalErrorFallback } from '../ErrorFallback';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '../../lib/player';
 import { useNowPlaying, type SongEntry } from '../../lib/azuracast';
@@ -412,13 +414,25 @@ export default function Player() {
 
       {isModalOpen && (
         <Suspense fallback={null}>
-          <LikedTracksModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+          <ErrorBoundary
+            FallbackComponent={(props) => (
+              <ModalErrorFallback {...props} onClose={() => setIsModalOpen(false)} />
+            )}
+          >
+            <LikedTracksModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+          </ErrorBoundary>
         </Suspense>
       )}
 
       {isAuthModalOpen && (
         <Suspense fallback={null}>
-          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+          <ErrorBoundary
+            FallbackComponent={(props) => (
+              <ModalErrorFallback {...props} onClose={() => setIsAuthModalOpen(false)} />
+            )}
+          >
+            <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+          </ErrorBoundary>
         </Suspense>
       )}
     </div>
