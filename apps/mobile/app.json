@@ -81,7 +81,11 @@
           }
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-audio",
+      "expo-image",
+      "expo-sharing",
+      "expo-web-browser"
     ],
     "runtimeVersion": {
       "policy": "appVersion"
