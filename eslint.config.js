@@ -17,6 +17,7 @@ export default tseslint.config(
       '**/.turbo/**',
       '**/.next/**',
       '**/coverage/**',
+      '**/.claude/**',
       '**/*.config.js',
       '**/*.config.ts',
       '**/metro.config.js',
