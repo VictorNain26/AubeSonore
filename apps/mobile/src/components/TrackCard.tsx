@@ -1,5 +1,6 @@
 import { memo, useState, useCallback } from 'react';
-import { View, Text, Image, Pressable, Linking, Alert } from 'react-native';
+import { View, Text, Pressable, Linking, Alert } from 'react-native';
+import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { Ionicons } from '@expo/vector-icons';
 import { getPreferredLink } from '@aubesonore/core/share';
@@ -64,8 +65,10 @@ export const TrackCard = memo(function TrackCard({
         {artwork ? (
           <Image
             source={{ uri: artwork }}
-            className="w-full h-full"
-            resizeMode="cover"
+            style={{ width: '100%', height: '100%' }}
+            contentFit="cover"
+            cachePolicy="memory-disk"
+            transition={150}
             onError={handleImageError}
           />
         ) : (

@@ -4,6 +4,7 @@ import {
   useState,
   useEffect,
   useCallback,
+  useMemo,
   useRef,
   type ReactNode,
 } from 'react';
@@ -163,28 +164,35 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
     [isAuthenticated]
   );
 
-  // Vérifier si un morceau est liké (via cache local)
+  // Memoized lowercase key set for O(1) lookup. Rebuilt only when tracks change.
+  const trackKeys = useMemo(() => {
+    const set = new Set<string>();
+    for (const t of tracks) {
+      set.add(`${t.title.toLowerCase()}${t.artist.toLowerCase()}`);
+    }
+    return set;
+  }, [tracks]);
+
   const isTrackLiked = useCallback(
     (title: string, artist: string): boolean => {
-      return tracks.some(
-        (t) =>
-          t.title.toLowerCase() === title.toLowerCase() &&
-          t.artist.toLowerCase() === artist.toLowerCase()
-      );
+      return trackKeys.has(`${title.toLowerCase()}${artist.toLowerCase()}`);
     },
-    [tracks]
+    [trackKeys]
   );
 
-  const value: LikedTracksContextValue = {
-    tracks,
-    isLoading,
-    error,
-    likeTrack,
-    unlikeTrack,
-    checkLiked,
-    isTrackLiked,
-    refreshTracks,
-  };
+  const value = useMemo<LikedTracksContextValue>(
+    () => ({
+      tracks,
+      isLoading,
+      error,
+      likeTrack,
+      unlikeTrack,
+      checkLiked,
+      isTrackLiked,
+      refreshTracks,
+    }),
+    [tracks, isLoading, error, likeTrack, unlikeTrack, checkLiked, isTrackLiked, refreshTracks]
+  );
 
   return <LikedTracksContext.Provider value={value}>{children}</LikedTracksContext.Provider>;
 }

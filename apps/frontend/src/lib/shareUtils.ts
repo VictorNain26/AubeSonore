@@ -1,6 +1,6 @@
-import { toPng } from 'html-to-image';
-
 export async function generateShareImage(element: HTMLElement): Promise<Blob> {
+  // Lazy-loaded: html-to-image is ~50KB gzip and only needed on share click.
+  const { toPng } = await import('html-to-image');
   const dataUrl = await toPng(element, {
     width: 1080,
     height: 1080,

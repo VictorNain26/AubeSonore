@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState, useCallback } from 'react';
 import { Play, Square, Users, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -6,9 +6,12 @@ import { usePlayer } from '../../lib/player';
 import { useNowPlaying, type SongEntry } from '../../lib/azuracast';
 import { useLikedTracks } from '../../hooks/useLikedTracks';
 import { useAuth } from '../../hooks/useAuth';
-import { LikedTracksModal } from '../LikedTracksModal';
-import { AuthModal } from '../AuthModal';
 import toast from 'react-hot-toast';
+
+const LikedTracksModal = lazy(() =>
+  import('../LikedTracksModal').then((m) => ({ default: m.LikedTracksModal }))
+);
+const AuthModal = lazy(() => import('../AuthModal').then((m) => ({ default: m.AuthModal })));
 
 // Sub-components
 import { formatTime } from './utils';
@@ -395,15 +398,17 @@ export default function Player() {
         );
       })()}
 
-      {/* =================================================================
-          MODAL: Liked Tracks
-          ================================================================= */}
-      <LikedTracksModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+      {isModalOpen && (
+        <Suspense fallback={null}>
+          <LikedTracksModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
+        </Suspense>
+      )}
 
-      {/* =================================================================
-          MODAL: Authentication
-          ================================================================= */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      {isAuthModalOpen && (
+        <Suspense fallback={null}>
+          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

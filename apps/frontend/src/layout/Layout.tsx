@@ -1,11 +1,16 @@
-import { useState, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type ReactNode } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { LogOut, LogIn, BarChart3 } from 'lucide-react';
-import { StatsModal } from '../components/StatsModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../hooks/useAuth';
-import { AuthModal } from '../components/AuthModal';
+
+const AuthModal = lazy(() =>
+  import('../components/AuthModal').then((m) => ({ default: m.AuthModal }))
+);
+const StatsModal = lazy(() =>
+  import('../components/StatsModal').then((m) => ({ default: m.StatsModal }))
+);
 
 interface LayoutProps {
   children: ReactNode;
@@ -148,11 +153,17 @@ export default function Layout({ children }: LayoutProps) {
         </p>
       </footer>
 
-      {/* Auth Modal */}
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      {isAuthModalOpen && (
+        <Suspense fallback={null}>
+          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+        </Suspense>
+      )}
 
-      {/* Stats Modal */}
-      <StatsModal isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} />
+      {isStatsOpen && (
+        <Suspense fallback={null}>
+          <StatsModal isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} />
+        </Suspense>
+      )}
     </div>
   );
 }

@@ -76,5 +76,20 @@ export default defineConfig(({ mode }) => {
         credentials: true,
       },
     },
+    build: {
+      sourcemap: false,
+      rollupOptions: {
+        output: {
+          manualChunks(id: string) {
+            if (id.includes('node_modules')) {
+              if (id.includes('framer-motion')) return 'motion';
+              if (id.includes('@radix-ui')) return 'radix';
+              if (id.includes('react-dom') || id.endsWith('/react/index.js')) return 'react-vendor';
+            }
+            return undefined;
+          },
+        },
+      },
+    },
   };
 });
