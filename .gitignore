@@ -17,10 +17,14 @@ build/
 # IDE
 .vscode/
 .idea/
-.claude/
 *.swp
 *.swo
 *~
+
+# Claude Code — keep settings.json versioned (team-wide), exclude personal overrides
+.claude/settings.local.json
+.claude/.session*
+.claude/projects/
 
 # OS
 .DS_Store
@@ -46,8 +50,7 @@ coverage/
 temp-*/
 *.tmp
 
-# Documentation interne (ne pas commiter)
-CLAUDE.md
+# Internal documentation (per-developer drafts)
 MIGRATION.md
 *.local.md
 
