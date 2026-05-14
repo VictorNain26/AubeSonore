@@ -22,7 +22,6 @@ interface LikedTracksContextValue {
   error: string | null;
   likeTrack: (data: LikeTrackRequest) => Promise<LikedTrack | null>;
   unlikeTrack: (trackId: string) => Promise<boolean>;
-  checkLiked: (title: string, artist: string) => Promise<LikedTrack | null>;
   isTrackLiked: (title: string, artist: string) => boolean;
   refreshTracks: () => Promise<void>;
 }
@@ -148,21 +147,6 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
     [tracks, isAuthenticated]
   );
 
-  // Vérifier si un morceau est liké (via API)
-  const checkLiked = useCallback(
-    async (title: string, artist: string): Promise<LikedTrack | null> => {
-      if (!isAuthenticated) return null;
-
-      try {
-        const result = await trackApi.checkLiked({ title, artist });
-        return result.track || null;
-      } catch {
-        return null;
-      }
-    },
-    [isAuthenticated]
-  );
-
   // Memoized lowercase key set for O(1) lookup. Rebuilt only when tracks change.
   const trackKeys = useMemo(() => {
     const set = new Set<string>();
@@ -186,11 +170,10 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
       error,
       likeTrack,
       unlikeTrack,
-      checkLiked,
       isTrackLiked,
       refreshTracks,
     }),
-    [tracks, isLoading, error, likeTrack, unlikeTrack, checkLiked, isTrackLiked, refreshTracks]
+    [tracks, isLoading, error, likeTrack, unlikeTrack, isTrackLiked, refreshTracks]
   );
 
   return <LikedTracksContext.Provider value={value}>{children}</LikedTracksContext.Provider>;

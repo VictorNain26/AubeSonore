@@ -114,12 +114,17 @@ export function usePushNotifications() {
 
       await subscription.unsubscribe();
 
-      await fetch(`${API_BASE_URL}/api/push/unsubscribe`, {
+      const res = await fetch(`${API_BASE_URL}/api/push/unsubscribe`, {
         method: 'DELETE',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ endpoint: subscription.endpoint }),
       });
+
+      if (!res.ok) {
+        console.error('[PushNotifications] Server failed to delete subscription:', res.status);
+        return false;
+      }
 
       setState((s) => ({ ...s, isSubscribed: false }));
       return true;

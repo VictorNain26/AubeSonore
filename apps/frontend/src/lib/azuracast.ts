@@ -87,7 +87,7 @@ export function useNowPlaying() {
         console.error('[SSE] Invalid NowPlaying shape:', parsed.issues);
         return;
       }
-      setData(candidate);
+      setData(parsed.output as NowPlaying);
     };
 
     eventSource.onerror = () => {
