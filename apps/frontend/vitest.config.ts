@@ -6,6 +6,9 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     setupFiles: ['./src/mocks/setup.ts'],
+    env: {
+      VITE_API_URL: 'http://localhost:3000',
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

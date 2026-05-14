@@ -9,6 +9,7 @@ interface AuthState {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  authError: string | null;
 }
 
 interface AuthContextType extends AuthState {
@@ -41,19 +42,26 @@ export function useAuthState(): AuthContextType {
     user: null,
     isLoading: true,
     isAuthenticated: false,
+    authError: null,
   });
 
   const refreshSession = useCallback(async () => {
+    setState((prev) => ({ ...prev, isLoading: true, authError: null }));
     try {
-      setState((prev) => ({ ...prev, isLoading: true }));
       const session = await authApi.getSession();
       setState({
         user: session?.user || null,
         isAuthenticated: !!session?.user,
         isLoading: false,
+        authError: null,
       });
-    } catch {
-      setState({ user: null, isAuthenticated: false, isLoading: false });
+    } catch (err) {
+      setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+        authError: err instanceof Error ? err.message : 'Erreur réseau',
+      });
     }
   }, []);
 
@@ -67,6 +75,7 @@ export function useAuthState(): AuthContextType {
       user: response.user,
       isAuthenticated: true,
       isLoading: false,
+      authError: null,
     });
   }, []);
 
@@ -76,12 +85,13 @@ export function useAuthState(): AuthContextType {
       user: response.user,
       isAuthenticated: true,
       isLoading: false,
+      authError: null,
     });
   }, []);
 
   const signOut = useCallback(async () => {
     await authApi.signOut();
-    setState({ user: null, isAuthenticated: false, isLoading: false });
+    setState({ user: null, isAuthenticated: false, isLoading: false, authError: null });
   }, []);
 
   return {

@@ -39,18 +39,17 @@ export const preferencesApi = createPreferencesApi(apiClient);
 
 export const authApi = {
   getSession: async (): Promise<AuthResponse | null> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/get-session`, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) return null;
-      const data = (await response.json()) as { user?: unknown };
-      if (!data.user) return null;
-      return data as AuthResponse;
-    } catch {
-      return null;
+    const response = await fetch(`${API_BASE_URL}/api/auth/get-session`, {
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (response.status === 401 || response.status === 403) return null;
+    if (!response.ok) {
+      throw new Error(`getSession failed: HTTP ${response.status}`);
     }
+    const data = (await response.json()) as { user?: unknown };
+    if (!data.user) return null;
+    return data as AuthResponse;
   },
 
   signUp: async (email: string, password: string, name: string): Promise<AuthResponse> => {
