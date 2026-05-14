@@ -23,3 +23,9 @@ export const sendPushSchema = object({
 });
 
 export type SendPushData = InferOutput<typeof sendPushSchema>;
+
+export const unsubscribeSchema = object({
+  endpoint: httpsUrl,
+});
+
+export type UnsubscribeData = InferOutput<typeof unsubscribeSchema>;

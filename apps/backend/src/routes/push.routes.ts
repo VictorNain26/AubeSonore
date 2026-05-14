@@ -1,6 +1,6 @@
 import { Elysia } from 'elysia';
 import { validateBody } from '../lib/validate';
-import { subscribeSchema, sendPushSchema } from '../validators/pushValidator';
+import { subscribeSchema, sendPushSchema, unsubscribeSchema } from '../validators/pushValidator';
 import * as pushService from '../services/pushService';
 import { auth } from '../lib/auth/index';
 import type { User, Session } from '../db/schema';
@@ -51,13 +51,13 @@ export const pushRoutes = new Elysia({ prefix: '/api/push' })
       return { error: 'Non authentifié' };
     }
 
-    const endpoint = (body as { endpoint?: string })?.endpoint;
-    if (!endpoint) {
+    const data = validateBody(unsubscribeSchema, body);
+    if (hasError(data)) {
       set.status = 400;
-      return { error: 'Endpoint requis' };
+      return data;
     }
 
-    await pushService.unsubscribe(user.id, endpoint);
+    await pushService.unsubscribe(user.id, data.endpoint);
     return { message: 'Désinscription effectuée' };
   })
 
