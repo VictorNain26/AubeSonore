@@ -64,9 +64,9 @@ export function useNowPlaying() {
       setError(null);
     };
 
-    eventSource.onmessage = (event) => {
+    eventSource.onmessage = (event: MessageEvent<string>) => {
       try {
-        const message: SSEMessage = JSON.parse(event.data);
+        const message = JSON.parse(event.data) as SSEMessage;
 
         // Message de connexion initial avec données
         const connectData = message.connect?.subs?.[`station:${STATION_SHORTCODE}`];

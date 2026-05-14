@@ -42,11 +42,11 @@ export function useArtistInfo(artistName: string | undefined) {
       })
         .then((res) => {
           if (!res.ok) return null;
-          return res.json();
+          return res.json() as Promise<ArtistInfo | { error: string } | null>;
         })
         .then((info) => {
           if (controller.signal.aborted) return;
-          if (info && !info.error) {
+          if (info && !('error' in info)) {
             cache.set(key, info);
             setData(info);
           } else {

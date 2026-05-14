@@ -42,20 +42,20 @@ export function useArtistInfo(artistName: string | undefined) {
       })
         .then((res) => {
           if (!res.ok) return null;
-          return res.json();
+          return res.json() as Promise<ArtistInfo | null>;
         })
         .then((info) => {
           if (controller.signal.aborted) return;
-          if (info && !info.error) {
+          if (info && typeof info === 'object' && !('error' in info && info.error)) {
             cache.set(key, info);
             setData(info);
           } else {
             setData(null);
           }
         })
-        .catch((err) => {
-          if (err.name !== 'AbortError') {
-            console.warn('[useArtistInfo] Fetch error:', err);
+        .catch((err: unknown) => {
+          if (err instanceof Error && err.name !== 'AbortError') {
+            console.warn('[useArtistInfo] Fetch error:', err.message);
             setData(null);
           }
         })

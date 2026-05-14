@@ -8,51 +8,83 @@ describe('assertSafeUrl', () => {
   });
 
   it('rejects loopback IPv4', async () => {
-    await expect(assertSafeUrl('http://127.0.0.1/x', { requireHttps: false })).rejects.toThrow(
-      /Private IPv4/
-    );
+    let err: Error | undefined;
+    try {
+      await assertSafeUrl('http://127.0.0.1/x', { requireHttps: false });
+    } catch (e) {
+      err = e as Error;
+    }
+    expect(err?.message).toMatch(/Private IPv4/);
   });
 
   it('rejects cloud metadata link-local IPv4 (169.254.169.254)', async () => {
-    await expect(
-      assertSafeUrl('http://169.254.169.254/latest/meta-data/', { requireHttps: false })
-    ).rejects.toThrow(/Private IPv4/);
+    let err: Error | undefined;
+    try {
+      await assertSafeUrl('http://169.254.169.254/latest/meta-data/', { requireHttps: false });
+    } catch (e) {
+      err = e as Error;
+    }
+    expect(err?.message).toMatch(/Private IPv4/);
   });
 
   it('rejects RFC1918 10.x.x.x', async () => {
-    await expect(assertSafeUrl('http://10.0.0.5/x', { requireHttps: false })).rejects.toThrow(
-      /Private IPv4/
-    );
+    let err: Error | undefined;
+    try {
+      await assertSafeUrl('http://10.0.0.5/x', { requireHttps: false });
+    } catch (e) {
+      err = e as Error;
+    }
+    expect(err?.message).toMatch(/Private IPv4/);
   });
 
   it('rejects RFC1918 192.168.x.x', async () => {
-    await expect(assertSafeUrl('http://192.168.1.1/x', { requireHttps: false })).rejects.toThrow(
-      /Private IPv4/
-    );
+    let err: Error | undefined;
+    try {
+      await assertSafeUrl('http://192.168.1.1/x', { requireHttps: false });
+    } catch (e) {
+      err = e as Error;
+    }
+    expect(err?.message).toMatch(/Private IPv4/);
   });
 
   it('rejects file:// scheme', async () => {
-    await expect(assertSafeUrl('file:///etc/passwd', { requireHttps: false })).rejects.toThrow(
-      /Unsafe URL protocol/
-    );
+    let err: Error | undefined;
+    try {
+      await assertSafeUrl('file:///etc/passwd', { requireHttps: false });
+    } catch (e) {
+      err = e as Error;
+    }
+    expect(err?.message).toMatch(/Unsafe URL protocol/);
   });
 
   it('rejects javascript: scheme', async () => {
-    await expect(assertSafeUrl('javascript:alert(1)', { requireHttps: false })).rejects.toThrow(
-      /Unsafe URL protocol/
-    );
+    let err: Error | undefined;
+    try {
+      await assertSafeUrl('javascript:alert(1)', { requireHttps: false });
+    } catch (e) {
+      err = e as Error;
+    }
+    expect(err?.message).toMatch(/Unsafe URL protocol/);
   });
 
   it('rejects http when requireHttps is true', async () => {
-    await expect(assertSafeUrl('http://example.com/x', { requireHttps: true })).rejects.toThrow(
-      /Unsafe URL protocol/
-    );
+    let err: Error | undefined;
+    try {
+      await assertSafeUrl('http://example.com/x', { requireHttps: true });
+    } catch (e) {
+      err = e as Error;
+    }
+    expect(err?.message).toMatch(/Unsafe URL protocol/);
   });
 
   it('rejects hostname not in allowlist', async () => {
-    await expect(
-      assertSafeUrl('https://evil.example.org/x', { allowedHosts: ['mzstatic.com'] })
-    ).rejects.toThrow(/not in allowlist/);
+    let err: Error | undefined;
+    try {
+      await assertSafeUrl('https://evil.example.org/x', { allowedHosts: ['mzstatic.com'] });
+    } catch (e) {
+      err = e as Error;
+    }
+    expect(err?.message).toMatch(/not in allowlist/);
   });
 
   it('accepts subdomain matching allowlist root', async () => {

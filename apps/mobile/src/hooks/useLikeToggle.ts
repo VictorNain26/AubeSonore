@@ -69,14 +69,14 @@ export function useLikeToggle(
   const likeByInfo = useCallback(
     async (title: string, artist: string, art?: string) => {
       if (!isAuthenticated) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         if (redirectToAuth) {
           router.push('/auth');
         }
         return;
       }
 
-      Haptics.impactAsync(hapticStyle);
+      void Haptics.impactAsync(hapticStyle);
 
       await likeTrack({
         title,
@@ -91,14 +91,14 @@ export function useLikeToggle(
   const unlikeByInfo = useCallback(
     async (title: string, artist: string) => {
       if (!isAuthenticated) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
         if (redirectToAuth) {
           router.push('/auth');
         }
         return;
       }
 
-      Haptics.impactAsync(hapticStyle);
+      void Haptics.impactAsync(hapticStyle);
 
       const existingTrack = findExistingTrack(title, artist);
       if (existingTrack) {
@@ -112,14 +112,14 @@ export function useLikeToggle(
     if (!song) return;
 
     if (!isAuthenticated) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       if (redirectToAuth) {
         router.push('/auth');
       }
       return;
     }
 
-    Haptics.impactAsync(hapticStyle);
+    void Haptics.impactAsync(hapticStyle);
 
     const { title, artist, art } = song;
     const existingTrack = findExistingTrack(title, artist);

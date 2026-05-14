@@ -50,9 +50,11 @@ class AzuraCastWebSocket {
         );
       };
 
-      this.ws.onmessage = (event) => {
+      this.ws.onmessage = (event: WebSocketMessageEvent) => {
         try {
-          const message: WSMessage = JSON.parse(event.data);
+          const raw = typeof event.data === 'string' ? event.data : '';
+          if (!raw) return;
+          const message = JSON.parse(raw) as WSMessage;
 
           // Initial connect message with data
           const connectData = message.connect?.subs?.[`station:${ENV.STATION_SHORTCODE}`];
@@ -170,7 +172,7 @@ export async function fetchNowPlaying(): Promise<NowPlaying | null> {
   try {
     const response = await fetch(NOW_PLAYING_API_URL);
     if (!response.ok) return null;
-    return response.json();
+    return (await response.json()) as NowPlaying;
   } catch {
     return null;
   }

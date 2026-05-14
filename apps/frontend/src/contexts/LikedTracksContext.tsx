@@ -70,7 +70,7 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
 
     if (isAuthenticated && wasAuthenticated !== true) {
       // Vient de se connecter -> charger les tracks
-      refreshTracks();
+      void refreshTracks();
     } else if (!isAuthenticated && wasAuthenticated === true) {
       // Vient de se déconnecter -> vider les tracks
       setTracks([]);

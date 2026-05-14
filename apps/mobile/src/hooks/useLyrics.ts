@@ -9,6 +9,16 @@ interface LyricsResult {
   hasSynced: boolean;
 }
 
+interface LrcLibResponse {
+  syncedLyrics?: string | null;
+  plainLyrics?: string | null;
+}
+
+interface CachedLyrics {
+  synced: string | null;
+  plain: string | null;
+}
+
 const CACHE_PREFIX = 'aubesonore_lyrics_';
 
 function getCacheKey(artist: string, title: string): string {
@@ -37,18 +47,14 @@ export function useLyrics(artist: string | undefined, title: string | undefined)
 
     let cancelled = false;
 
-    async function fetchLyrics() {
+    async function fetchLyrics(): Promise<void> {
       // Check AsyncStorage cache first
       try {
         const cached = await AsyncStorage.getItem(cacheKey);
         if (cached && !cancelled) {
-          const data = JSON.parse(cached);
-          if (data.synced) {
-            setSyncedLines(parseLRC(data.synced));
-          } else {
-            setSyncedLines(null);
-          }
-          setPlainLyrics(data.plain || null);
+          const data = JSON.parse(cached) as CachedLyrics;
+          setSyncedLines(data.synced ? parseLRC(data.synced) : null);
+          setPlainLyrics(data.plain ?? null);
           return;
         }
       } catch {
@@ -71,18 +77,17 @@ export function useLyrics(artist: string | undefined, title: string | undefined)
           return;
         }
 
-        const data = await res.json();
+        const data = (await res.json()) as LrcLibResponse;
         if (cancelled) return;
 
-        const synced = data?.syncedLyrics || null;
-        const plain = data?.plainLyrics || null;
+        const synced = data.syncedLyrics ?? null;
+        const plain = data.plainLyrics ?? null;
 
         if (synced) {
           setSyncedLines(parseLRC(synced));
         }
         setPlainLyrics(plain);
 
-        // Cache result
         try {
           await AsyncStorage.setItem(cacheKey, JSON.stringify({ synced, plain }));
         } catch {
@@ -90,7 +95,7 @@ export function useLyrics(artist: string | undefined, title: string | undefined)
         }
       } catch (err: unknown) {
         if (err instanceof Error && err.name !== 'AbortError') {
-          console.warn('[useLyrics] Fetch error:', err);
+          console.warn('[useLyrics] Fetch error:', err.message);
         }
       } finally {
         if (!cancelled) {
@@ -99,7 +104,7 @@ export function useLyrics(artist: string | undefined, title: string | undefined)
       }
     }
 
-    fetchLyrics();
+    void fetchLyrics();
 
     return () => {
       cancelled = true;

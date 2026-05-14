@@ -96,8 +96,11 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
       });
 
       if (!response.ok) {
-        const errorBody = await response.json().catch(() => ({}));
-        const message = getErrorMessage(response.status, errorBody.error || errorBody.message);
+        const errorBody = (await response.json().catch(() => ({}))) as {
+          error?: string;
+          message?: string;
+        };
+        const message = getErrorMessage(response.status, errorBody.error ?? errorBody.message);
 
         if (isRetryableError(null, response.status) && attempts < maxAttempts - 1) {
           attempts++;
@@ -109,7 +112,7 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
         throw new Error(message);
       }
 
-      return response.json();
+      return (await response.json()) as T;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error('Erreur inconnue');
 
@@ -155,9 +158,9 @@ export const authApi = {
       });
 
       if (!response.ok) return null;
-      const data = await response.json();
+      const data = (await response.json()) as AuthResponse;
       if (!data.user) return null;
-      return data as AuthResponse;
+      return data;
     } catch {
       return null;
     }
@@ -174,13 +177,18 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erreur inscription' }));
-      throw new Error(error.message || 'Erreur inscription');
+      const error = (await response.json().catch(() => ({ message: 'Erreur inscription' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message ?? 'Erreur inscription');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as AuthResponse & {
+      session: AuthResponse['session'] & { token?: string };
+      token?: string;
+    };
 
-    const token = data.session?.token || data.token;
+    const token: string | undefined = data.session.token ?? data.token;
     if (token) {
       await setAuthToken(token);
     }
@@ -199,13 +207,18 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erreur connexion' }));
-      throw new Error(error.message || 'Erreur connexion');
+      const error = (await response.json().catch(() => ({ message: 'Erreur connexion' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message ?? 'Erreur connexion');
     }
 
-    const data = await response.json();
+    const data = (await response.json()) as AuthResponse & {
+      session: AuthResponse['session'] & { token?: string };
+      token?: string;
+    };
 
-    const token = data.session?.token || data.token;
+    const token: string | undefined = data.session.token ?? data.token;
     if (token) {
       await setAuthToken(token);
     }
@@ -239,8 +252,10 @@ export const authApi = {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erreur' }));
-      throw new Error(error.message || 'Une erreur est survenue');
+      const error = (await response.json().catch(() => ({ message: 'Erreur' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message ?? 'Une erreur est survenue');
     }
   },
 

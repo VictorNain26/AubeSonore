@@ -89,9 +89,14 @@ function loadModule(): GoogleCastModule | null {
   loadAttempted = true;
 
   try {
-    const module = require('react-native-google-cast').default;
-    if (module?.showCastDialog && module?.getSessionManager) {
-      googleCastModule = module;
+    const required = require('react-native-google-cast') as { default?: unknown };
+    const module = required.default as Partial<GoogleCastModule> | undefined;
+    if (
+      module &&
+      typeof module.showCastDialog === 'function' &&
+      typeof module.getSessionManager === 'function'
+    ) {
+      googleCastModule = module as GoogleCastModule;
     }
   } catch {
     // Native module not available - this is expected in Expo Go

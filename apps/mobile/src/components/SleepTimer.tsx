@@ -36,22 +36,22 @@ export function SleepTimer() {
 
   const handlePreset = useCallback(
     (minutes: number) => {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      start(minutes);
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      void start(minutes);
       setIsOpen(false);
     },
     [start]
   );
 
   const handleEndOfTrack = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    startEndOfTrack();
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void startEndOfTrack();
     setIsOpen(false);
   }, [startEndOfTrack]);
 
   const handleCancel = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    cancel();
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void cancel();
     setIsOpen(false);
   }, [cancel]);
 
@@ -60,7 +60,7 @@ export function SleepTimer() {
       {/* Trigger Button */}
       <Pressable
         onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           setIsOpen(true);
         }}
         className="w-10 h-10 items-center justify-center rounded-full bg-white/10"

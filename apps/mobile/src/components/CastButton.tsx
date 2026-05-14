@@ -37,11 +37,11 @@ export const CastButton = memo(function CastButton({
   );
 
   const handlePress = useCallback(() => {
-    showCastPicker();
+    void showCastPicker();
   }, []);
 
   const handleDisconnect = useCallback(() => {
-    useCastStore.getState().stopCasting();
+    void useCastStore.getState().stopCasting();
   }, []);
 
   if (!chromecastAvailable) {

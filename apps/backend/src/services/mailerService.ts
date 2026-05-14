@@ -20,11 +20,14 @@ const htmlTemplate = readFileSync(resolve('src/services/templates/mailTemplate.h
 
 function compileTemplate(template: string, variables: MailVariables = {}): string {
   return template
-    .replace(/{{#if (.*?)}}([\s\S]*?){{\/if}}/g, (_, condition, content) => {
-      const value = variables[condition.trim()];
-      return value ? content : '';
-    })
-    .replace(/{{(.*?)}}/g, (_, key) => String(variables[key.trim()] ?? ''));
+    .replace(
+      /{{#if (.*?)}}([\s\S]*?){{\/if}}/g,
+      (_: string, condition: string, content: string) => {
+        const value = variables[condition.trim()];
+        return value ? content : '';
+      }
+    )
+    .replace(/{{(.*?)}}/g, (_: string, key: string) => String(variables[key.trim()] ?? ''));
 }
 
 const transporter = nodemailer.createTransport({

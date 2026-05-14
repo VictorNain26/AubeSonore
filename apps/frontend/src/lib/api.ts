@@ -23,11 +23,13 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Erreur réseau' }));
+    const error = (await response.json().catch(() => ({ error: 'Erreur réseau' }))) as {
+      error?: string;
+    };
     throw new Error(error.error || `HTTP ${response.status}`);
   }
 
-  return response.json();
+  return response.json() as Promise<T>;
 }
 
 const apiClient: ApiClient = { fetch: fetchApi };
@@ -43,7 +45,7 @@ export const authApi = {
         headers: { 'Content-Type': 'application/json' },
       });
       if (!response.ok) return null;
-      const data = await response.json();
+      const data = (await response.json()) as { user?: unknown };
       if (!data.user) return null;
       return data as AuthResponse;
     } catch {
@@ -59,10 +61,12 @@ export const authApi = {
       body: JSON.stringify({ email, password, name }),
     });
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erreur inscription' }));
+      const error = (await response.json().catch(() => ({ message: 'Erreur inscription' }))) as {
+        message?: string;
+      };
       throw new Error(error.message || 'Erreur inscription');
     }
-    return response.json();
+    return response.json() as Promise<AuthResponse>;
   },
 
   signIn: async (email: string, password: string): Promise<AuthResponse> => {
@@ -73,10 +77,12 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     });
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erreur connexion' }));
+      const error = (await response.json().catch(() => ({ message: 'Erreur connexion' }))) as {
+        message?: string;
+      };
       throw new Error(error.message || 'Erreur connexion');
     }
-    return response.json();
+    return response.json() as Promise<AuthResponse>;
   },
 
   signOut: async (): Promise<void> => {

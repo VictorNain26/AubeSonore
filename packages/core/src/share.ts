@@ -39,7 +39,9 @@ export function getPreferredLink(
     const preferred = track.platformLinks[platformKey];
     if (preferred) return { url: preferred, isSearch: false };
 
-    const firstAvailable = Object.values(track.platformLinks).find(Boolean);
+    const firstAvailable = (Object.values(track.platformLinks) as Array<string | undefined>).find(
+      Boolean
+    );
     if (firstAvailable) return { url: firstAvailable, isSearch: false };
   }
 
@@ -66,7 +68,9 @@ export function getTrackShareUrl(
 
   // Try any available platform link
   if (track.platformLinks) {
-    const firstLink = Object.values(track.platformLinks).find(Boolean);
+    const firstLink = (Object.values(track.platformLinks) as Array<string | undefined>).find(
+      Boolean
+    );
     if (firstLink) return firstLink;
   }
 

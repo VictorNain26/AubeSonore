@@ -27,24 +27,24 @@ export const TrackCard = memo(function TrackCard({
   const artwork = imgError ? null : track.artworkUrl;
   const { url: link, isSearch } = getPreferredLink(track, preferredPlatform);
 
-  const handleOpen = useCallback(async () => {
+  const handleOpen = useCallback(() => {
     try {
-      await Linking.openURL(link);
+      void Linking.openURL(link);
     } catch (error) {
       console.warn('Failed to open URL:', error);
     }
   }, [link]);
 
   const handleLongPress = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Alert.alert('Supprimer', `Retirer "${track.title}" de vos favoris ?`, [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Supprimer',
         style: 'destructive',
-        onPress: async () => {
+        onPress: () => {
           setIsDeleting(true);
-          await onDelete(track.id);
+          void onDelete(track.id);
         },
       },
     ]);
@@ -87,7 +87,7 @@ export const TrackCard = memo(function TrackCard({
       </View>
 
       {/* Open link action */}
-      <Pressable onPress={handleOpen} className="p-2 rounded-full active:bg-white/10">
+      <Pressable onPress={() => handleOpen()} className="p-2 rounded-full active:bg-white/10">
         <Ionicons
           name={isSearch ? 'search' : 'open-outline'}
           size={18}

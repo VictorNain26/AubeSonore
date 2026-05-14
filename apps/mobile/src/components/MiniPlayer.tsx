@@ -27,7 +27,7 @@ export const MiniPlayer = memo(function MiniPlayer() {
   const { isLiked: isCurrentTrackLiked, toggleLike } = useLikeToggle(currentSong);
 
   const handleTogglePlay = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (isPlaying) {
       stop();
     } else {
@@ -36,7 +36,7 @@ export const MiniPlayer = memo(function MiniPlayer() {
   }, [isPlaying, play, stop]);
 
   const handleExpand = useCallback(() => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push('/player');
   }, [router]);
 
@@ -80,7 +80,9 @@ export const MiniPlayer = memo(function MiniPlayer() {
       {/* Like Button */}
       {currentSong && (
         <Pressable
-          onPress={toggleLike}
+          onPress={() => {
+            void toggleLike();
+          }}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={styles.likeButton}
         >

@@ -58,7 +58,7 @@ export function useAuthState(): AuthContextType {
   }, []);
 
   useEffect(() => {
-    refreshSession();
+    void refreshSession();
   }, [refreshSession]);
 
   const signIn = useCallback(async (email: string, password: string) => {

@@ -11,7 +11,7 @@ async function fetchVapidKey(): Promise<string | null> {
   try {
     const res = await fetch(`${API_BASE_URL}/api/push/vapid-key`);
     if (!res.ok) return null;
-    const data = await res.json();
+    const data = (await res.json()) as { key?: string };
     return data.key || null;
   } catch {
     return null;

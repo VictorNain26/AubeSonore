@@ -15,7 +15,7 @@ interface ShareButtonProps {
 
 export function ShareButton({ title, artist, size = 22 }: ShareButtonProps) {
   const handleShare = useCallback(async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const tracks = useLikedTracksStore.getState().tracks;
     const preferredPlatform = usePreferencesStore.getState().preferences?.preferredPlatform;
@@ -38,7 +38,12 @@ export function ShareButton({ title, artist, size = 22 }: ShareButtonProps) {
   }, [title, artist]);
 
   return (
-    <Pressable onPress={handleShare} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+    <Pressable
+      onPress={() => {
+        void handleShare();
+      }}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+    >
       <Ionicons name="share-outline" size={size} color="rgba(255,255,255,0.6)" />
     </Pressable>
   );
