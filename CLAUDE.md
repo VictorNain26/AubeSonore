@@ -107,4 +107,4 @@ These versions are what the audit aligned us to. Bumps are fine; majors should b
 - React 19.2, Vite 8, Tailwind 4.3
 - Bun 1.3.14, Elysia 1.4.28
 - Better Auth 1.6.11, Drizzle 0.45.2
-- Expo SDK 54 (RN 0.81). Note: SDK 55 needs RN 0.83 + New Architecture migration; SDK 56 needs RN 0.85. Plan major mobile bumps separately.
+- Expo SDK 55 (RN 0.83), New Architecture enabled. Note: SDK 56 needs RN 0.85. Plan major mobile bumps separately.
