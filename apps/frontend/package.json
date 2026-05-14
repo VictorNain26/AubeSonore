@@ -24,7 +24,6 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@tailwindcss/vite": "^4.3.0",
     "better-auth": "^1.6.11",
-    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.7.3",
     "html-to-image": "^1.11.13",
@@ -32,7 +31,6 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hot-toast": "^2.5.2",
-    "react-intersection-observer": "^9.16.0",
     "tailwind-merge": "^3.3.1",
     "vite-plugin-pwa": "^1.0.0",
     "zustand": "^5.0.3"

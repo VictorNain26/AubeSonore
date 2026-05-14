@@ -22,7 +22,6 @@
     "@aubesonore/shared-types": "workspace:*",
     "@sinclair/typebox": "^0.34.0",
     "better-auth": "^1.6.11",
-    "dayjs": "^1.11.13",
     "drizzle-kit": "^0.31.8",
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.27",

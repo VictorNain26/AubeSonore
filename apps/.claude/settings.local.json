@@ -2,7 +2,13 @@
   "permissions": {
     "allow": [
       "Bash(cd /c/Users/ordiv/AubeSonore && pnpm install 2>&1)",
-      "Bash(cd /c/Users/ordiv/AubeSonore && pnpm --filter @aubesonore/shared-types build 2>&1)"
+      "Bash(cd /c/Users/ordiv/AubeSonore && pnpm --filter @aubesonore/shared-types build 2>&1)",
+      "WebFetch(domain:116.203.46.203)",
+      "WebFetch(domain:radio.aubesonore.fr)",
+      "WebSearch",
+      "WebFetch(domain:www.azuracast.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(ssh:*)"
     ]
   }
 }
