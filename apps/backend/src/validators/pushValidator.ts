@@ -16,10 +16,18 @@ export const subscribeSchema = object({
 
 export type SubscribeData = InferOutput<typeof subscribeSchema>;
 
+// Same https-only guard as endpoint URLs: keeps the service worker from
+// being told to open javascript: / data: / file: URIs.
+const httpsTargetUrl = pipe(
+  string(),
+  url('URL invalide'),
+  check((value) => value.startsWith('https://'), 'URL doit utiliser HTTPS')
+);
+
 export const sendPushSchema = object({
   title: pipe(string(), minLength(1, 'Titre requis')),
   body: pipe(string(), minLength(1, 'Corps requis')),
-  url: optional(pipe(string(), url('URL invalide'))),
+  url: optional(httpsTargetUrl),
 });
 
 export type SendPushData = InferOutput<typeof sendPushSchema>;

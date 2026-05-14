@@ -2,10 +2,6 @@ import { db, schema } from '../db/index';
 import { eq } from 'drizzle-orm';
 import type { User, UserPreferences, PreferredPlatform } from '../db/schema';
 
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
-
 interface ServiceResponse<T = UserPreferences> {
   message?: string;
   preferences?: T;
@@ -13,41 +9,46 @@ interface ServiceResponse<T = UserPreferences> {
   error?: string;
 }
 
-// ─────────────────────────────────────────────
-// Récupérer les préférences utilisateur
-// ─────────────────────────────────────────────
-
+/**
+ * Read preferences, lazily creating the default row on first access.
+ * Atomic upsert eliminates the read-then-insert race between concurrent
+ * first-time requests.
+ */
 export async function getUserPreferences({ user }: { user: User }): Promise<UserPreferences> {
-  const preferences = await db
+  const existing = await db
     .select()
     .from(schema.userPreferences)
     .where(eq(schema.userPreferences.userId, user.id))
     .limit(1)
     .then((res) => res[0]);
+  if (existing) return existing;
 
-  // Créer les préférences par défaut si elles n'existent pas
-  if (!preferences) {
-    const [newPreferences] = await db
-      .insert(schema.userPreferences)
-      .values({
-        userId: user.id,
-        preferredPlatform: 'spotify',
-      })
-      .returning();
+  // Race-safe creation: another request creating the same row will conflict
+  // on the userId PK and we'll get the now-existing row via the follow-up SELECT.
+  const [created] = await db
+    .insert(schema.userPreferences)
+    .values({ userId: user.id, preferredPlatform: 'spotify' })
+    .onConflictDoNothing({ target: schema.userPreferences.userId })
+    .returning();
 
-    if (!newPreferences) {
-      throw new Error('Failed to create default preferences');
-    }
-    return newPreferences;
-  }
+  if (created) return created;
 
-  return preferences;
+  // Conflict path: the row was inserted by the concurrent request.
+  const winner = await db
+    .select()
+    .from(schema.userPreferences)
+    .where(eq(schema.userPreferences.userId, user.id))
+    .limit(1)
+    .then((res) => res[0]);
+  if (!winner) throw new Error('Failed to create default preferences');
+  return winner;
 }
 
-// ─────────────────────────────────────────────
-// Mettre à jour les préférences utilisateur
-// ─────────────────────────────────────────────
-
+/**
+ * Update the preferred platform. The route already validates the platform
+ * value via Valibot (picklist), so this layer trusts its input — per the
+ * "validate at boundaries, trust internal" convention in CLAUDE.md.
+ */
 export async function updateUserPreferences({
   user,
   preferredPlatform,
@@ -55,23 +56,6 @@ export async function updateUserPreferences({
   user: User;
   preferredPlatform: PreferredPlatform;
 }): Promise<ServiceResponse> {
-  // Vérifier que la plateforme est valide
-  const validPlatforms: PreferredPlatform[] = [
-    'spotify',
-    'appleMusic',
-    'deezer',
-    'youtubeMusic',
-    'tidal',
-    'amazonMusic',
-    'soundcloud',
-    'youtube',
-  ];
-
-  if (!validPlatforms.includes(preferredPlatform)) {
-    return { status: 400, error: 'Plateforme invalide' };
-  }
-
-  // Upsert: créer ou mettre à jour
   const [preferences] = await db
     .insert(schema.userPreferences)
     .values({

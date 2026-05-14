@@ -1,8 +1,13 @@
 import { db, schema } from '../db/index';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, desc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { User, LikedTrack, PlatformLinks } from '../db/schema';
 import { searchSonglink } from './songlinkService';
+
+// Hard cap on the liked-tracks listing payload. Power users with thousands
+// of tracks would otherwise stream the entire library on every page load.
+// Pagination via cursor (?before=createdAt) is the long-term replacement.
+const LIKED_TRACKS_MAX_PAGE = 500;
 
 // ─────────────────────────────────────────────
 // Types
@@ -36,28 +41,10 @@ export async function likeTrack({
   body: LikeTrackBody;
 }): Promise<ServiceResponse> {
   const { title, artist, album, artworkUrl, youtubeUrl, isrc } = body;
-
-  // Vérifie si le morceau est déjà liké (par titre + artiste)
-  const existingTrack = await db
-    .select()
-    .from(schema.likedTracks)
-    .where(
-      and(
-        eq(schema.likedTracks.userId, user.id),
-        eq(schema.likedTracks.title, title),
-        eq(schema.likedTracks.artist, artist)
-      )
-    )
-    .limit(1)
-    .then((res: LikedTrack[]) => res[0]);
-
-  if (existingTrack) {
-    return { status: 400, error: 'Morceau déjà liké' };
-  }
-
   const trackId = randomUUID();
 
-  // Fast insert — minimal payload, immediate response.
+  // Atomic insert relying on the unique index (user_id, title, artist).
+  // Returning empty means the row already existed — single round-trip, no race.
   const [likedTrack] = await db
     .insert(schema.likedTracks)
     .values({
@@ -72,10 +59,13 @@ export async function likeTrack({
       songlinkUrl: null,
       platformLinks: null,
     })
+    .onConflictDoNothing({
+      target: [schema.likedTracks.userId, schema.likedTracks.title, schema.likedTracks.artist],
+    })
     .returning();
 
   if (!likedTrack) {
-    return { status: 500, error: 'Failed to like track' };
+    return { status: 400, error: 'Morceau déjà liké' };
   }
 
   // Background enrichment — non-blocking Songlink lookup.
@@ -112,7 +102,8 @@ export async function getLikedTracks({ user }: { user: User }): Promise<LikedTra
     .select()
     .from(schema.likedTracks)
     .where(eq(schema.likedTracks.userId, user.id))
-    .orderBy(schema.likedTracks.createdAt);
+    .orderBy(desc(schema.likedTracks.createdAt))
+    .limit(LIKED_TRACKS_MAX_PAGE);
 }
 
 // ─────────────────────────────────────────────

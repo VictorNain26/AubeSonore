@@ -37,6 +37,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Workspace packages must be built before lint/typecheck so that their
+      # dist/*.d.ts exist — otherwise the typed ESLint rules resolve the
+      # subpath imports to `error` types and emit hundreds of false-positive
+      # `no-unsafe-*` violations.
+      - name: Build workspace packages
+        run: pnpm turbo build --filter=@aubesonore/shared-types --filter=@aubesonore/core
+
       - name: Format check
         run: pnpm format:check
 
@@ -132,6 +139,11 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      # See the quality job: mobile imports @aubesonore/core/* and
+      # @aubesonore/shared-types/* subpaths, which need built dist/*.d.ts.
+      - name: Build workspace packages
+        run: pnpm turbo build --filter=@aubesonore/shared-types --filter=@aubesonore/core
 
       - name: Typecheck mobile
         run: pnpm --filter=@aubesonore/mobile typecheck
