@@ -2,6 +2,7 @@ import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { env } from './config/env';
 import { pool } from './db';
+import { runMigrations } from './db/migrate';
 import { betterAuthPlugin } from './lib/auth/betterAuthPlugin';
 import { securityHeaders } from './lib/security/securityHeaders';
 import { logger } from './lib/logger';
@@ -11,6 +12,16 @@ import { artistRoutes } from './routes/artist.routes';
 import { pushRoutes } from './routes/push.routes';
 import { songlinkCache, itunesCache } from './services/songlinkService';
 import { lastfmCache } from './services/lastfmService';
+
+// Apply pending DB migrations BEFORE serving traffic. The runner tracks
+// applied migrations in __app_migrations and is idempotent across restarts.
+// Refusing to start with a stale schema is safer than serving 500s.
+try {
+  await runMigrations(pool);
+} catch (err) {
+  logger.error('migrations failed, aborting boot', { err: (err as Error).message });
+  process.exit(1);
+}
 
 // Start TTL cache sweeps (every minute, unref'd so process can exit)
 songlinkCache.startSweep();
