@@ -72,7 +72,6 @@ describe('usePushNotifications.subscribe', () => {
     await act(async () => {
       res = await result.current.subscribe();
     });
-    expect(res?.success).toBe(false);
-    if (res && !res.success) expect(res.reason).toBe('server-error');
+    expect(res).toEqual({ success: false, reason: 'server-error' });
   });
 });

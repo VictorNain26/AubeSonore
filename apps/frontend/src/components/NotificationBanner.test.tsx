@@ -49,9 +49,9 @@ afterEach(() => {
 describe('NotificationBanner', () => {
   it('renders banner when authenticated, supported, not subscribed, not dismissed', async () => {
     renderWithProviders(<NotificationBanner />);
-    await waitFor(() =>
-      expect(screen.getByText(/recevoir les notifications des sessions live/i)).toBeInTheDocument()
-    );
+    expect(
+      await screen.findByText(/recevoir les notifications des sessions live/i)
+    ).toBeInTheDocument();
   });
 
   it('does not render when already dismissed via localStorage', () => {
@@ -64,9 +64,7 @@ describe('NotificationBanner', () => {
 
   it('hides banner and persists dismissal after clicking dismiss button', async () => {
     renderWithProviders(<NotificationBanner />);
-    await waitFor(() =>
-      expect(screen.getByText(/recevoir les notifications des sessions live/i)).toBeInTheDocument()
-    );
+    await screen.findByText(/recevoir les notifications des sessions live/i);
 
     const dismissBtn = screen.getByRole('button', { name: /fermer/i });
     await userEvent.click(dismissBtn);
