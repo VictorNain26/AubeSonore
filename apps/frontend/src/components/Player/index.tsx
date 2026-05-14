@@ -69,28 +69,24 @@ export default function Player() {
     }
   }, [nowPlaying?.elapsed, nowPlaying?.sh_id]);
 
-  // Smooth animation loop for elapsed time - always runs (live radio)
+  // Smooth animation loop for elapsed time - runs only while playing
   useEffect(() => {
-    if (duration > 0) {
-      startTimeRef.current = performance.now();
+    if (!isPlaying || duration <= 0) return;
 
-      const animate = () => {
-        const now = performance.now();
-        const deltaSeconds = (now - startTimeRef.current) / 1000;
-        const newElapsed = Math.min(baseElapsedRef.current + deltaSeconds, duration);
-        setElapsed(newElapsed);
-        animationRef.current = requestAnimationFrame(animate);
-      };
-
+    startTimeRef.current = performance.now();
+    const animate = () => {
+      const now = performance.now();
+      const deltaSeconds = (now - startTimeRef.current) / 1000;
+      const newElapsed = Math.min(baseElapsedRef.current + deltaSeconds, duration);
+      setElapsed(newElapsed);
       animationRef.current = requestAnimationFrame(animate);
-    }
+    };
+    animationRef.current = requestAnimationFrame(animate);
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  }, [duration]);
+  }, [duration, isPlaying]);
 
   // Track change detection — stats + sleep timer end-of-track
   useEffect(() => {
