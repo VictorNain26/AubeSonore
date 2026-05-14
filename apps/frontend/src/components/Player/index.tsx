@@ -39,6 +39,8 @@ export default function Player() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [likingTrackId, setLikingTrackId] = useState<string | null>(null);
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
+  const playError = usePlayer((s) => s.playError);
+  const clearPlayError = usePlayer((s) => s.clearPlayError);
   const { data: np } = useNowPlaying();
   const { likeTrack, unlikeTrack, isTrackLiked, tracks } = useLikedTracks();
   const { isAuthenticated } = useAuth();
@@ -119,6 +121,13 @@ export default function Player() {
     }, 10_000);
     return () => clearInterval(id);
   }, [isPlaying, tickListeningTime]);
+
+  useEffect(() => {
+    if (playError) {
+      toast.error(`Lecture impossible : ${playError.message}`);
+      clearPlayError();
+    }
+  }, [playError, clearPlayError]);
 
   const togglePlay = useCallback(() => {
     if (isPlaying) {
