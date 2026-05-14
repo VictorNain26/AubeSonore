@@ -23,7 +23,7 @@ export default function HomePage() {
     }
     const img = new Image();
     img.src = artUrl!;
-    img.onload = () => setLoadedArt(artUrl!);
+    img.onload = () => setLoadedArt(artUrl);
     img.onerror = () => setLoadedArt(null);
   }, [artUrl, isDefaultCover]);
 

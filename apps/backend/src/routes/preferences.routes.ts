@@ -3,7 +3,7 @@ import { validateBody } from '../lib/validate';
 import { updatePreferencesSchema } from '../validators/preferencesValidator';
 import * as preferencesService from '../services/preferencesService';
 import { auth } from '../lib/auth/index';
-import type { User, Session, UserPreferences, PreferredPlatform } from '../db/schema';
+import type { User, Session, UserPreferences } from '../db/schema';
 
 // ─────────────────────────────────────────────
 // Types
@@ -62,7 +62,7 @@ export const preferencesRoutes = new Elysia({ prefix: '/api/preferences' })
 
     const result = await preferencesService.updateUserPreferences({
       user,
-      preferredPlatform: data.preferredPlatform as PreferredPlatform,
+      preferredPlatform: data.preferredPlatform,
     });
 
     if (result.error) {

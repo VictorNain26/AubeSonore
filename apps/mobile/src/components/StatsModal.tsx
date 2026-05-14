@@ -37,7 +37,7 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const getMonthlyStats = useStatsStore((s) => s.getMonthlyStats);
   const stats = getMonthlyStats();
 
-  const maxCount = stats.topArtists.length > 0 ? stats.topArtists[0]!.count : 1;
+  const maxCount = stats.topArtists.length > 0 ? stats.topArtists[0].count : 1;
 
   return (
     <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
