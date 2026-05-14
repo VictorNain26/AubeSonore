@@ -13,7 +13,8 @@ describe('useArtistInfo', () => {
   it('fetches artist data when name provided', async () => {
     const { result } = renderHook(() => useArtistInfo('Test Artist'));
     await waitFor(() => expect(result.current.data).not.toBeNull(), { timeout: 2000 });
-    expect(result.current.data?.name).toBe('Test Artist');
+    expect(result.current.data?.bio).toContain('Test Artist');
+    expect(result.current.data?.tags).toContain('rock');
   });
 
   it('returns null for 404 (Unknown artist)', async () => {

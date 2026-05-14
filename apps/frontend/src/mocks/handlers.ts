@@ -65,7 +65,12 @@ export const handlers = [
     const url = new URL(request.url);
     const name = url.searchParams.get('name');
     if (name === 'Unknown') return new HttpResponse(null, { status: 404 });
-    return HttpResponse.json({ name, bio: 'Test bio', image: null });
+    return HttpResponse.json({
+      bio: `Bio for ${name ?? 'unknown'}`,
+      tags: ['rock', 'indie'],
+      similarArtists: ['Artist A', 'Artist B'],
+      listeners: 12345,
+    });
   }),
 
   // AzuraCast static fallback
