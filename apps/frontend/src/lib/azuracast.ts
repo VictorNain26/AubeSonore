@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { safeParse } from 'valibot';
 import { SSE_URL, STATION_SHORTCODE } from '../utils/config';
 import type { NowPlaying } from '@aubesonore/shared-types/azuracast';
+import { NowPlayingSchema } from './validators/azuracast';
 
 // Re-export shared types for consumers
 export type {
@@ -65,23 +67,27 @@ export function useNowPlaying() {
     };
 
     eventSource.onmessage = (event: MessageEvent<string>) => {
+      if (event.data === '' || event.data === '{}') return;
+
+      let message: SSEMessage;
       try {
-        const message = JSON.parse(event.data) as SSEMessage;
-
-        // Message de connexion initial avec données
-        const connectData = message.connect?.subs?.[`station:${STATION_SHORTCODE}`];
-        if (connectData?.publications?.[0]?.data?.np) {
-          setData(connectData.publications[0].data.np);
-          return;
-        }
-
-        // Messages de mise à jour
-        if (message.pub?.data?.np) {
-          setData(message.pub.data.np);
-        }
-      } catch {
-        // Ignorer les pings vides {}
+        message = JSON.parse(event.data) as SSEMessage;
+      } catch (err) {
+        console.warn('[SSE] Unexpected non-JSON message:', event.data, err);
+        return;
       }
+
+      const candidate =
+        message.connect?.subs?.[`station:${STATION_SHORTCODE}`]?.publications?.[0]?.data?.np ??
+        message.pub?.data?.np;
+      if (!candidate) return;
+
+      const parsed = safeParse(NowPlayingSchema, candidate);
+      if (!parsed.success) {
+        console.error('[SSE] Invalid NowPlaying shape:', parsed.issues);
+        return;
+      }
+      setData(candidate);
     };
 
     eventSource.onerror = () => {

@@ -9,6 +9,11 @@ export default defineConfig({
     env: {
       VITE_API_URL: 'http://localhost:3000',
     },
+    server: {
+      deps: {
+        inline: ['@testing-library/react'],
+      },
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
@@ -37,6 +42,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      react: path.resolve(__dirname, '../../node_modules/react'),
+      'react-dom': path.resolve(__dirname, '../../node_modules/react-dom'),
+      'react-dom/client': path.resolve(__dirname, '../../node_modules/react-dom/client'),
     },
+    dedupe: ['react', 'react-dom'],
   },
 });
