@@ -22,8 +22,9 @@ export class TtlCache<V> {
     return entry.value;
   }
 
-  set(key: string, value: V): void {
-    this.store.set(key, { value, expiresAt: Date.now() + this.ttlMs });
+  set(key: string, value: V, ttlMsOverride?: number): void {
+    const ttl = ttlMsOverride ?? this.ttlMs;
+    this.store.set(key, { value, expiresAt: Date.now() + ttl });
   }
 
   delete(key: string): void {

@@ -1,4 +1,5 @@
 import { sendMail } from '../../services/mailerService.js';
+import { env } from '../../config/env';
 
 interface SendBetterAuthEmailParams {
   to: string;
@@ -19,7 +20,7 @@ export async function sendBetterAuthEmail({
   isVerificationEmail = false,
   isResetPassword = false,
 }: SendBetterAuthEmailParams): Promise<void> {
-  if (Bun.env.DISABLE_EMAILS === 'true') {
+  if (env.DISABLE_EMAILS) {
     console.log(`📩 [sendBetterAuthEmail] (DEBUG MODE) Email NON envoyé à ${to}`);
     console.log('🧩 Détail (DEBUG) :', {
       subject,

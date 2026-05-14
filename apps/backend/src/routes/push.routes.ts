@@ -19,9 +19,10 @@ export const pushRoutes = new Elysia({ prefix: '/api/push' })
   })
 
   // GET /api/push/vapid-key — Public
-  .get('/vapid-key', () => {
+  .get('/vapid-key', ({ set }) => {
     const key = pushService.getVapidPublicKey();
     if (!key) {
+      set.status = 503;
       return { error: 'Push notifications non configurées' };
     }
     return { key };
@@ -68,8 +69,9 @@ export const pushRoutes = new Elysia({ prefix: '/api/push' })
       return { error: 'Non authentifié' };
     }
 
-    // Check admin role
-    if ((user as User & { role?: string }).role !== 'admin') {
+    // Defense in depth: even with email verification required, double-check
+    // that the admin's email is verified before granting broadcast power.
+    if (user.role !== 'admin' || !user.emailVerified) {
       set.status = 403;
       return { error: 'Accès refusé' };
     }

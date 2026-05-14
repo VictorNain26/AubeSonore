@@ -1,4 +1,13 @@
-import { pgTable, text, timestamp, unique, boolean, jsonb, index } from 'drizzle-orm/pg-core';
+import {
+  pgTable,
+  text,
+  timestamp,
+  unique,
+  boolean,
+  jsonb,
+  index,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 
 // ─────────────────────────────────────────────
@@ -140,7 +149,9 @@ export const likedTracks = pgTable(
   },
   (table) => ({
     likedTracksUserIdIdx: index('liked_tracks_user_id_idx').on(table.userId),
-    likedTracksUserTitleArtistIdx: index('liked_tracks_user_title_artist_idx').on(
+    // Unique to eliminate the select+insert race on concurrent likes.
+    // Doubles as the lookup index for "is this track liked?" queries.
+    likedTracksUserTitleArtistUnique: uniqueIndex('liked_tracks_user_title_artist_unique').on(
       table.userId,
       table.title,
       table.artist

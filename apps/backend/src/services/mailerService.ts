@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import { readFileSync } from 'fs';
-import { resolve } from 'path';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
 import { htmlToText } from 'html-to-text';
 import { env } from '../config/env';
 
@@ -14,9 +15,11 @@ interface SendMailOptions {
   variables?: MailVariables;
 }
 
-const isProd: boolean = process.env.NODE_ENV === 'production' || process.env.ENV === 'production';
-
-const htmlTemplate = readFileSync(resolve('src/services/templates/mailTemplate.html'), 'utf-8');
+// Resolve template path relative to this source file, not the process CWD.
+// Without this, `bun run apps/backend/src/index.ts` from the monorepo root
+// would silently fail to find the template at module load.
+const here = dirname(fileURLToPath(import.meta.url));
+const htmlTemplate = readFileSync(resolve(here, 'templates/mailTemplate.html'), 'utf-8');
 
 function compileTemplate(template: string, variables: MailVariables = {}): string {
   return template
@@ -34,7 +37,7 @@ const transporter = nodemailer.createTransport({
   host: env.SMTP_HOST,
   port: env.SMTP_PORT,
   secure: env.SMTP_PORT === 465, // implicit TLS on 465
-  requireTLS: isProd && env.SMTP_PORT !== 465, // STARTTLS on 587 in prod
+  requireTLS: env.IS_PROD && env.SMTP_PORT !== 465, // STARTTLS on 587 in prod
   auth: env.SMTP_USER
     ? {
         user: env.SMTP_USER,

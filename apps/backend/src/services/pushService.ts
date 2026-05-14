@@ -26,28 +26,19 @@ export async function subscribe(
   userId: string,
   subscription: { endpoint: string; keys: { p256dh: string; auth: string } }
 ): Promise<void> {
-  // Check if already subscribed with this endpoint
-  const existing = await db
-    .select()
-    .from(schema.pushSubscriptions)
-    .where(
-      and(
-        eq(schema.pushSubscriptions.userId, userId),
-        eq(schema.pushSubscriptions.endpoint, subscription.endpoint)
-      )
-    )
-    .limit(1)
-    .then((res) => res[0]);
-
-  if (existing) return;
-
-  await db.insert(schema.pushSubscriptions).values({
-    id: randomUUID(),
-    userId,
-    endpoint: subscription.endpoint,
-    p256dh: subscription.keys.p256dh,
-    auth: subscription.keys.auth,
-  });
+  // Atomic upsert: relies on the unique constraint on `endpoint` to dedupe
+  // across concurrent inserts (double-tap, retry-on-network). Without this,
+  // a select+insert race produces 23505 unique violations that bubble up as 500s.
+  await db
+    .insert(schema.pushSubscriptions)
+    .values({
+      id: randomUUID(),
+      userId,
+      endpoint: subscription.endpoint,
+      p256dh: subscription.keys.p256dh,
+      auth: subscription.keys.auth,
+    })
+    .onConflictDoNothing({ target: schema.pushSubscriptions.endpoint });
 }
 
 export async function unsubscribe(userId: string, endpoint: string): Promise<void> {
