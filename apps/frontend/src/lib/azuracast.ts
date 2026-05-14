@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { safeParse } from 'valibot';
-import { SSE_URL, STATION_SHORTCODE } from '../utils/config';
+import { STATIC_NOWPLAYING_URL, SSE_URL, STATION_SHORTCODE } from '../utils/config';
 import type { NowPlaying } from '@aubesonore/shared-types/azuracast';
 import { NowPlayingSchema } from './validators/azuracast';
 
@@ -99,6 +99,32 @@ export function useNowPlaying() {
       eventSource.onopen = null;
       eventSource.close();
       reconnectTimeoutRef.current = setTimeout(connect, 3000);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(STATIC_NOWPLAYING_URL);
+        if (res.status === 404) {
+          console.info('[AzuraCast] Static endpoint not available, relying on SSE only');
+          return;
+        }
+        if (!res.ok) return;
+        const json = (await res.json()) as unknown;
+        const parsed = safeParse(NowPlayingSchema, json);
+        if (!parsed.success) {
+          console.error('[AzuraCast] Invalid static payload:', parsed.issues);
+          return;
+        }
+        if (!cancelled) setData(json as NowPlaying);
+      } catch (err) {
+        console.warn('[AzuraCast] Static fetch failed:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
     };
   }, []);
 

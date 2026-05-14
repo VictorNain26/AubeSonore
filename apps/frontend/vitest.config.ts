@@ -8,6 +8,8 @@ export default defineConfig({
     setupFiles: ['./src/mocks/setup.ts'],
     env: {
       VITE_API_URL: 'http://localhost:3000',
+      VITE_AZURACAST_BASE_URL: 'https://radio.aubesonore.fr',
+      VITE_STATION_SHORTCODE: 'aubesonore',
     },
     server: {
       deps: {

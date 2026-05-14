@@ -2,6 +2,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useNowPlaying } from './azuracast';
+import { http, HttpResponse } from 'msw';
+import { server } from '../mocks/server';
 
 class MockEventSource {
   static instances: MockEventSource[] = [];
@@ -93,5 +95,30 @@ describe('useNowPlaying', () => {
     expect(result.current.data).toBeNull();
     expect(errSpy).toHaveBeenCalled();
     errSpy.mockRestore();
+  });
+});
+
+describe('useNowPlaying REST fallback', () => {
+  it('fetches static endpoint on mount and updates data before SSE', async () => {
+    vi.stubGlobal('EventSource', MockEventSource);
+    const { result } = renderHook(() => useNowPlaying());
+    await waitFor(() => {
+      expect(result.current.data?.now_playing.song.title).toBe('Test Title');
+    });
+  });
+
+  it('logs info once if static endpoint 404s, does not error', async () => {
+    server.use(
+      http.get(
+        'https://radio.aubesonore.fr/api/nowplaying_static/aubesonore.json',
+        () => new HttpResponse(null, { status: 404 })
+      )
+    );
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    vi.stubGlobal('EventSource', MockEventSource);
+    const { result } = renderHook(() => useNowPlaying());
+    await waitFor(() => expect(info).toHaveBeenCalled());
+    expect(result.current.error).toBeNull();
+    info.mockRestore();
   });
 });
