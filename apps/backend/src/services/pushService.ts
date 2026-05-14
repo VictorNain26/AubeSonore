@@ -4,17 +4,22 @@ import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { env } from '../config/env';
 
-// Initialize web-push with VAPID keys
-if (env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY) {
+const pushEnabled = Boolean(env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY);
+
+if (pushEnabled) {
   webPush.setVapidDetails(
-    'mailto:contact@aubesonore.com',
-    env.VAPID_PUBLIC_KEY,
-    env.VAPID_PRIVATE_KEY
+    env.VAPID_SUBJECT,
+    env.VAPID_PUBLIC_KEY as string,
+    env.VAPID_PRIVATE_KEY as string
   );
 }
 
 export function getVapidPublicKey(): string | null {
-  return env.VAPID_PUBLIC_KEY || null;
+  return env.VAPID_PUBLIC_KEY ?? null;
+}
+
+export function isPushEnabled(): boolean {
+  return pushEnabled;
 }
 
 export async function subscribe(

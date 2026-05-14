@@ -7,7 +7,7 @@ interface ValidationError {
 }
 
 export function validateBody<T>(
-  schema: BaseSchema<any, T, BaseIssue<unknown>>,
+  schema: BaseSchema<unknown, T, BaseIssue<unknown>>,
   body: unknown
 ): T | ValidationError {
   const result = safeParse(schema, body);

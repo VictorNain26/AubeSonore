@@ -63,7 +63,9 @@ export interface SonglinkResult {
 async function getSonglinkData(url: string): Promise<SonglinkResult | null> {
   try {
     const encodedUrl = encodeURIComponent(url);
-    const response = await fetch(`${SONGLINK_API_BASE}?url=${encodedUrl}&userCountry=FR`);
+    const response = await fetch(`${SONGLINK_API_BASE}?url=${encodedUrl}&userCountry=FR`, {
+      signal: AbortSignal.timeout(5_000),
+    });
 
     if (!response.ok) {
       if (response.status === 404) {

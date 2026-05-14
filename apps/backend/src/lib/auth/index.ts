@@ -7,7 +7,7 @@ import { db } from '../../db/index';
 import { user, session, verification, account } from '../../db/schema';
 import { sendBetterAuthEmail } from './sendBetterAuthEmail';
 
-const isProd: boolean = process.env.NODE_ENV === 'production' || process.env.ENV === 'production';
+const isProd = env.IS_PROD;
 
 export const auth = betterAuth({
   url: env.BETTER_AUTH_URL,
@@ -96,16 +96,24 @@ export const auth = betterAuth({
   },
 
   socialProviders: {
-    google: {
-      clientId: env.GOOGLE_CLIENT_ID ?? '',
-      clientSecret: env.GOOGLE_CLIENT_SECRET ?? '',
-    },
-    spotify: {
-      clientId: process.env.SPOTIFY_CLIENT_ID ?? '',
-      clientSecret: process.env.SPOTIFY_CLIENT_SECRET ?? '',
-      scope: ['user-read-email', 'playlist-modify-private', 'playlist-modify-public'],
-      callbackUrl: `${env.BACKEND_BASE_URL}/api/auth/spotify/callback`,
-    },
+    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+          },
+        }
+      : {}),
+    ...(env.SPOTIFY_CLIENT_ID && env.SPOTIFY_CLIENT_SECRET
+      ? {
+          spotify: {
+            clientId: env.SPOTIFY_CLIENT_ID,
+            clientSecret: env.SPOTIFY_CLIENT_SECRET,
+            scope: ['user-read-email', 'playlist-modify-private', 'playlist-modify-public'],
+            callbackUrl: `${env.BACKEND_BASE_URL}/api/auth/spotify/callback`,
+          },
+        }
+      : {}),
   },
 
   plugins: [admin()],
