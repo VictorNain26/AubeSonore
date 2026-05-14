@@ -1,72 +1,63 @@
 # =============================================================================
-# AubeSonore Backend - Dockerfile for Koyeb Deployment
-# Based on official Node.js + corepack + Bun documentation
+# AubeSonore Backend — Dockerfile for Koyeb
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Stage 1: Dependencies Installation
-# Using node:20-slim with corepack for pnpm (as per pnpm Docker docs)
+# Stage 1: install all workspace deps
 # -----------------------------------------------------------------------------
-FROM node:20-slim AS deps
-
-# Enable corepack for pnpm support (Node.js official method)
+FROM node:22-slim AS deps
 RUN corepack enable pnpm
 
 WORKDIR /app
 
-# Copy only files needed for dependency resolution
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY patches ./patches
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/shared-types/package.json ./packages/shared-types/
-COPY packages/shared-utils/package.json ./packages/shared-utils/
-COPY packages/logger/package.json ./packages/logger/
+COPY packages/core/package.json ./packages/core/
 
-# Install all dependencies (including devDependencies for build)
 RUN pnpm install --frozen-lockfile
 
 # -----------------------------------------------------------------------------
-# Stage 2: Build shared packages
+# Stage 2: build shared packages
 # -----------------------------------------------------------------------------
 FROM deps AS builder
 
-# Copy source files
 COPY packages ./packages
 COPY apps/backend ./apps/backend
 COPY tsconfig.base.json ./
 
-# Build shared packages that export from dist/
 RUN pnpm --filter @aubesonore/shared-types build && \
-    pnpm --filter @aubesonore/shared-utils build
+    pnpm --filter @aubesonore/core build
 
 # -----------------------------------------------------------------------------
-# Stage 3: Production Runtime
-# Using oven/bun:slim for minimal Bun runtime (as per Bun Docker docs)
+# Stage 3: minimal runtime
 # -----------------------------------------------------------------------------
 FROM oven/bun:slim AS runner
+
+# Non-root user (matching apps/backend/Dockerfile convention)
+RUN groupadd --system --gid 1001 bunjs && \
+    useradd --system --uid 1001 --gid bunjs bunjs
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 
-# Copy package files for workspace resolution
 COPY --from=builder /app/package.json ./
 COPY --from=builder /app/pnpm-workspace.yaml ./
-
-# Copy node_modules (pnpm structure)
 COPY --from=builder /app/node_modules ./node_modules
-
-# Copy built shared packages
 COPY --from=builder /app/packages ./packages
-
-# Copy backend application
 COPY --from=builder /app/apps/backend ./apps/backend
 
-# Set working directory to backend
+RUN chown -R bunjs:bunjs /app
+
+USER bunjs
+
 WORKDIR /app/apps/backend
 
-# Expose port
 EXPOSE 3000
 
-# Run with Bun (executes TypeScript directly)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD bun -e "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+
 CMD ["bun", "run", "src/index.ts"]

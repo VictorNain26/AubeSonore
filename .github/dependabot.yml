@@ -1,0 +1,63 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+    open-pull-requests-limit: 5
+    versioning-strategy: 'increase-if-necessary'
+    labels: ['dependencies']
+    groups:
+      types:
+        patterns:
+          - '@types/*'
+      eslint:
+        patterns:
+          - 'eslint'
+          - 'eslint-*'
+          - '@eslint/*'
+          - 'typescript-eslint'
+      drizzle:
+        patterns:
+          - 'drizzle-*'
+      elysia:
+        patterns:
+          - 'elysia'
+          - '@elysiajs/*'
+      radix:
+        patterns:
+          - '@radix-ui/*'
+      expo:
+        patterns:
+          - 'expo'
+          - 'expo-*'
+          - '@expo/*'
+      react-native:
+        patterns:
+          - 'react-native'
+          - 'react-native-*'
+
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    labels: ['ci']
+
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'monthly'
+    labels: ['docker']
+
+  - package-ecosystem: 'docker'
+    directory: '/apps/backend'
+    schedule:
+      interval: 'monthly'
+    labels: ['docker']
+
+  - package-ecosystem: 'docker'
+    directory: '/apps/frontend'
+    schedule:
+      interval: 'monthly'
+    labels: ['docker']
