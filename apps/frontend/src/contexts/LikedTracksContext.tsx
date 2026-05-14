@@ -34,6 +34,12 @@ interface LikedTracksProviderProps {
 
 export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
   const [tracks, setTracks] = useState<LikedTrack[]>([]);
+  // Mirror `tracks` in a ref so callbacks can read the latest value
+  // synchronously without depending on `tracks` (which would invalidate the
+  // memo'd context value on every change and cascade re-renders to all
+  // consumers — Player, AlbumArt, history items, modal).
+  const tracksRef = useRef<LikedTrack[]>([]);
+  tracksRef.current = tracks;
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
@@ -116,35 +122,36 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
     [isAuthenticated]
   );
 
-  // Supprimer un like - Optimistic update
+  // Supprimer un like - Optimistic update.
+  // Reads the current tracks via tracksRef so the callback identity stays
+  // stable (deps = [isAuthenticated] only). React 19 may invoke setState
+  // updaters twice in strict mode, so we capture the snapshot BEFORE the
+  // optimistic removal, not inside the updater.
   const unlikeTrack = useCallback(
     async (trackId: string): Promise<boolean> => {
       if (!isAuthenticated) return false;
 
-      // Sauvegarder pour rollback potentiel
-      const trackToRemove = tracks.find((t) => t.id === trackId);
-      const previousIndex = tracks.findIndex((t) => t.id === trackId);
+      const current = tracksRef.current;
+      const previousIndex = current.findIndex((t) => t.id === trackId);
+      const trackToRemove = previousIndex >= 0 ? current[previousIndex] : undefined;
+      if (!trackToRemove) return false;
 
-      // Retirer immédiatement de l'UI (optimistic)
       setTracks((prev) => prev.filter((t) => t.id !== trackId));
 
       try {
         await trackApi.unlikeTrack(trackId);
         return true;
       } catch (err) {
-        // Rollback: remettre le track à sa position
-        if (trackToRemove) {
-          setTracks((prev) => {
-            const newTracks = [...prev];
-            newTracks.splice(previousIndex, 0, trackToRemove);
-            return newTracks;
-          });
-        }
+        setTracks((prev) => {
+          const newTracks = [...prev];
+          newTracks.splice(previousIndex, 0, trackToRemove);
+          return newTracks;
+        });
         setError(err instanceof Error ? err.message : 'Erreur lors de la suppression');
         return false;
       }
     },
-    [tracks, isAuthenticated]
+    [isAuthenticated]
   );
 
   // Memoized lowercase key set for O(1) lookup. Rebuilt only when tracks change.

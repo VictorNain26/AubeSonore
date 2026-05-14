@@ -145,7 +145,11 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
       }
 
       const result = await trackService.refreshAllLinks({ user });
-      return result;
+      if (result.status && result.error) {
+        set.status = result.status;
+        return { error: result.error };
+      }
+      return { message: result.message, updated: result.updated };
     }
   )
 

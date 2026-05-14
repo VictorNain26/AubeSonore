@@ -1,6 +1,6 @@
 import webPush from 'web-push';
 import { db, schema } from '../db/index';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, inArray, lt } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { env } from '../config/env';
 
@@ -71,6 +71,7 @@ export async function sendToAll(
   const payload = JSON.stringify({ title, body, url: url ?? '/' });
   let sent = 0;
   let failed = 0;
+  const deadSubIds: string[] = [];
 
   for (let i = 0; i < subs.length; i += PUSH_CHUNK_SIZE) {
     const chunk = subs.slice(i, i + PUSH_CHUNK_SIZE);
@@ -88,9 +89,8 @@ export async function sendToAll(
         } catch (err: unknown) {
           const statusCode = (err as { statusCode?: number }).statusCode;
           if (statusCode === 410 || statusCode === 404) {
-            await db
-              .delete(schema.pushSubscriptions)
-              .where(eq(schema.pushSubscriptions.id, sub.id));
+            // Defer deletion so we can batch them into a single DELETE later.
+            deadSubIds.push(sub.id);
           }
           throw err;
         }
@@ -102,5 +102,32 @@ export async function sendToAll(
     }
   }
 
+  // Batch-prune expired subscriptions in one DELETE rather than N round-trips.
+  if (deadSubIds.length > 0) {
+    await db
+      .delete(schema.pushSubscriptions)
+      .where(inArray(schema.pushSubscriptions.id, deadSubIds));
+  }
+
   return { sent, failed };
+}
+
+/**
+ * Periodically delete sessions and verification rows past their expires_at.
+ * Better Auth never purges its own tables, so unbounded growth is the default.
+ */
+export async function purgeExpiredAuthRows(): Promise<{ sessions: number; verifications: number }> {
+  const now = new Date();
+  const sessionsResult = await db
+    .delete(schema.session)
+    .where(lt(schema.session.expiresAt, now))
+    .returning({ id: schema.session.id });
+  const verificationsResult = await db
+    .delete(schema.verification)
+    .where(lt(schema.verification.expiresAt, now))
+    .returning({ id: schema.verification.id });
+  return {
+    sessions: sessionsResult.length,
+    verifications: verificationsResult.length,
+  };
 }

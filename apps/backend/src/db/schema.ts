@@ -156,6 +156,12 @@ export const likedTracks = pgTable(
       table.title,
       table.artist
     ),
+    // Backs the `getLikedTracks` listing (WHERE user_id ORDER BY created_at DESC).
+    // Without this, Postgres does an Index Scan on user_id then an in-memory Sort.
+    likedTracksUserCreatedAtIdx: index('liked_tracks_user_created_at_idx').on(
+      table.userId,
+      table.createdAt
+    ),
   })
 );
 

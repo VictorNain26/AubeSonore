@@ -78,6 +78,8 @@ export function AlbumArt({
               alt={title}
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
+              decoding="async"
+              fetchPriority="high"
               onError={() => setArtError(true)}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
