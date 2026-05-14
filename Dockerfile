@@ -5,7 +5,7 @@
 # -----------------------------------------------------------------------------
 # Stage 1: install all workspace deps
 # -----------------------------------------------------------------------------
-FROM node:22-slim AS deps
+FROM node:26-slim AS deps
 RUN corepack enable pnpm
 
 WORKDIR /app
