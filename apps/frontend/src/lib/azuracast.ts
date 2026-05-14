@@ -36,6 +36,10 @@ interface SSEPubMessage {
 
 type SSEMessage = SSEConnectMessage & SSEPubMessage;
 
+// Module-level guard so we only log the static-endpoint absence once per session
+// (React StrictMode double-mount + HMR would otherwise spam the console in dev).
+let staticEndpointLogged = false;
+
 export function useNowPlaying() {
   const [data, setData] = useState<NowPlaying | null>(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -107,20 +111,28 @@ export function useNowPlaying() {
     void (async () => {
       try {
         const res = await fetch(STATIC_NOWPLAYING_URL);
-        if (res.status === 404) {
-          console.info('[AzuraCast] Static endpoint not available, relying on SSE only');
+        if (res.status === 404 || !res.ok) {
+          if (!staticEndpointLogged) {
+            console.info('[AzuraCast] Static endpoint not available, relying on SSE only');
+            staticEndpointLogged = true;
+          }
           return;
         }
-        if (!res.ok) return;
         const json = (await res.json()) as unknown;
         const parsed = safeParse(NowPlayingSchema, json);
         if (!parsed.success) {
           console.error('[AzuraCast] Invalid static payload:', parsed.issues);
           return;
         }
-        if (!cancelled) setData(json as NowPlaying);
+        if (!cancelled) setData(parsed.output as NowPlaying);
       } catch (err) {
-        console.warn('[AzuraCast] Static fetch failed:', err);
+        if (!staticEndpointLogged) {
+          console.info(
+            '[AzuraCast] Static endpoint unreachable (CORS or network), relying on SSE only:',
+            err
+          );
+          staticEndpointLogged = true;
+        }
       }
     })();
     return () => {
