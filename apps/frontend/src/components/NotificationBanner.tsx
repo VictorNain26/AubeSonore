@@ -18,9 +18,9 @@ export function NotificationBanner() {
 
   const handleEnable = useCallback(() => {
     setIsLoading(true);
-    void subscribe().then((success) => {
+    void subscribe().then((res) => {
       setIsLoading(false);
-      if (success) {
+      if (res.success) {
         setIsDismissed(true);
       }
     });
