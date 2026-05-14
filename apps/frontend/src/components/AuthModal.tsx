@@ -127,7 +127,12 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                   </div>
 
                   {/* Form */}
-                  <form onSubmit={handleSubmit} className="px-6 pb-6 space-y-4">
+                  <form
+                    onSubmit={(e) => {
+                      void handleSubmit(e);
+                    }}
+                    className="px-6 pb-6 space-y-4"
+                  >
                     {mode === 'signup' && (
                       <div className="relative">
                         <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />

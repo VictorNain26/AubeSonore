@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Library,
@@ -48,9 +48,9 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
   const { url: link, isSearch } = getPreferredLink(track, preferredPlatform);
   const selectedPlatform = PLATFORMS.find((p) => p.id === preferredPlatform);
 
-  const handleDelete = async () => {
+  const handleDelete = () => {
     setIsDeleting(true);
-    await onDelete(track.id);
+    void onDelete(track.id);
   };
 
   return (
@@ -97,7 +97,7 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
         </a>
 
         <button
-          onClick={handleDelete}
+          onClick={() => handleDelete()}
           disabled={isDeleting}
           className={cn(
             'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center',
@@ -269,7 +269,7 @@ function OverflowMenu({
               <div className="p-1">
                 <button
                   onClick={() => {
-                    onRefresh();
+                    void onRefresh();
                     setIsOpen(false);
                   }}
                   disabled={isRefreshing}
@@ -281,7 +281,7 @@ function OverflowMenu({
                 <div className="h-px bg-white/5 my-1" />
                 <button
                   onClick={() => {
-                    exportAsCSV(tracks);
+                    void exportAsCSV(tracks);
                     setIsOpen(false);
                   }}
                   className={menuItemClass}
@@ -291,7 +291,7 @@ function OverflowMenu({
                 </button>
                 <button
                   onClick={() => {
-                    exportAsTuneMyMusic(tracks);
+                    void exportAsTuneMyMusic(tracks);
                     setIsOpen(false);
                   }}
                   className={menuItemClass}
@@ -301,7 +301,7 @@ function OverflowMenu({
                 </button>
                 <button
                   onClick={() => {
-                    exportAsSonglinkList(tracks);
+                    void exportAsSonglinkList(tracks);
                     setIsOpen(false);
                   }}
                   className={menuItemClass}
@@ -323,17 +323,33 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const { preferences, updatePlatform } = usePreferences();
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const handleRefreshAll = async () => {
+  const handleRefreshAll = useCallback(() => {
     setIsRefreshing(true);
-    try {
-      await trackApi.refreshAllLinks();
-      toast.success('Liens mis à jour');
-    } catch {
-      toast.error('Erreur lors du rafraîchissement');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
+    void (async () => {
+      try {
+        await trackApi.refreshAllLinks();
+        toast.success('Liens mis à jour');
+      } catch {
+        toast.error('Erreur lors du rafraîchissement');
+      } finally {
+        setIsRefreshing(false);
+      }
+    })();
+  }, []);
+
+  const handleUpdatePlatform = useCallback(
+    (platform: PreferredPlatform) => {
+      void updatePlatform(platform);
+    },
+    [updatePlatform]
+  );
+
+  const handleUnlikeTrack = useCallback(
+    (id: string) => {
+      void unlikeTrack(id);
+    },
+    [unlikeTrack]
+  );
 
   const preferredPlatform = preferences?.preferredPlatform || 'spotify';
 
@@ -428,7 +444,10 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                     {tracks.length > 0 && (
                       <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
                         <span className="text-xs text-white/40">Ouvrir avec</span>
-                        <PlatformSelector selected={preferredPlatform} onChange={updatePlatform} />
+                        <PlatformSelector
+                          selected={preferredPlatform}
+                          onChange={handleUpdatePlatform}
+                        />
                       </div>
                     )}
                   </div>
@@ -448,7 +467,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                             key={track.id}
                             track={track}
                             preferredPlatform={preferredPlatform}
-                            onDelete={unlikeTrack}
+                            onDelete={handleUnlikeTrack}
                           />
                         ))}
                       </div>

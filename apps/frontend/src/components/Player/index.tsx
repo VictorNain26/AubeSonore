@@ -114,7 +114,9 @@ export default function Player() {
   // Stats: tick listening time every 10s while playing
   useEffect(() => {
     if (!isPlaying) return;
-    const id = setInterval(() => tickListeningTime(), 10_000);
+    const id = setInterval(() => {
+      void tickListeningTime();
+    }, 10_000);
     return () => clearInterval(id);
   }, [isPlaying, tickListeningTime]);
 
@@ -122,7 +124,7 @@ export default function Player() {
     if (isPlaying) {
       stop();
     } else {
-      play();
+      void play();
     }
   }, [isPlaying, play, stop]);
 
@@ -254,10 +256,15 @@ export default function Player() {
           isLiked={isCurrentTrackLiked}
           isLiking={likingTrackId === `${nowPlaying?.song.title}-${nowPlaying?.song.artist}`}
           isLive={np?.live.is_live}
-          onToggleLike={() =>
-            nowPlaying &&
-            handleToggleLike(nowPlaying.song.title, nowPlaying.song.artist, nowPlaying.song.art)
-          }
+          onToggleLike={() => {
+            if (nowPlaying) {
+              void handleToggleLike(
+                nowPlaying.song.title,
+                nowPlaying.song.artist,
+                nowPlaying.song.art
+              );
+            }
+          }}
         />
       </div>
 
@@ -388,9 +395,9 @@ export default function Player() {
                   entry={entry}
                   isLiked={isHistoryTrackLiked(entry)}
                   isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
-                  onToggle={() =>
-                    handleToggleLike(entry.song.title, entry.song.artist, entry.song.art)
-                  }
+                  onToggle={() => {
+                    void handleToggleLike(entry.song.title, entry.song.artist, entry.song.art);
+                  }}
                 />
               </motion.div>
             ))}

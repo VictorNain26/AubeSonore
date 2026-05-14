@@ -15,31 +15,33 @@ export function ShareButton({ artUrl, title, artist, trackUrl }: ShareButtonProp
   const [isGenerating, setIsGenerating] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(() => {
     if (!cardRef.current || isGenerating) return;
 
     setIsGenerating(true);
-    try {
-      const blob = await generateShareImage(cardRef.current);
-      const filename = `aubesonore-${title.replace(/\s+/g, '-').toLowerCase()}.png`;
-      const text = trackUrl
-        ? `${title} — ${artist}\n${trackUrl}`
-        : `J'écoute ${title} de ${artist} sur AubeSonore`;
-      await shareOrDownload(blob, filename, {
-        title: `${title} — ${artist}`,
-        text,
-      });
-    } catch (err) {
-      console.error('[ShareButton] Error generating share image:', err);
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [artUrl, title, artist, trackUrl, isGenerating]);
+    void (async () => {
+      try {
+        const blob = await generateShareImage(cardRef.current!);
+        const filename = `aubesonore-${title.replace(/\s+/g, '-').toLowerCase()}.png`;
+        const text = trackUrl
+          ? `${title} — ${artist}\n${trackUrl}`
+          : `J'écoute ${title} de ${artist} sur AubeSonore`;
+        await shareOrDownload(blob, filename, {
+          title: `${title} — ${artist}`,
+          text,
+        });
+      } catch (err) {
+        console.error('[ShareButton] Error generating share image:', err);
+      } finally {
+        setIsGenerating(false);
+      }
+    })();
+  }, [title, artist, trackUrl, isGenerating]);
 
   return (
     <>
       <button
-        onClick={handleShare}
+        onClick={() => handleShare()}
         disabled={isGenerating}
         className={cn(
           'p-2.5 sm:p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer',

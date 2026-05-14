@@ -22,9 +22,10 @@ export default function Layout({ children }: LayoutProps) {
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
 
-  const handleSignOut = async () => {
-    await signOut();
-    setIsUserMenuOpen(false);
+  const handleSignOut = () => {
+    void signOut().then(() => {
+      setIsUserMenuOpen(false);
+    });
   };
 
   return (
@@ -109,7 +110,7 @@ export default function Layout({ children }: LayoutProps) {
                         {/* Logout */}
                         <div className="p-1">
                           <button
-                            onClick={handleSignOut}
+                            onClick={() => handleSignOut()}
                             className={cn(
                               'w-full flex items-center gap-2 px-3 py-2 rounded-lg',
                               'text-red-400 hover:text-red-300 hover:bg-white/5',

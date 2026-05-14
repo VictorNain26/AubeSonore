@@ -25,13 +25,15 @@ function PWAInstallBanner() {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  const handleInstall = useCallback(async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-    }
+  const handleInstall = useCallback(() => {
+    void (async () => {
+      if (!deferredPrompt) return;
+      await deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setDeferredPrompt(null);
+      }
+    })();
   }, [deferredPrompt]);
 
   const handleDismiss = useCallback(() => {

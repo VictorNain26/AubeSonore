@@ -22,7 +22,7 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
   // Initialize smoothed data array
   useEffect(() => {
     if (smoothedDataRef.current.length !== barsCount) {
-      smoothedDataRef.current = new Array(barsCount).fill(0.3);
+      smoothedDataRef.current = new Array(barsCount).fill(0.3) as number[];
     }
   }, []);
 
