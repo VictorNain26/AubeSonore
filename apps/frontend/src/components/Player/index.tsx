@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '../../lib/player';
 import { useNowPlaying, type SongEntry } from '../../lib/azuracast';
-import { useLikedTracks } from '../../hooks/useLikedTracks';
+import { useLikedTracksContext as useLikedTracks } from '../../contexts/LikedTracksContext';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 

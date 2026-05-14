@@ -1,6 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { ENV } from '../config/env';
-import { createTrackApi, createArtistApi, createPreferencesApi } from '@aubesonore/core/api';
+import { createTrackApi, createPreferencesApi } from '@aubesonore/core/api';
 import type { ApiClient } from '@aubesonore/core/api';
 import type { AuthResponse } from '../types';
 
@@ -19,11 +19,11 @@ export async function getAuthToken(): Promise<string | null> {
   }
 }
 
-export async function setAuthToken(token: string): Promise<void> {
+async function setAuthToken(token: string): Promise<void> {
   await SecureStore.setItemAsync(AUTH_TOKEN_KEY, token);
 }
 
-export async function removeAuthToken(): Promise<void> {
+async function removeAuthToken(): Promise<void> {
   await SecureStore.deleteItemAsync(AUTH_TOKEN_KEY);
 }
 
@@ -134,11 +134,7 @@ async function fetchApi<T>(endpoint: string, options: FetchApiOptions = {}): Pro
 const apiClient: ApiClient = { fetch: fetchApi };
 
 export const trackApi = createTrackApi(apiClient);
-export const artistApi = createArtistApi(apiClient);
 export const preferencesApi = createPreferencesApi(apiClient);
-
-// Re-export ArtistInfo for consumers that import from here
-export type { ArtistInfo } from '@aubesonore/shared-types/client';
 
 // ─────────────────────────────────────────────
 // Auth API (platform-specific — uses SecureStore tokens)

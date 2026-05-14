@@ -13,7 +13,7 @@ import {
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useLikedTracks } from '../hooks/useLikedTracks';
+import { useLikedTracksContext as useLikedTracks } from '../contexts/LikedTracksContext';
 import { usePreferences, PLATFORMS } from '../hooks/usePreferences';
 import type { LikedTrack, PreferredPlatform } from '../lib/api';
 import { trackApi } from '../lib/api';

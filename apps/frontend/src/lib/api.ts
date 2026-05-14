@@ -1,27 +1,16 @@
 import { API_BASE_URL } from '../utils/config';
-import { createTrackApi, createArtistApi, createPreferencesApi } from '@aubesonore/core/api';
+import { createTrackApi, createPreferencesApi } from '@aubesonore/core/api';
 import type { ApiClient } from '@aubesonore/core/api';
 import type { AuthResponse } from '@aubesonore/shared-types/client';
 
-// Re-export shared types so existing imports keep working
 export type {
   ClientLikedTrack as LikedTrack,
-  PlatformLinks,
   PreferredPlatform,
   UserPreferences,
   LikeTrackRequest,
-  CheckLikedRequest,
-  CheckLikedResponse,
-  AuthResponse,
-  ArtistInfo,
 } from '@aubesonore/shared-types/client';
 
-// Also re-export User/Session for consumers that import from here
-export type { User, Session } from '@aubesonore/shared-types/client';
-
-// ─────────────────────────────────────────────
-// API Client
-// ─────────────────────────────────────────────
+export type { User } from '@aubesonore/shared-types/client';
 
 async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -43,37 +32,8 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
 
 const apiClient: ApiClient = { fetch: fetchApi };
 
-// ─────────────────────────────────────────────
-// Shared API endpoints (from @aubesonore/core)
-// ─────────────────────────────────────────────
-
 export const trackApi = createTrackApi(apiClient);
-export const artistApi = createArtistApi(apiClient);
 export const preferencesApi = createPreferencesApi(apiClient);
-
-// ─────────────────────────────────────────────
-// Push API (frontend-only)
-// ─────────────────────────────────────────────
-
-export const pushApi = {
-  getVapidKey: (): Promise<{ key: string }> => fetchApi('/api/push/vapid-key'),
-
-  subscribe: (subscription: PushSubscriptionJSON): Promise<{ message: string }> =>
-    fetchApi('/api/push/subscribe', {
-      method: 'POST',
-      body: JSON.stringify(subscription),
-    }),
-
-  unsubscribe: (endpoint: string): Promise<{ message: string }> =>
-    fetchApi('/api/push/unsubscribe', {
-      method: 'DELETE',
-      body: JSON.stringify({ endpoint }),
-    }),
-};
-
-// ─────────────────────────────────────────────
-// Auth API (platform-specific — uses cookies)
-// ─────────────────────────────────────────────
 
 export const authApi = {
   getSession: async (): Promise<AuthResponse | null> => {

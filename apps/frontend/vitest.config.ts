@@ -6,7 +6,6 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     environmentMatchGlobs: [['src/**/*.tsx', 'jsdom']],
-    setupFiles: ['./vitest.setup.ts'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],

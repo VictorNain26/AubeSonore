@@ -8,8 +8,6 @@ interface EnvConfig {
   GOOGLE_CLIENT_ID: string | undefined;
   GOOGLE_CLIENT_SECRET: string | undefined;
   ALLOWED_ORIGINS: string[];
-  SPOTIFY_DELAY_MS: number;
-  ENABLE_CRON: boolean;
   COOKIE_DOMAIN: string | undefined;
   LASTFM_API_KEY: string | undefined;
   VAPID_PUBLIC_KEY: string | undefined;
@@ -33,8 +31,6 @@ export const env: EnvConfig = {
   ALLOWED_ORIGINS: Bun.env.ALLOWED_ORIGINS
     ? Bun.env.ALLOWED_ORIGINS.split(',').map((origin: string) => origin.trim())
     : ['http://localhost:8080'],
-  SPOTIFY_DELAY_MS: Bun.env.SPOTIFY_DELAY_MS ? parseInt(Bun.env.SPOTIFY_DELAY_MS, 10) : 500,
-  ENABLE_CRON: Bun.env.ENABLE_CRON === 'true',
   COOKIE_DOMAIN: Bun.env.COOKIE_DOMAIN,
   LASTFM_API_KEY: Bun.env.LASTFM_API_KEY,
   VAPID_PUBLIC_KEY: Bun.env.VAPID_PUBLIC_KEY,

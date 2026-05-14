@@ -5,7 +5,6 @@ import type {
   CheckLikedResponse,
   UserPreferences,
   PreferredPlatform,
-  ArtistInfo,
 } from '@aubesonore/shared-types/client';
 
 export interface ApiClient {
@@ -49,15 +48,6 @@ export function createTrackApi(client: ApiClient): {
       client.fetch('/api/track/refresh-all-links', {
         method: 'POST',
       }),
-  };
-}
-
-export function createArtistApi(client: ApiClient): {
-  getInfo: (name: string) => Promise<ArtistInfo>;
-} {
-  return {
-    getInfo: (name: string): Promise<ArtistInfo> =>
-      client.fetch(`/api/artist?name=${encodeURIComponent(name)}`),
   };
 }
 
