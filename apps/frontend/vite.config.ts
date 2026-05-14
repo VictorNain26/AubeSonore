@@ -62,7 +62,7 @@ export default defineConfig(({ mode }) => {
         },
       }),
       visualizer({
-        filename: 'dist/stats.html',
+        filename: 'stats.html',
         emitFile: true,
         gzipSize: true,
         brotliSize: true,
