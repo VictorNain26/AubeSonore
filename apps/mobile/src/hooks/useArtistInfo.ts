@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
+import { LruCache } from '@aubesonore/core/lru-cache';
 import { ENV } from '../config/env';
 import type { ArtistInfo } from '@aubesonore/shared-types/client';
 
 export type { ArtistInfo } from '@aubesonore/shared-types/client';
 
-const cache = new Map<string, ArtistInfo>();
+const cache = new LruCache<string, ArtistInfo>(100);
 
 export function useArtistInfo(artistName: string | undefined) {
   const [data, setData] = useState<ArtistInfo | null>(null);

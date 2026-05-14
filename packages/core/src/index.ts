@@ -16,3 +16,6 @@ export type { ApiClient } from './api.js';
 // Share utilities
 export { getSearchUrl, getPreferredLink, getTrackShareUrl, buildShareText } from './share.js';
 export type { ShareableTrack } from './share.js';
+
+// LRU cache
+export { LruCache } from './lruCache.js';

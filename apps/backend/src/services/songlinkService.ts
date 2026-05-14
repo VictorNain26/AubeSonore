@@ -9,8 +9,8 @@ import { TtlCache } from '../lib/cache/ttlCache';
 
 const SONGLINK_API_BASE = 'https://api.song.link/v1-alpha.1/links';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-const songlinkCache = new TtlCache<SonglinkResult | null>(SEVEN_DAYS_MS);
-const itunesCache = new TtlCache<string | null>(SEVEN_DAYS_MS);
+export const songlinkCache = new TtlCache<SonglinkResult | null>(SEVEN_DAYS_MS);
+export const itunesCache = new TtlCache<string | null>(SEVEN_DAYS_MS);
 
 interface SonglinkPlatform {
   url: string;

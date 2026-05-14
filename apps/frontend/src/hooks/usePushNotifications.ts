@@ -41,10 +41,17 @@ export function usePushNotifications() {
   useEffect(() => {
     if (!state.isSupported) return;
 
-    navigator.serviceWorker.ready.then(async (registration) => {
+    let cancelled = false;
+    void (async (): Promise<void> => {
+      const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
+      if (cancelled) return;
       setState((s) => ({ ...s, isSubscribed: !!subscription }));
-    });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [state.isSupported]);
 
   const subscribe = useCallback(async (): Promise<boolean> => {

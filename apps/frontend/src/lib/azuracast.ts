@@ -87,9 +87,11 @@ export function useNowPlaying() {
     eventSource.onerror = () => {
       setIsConnected(false);
       setError('Connexion perdue');
+      // Detach handlers before close to prevent re-fire creating a parallel reconnect.
+      eventSource.onerror = null;
+      eventSource.onmessage = null;
+      eventSource.onopen = null;
       eventSource.close();
-
-      // Reconnexion automatique après 3s
       reconnectTimeoutRef.current = setTimeout(connect, 3000);
     };
   }, []);
@@ -99,10 +101,15 @@ export function useNowPlaying() {
 
     return () => {
       if (eventSourceRef.current) {
+        eventSourceRef.current.onerror = null;
+        eventSourceRef.current.onmessage = null;
+        eventSourceRef.current.onopen = null;
         eventSourceRef.current.close();
+        eventSourceRef.current = null;
       }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
       }
     };
   }, [connect]);
