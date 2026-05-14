@@ -124,9 +124,7 @@ export const likedTracks = pgTable(
     artist: text('artist').notNull(),
     album: text('album'),
 
-    // Artwork — URL originale + backup base64 historique (deprecated, voir Phase 5)
     artworkUrl: text('artwork_url'),
-    artworkBase64: text('artwork_base64'),
 
     youtubeUrl: text('youtube_url').notNull(),
     isrc: text('isrc'),

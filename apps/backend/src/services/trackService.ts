@@ -3,7 +3,6 @@ import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { User, LikedTrack, PlatformLinks } from '../db/schema';
 import { searchSonglink } from './songlinkService';
-import { downloadImageAsBase64 } from './imageService';
 
 // ─────────────────────────────────────────────
 // Types
@@ -58,7 +57,7 @@ export async function likeTrack({
 
   const trackId = randomUUID();
 
-  // 🚀 FAST INSERT - Données minimales, réponse immédiate
+  // Fast insert — minimal payload, immediate response.
   const [likedTrack] = await db
     .insert(schema.likedTracks)
     .values({
@@ -68,11 +67,10 @@ export async function likeTrack({
       artist,
       album: album || null,
       artworkUrl: artworkUrl || null,
-      artworkBase64: null, // Enrichi en background
       youtubeUrl,
       isrc: isrc || null,
-      songlinkUrl: null, // Enrichi en background
-      platformLinks: null, // Enrichi en background
+      songlinkUrl: null,
+      platformLinks: null,
     })
     .returning();
 
@@ -80,8 +78,8 @@ export async function likeTrack({
     return { status: 500, error: 'Failed to like track' };
   }
 
-  // 🔄 BACKGROUND ENRICHMENT - Non-bloquant
-  enrichTrackInBackground(trackId, title, artist, artworkUrl).catch((err) => {
+  // Background enrichment — non-blocking Songlink lookup.
+  void enrichTrackInBackground(trackId, title, artist).catch((err: unknown) => {
     console.error(`[enrichTrackInBackground] Error for track ${trackId}:`, err);
   });
 
@@ -91,69 +89,30 @@ export async function likeTrack({
   };
 }
 
-// ─────────────────────────────────────────────
-// Enrichissement asynchrone (non-bloquant)
-// ─────────────────────────────────────────────
-
 async function enrichTrackInBackground(
   trackId: string,
   title: string,
-  artist: string,
-  artworkUrl: string | undefined
+  artist: string
 ): Promise<void> {
-  const updates: Partial<{
-    artworkBase64: string;
-    songlinkUrl: string;
-    platformLinks: PlatformLinks;
-  }> = {};
+  const songlinkData = await searchSonglink(title, artist);
+  if (!songlinkData) return;
 
-  // Télécharger la cover et récupérer les liens en parallèle
-  const [imageResult, songlinkData] = await Promise.all([
-    artworkUrl ? downloadImageAsBase64(artworkUrl) : Promise.resolve(null),
-    searchSonglink(title, artist),
-  ]);
+  const updates: Partial<{ songlinkUrl: string; platformLinks: PlatformLinks }> = {
+    songlinkUrl: songlinkData.pageUrl,
+    platformLinks: songlinkData.platformLinks,
+  };
 
-  if (imageResult?.base64) {
-    updates.artworkBase64 = imageResult.base64;
-  }
-
-  if (songlinkData) {
-    updates.songlinkUrl = songlinkData.pageUrl;
-    updates.platformLinks = songlinkData.platformLinks;
-  }
-
-  if (Object.keys(updates).length > 0) {
-    await db.update(schema.likedTracks).set(updates).where(eq(schema.likedTracks.id, trackId));
-    console.log(`[enrichTrackInBackground] Track ${trackId} enriched with:`, Object.keys(updates));
-  }
+  await db.update(schema.likedTracks).set(updates).where(eq(schema.likedTracks.id, trackId));
 }
 
-// ─────────────────────────────────────────────
-// Récupérer les morceaux likés (projection sans artworkBase64 pour alléger le payload)
-// ─────────────────────────────────────────────
+export type LikedTrackListItem = LikedTrack;
 
-export type LikedTrackListItem = Omit<LikedTrack, 'artworkBase64'>;
-
-export async function getLikedTracks({ user }: { user: User }): Promise<LikedTrackListItem[]> {
-  const tracks = await db
-    .select({
-      id: schema.likedTracks.id,
-      title: schema.likedTracks.title,
-      artist: schema.likedTracks.artist,
-      album: schema.likedTracks.album,
-      artworkUrl: schema.likedTracks.artworkUrl,
-      youtubeUrl: schema.likedTracks.youtubeUrl,
-      isrc: schema.likedTracks.isrc,
-      songlinkUrl: schema.likedTracks.songlinkUrl,
-      platformLinks: schema.likedTracks.platformLinks,
-      createdAt: schema.likedTracks.createdAt,
-      userId: schema.likedTracks.userId,
-    })
+export async function getLikedTracks({ user }: { user: User }): Promise<LikedTrack[]> {
+  return db
+    .select()
     .from(schema.likedTracks)
     .where(eq(schema.likedTracks.userId, user.id))
     .orderBy(schema.likedTracks.createdAt);
-
-  return tracks;
 }
 
 // ─────────────────────────────────────────────

@@ -47,7 +47,6 @@ export interface ClientLikedTrack {
   artist: string;
   album?: string | null;
   artworkUrl?: string | null;
-  artworkBase64?: string | null;
   youtubeUrl: string;
   isrc?: string | null;
   songlinkUrl?: string | null;

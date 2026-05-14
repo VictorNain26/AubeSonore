@@ -57,7 +57,6 @@ export const useLikedTracksStore = create<LikedTracksStore>((set, get) => ({
       artist: data.artist,
       album: null,
       artworkUrl: data.artworkUrl || null,
-      artworkBase64: null,
       youtubeUrl: data.youtubeUrl,
       isrc: null,
       songlinkUrl: null,

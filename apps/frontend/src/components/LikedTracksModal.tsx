@@ -44,7 +44,7 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
   const [imgError, setImgError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const artwork = imgError ? null : track.artworkBase64 || track.artworkUrl;
+  const artwork = imgError ? null : track.artworkUrl;
   const { url: link, isSearch } = getPreferredLink(track, preferredPlatform);
   const selectedPlatform = PLATFORMS.find((p) => p.id === preferredPlatform);
 
