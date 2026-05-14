@@ -8,7 +8,7 @@ import path from 'path';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
-  const apiBaseUrl = env.VITE_API_BASE_URL;
+  const apiBaseUrl = env.VITE_API_URL;
 
   return {
     base: './',

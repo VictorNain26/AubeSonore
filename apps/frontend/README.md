@@ -18,7 +18,7 @@ Cette application permet d’écouter la radio en streaming, de liker des morcea
    pnpm install
    ```
 2. Copiez `.env.exemple` vers `.env` puis renseignez :
-   - `VITE_API_BASE_URL` : URL de l’API backend
+   - `VITE_API_URL` : URL de l’API backend
    - `VITE_AZURACAST_BASE_URL` : URL de votre serveur AzuraCast
    - `VITE_SITE_BASE_URL` : URL publique du site
 
