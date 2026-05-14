@@ -1,5 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+type AudioListener = (e?: Event) => void;
 
 class MockAudio {
   src = '';
@@ -10,7 +12,13 @@ class MockAudio {
   pause = vi.fn();
   load = vi.fn();
   setAttribute = vi.fn();
-  addEventListener = vi.fn();
+  private listeners: Record<string, AudioListener[]> = {};
+  addEventListener = vi.fn((event: string, cb: AudioListener) => {
+    (this.listeners[event] ??= []).push(cb);
+  });
+  emit(event: string) {
+    (this.listeners[event] ?? []).forEach((cb) => cb());
+  }
 }
 
 let mockAudioInstance: MockAudio;
@@ -18,7 +26,6 @@ let mockAudioInstance: MockAudio;
 beforeEach(() => {
   vi.resetModules();
   mockAudioInstance = new MockAudio();
-
   vi.stubGlobal(
     'Audio',
     vi.fn().mockImplementation(function () {
@@ -27,7 +34,6 @@ beforeEach(() => {
   );
   vi.stubGlobal(
     'AudioContext',
-
     vi.fn().mockImplementation(function () {
       return {
         createAnalyser: () => ({ connect: vi.fn(), fftSize: 0, smoothingTimeConstant: 0 }),
@@ -38,6 +44,10 @@ beforeEach(() => {
       };
     })
   );
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('player store', () => {
@@ -80,5 +90,62 @@ describe('player store', () => {
     expect(usePlayer.getState().volume).toBe(1);
     usePlayer.getState().setVolume(-0.5);
     expect(usePlayer.getState().volume).toBe(0);
+  });
+});
+
+describe('player resilience (stream auto-recovery)', () => {
+  it("reconnects when the live stream emits 'ended'", async () => {
+    vi.useFakeTimers();
+    const { usePlayer } = await import('./player');
+    await usePlayer.getState().play();
+    const callsBefore = mockAudioInstance.play.mock.calls.length;
+    mockAudioInstance.emit('ended');
+    // First backoff slot is 500ms
+    await vi.advanceTimersByTimeAsync(600);
+    expect(mockAudioInstance.play.mock.calls.length).toBeGreaterThan(callsBefore);
+  });
+
+  it("reconnects when the audio element emits 'error'", async () => {
+    vi.useFakeTimers();
+    const { usePlayer } = await import('./player');
+    await usePlayer.getState().play();
+    const callsBefore = mockAudioInstance.play.mock.calls.length;
+    mockAudioInstance.emit('error');
+    await vi.advanceTimersByTimeAsync(600);
+    expect(mockAudioInstance.play.mock.calls.length).toBeGreaterThan(callsBefore);
+  });
+
+  it("forces reconnect after sustained 'waiting' (>1.5s without 'playing')", async () => {
+    vi.useFakeTimers();
+    const { usePlayer } = await import('./player');
+    await usePlayer.getState().play();
+    const callsBefore = mockAudioInstance.play.mock.calls.length;
+    mockAudioInstance.emit('waiting');
+    // Grace period 1.5s + first backoff 500ms = 2s
+    await vi.advanceTimersByTimeAsync(2_100);
+    expect(mockAudioInstance.play.mock.calls.length).toBeGreaterThan(callsBefore);
+  });
+
+  it("does NOT reconnect if 'playing' fires before the stall timer", async () => {
+    vi.useFakeTimers();
+    const { usePlayer } = await import('./player');
+    await usePlayer.getState().play();
+    const callsBefore = mockAudioInstance.play.mock.calls.length;
+    mockAudioInstance.emit('waiting');
+    await vi.advanceTimersByTimeAsync(500); // mid-grace
+    mockAudioInstance.emit('playing'); // buffer refilled
+    await vi.advanceTimersByTimeAsync(3_000); // way past where reconnect would have fired
+    expect(mockAudioInstance.play.mock.calls.length).toBe(callsBefore);
+  });
+
+  it('stop() cancels pending auto-recovery', async () => {
+    vi.useFakeTimers();
+    const { usePlayer } = await import('./player');
+    await usePlayer.getState().play();
+    const callsBefore = mockAudioInstance.play.mock.calls.length;
+    mockAudioInstance.emit('ended');
+    usePlayer.getState().stop();
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(mockAudioInstance.play.mock.calls.length).toBe(callsBefore);
   });
 });
