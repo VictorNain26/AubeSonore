@@ -17,6 +17,11 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
   const timeRef = useRef<number>(0);
   const frequencyDataRef = useRef<Uint8Array | null>(null);
   const smoothedDataRef = useRef<number[]>([]);
+  // Read `progress` via a ref inside the rAF loop so the effect does NOT
+  // tear-down/re-setup 60 times per second when the parent's elapsed timer ticks.
+  // Without this, every progress update cancels and re-arms the animation frame.
+  const progressRef = useRef(progress);
+  progressRef.current = progress;
   const barsCount = 48;
 
   // Initialize smoothed data array
@@ -48,7 +53,8 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
 
       const barWidth = width / barsCount;
       const gap = 3;
-      const progressX = (progress / 100) * width;
+      const currentProgress = progressRef.current;
+      const progressX = (currentProgress / 100) * width;
 
       // Get real audio data when playing
       const analyser = getAnalyser();
@@ -158,7 +164,7 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
       }
 
       // Ligne de progression (curseur)
-      if (progress > 0 && progress < 100) {
+      if (currentProgress > 0 && currentProgress < 100) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
         ctx.shadowBlur = 6;
@@ -176,7 +182,7 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
     return () => {
       cancelAnimationFrame(animationRef.current);
     };
-  }, [isPlaying, progress, songId]);
+  }, [isPlaying, songId]);
 
   return <canvas ref={canvasRef} width={384} height={48} className="w-full h-12" />;
 }

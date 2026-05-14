@@ -12,8 +12,12 @@ interface ArtistInfo {
 const POSITIVE_TTL_MS = 24 * 60 * 60 * 1000;
 // "Not found" is the long-term truth for misspellings/unknown artists.
 const NEGATIVE_TTL_MS = 6 * 60 * 60 * 1000;
+// Circuit breaker: skip Last.fm entirely for this long after a 429.
+// Prevents amplification when the API is rate-limiting us.
+const CIRCUIT_OPEN_MS = 60 * 1000;
 
 export const lastfmCache = new TtlCache<ArtistInfo | null>(POSITIVE_TTL_MS);
+let circuitOpenUntil = 0;
 
 export async function getArtistInfo(name: string): Promise<ArtistInfo | null> {
   const cacheKey = name.toLowerCase();
@@ -22,6 +26,12 @@ export async function getArtistInfo(name: string): Promise<ArtistInfo | null> {
 
   if (!env.LASTFM_API_KEY) {
     console.warn('[LastFM] No API key configured');
+    return null;
+  }
+
+  if (Date.now() < circuitOpenUntil) {
+    // We've been throttled recently; do not hit Last.fm again until the
+    // breaker closes. Caller gets null and the UI degrades gracefully.
     return null;
   }
 
@@ -36,13 +46,18 @@ export async function getArtistInfo(name: string): Promise<ArtistInfo | null> {
     return null;
   }
 
+  if (response.status === 429) {
+    circuitOpenUntil = Date.now() + CIRCUIT_OPEN_MS;
+    console.warn('[LastFM] 429 received, opening circuit for', CIRCUIT_OPEN_MS, 'ms');
+    return null;
+  }
   if (response.status === 404 || response.status === 400) {
     // Authoritative "not found" — safe to cache with a shorter TTL than success.
     lastfmCache.set(cacheKey, null, NEGATIVE_TTL_MS);
     return null;
   }
   if (!response.ok) {
-    // 5xx, 429, etc. — server problem, don't cache the failure.
+    // 5xx, etc. — server problem, don't cache the failure.
     console.warn('[LastFM] Non-OK response:', response.status);
     return null;
   }

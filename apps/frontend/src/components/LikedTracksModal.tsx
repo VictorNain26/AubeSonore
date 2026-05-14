@@ -63,6 +63,8 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
             alt={track.title}
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
+            loading="lazy"
+            decoding="async"
             onError={() => setImgError(true)}
           />
         ) : (

@@ -196,12 +196,31 @@ export async function getLikedTrackByTitleArtist({
 
 const REFRESH_CHUNK_SIZE = 5;
 const REFRESH_CHUNK_DELAY_MS = 500;
+// Per-user cooldown between full refreshes. The route triggers up to N
+// external API chains; without this, a user could spam-amplify traffic to
+// Songlink / iTunes. In-memory is fine for the current single-replica
+// backend; would need to move to Redis for multi-instance scaling.
+const REFRESH_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const lastRefreshByUser = new Map<string, number>();
 
 export async function refreshAllLinks({
   user,
 }: {
   user: User;
-}): Promise<{ message: string; updated: number }> {
+}): Promise<{ message: string; updated: number; status?: number; error?: string }> {
+  const last = lastRefreshByUser.get(user.id);
+  if (last !== undefined && Date.now() - last < REFRESH_COOLDOWN_MS) {
+    const remainingMs = REFRESH_COOLDOWN_MS - (Date.now() - last);
+    const remainingHours = Math.ceil(remainingMs / (60 * 60 * 1000));
+    return {
+      message: '',
+      updated: 0,
+      status: 429,
+      error: `Patientez ${remainingHours}h avant le prochain rafraîchissement global`,
+    };
+  }
+  lastRefreshByUser.set(user.id, Date.now());
+
   const tracks = await db
     .select({
       id: schema.likedTracks.id,
@@ -270,17 +289,20 @@ export async function refreshTrackLinks({
     return { status: 400, error: 'Impossible de récupérer les liens pour ce morceau' };
   }
 
+  // Re-check userId in the UPDATE to close the TOCTOU window between the SELECT
+  // above and this UPDATE: if the row was deleted/transferred in between, we
+  // return cleanly rather than touching another user's track.
   const [updatedTrack] = await db
     .update(schema.likedTracks)
     .set({
       songlinkUrl: songlinkData.pageUrl,
       platformLinks: songlinkData.platformLinks,
     })
-    .where(eq(schema.likedTracks.id, id))
+    .where(and(eq(schema.likedTracks.id, id), eq(schema.likedTracks.userId, user.id)))
     .returning();
 
   if (!updatedTrack) {
-    return { status: 500, error: 'Failed to update track links' };
+    return { status: 404, error: 'Morceau non trouvé' };
   }
 
   return {

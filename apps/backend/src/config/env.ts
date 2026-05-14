@@ -12,6 +12,10 @@ interface EnvConfig {
 
   // Database
   DATABASE_URL: string;
+  /** Optional Postgres CA cert (PEM, single-line with \n) for full TLS verification. */
+  DATABASE_CA_CERT: string | undefined;
+  /** Optional pool size override. Defaults to 10 (safe on Railway eco-small). */
+  DATABASE_POOL_MAX: number;
 
   // Auth
   BETTER_AUTH_SECRET: string;
@@ -85,6 +89,8 @@ export const env: EnvConfig = {
   IS_PROD: isProd,
 
   DATABASE_URL: required('DATABASE_URL'),
+  DATABASE_CA_CERT: optional('DATABASE_CA_CERT')?.replace(/\\n/g, '\n'),
+  DATABASE_POOL_MAX: parseInteger('DATABASE_POOL_MAX', 10),
 
   BETTER_AUTH_SECRET: required('BETTER_AUTH_SECRET'),
   BETTER_AUTH_URL: required('BETTER_AUTH_URL'),

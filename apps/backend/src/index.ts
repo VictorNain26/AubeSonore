@@ -12,6 +12,7 @@ import { artistRoutes } from './routes/artist.routes';
 import { pushRoutes } from './routes/push.routes';
 import { songlinkCache, itunesCache } from './services/songlinkService';
 import { lastfmCache } from './services/lastfmService';
+import { purgeExpiredAuthRows } from './services/pushService';
 
 // Apply pending DB migrations BEFORE serving traffic. The runner tracks
 // applied migrations in __app_migrations and is idempotent across restarts.
@@ -27,6 +28,25 @@ try {
 songlinkCache.startSweep();
 itunesCache.startSweep();
 lastfmCache.startSweep();
+
+// Periodic purge of Better Auth's expired session/verification rows.
+// Without this they accumulate indefinitely — Better Auth does not self-clean.
+// 6h interval is enough; the table query is O(rows-deleted) via index.
+const AUTH_PURGE_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const purgeTimer = setInterval(() => {
+  purgeExpiredAuthRows()
+    .then((res) => {
+      if (res.sessions > 0 || res.verifications > 0) {
+        logger.info('auth purge', res);
+      }
+    })
+    .catch((err: unknown) => {
+      logger.error('auth purge failed', { err: (err as Error).message });
+    });
+}, AUTH_PURGE_INTERVAL_MS);
+if (typeof purgeTimer === 'object' && purgeTimer !== null && 'unref' in purgeTimer) {
+  (purgeTimer as { unref: () => void }).unref();
+}
 
 const app = new Elysia()
   // Per-request start time, available to onAfterHandle via context.
