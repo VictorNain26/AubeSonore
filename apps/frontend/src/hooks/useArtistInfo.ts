@@ -45,6 +45,10 @@ export function useArtistInfo(artistName: string | undefined) {
 
     clearTimeout(scheduleRef.current);
     scheduleRef.current = setTimeout(() => {
+      // Drop the previous artist's data immediately — otherwise the cache miss
+      // path renders `fetchedData` (which still holds the prior artist's bio)
+      // for one frame before the new fetch resolves, causing a flicker.
+      setFetchedData(null);
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;

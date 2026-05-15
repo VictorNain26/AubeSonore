@@ -27,9 +27,11 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         injectRegister: 'auto',
         injectManifest: {
-          // resvg-wasm ships a ~2.5 MB wasm chunk; default cap is 2 MiB.
-          // We precache it so offline share-image generation keeps working.
-          maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+          // Exclude resvg's ~2.5 MB wasm from the install-time precache —
+          // shares are an explicit user action, so paying that bandwidth
+          // upfront for every PWA install is wasteful. The wasm is cached
+          // at runtime on first share (see src/sw.ts: registerRoute *.wasm).
+          globIgnores: ['**/*.wasm'],
         },
         includeAssets: [
           'favicon.png',

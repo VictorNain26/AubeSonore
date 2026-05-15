@@ -19,7 +19,7 @@ export function useTrackChangeEvents(
   const prevShIdRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    if (shId && shId !== prevShIdRef.current) {
+    if (shId !== undefined && shId !== prevShIdRef.current) {
       if (prevShIdRef.current !== undefined) {
         sleepTimerTrigger();
         if (artist && title) {
