@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { BarChart3, Clock, Disc3, Flame, Users } from 'lucide-react';
+import { memo, useMemo } from 'react';
+import { BarChart3, Clock, Disc3, Flame, Users, X } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,7 @@ interface StatsModalProps {
   onClose: () => void;
 }
 
-function StatCard({
+const StatCard = memo(function StatCard({
   icon: Icon,
   label,
   value,
@@ -21,12 +21,12 @@ function StatCard({
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5 p-3 rounded-xl bg-white/[0.03] border border-white/5">
-      <Icon className="w-4 h-4 text-purple-400/80" />
+      <Icon className="w-4 h-4 text-accent" />
       <span className="text-lg font-medium text-white tabular-nums">{value}</span>
       <span className="text-[11px] text-white/40">{label}</span>
     </div>
   );
-}
+});
 
 function formatListeningTime(minutes: number): string {
   if (minutes < 60) return `${minutes}m`;
@@ -39,7 +39,7 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
   const getMonthlyStats = useStatsStore((s) => s.getMonthlyStats);
   const stats = useMemo(() => getMonthlyStats(), [getMonthlyStats]);
 
-  const maxCount = stats.topArtists.length > 0 ? stats.topArtists[0]!.count : 1;
+  const maxCount = stats.topArtists[0]?.count ?? 1;
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -92,21 +92,9 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
                           'text-white/40 hover:text-white hover:bg-white/10',
                           'transition-all duration-200'
                         )}
+                        aria-label="Fermer"
                       >
-                        <span className="sr-only">Fermer</span>
-                        <svg
-                          className="w-5 h-5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          strokeWidth={2}
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                          />
-                        </svg>
+                        <X className="w-5 h-5" />
                       </Dialog.Close>
                     </div>
                   </div>
@@ -153,7 +141,7 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
                                 </div>
                                 <div className="h-1 rounded-full bg-white/5 overflow-hidden">
                                   <motion.div
-                                    className="h-full rounded-full bg-purple-500/60"
+                                    className="h-full rounded-full bg-accent/60"
                                     initial={{ width: 0 }}
                                     animate={{ width: `${(artist.count / maxCount) * 100}%` }}
                                     transition={{ duration: 0.5, delay: i * 0.1 }}

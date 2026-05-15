@@ -1,9 +1,15 @@
 import { lazy, Suspense, useState, type ReactNode } from 'react';
-import { Toaster } from 'react-hot-toast';
+import { Toaster } from 'sonner';
 import { LogOut, LogIn, BarChart3 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../components/ui/DropdownMenu';
 
 const AuthModal = lazy(() =>
   import('../components/AuthModal').then((m) => ({ default: m.AuthModal }))
@@ -19,22 +25,26 @@ interface LayoutProps {
 export default function Layout({ children }: LayoutProps) {
   const { user, isAuthenticated, isLoading, signOut } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
-
-  const handleSignOut = () => {
-    void signOut().then(() => {
-      setIsUserMenuOpen(false);
-    });
-  };
 
   return (
     <div className="min-h-dvh aurora-bg flex flex-col">
+      {/* Skip-link for keyboard users */}
+      <a href="#main" className="sr-only-focusable">
+        Aller au contenu principal
+      </a>
+
       <Toaster
         position="bottom-center"
+        theme="dark"
+        duration={3000}
         toastOptions={{
-          duration: 3000,
-          className: 'bg-black/80 backdrop-blur-md border border-white/10 text-white',
+          classNames: {
+            toast: 'glass-strong !rounded-xl !text-white !text-sm',
+            description: '!text-white/60',
+            success: '!border-l-2 !border-l-[var(--color-success)]',
+            error: '!border-l-2 !border-l-[var(--color-danger)]',
+          },
         }}
       />
 
@@ -66,69 +76,37 @@ export default function Layout({ children }: LayoutProps) {
             {isLoading ? (
               <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
             ) : isAuthenticated && user ? (
-              <>
-                <button
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className={cn(
-                    'flex items-center gap-2 p-2 rounded-full cursor-pointer',
-                    'bg-white/5 hover:bg-white/10 border border-white/10',
-                    'transition-all duration-200'
-                  )}
-                >
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                    <span className="text-xs font-medium text-white/80">
-                      {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-                    </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      'flex items-center gap-2 p-2 rounded-full cursor-pointer',
+                      'bg-white/5 hover:bg-white/10 border border-white/10',
+                      'transition-all duration-200'
+                    )}
+                    aria-label="Menu utilisateur"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
+                      <span className="text-xs font-medium text-white/80">
+                        {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium text-white truncate">
+                      {user.name || 'Utilisateur'}
+                    </p>
+                    <p className="text-xs text-white/50 truncate">{user.email}</p>
                   </div>
-                </button>
-
-                {/* User Menu Popover */}
-                <AnimatePresence>
-                  {isUserMenuOpen && (
-                    <>
-                      {/* Invisible click-away backdrop */}
-                      <button
-                        type="button"
-                        aria-label="Fermer le menu"
-                        tabIndex={-1}
-                        className="fixed inset-0 z-[200] cursor-default"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      />
-
-                      <motion.div
-                        initial={{ opacity: 0, y: -4, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full mt-2 w-56 z-[201] bg-black/90 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl overflow-hidden"
-                      >
-                        {/* User info */}
-                        <div className="px-4 py-3 border-b border-white/10">
-                          <p className="text-sm font-medium text-white truncate">
-                            {user.name || 'Utilisateur'}
-                          </p>
-                          <p className="text-xs text-white/50 truncate">{user.email}</p>
-                        </div>
-
-                        {/* Logout */}
-                        <div className="p-1">
-                          <button
-                            onClick={() => handleSignOut()}
-                            className={cn(
-                              'w-full flex items-center gap-2 px-3 py-2 rounded-lg',
-                              'text-red-400 hover:text-red-300 hover:bg-white/5',
-                              'transition-all duration-200 cursor-pointer text-sm'
-                            )}
-                          >
-                            <LogOut className="w-4 h-4" />
-                            <span>Déconnexion</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem intent="danger" onSelect={() => void signOut()}>
+                    <LogOut className="w-4 h-4" />
+                    <span>Déconnexion</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
@@ -148,7 +126,9 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main - scrollable content area */}
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main id="main" className="flex-1 flex flex-col">
+        {children}
+      </main>
 
       {/* Footer */}
       <footer className="shrink-0 py-3 md:py-4">

@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useLikedTracksContext } from '../../contexts/LikedTracksContext';
 import { usePreferences } from '../../hooks/usePreferences';
 import { getTrackShareUrl } from '@aubesonore/core/share';
+import { isDefaultArtwork } from '@aubesonore/core/azuracast';
 
 // ─────────────────────────────────────────────
 // Album Art Component with elegant fallback
@@ -51,13 +52,8 @@ export function AlbumArt({
     setArtError(true);
   }, []);
 
-  // Détecter la cover par défaut AzuraCast
-  const isDefaultCover =
-    !artUrl ||
-    artError ||
-    artUrl.includes('generic') ||
-    artUrl.includes('default') ||
-    artUrl.includes('placeholder');
+  // Détecter la cover par défaut AzuraCast (source unique : packages/core)
+  const isDefaultCover = !artUrl || artError || isDefaultArtwork(artUrl);
 
   return (
     <div key={artUrl} className="relative group">

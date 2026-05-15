@@ -1,5 +1,4 @@
-import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useMemo, useCallback, memo } from 'react';
 import {
   Library,
   ExternalLink,
@@ -9,6 +8,7 @@ import {
   MoreHorizontal,
   RefreshCw,
   Download,
+  X,
 } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,7 +20,14 @@ import type { LikedTrack, PreferredPlatform } from '../lib/api';
 import { trackApi } from '../lib/api';
 import { exportAsCSV, exportAsTuneMyMusic, exportAsSonglinkList } from '../lib/exportLibrary';
 import { getPreferredLink } from '@aubesonore/core/share';
-import toast from 'react-hot-toast';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from './ui/DropdownMenu';
+import { toast } from 'sonner';
 
 // ─────────────────────────────────────────────
 // Types
@@ -41,7 +48,7 @@ interface TrackItemProps {
   onDelete: (id: string) => void;
 }
 
-function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
+const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
   const [imgError, setImgError] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -110,13 +117,14 @@ function TrackItem({ track, preferredPlatform, onDelete }: TrackItemProps) {
             isDeleting ? 'cursor-not-allowed !opacity-100' : 'cursor-pointer'
           )}
           title="Retirer"
+          aria-label="Retirer de ma bibliothèque"
         >
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
     </div>
   );
-}
+});
 
 // ─────────────────────────────────────────────
 // Composant PlatformSelector - Style Player
@@ -128,79 +136,34 @@ interface PlatformSelectorProps {
 }
 
 function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
-  const buttonRef = useRef<HTMLButtonElement>(null);
   const selectedPlatform = PLATFORMS.find((p) => p.id === selected);
 
-  // Calculer la position du dropdown quand il s'ouvre
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.top - 8, // 8px de marge au-dessus du bouton
-        right: window.innerWidth - rect.right,
-      });
-    }
-  }, [isOpen]);
-
   return (
-    <div className="relative">
-      <button
-        ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
-          'bg-white/5 hover:bg-white/10 border border-white/10',
-          'transition-all duration-200 text-sm'
-        )}
-      >
-        <span className="text-white/60">{selectedPlatform?.name}</span>
-      </button>
-
-      {isOpen &&
-        createPortal(
-          <>
-            <button
-              type="button"
-              aria-label="Fermer le menu"
-              tabIndex={-1}
-              className="fixed inset-0 z-[200] cursor-default"
-              onClick={() => setIsOpen(false)}
-            />
-            <div
-              className="fixed w-44 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[300] overflow-hidden"
-              style={{
-                top: dropdownPosition.top,
-                right: dropdownPosition.right,
-                transform: 'translateY(-100%)',
-              }}
-            >
-              <div className="p-1 max-h-[280px] overflow-y-auto">
-                {PLATFORMS.map((platform) => (
-                  <button
-                    key={platform.id}
-                    onClick={() => {
-                      onChange(platform.id);
-                      setIsOpen(false);
-                    }}
-                    className={cn(
-                      'w-full flex items-center px-3 py-2.5 rounded-lg text-left text-sm cursor-pointer',
-                      'transition-all duration-200',
-                      selected === platform.id
-                        ? 'bg-white/10 text-white'
-                        : 'text-white/50 hover:text-white hover:bg-white/5'
-                    )}
-                  >
-                    {platform.name}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>,
-          document.body
-        )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
+            'bg-white/5 hover:bg-white/10 border border-white/10',
+            'transition-all duration-200 text-sm'
+          )}
+          aria-label="Sélectionner la plateforme préférée"
+        >
+          <span className="text-white/60">{selectedPlatform?.name}</span>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="top" align="end" className="w-44 max-h-[280px] overflow-y-auto">
+        {PLATFORMS.map((platform) => (
+          <DropdownMenuItem
+            key={platform.id}
+            onSelect={() => onChange(platform.id)}
+            className={cn(selected === platform.id && 'bg-white/10 !text-white')}
+          >
+            {platform.name}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -235,101 +198,41 @@ function OverflowMenu({
   isRefreshing: boolean;
   onRefresh: () => void;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (isOpen && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      setMenuPosition({
-        top: rect.bottom + 8,
-        right: window.innerWidth - rect.right,
-      });
-    }
-  }, [isOpen]);
-
-  const menuItemClass =
-    'w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-left text-sm text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 cursor-pointer';
-
   return (
-    <div className="relative">
-      <button
-        ref={btnRef}
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          'p-2 rounded-full cursor-pointer',
-          'text-white/40 hover:text-white hover:bg-white/10',
-          'transition-all duration-200'
-        )}
-        title="Plus d'options"
-      >
-        <MoreHorizontal className="w-4 h-4" />
-      </button>
-
-      {isOpen &&
-        createPortal(
-          <>
-            <button
-              type="button"
-              aria-label="Fermer le menu"
-              tabIndex={-1}
-              className="fixed inset-0 z-[200] cursor-default"
-              onClick={() => setIsOpen(false)}
-            />
-            <div
-              className="fixed w-56 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[300] overflow-hidden"
-              style={{ top: menuPosition.top, right: menuPosition.right }}
-            >
-              <div className="p-1">
-                <button
-                  onClick={() => {
-                    void onRefresh();
-                    setIsOpen(false);
-                  }}
-                  disabled={isRefreshing}
-                  className={cn(menuItemClass, isRefreshing && 'opacity-50')}
-                >
-                  <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
-                  Rafraîchir les liens
-                </button>
-                <div className="h-px bg-white/5 my-1" />
-                <button
-                  onClick={() => {
-                    void exportAsCSV(tracks);
-                    setIsOpen(false);
-                  }}
-                  className={menuItemClass}
-                >
-                  <Download className="w-4 h-4" />
-                  Exporter CSV
-                </button>
-                <button
-                  onClick={() => {
-                    void exportAsTuneMyMusic(tracks);
-                    setIsOpen(false);
-                  }}
-                  className={menuItemClass}
-                >
-                  <Download className="w-4 h-4" />
-                  Exporter TuneMyMusic
-                </button>
-                <button
-                  onClick={() => {
-                    void exportAsSonglinkList(tracks);
-                    setIsOpen(false);
-                  }}
-                  className={menuItemClass}
-                >
-                  <Download className="w-4 h-4" />
-                  Exporter Liens Songlink
-                </button>
-              </div>
-            </div>
-          </>,
-          document.body
-        )}
-    </div>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn(
+            'p-2 rounded-full cursor-pointer',
+            'text-white/40 hover:text-white hover:bg-white/10',
+            'transition-all duration-200'
+          )}
+          aria-label="Plus d'options"
+          title="Plus d'options"
+        >
+          <MoreHorizontal className="w-4 h-4" />
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuItem disabled={isRefreshing} onSelect={() => onRefresh()}>
+          <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
+          Rafraîchir les liens
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => void exportAsCSV(tracks)}>
+          <Download className="w-4 h-4" />
+          Exporter CSV
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void exportAsTuneMyMusic(tracks)}>
+          <Download className="w-4 h-4" />
+          Exporter TuneMyMusic
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => void exportAsSonglinkList(tracks)}>
+          <Download className="w-4 h-4" />
+          Exporter Liens Songlink
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -436,21 +339,9 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                             'text-white/40 hover:text-white hover:bg-white/10',
                             'transition-all duration-200'
                           )}
+                          aria-label="Fermer"
                         >
-                          <span className="sr-only">Fermer</span>
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                            strokeWidth={2}
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
+                          <X className="w-5 h-5" />
                         </Dialog.Close>
                       </div>
                     </div>

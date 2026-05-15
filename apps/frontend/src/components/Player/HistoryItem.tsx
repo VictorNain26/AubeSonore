@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import { Music, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type SongEntry } from '../../lib/azuracast';
@@ -15,7 +15,12 @@ interface HistoryItemProps {
   onToggle: () => void;
 }
 
-export function HistoryItem({ entry, isLiked, isLiking, onToggle }: HistoryItemProps) {
+export const HistoryItem = memo(function HistoryItem({
+  entry,
+  isLiked,
+  isLiking,
+  onToggle,
+}: HistoryItemProps) {
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -27,6 +32,8 @@ export function HistoryItem({ entry, isLiked, isLiking, onToggle }: HistoryItemP
             alt=""
             className="w-full h-full object-cover"
             referrerPolicy="no-referrer"
+            loading="lazy"
+            decoding="async"
             onError={() => setImgError(true)}
           />
         ) : (
@@ -56,4 +63,4 @@ export function HistoryItem({ entry, isLiked, isLiking, onToggle }: HistoryItemP
       <span className="text-xs text-white/40 shrink-0">{formatTimeAgo(entry.played_at)}</span>
     </div>
   );
-}
+});

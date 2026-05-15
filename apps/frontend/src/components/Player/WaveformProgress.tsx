@@ -43,8 +43,24 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
     if (!ctx) return;
 
     let lastTime = performance.now();
+    let paused = typeof document !== 'undefined' && document.hidden;
+
+    const handleVisibility = () => {
+      paused = document.hidden;
+      if (!paused) {
+        // Reset timer to avoid a delta-time spike that animates frantically
+        // when the tab regains focus.
+        lastTime = performance.now();
+        animationRef.current = requestAnimationFrame(draw);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     const draw = (currentTime: number) => {
+      if (paused) {
+        // Stop scheduling new frames; visibilitychange will restart the loop.
+        return;
+      }
       const deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
       timeRef.current += deltaTime;
@@ -185,6 +201,7 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
 
     return () => {
       cancelAnimationFrame(animationRef.current);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [isPlaying, songId]);
 
