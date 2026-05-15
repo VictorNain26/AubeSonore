@@ -2,7 +2,7 @@ import { lazy, Suspense, useState, useCallback } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useLikedTracksContext as useLikedTracks } from '../../contexts/LikedTracksContext';
+import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAuthModalStore } from '../../stores/authModalStore';
 import { ModalErrorFallback } from '../ErrorFallback';
@@ -16,7 +16,7 @@ const LikedTracksModal = lazy(() =>
 // LikedTracks modal lazily so the bundle splits at this leaf.
 
 export function LibraryButton() {
-  const { tracks } = useLikedTracks();
+  const tracks = useLikedTracksStore((s) => s.tracks);
   const { isAuthenticated } = useAuth();
   const openAuthModal = useAuthModalStore((s) => s.open);
   const [isModalOpen, setIsModalOpen] = useState(false);

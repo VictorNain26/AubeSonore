@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNowPlaying, type SongEntry } from '../../lib/azuracast';
-import { useLikedTracksContext as useLikedTracks } from '../../contexts/LikedTracksContext';
+import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
 import { HistoryItem } from './HistoryItem';
 
@@ -13,12 +13,12 @@ const MAX_HISTORY = 5;
 
 export function HistoryList() {
   const { data: np } = useNowPlaying();
-  const { isTrackLiked } = useLikedTracks();
+  const tracks = useLikedTracksStore((s) => s.tracks);
   const { likingTrackId, toggleLike } = useLikeAction();
 
   const isHistoryTrackLiked = useCallback(
-    (entry: SongEntry) => isTrackLiked(entry.song.title, entry.song.artist),
-    [isTrackLiked]
+    (entry: SongEntry) => isTrackLiked(tracks, entry.song.title, entry.song.artist),
+    [tracks]
   );
 
   const historyEntries = np?.song_history?.slice(0, MAX_HISTORY);
