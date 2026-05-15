@@ -1,5 +1,5 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react';
-import { Toaster } from 'sonner';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { Toaster, toast } from 'sonner';
 import { LogOut, LogIn, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../contexts/AuthContext';
@@ -22,10 +22,38 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+function readResetTokenFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  if (window.location.pathname !== '/reset-password') return null;
+  return new URLSearchParams(window.location.search).get('token');
+}
+
 export default function Layout({ children }: LayoutProps) {
   const { user, isAuthenticated, isLoading, signOut } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  // Better Auth's forget-password emails redirect to /reset-password?token=XXX
+  // (or ?error=INVALID_TOKEN). We read the token via useState lazy init so the
+  // AuthModal opens immediately in reset mode on first paint — no setState in
+  // an effect, no flash of the closed state.
+  const [resetToken, setResetToken] = useState<string | null>(() => readResetTokenFromUrl());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => readResetTokenFromUrl() !== null);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
+
+  // Surface invalid-token errors + clean the URL so a refresh doesn't replay
+  // the reset flow. No state set here.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.pathname !== '/reset-password') return;
+    const error = new URLSearchParams(window.location.search).get('error');
+    if (error === 'INVALID_TOKEN') {
+      toast.error('Ce lien est invalide ou a expiré. Demandez un nouveau lien.');
+    }
+    window.history.replaceState({}, '', '/');
+  }, []);
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+    setResetToken(null);
+  };
 
   return (
     <div className="min-h-dvh aurora-bg flex flex-col">
@@ -132,14 +160,18 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Footer */}
       <footer className="shrink-0 py-3 md:py-4">
-        <p className="text-center text-[10px] md:text-xs text-foreground/50/50 tracking-widest">
+        <p className="text-center text-[10px] md:text-xs text-foreground/25 tracking-widest">
           AubeSonore | Éveillez vos sens
         </p>
       </footer>
 
       {isAuthModalOpen && (
         <Suspense fallback={null}>
-          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={closeAuthModal}
+            {...(resetToken && { resetToken })}
+          />
         </Suspense>
       )}
 
