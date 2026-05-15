@@ -169,6 +169,7 @@ export function VolumeControl({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onKeyDown={handleKeyDown}
+      role="toolbar"
       aria-label="Volume control"
     >
       {/* Volume Icon Button - Fixed position, never moves */}
@@ -196,6 +197,8 @@ export function VolumeControl({
         )}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        role="group"
+        aria-label="Volume slider"
       >
         <div className="bg-black/80 backdrop-blur-md rounded-xl p-3 shadow-lg border border-white/10">
           {/* Vertical Slider Track - wider touch area */}
