@@ -61,8 +61,8 @@ export function CastButton({ className }: CastButtonProps) {
       disabled={isConnecting}
       className={cn(
         'p-2 rounded-full transition-all duration-200 cursor-pointer',
-        'hover:bg-white/10',
-        isCasting ? 'text-purple-400 hover:text-purple-300' : 'text-white/60 hover:text-white',
+        'hover:bg-foreground/10',
+        isCasting ? 'text-accent hover:text-accent' : 'text-foreground/60 hover:text-foreground',
         isConnecting && 'opacity-50 cursor-wait',
         className
       )}

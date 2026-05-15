@@ -10,13 +10,45 @@
       name="description"
       content="AubeSonore est une webradio de découverte musicale indépendante. Écoutez gratuitement de la musique émergente et sauvegardez vos coups de coeur."
     />
-    <meta
-      name="keywords"
-      content="webradio, musique indépendante, découverte musicale, radio en ligne, streaming, musique émergente, AubeSonore"
-    />
     <meta name="author" content="AubeSonore" />
     <meta name="theme-color" content="#0f1118" />
     <link rel="canonical" href="https://aubesonore.fr/" />
+
+    <!-- Structured data — RadioStation + WebSite (schema.org).
+         Improves understanding by Google Search, AI Overviews, Perplexity,
+         ChatGPT search, Claude web. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@id": "https://aubesonore.fr/#org",
+            "@type": "RadioStation",
+            "name": "AubeSonore",
+            "alternateName": "AubeSonore Webradio",
+            "url": "https://aubesonore.fr/",
+            "description": "Webradio de découverte musicale indépendante. Diffusion continue de musique émergente, principalement francophone.",
+            "logo": "https://aubesonore.fr/icons/icon-512x512.png",
+            "image": "https://aubesonore.fr/icons/og-image.png",
+            "inLanguage": "fr-FR",
+            "broadcastDisplayName": "AubeSonore",
+            "broadcastTimezone": "Europe/Paris",
+            "potentialAction": {
+              "@type": "ListenAction",
+              "target": "https://radio.aubesonore.fr/listen/aubesonore/radio.mp3"
+            }
+          },
+          {
+            "@id": "https://aubesonore.fr/#site",
+            "@type": "WebSite",
+            "url": "https://aubesonore.fr/",
+            "name": "AubeSonore",
+            "inLanguage": "fr-FR",
+            "publisher": { "@id": "https://aubesonore.fr/#org" }
+          }
+        ]
+      }
+    </script>
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />

@@ -1,9 +1,15 @@
-import { lazy, Suspense, useState, type ReactNode } from 'react';
-import { Toaster } from 'react-hot-toast';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { Toaster, toast } from 'sonner';
 import { LogOut, LogIn, BarChart3 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../contexts/AuthContext';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '../components/ui/DropdownMenu';
 
 const AuthModal = lazy(() =>
   import('../components/AuthModal').then((m) => ({ default: m.AuthModal }))
@@ -16,25 +22,57 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+function readResetTokenFromUrl(): string | null {
+  if (typeof window === 'undefined') return null;
+  if (window.location.pathname !== '/reset-password') return null;
+  return new URLSearchParams(window.location.search).get('token');
+}
+
 export default function Layout({ children }: LayoutProps) {
   const { user, isAuthenticated, isLoading, signOut } = useAuth();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  // Better Auth's forget-password emails redirect to /reset-password?token=XXX
+  // (or ?error=INVALID_TOKEN). We read the token via useState lazy init so the
+  // AuthModal opens immediately in reset mode on first paint — no setState in
+  // an effect, no flash of the closed state.
+  const [resetToken, setResetToken] = useState<string | null>(() => readResetTokenFromUrl());
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => readResetTokenFromUrl() !== null);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
 
-  const handleSignOut = () => {
-    void signOut().then(() => {
-      setIsUserMenuOpen(false);
-    });
+  // Surface invalid-token errors + clean the URL so a refresh doesn't replay
+  // the reset flow. No state set here.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.pathname !== '/reset-password') return;
+    const error = new URLSearchParams(window.location.search).get('error');
+    if (error === 'INVALID_TOKEN') {
+      toast.error('Ce lien est invalide ou a expiré. Demandez un nouveau lien.');
+    }
+    window.history.replaceState({}, '', '/');
+  }, []);
+
+  const closeAuthModal = () => {
+    setIsAuthModalOpen(false);
+    setResetToken(null);
   };
 
   return (
     <div className="min-h-dvh aurora-bg flex flex-col">
+      {/* Skip-link for keyboard users */}
+      <a href="#main" className="sr-only-focusable">
+        Aller au contenu principal
+      </a>
+
       <Toaster
         position="bottom-center"
+        theme="dark"
+        duration={3000}
         toastOptions={{
-          duration: 3000,
-          className: 'bg-black/80 backdrop-blur-md border border-white/10 text-white',
+          classNames: {
+            toast: 'glass-strong !rounded-xl !text-foreground !text-sm',
+            description: '!text-foreground/60',
+            success: '!border-l-2 !border-l-[var(--color-success)]',
+            error: '!border-l-2 !border-l-[var(--color-danger)]',
+          },
         }}
       />
 
@@ -46,7 +84,7 @@ export default function Layout({ children }: LayoutProps) {
             onClick={() => setIsStatsOpen(true)}
             className={cn(
               'p-2 rounded-full cursor-pointer',
-              'text-white/40 hover:text-white hover:bg-white/10',
+              'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
               'transition-all duration-200'
             )}
             title="Mes statistiques"
@@ -56,7 +94,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Center: Title */}
-        <h1 className="text-center text-sm md:text-xl font-light tracking-[0.25em] md:tracking-[0.35em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-white/60 via-white/80 to-white/60">
+        <h1 className="text-center text-sm md:text-xl font-light tracking-[0.25em] md:tracking-[0.35em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-foreground/60 via-foreground/80 to-foreground/60">
           AubeSonore
         </h1>
 
@@ -64,79 +102,47 @@ export default function Layout({ children }: LayoutProps) {
         <div className="absolute right-4 top-1/2 -translate-y-1/2">
           <div className="relative">
             {isLoading ? (
-              <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
+              <div className="w-8 h-8 rounded-full bg-foreground/5 animate-pulse" />
             ) : isAuthenticated && user ? (
-              <>
-                <button
-                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                  className={cn(
-                    'flex items-center gap-2 p-2 rounded-full cursor-pointer',
-                    'bg-white/5 hover:bg-white/10 border border-white/10',
-                    'transition-all duration-200'
-                  )}
-                >
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                    <span className="text-xs font-medium text-white/80">
-                      {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-                    </span>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className={cn(
+                      'flex items-center gap-2 p-2 rounded-full cursor-pointer',
+                      'bg-foreground/5 hover:bg-foreground/10 border border-foreground/10',
+                      'transition-all duration-200'
+                    )}
+                    aria-label="Menu utilisateur"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-foreground/20 flex items-center justify-center">
+                      <span className="text-xs font-medium text-foreground/80">
+                        {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="px-3 py-2">
+                    <p className="text-sm font-medium text-foreground truncate">
+                      {user.name || 'Utilisateur'}
+                    </p>
+                    <p className="text-xs text-foreground/50 truncate">{user.email}</p>
                   </div>
-                </button>
-
-                {/* User Menu Popover */}
-                <AnimatePresence>
-                  {isUserMenuOpen && (
-                    <>
-                      {/* Invisible click-away backdrop */}
-                      <button
-                        type="button"
-                        aria-label="Fermer le menu"
-                        tabIndex={-1}
-                        className="fixed inset-0 z-[200] cursor-default"
-                        onClick={() => setIsUserMenuOpen(false)}
-                      />
-
-                      <motion.div
-                        initial={{ opacity: 0, y: -4, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -4, scale: 0.95 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full mt-2 w-56 z-[201] bg-black/90 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl overflow-hidden"
-                      >
-                        {/* User info */}
-                        <div className="px-4 py-3 border-b border-white/10">
-                          <p className="text-sm font-medium text-white truncate">
-                            {user.name || 'Utilisateur'}
-                          </p>
-                          <p className="text-xs text-white/50 truncate">{user.email}</p>
-                        </div>
-
-                        {/* Logout */}
-                        <div className="p-1">
-                          <button
-                            onClick={() => handleSignOut()}
-                            className={cn(
-                              'w-full flex items-center gap-2 px-3 py-2 rounded-lg',
-                              'text-red-400 hover:text-red-300 hover:bg-white/5',
-                              'transition-all duration-200 cursor-pointer text-sm'
-                            )}
-                          >
-                            <LogOut className="w-4 h-4" />
-                            <span>Déconnexion</span>
-                          </button>
-                        </div>
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem intent="danger" onSelect={() => void signOut()}>
+                    <LogOut className="w-4 h-4" />
+                    <span>Déconnexion</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
                 className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
-                  'bg-white/5 hover:bg-white/10',
-                  'border border-white/10',
-                  'transition-all duration-200 text-sm text-white/70 hover:text-white'
+                  'bg-foreground/5 hover:bg-foreground/10',
+                  'border border-foreground/10',
+                  'transition-all duration-200 text-sm text-foreground/70 hover:text-foreground'
                 )}
               >
                 <LogIn className="w-4 h-4" />
@@ -148,18 +154,24 @@ export default function Layout({ children }: LayoutProps) {
       </header>
 
       {/* Main - scrollable content area */}
-      <main className="flex-1 flex flex-col">{children}</main>
+      <main id="main" className="flex-1 flex flex-col">
+        {children}
+      </main>
 
       {/* Footer */}
       <footer className="shrink-0 py-3 md:py-4">
-        <p className="text-center text-[10px] md:text-xs text-muted-foreground/50 tracking-widest">
+        <p className="text-center text-[10px] md:text-xs text-foreground/25 tracking-widest">
           AubeSonore | Éveillez vos sens
         </p>
       </footer>
 
       {isAuthModalOpen && (
         <Suspense fallback={null}>
-          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={closeAuthModal}
+            {...(resetToken && { resetToken })}
+          />
         </Suspense>
       )}
 

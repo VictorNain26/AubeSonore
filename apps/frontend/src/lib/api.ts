@@ -92,5 +92,43 @@ export const authApi = {
     });
   },
 
+  forgetPassword: async (email: string): Promise<void> => {
+    // Better Auth appends ?token=<TOKEN> (or ?error=INVALID_TOKEN) to redirectTo.
+    // We point it to /reset-password so the SPA can detect the URL on landing
+    // and open the reset modal automatically.
+    const response = await fetch(`${API_BASE_URL}/api/auth/forget-password`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, redirectTo: `${window.location.origin}/reset-password` }),
+    });
+    if (!response.ok && response.status !== 404) {
+      // 404 is returned when the email isn't registered — treat as success to
+      // avoid email enumeration. Other errors bubble up.
+      const error = (await response.json().catch(() => ({ message: 'Erreur réseau' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message || 'Erreur lors de la demande');
+    }
+  },
+
+  resetPassword: async (token: string, newPassword: string): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/reset-password`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, newPassword }),
+    });
+    if (!response.ok) {
+      const error = (await response
+        .json()
+        .catch(() => ({ message: 'Lien invalide ou expiré' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message || 'Erreur lors de la réinitialisation');
+    }
+  },
+
   getGoogleAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=google`,
+  getSpotifyAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=spotify`,
 };

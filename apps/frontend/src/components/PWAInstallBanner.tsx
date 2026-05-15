@@ -2,8 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useBannerSlot } from '../stores/bannerSlotStore';
 
 const PWA_DISMISS_KEY = 'aubesonore_pwa_dismiss';
+const SLOT_PRIORITY = 10;
 
 export function PWAInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -36,7 +38,7 @@ export function PWAInstallBanner() {
     localStorage.setItem(PWA_DISMISS_KEY, 'true');
   }, []);
 
-  const show = deferredPrompt && !isDismissed;
+  const show = useBannerSlot('pwa', SLOT_PRIORITY, !!deferredPrompt && !isDismissed);
 
   return (
     <AnimatePresence>
@@ -48,28 +50,22 @@ export function PWAInstallBanner() {
           transition={{ duration: 0.3 }}
           className="fixed bottom-4 inset-x-4 z-[100] flex justify-center"
         >
-          <div
-            className={cn(
-              'flex items-center gap-3 px-4 py-3 max-w-sm w-full',
-              'bg-black/80 backdrop-blur-md rounded-xl',
-              'border border-white/10 shadow-2xl'
-            )}
-          >
-            <Download className="w-5 h-5 text-white/60 shrink-0" />
-            <p className="text-sm text-white/70 flex-1">Installer AubeSonore</p>
+          <div className="flex items-center gap-3 px-4 py-3 max-w-sm w-full glass-strong rounded-xl shadow-2xl">
+            <Download className="w-5 h-5 text-foreground/60 shrink-0" />
+            <p className="text-sm text-foreground/70 flex-1">Installer AubeSonore</p>
             <button
               onClick={handleInstall}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer',
-                'bg-white/10 hover:bg-white/15 text-white',
-                'border border-white/10 transition-all duration-200'
+                'bg-foreground/10 hover:bg-foreground/15 text-foreground',
+                'border border-foreground/10 transition-all duration-200'
               )}
             >
               Installer
             </button>
             <button
               onClick={handleDismiss}
-              className="p-1.5 rounded-full text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+              className="p-1.5 rounded-full text-foreground/30 hover:text-foreground/60 transition-colors cursor-pointer"
               aria-label="Fermer"
             >
               <X className="w-4 h-4" />
