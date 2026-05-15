@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import { validateBody } from '../lib/validate';
+import { hasError } from '../lib/routeHelpers';
 import { likeTrackSchema, checkLikedSchema } from '../validators/trackValidator';
 import * as trackService from '../services/trackService';
 import type { LikedTrackListItem } from '../services/trackService';
@@ -15,10 +16,6 @@ interface ServiceResponse<T = LikedTrack> {
   track?: T;
   status?: number;
   error?: string;
-}
-
-function hasError(data: unknown): data is { error: string } {
-  return data !== null && typeof data === 'object' && 'error' in data;
 }
 
 // ─────────────────────────────────────────────

@@ -1,5 +1,6 @@
 import type { PlatformLinks } from '../db/schema';
 import { TtlCache } from '../lib/cache/ttlCache';
+import { logger } from '../lib/logger';
 
 // ─────────────────────────────────────────────
 // Songlink/Odesli API Service
@@ -57,74 +58,94 @@ export interface SonglinkResult {
 }
 
 /**
- * Récupère les liens multi-plateformes à partir d'une URL de plateforme
- * Usage interne uniquement - utiliser searchSonglink() pour la recherche par titre/artiste
+ * Récupère les liens multi-plateformes à partir d'une URL de plateforme.
+ *
+ * Convention erreurs (compte tenu du cache 7 jours qui pollue durablement) :
+ * - `return null`  : résultat *définitif négatif* (404 = morceau pas dans Songlink) — sûr à mettre en cache.
+ * - `throw`        : erreur *transitoire* (timeout, 5xx, réseau, JSON invalide) — le caller NE DOIT PAS la cacher.
  */
 async function getSonglinkData(url: string): Promise<SonglinkResult | null> {
+  let response: Response;
   try {
     const encodedUrl = encodeURIComponent(url);
-    const response = await fetch(`${SONGLINK_API_BASE}?url=${encodedUrl}&userCountry=FR`, {
+    response = await fetch(`${SONGLINK_API_BASE}?url=${encodedUrl}&userCountry=FR`, {
       signal: AbortSignal.timeout(5_000),
     });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        console.warn(`[Songlink] Morceau non trouvé pour: ${url}`);
-        return null;
-      }
-      throw new Error(`Songlink API error: ${response.status}`);
-    }
-
-    const data = (await response.json()) as SonglinkResponse;
-
-    // Extraire les liens par plateforme
-    const platformLinks: PlatformLinks = {};
-
-    if (data.linksByPlatform.spotify?.url) {
-      platformLinks.spotify = data.linksByPlatform.spotify.url;
-    }
-    if (data.linksByPlatform.appleMusic?.url) {
-      platformLinks.appleMusic = data.linksByPlatform.appleMusic.url;
-    }
-    if (data.linksByPlatform.deezer?.url) {
-      platformLinks.deezer = data.linksByPlatform.deezer.url;
-    }
-    if (data.linksByPlatform.youtubeMusic?.url) {
-      platformLinks.youtubeMusic = data.linksByPlatform.youtubeMusic.url;
-    }
-    if (data.linksByPlatform.tidal?.url) {
-      platformLinks.tidal = data.linksByPlatform.tidal.url;
-    }
-    if (data.linksByPlatform.amazonMusic?.url) {
-      platformLinks.amazonMusic = data.linksByPlatform.amazonMusic.url;
-    }
-    if (data.linksByPlatform.soundcloud?.url) {
-      platformLinks.soundcloud = data.linksByPlatform.soundcloud.url;
-    }
-
-    // Extraire les métadonnées depuis la première entité disponible
-    const entities = Object.values(data.entitiesByUniqueId);
-    const firstEntity = entities[0];
-
-    // Build result with conditional metadata
-    const result: SonglinkResult = {
-      pageUrl: data.pageUrl,
-      platformLinks,
-    };
-
-    if (firstEntity) {
-      const metadata: NonNullable<SonglinkResult['metadata']> = {};
-      if (firstEntity.title) metadata.title = firstEntity.title;
-      if (firstEntity.artistName) metadata.artist = firstEntity.artistName;
-      if (firstEntity.thumbnailUrl) metadata.thumbnailUrl = firstEntity.thumbnailUrl;
-      result.metadata = metadata;
-    }
-
-    return result;
   } catch (error) {
-    console.error('[Songlink] Erreur lors de la récupération des liens:', error);
+    // Network failure or AbortError (timeout). Transient — re-throw.
+    logger.warn('songlink.network_error', {
+      url,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+
+  if (response.status === 404) {
+    // Definitive: the song isn't in Songlink's index. Safe to cache.
+    logger.info('songlink.not_found', { url });
     return null;
   }
+
+  if (!response.ok) {
+    // 5xx, rate-limit, etc. — transient, do NOT cache.
+    logger.warn('songlink.upstream_error', { url, status: response.status });
+    throw new Error(`Songlink API error: ${response.status}`);
+  }
+
+  let data: SonglinkResponse;
+  try {
+    data = (await response.json()) as SonglinkResponse;
+  } catch (error) {
+    logger.warn('songlink.invalid_json', {
+      url,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+
+  // Extraire les liens par plateforme
+  const platformLinks: PlatformLinks = {};
+
+  if (data.linksByPlatform.spotify?.url) {
+    platformLinks.spotify = data.linksByPlatform.spotify.url;
+  }
+  if (data.linksByPlatform.appleMusic?.url) {
+    platformLinks.appleMusic = data.linksByPlatform.appleMusic.url;
+  }
+  if (data.linksByPlatform.deezer?.url) {
+    platformLinks.deezer = data.linksByPlatform.deezer.url;
+  }
+  if (data.linksByPlatform.youtubeMusic?.url) {
+    platformLinks.youtubeMusic = data.linksByPlatform.youtubeMusic.url;
+  }
+  if (data.linksByPlatform.tidal?.url) {
+    platformLinks.tidal = data.linksByPlatform.tidal.url;
+  }
+  if (data.linksByPlatform.amazonMusic?.url) {
+    platformLinks.amazonMusic = data.linksByPlatform.amazonMusic.url;
+  }
+  if (data.linksByPlatform.soundcloud?.url) {
+    platformLinks.soundcloud = data.linksByPlatform.soundcloud.url;
+  }
+
+  // Extraire les métadonnées depuis la première entité disponible
+  const entities = Object.values(data.entitiesByUniqueId);
+  const firstEntity = entities[0];
+
+  const result: SonglinkResult = {
+    pageUrl: data.pageUrl,
+    platformLinks,
+  };
+
+  if (firstEntity) {
+    const metadata: NonNullable<SonglinkResult['metadata']> = {};
+    if (firstEntity.title) metadata.title = firstEntity.title;
+    if (firstEntity.artistName) metadata.artist = firstEntity.artistName;
+    if (firstEntity.thumbnailUrl) metadata.thumbnailUrl = firstEntity.thumbnailUrl;
+    result.metadata = metadata;
+  }
+
+  return result;
 }
 
 interface ItunesSearchResponse {
@@ -137,47 +158,67 @@ interface ItunesSearchResponse {
 }
 
 /**
- * Recherche un morceau sur iTunes Search API
- * Doc: https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/
+ * Recherche un morceau sur iTunes Search API.
+ *
+ * Même convention que `getSonglinkData` : succès et "0 results" cachés ;
+ * erreurs transitoires (5xx, timeout) ne polluent pas le cache 7 jours.
  */
 async function searchItunes(title: string, artist: string): Promise<string | null> {
   const cacheKey = `${title.toLowerCase()}|${artist.toLowerCase()}`;
   const cached = itunesCache.get(cacheKey);
   if (cached !== undefined) return cached;
 
+  let response: Response;
   try {
     const query = encodeURIComponent(`${title} ${artist}`);
-    const response = await fetch(
+    response = await fetch(
       `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=1&country=FR`,
       { signal: AbortSignal.timeout(5_000) }
     );
-
-    if (!response.ok) {
-      console.warn(`[iTunes] API error: ${response.status}`);
-      return null;
-    }
-
-    const data = (await response.json()) as ItunesSearchResponse;
-
-    if (data.resultCount > 0 && data.results[0]?.trackViewUrl) {
-      const url = data.results[0].trackViewUrl;
-      itunesCache.set(cacheKey, url);
-      return url;
-    }
-
-    itunesCache.set(cacheKey, null);
-    return null;
   } catch (error) {
-    console.error('[iTunes] Search error:', (error as Error).message);
+    logger.warn('itunes.network_error', {
+      title,
+      artist,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return null; // Transient: don't cache, retry next call.
+  }
+
+  if (!response.ok) {
+    logger.warn('itunes.upstream_error', { title, artist, status: response.status });
+    return null; // Transient: don't cache.
+  }
+
+  let data: ItunesSearchResponse;
+  try {
+    data = (await response.json()) as ItunesSearchResponse;
+  } catch (error) {
+    logger.warn('itunes.invalid_json', {
+      title,
+      artist,
+      message: error instanceof Error ? error.message : String(error),
+    });
     return null;
   }
+
+  if (data.resultCount > 0 && data.results[0]?.trackViewUrl) {
+    const url = data.results[0].trackViewUrl;
+    itunesCache.set(cacheKey, url);
+    return url;
+  }
+
+  // 0 results = definitive negative. Cache 7 days.
+  itunesCache.set(cacheKey, null);
+  return null;
 }
 
 /**
- * Recherche un morceau par titre et artiste
- * Utilise iTunes pour trouver l'URL Apple Music, puis Songlink pour les autres plateformes
- * @param title - Titre du morceau
- * @param artist - Nom de l'artiste
+ * Recherche un morceau par titre et artiste.
+ * Utilise iTunes pour trouver l'URL Apple Music, puis Songlink pour les autres plateformes.
+ *
+ * Le cache stocke uniquement les résultats *définitifs* (success OR "not found").
+ * Les échecs transitoires sont absorbés en retournant `null` sans empoisonner
+ * le cache — le prochain appel retentera côté upstream.
  */
 export async function searchSonglink(
   title: string,
@@ -189,11 +230,21 @@ export async function searchSonglink(
 
   const appleMusicUrl = await searchItunes(title, artist);
   if (!appleMusicUrl) {
+    // iTunes returned null. Cache only when itunesCache itself confirmed
+    // (transient itunes failure already returned null without caching, so
+    // we cannot distinguish here — accept that a transient itunes miss will
+    // also avoid the songlink cache write below).
     songlinkCache.set(cacheKey, null);
     return null;
   }
 
-  const result = await getSonglinkData(appleMusicUrl);
-  songlinkCache.set(cacheKey, result);
-  return result;
+  try {
+    const result = await getSonglinkData(appleMusicUrl);
+    songlinkCache.set(cacheKey, result);
+    return result;
+  } catch {
+    // Transient Songlink failure: do NOT cache, return null for this call only.
+    logger.warn('songlink.transient_failure_uncached', { title, artist });
+    return null;
+  }
 }

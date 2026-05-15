@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import { validateBody } from '../lib/validate';
+import { hasError } from '../lib/routeHelpers';
 import { updatePreferencesSchema } from '../validators/preferencesValidator';
 import * as preferencesService from '../services/preferencesService';
 import { auth } from '../lib/auth/index';
@@ -14,10 +15,6 @@ interface ServiceResponse<T = UserPreferences> {
   preferences?: T;
   status?: number;
   error?: string;
-}
-
-function hasError(data: unknown): data is { error: string } {
-  return data !== null && typeof data === 'object' && 'error' in data;
 }
 
 // ─────────────────────────────────────────────

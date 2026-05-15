@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import { htmlToText } from 'html-to-text';
 import { env } from '../config/env';
+import { logger } from '../lib/logger';
 
 interface MailVariables {
   [key: string]: string | boolean | undefined;
@@ -59,9 +60,9 @@ export async function sendMail({ to, subject, variables = {} }: SendMailOptions)
       text,
     });
 
-    console.log(`[Mailer] sent message-id=${info.messageId}`);
+    logger.info('mailer.sent', { messageId: info.messageId, to, subject });
   } catch (err: unknown) {
-    console.error('[Mailer] send failed:', (err as Error).message);
+    logger.error('mailer.send_failed', { message: (err as Error).message, to, subject });
     throw new Error("Erreur lors de l'envoi de l'e-mail.");
   }
 }

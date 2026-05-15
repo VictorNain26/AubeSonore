@@ -1,5 +1,6 @@
 import { env } from '../config/env';
 import { TtlCache } from '../lib/cache/ttlCache';
+import { logger } from '../lib/logger';
 
 interface ArtistInfo {
   bio: string;
@@ -25,7 +26,7 @@ export async function getArtistInfo(name: string): Promise<ArtistInfo | null> {
   if (cached !== undefined) return cached;
 
   if (!env.LASTFM_API_KEY) {
-    console.warn('[LastFM] No API key configured');
+    logger.warn('lastfm.no_api_key');
     return null;
   }
 
@@ -42,13 +43,13 @@ export async function getArtistInfo(name: string): Promise<ArtistInfo | null> {
   } catch (err) {
     // Network / timeout / abort: do NOT cache. Last.fm comes back online,
     // the next call should retry instead of returning stale null for 24h.
-    console.warn('[LastFM] Transient network error:', (err as Error).message);
+    logger.warn('lastfm.network_error', { name, message: (err as Error).message });
     return null;
   }
 
   if (response.status === 429) {
     circuitOpenUntil = Date.now() + CIRCUIT_OPEN_MS;
-    console.warn('[LastFM] 429 received, opening circuit for', CIRCUIT_OPEN_MS, 'ms');
+    logger.warn('lastfm.circuit_open', { durationMs: CIRCUIT_OPEN_MS });
     return null;
   }
   if (response.status === 404 || response.status === 400) {
@@ -58,7 +59,7 @@ export async function getArtistInfo(name: string): Promise<ArtistInfo | null> {
   }
   if (!response.ok) {
     // 5xx, etc. — server problem, don't cache the failure.
-    console.warn('[LastFM] Non-OK response:', response.status);
+    logger.warn('lastfm.upstream_error', { name, status: response.status });
     return null;
   }
 

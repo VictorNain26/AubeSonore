@@ -1,13 +1,10 @@
 import { Elysia } from 'elysia';
 import { validateBody } from '../lib/validate';
+import { hasError } from '../lib/routeHelpers';
 import { subscribeSchema, sendPushSchema, unsubscribeSchema } from '../validators/pushValidator';
 import * as pushService from '../services/pushService';
 import { auth } from '../lib/auth/index';
 import type { User, Session } from '../db/schema';
-
-function hasError(data: unknown): data is { error: string } {
-  return data !== null && typeof data === 'object' && 'error' in data;
-}
 
 export const pushRoutes = new Elysia({ prefix: '/api/push' })
   .derive(async ({ request: { headers } }): Promise<{ user?: User; session?: Session }> => {
