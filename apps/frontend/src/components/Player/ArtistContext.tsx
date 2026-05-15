@@ -18,7 +18,7 @@ export function ArtistContext({ artistName }: ArtistContextProps) {
   const bioPreview = data.bio.length > 150 ? data.bio.slice(0, 150) + '...' : data.bio;
 
   return (
-    <div className="border-t border-white/10 pt-4 mb-4">
+    <div className="border-t border-foreground/10 pt-4 mb-4">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn(
@@ -26,12 +26,12 @@ export function ArtistContext({ artistName }: ArtistContextProps) {
           'text-left group'
         )}
       >
-        <span className="text-xs text-muted-foreground">
-          À propos de <span className="text-white/70">{artistName}</span>
+        <span className="text-xs text-foreground/50">
+          À propos de <span className="text-foreground/70">{artistName}</span>
         </span>
         <ChevronDown
           className={cn(
-            'w-3.5 h-3.5 text-white/30 transition-transform duration-200',
+            'w-3.5 h-3.5 text-foreground/30 transition-transform duration-200',
             isExpanded && 'rotate-180'
           )}
         />
@@ -49,13 +49,13 @@ export function ArtistContext({ artistName }: ArtistContextProps) {
             <div className="mt-3 px-1 space-y-3">
               {/* Bio */}
               <div>
-                <p className="text-sm text-white/60 leading-relaxed">
+                <p className="text-sm text-foreground/60 leading-relaxed">
                   {showFullBio ? data.bio : bioPreview}
                 </p>
                 {data.bio.length > 150 && (
                   <button
                     onClick={() => setShowFullBio(!showFullBio)}
-                    className="text-xs text-purple-400/80 hover:text-purple-400 mt-1 cursor-pointer"
+                    className="text-xs text-accent/80 hover:text-accent mt-1 cursor-pointer"
                   >
                     {showFullBio ? 'Voir moins' : 'Voir plus'}
                   </button>
@@ -68,7 +68,7 @@ export function ArtistContext({ artistName }: ArtistContextProps) {
                   {data.tags.map((tag) => (
                     <span
                       key={tag}
-                      className="px-2 py-0.5 rounded-full bg-white/5 text-[11px] text-white/50 border border-white/5"
+                      className="px-2 py-0.5 rounded-full bg-foreground/5 text-[11px] text-foreground/50 border border-foreground/5"
                     >
                       {tag}
                     </span>
@@ -79,12 +79,12 @@ export function ArtistContext({ artistName }: ArtistContextProps) {
               {/* Similar Artists */}
               {data.similarArtists.length > 0 && (
                 <div>
-                  <p className="text-[11px] text-white/30 mb-1.5">Artistes similaires</p>
+                  <p className="text-[11px] text-foreground/30 mb-1.5">Artistes similaires</p>
                   <div className="flex flex-wrap gap-1.5">
                     {data.similarArtists.map((name) => (
                       <span
                         key={name}
-                        className="px-2 py-0.5 rounded-full bg-purple-500/10 text-[11px] text-purple-300/70 border border-purple-500/10"
+                        className="px-2 py-0.5 rounded-full bg-accent/10 text-[11px] text-accent/70 border border-accent/10"
                       >
                         {name}
                       </span>

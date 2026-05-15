@@ -34,20 +34,20 @@ export function SleepTimer() {
           className={cn(
             'p-2 rounded-full transition-all duration-200 relative cursor-pointer',
             isActive
-              ? 'text-purple-400 hover:text-purple-300 hover:bg-white/10'
-              : 'text-white/60 hover:text-white hover:bg-white/10'
+              ? 'text-accent hover:text-accent hover:bg-foreground/10'
+              : 'text-foreground/60 hover:text-foreground hover:bg-foreground/10'
           )}
           aria-label={isActive ? 'Minuterie active' : 'Minuterie de sommeil'}
           title={isActive ? 'Minuterie active' : 'Minuterie de sommeil'}
         >
           <Moon className="w-5 h-5" />
           {isActive && mode === 'timer' && (
-            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-purple-500 text-white text-[10px] flex items-center justify-center font-medium tabular-nums">
+            <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-accent text-foreground text-[10px] flex items-center justify-center font-medium tabular-nums">
               {formatCountdown(remainingMs)}
             </span>
           )}
           {isActive && mode === 'end-of-track' && (
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-purple-500" />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-accent" />
           )}
         </button>
       </DropdownMenuTrigger>

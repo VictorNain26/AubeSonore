@@ -40,8 +40,8 @@ export default function Layout({ children }: LayoutProps) {
         duration={3000}
         toastOptions={{
           classNames: {
-            toast: 'glass-strong !rounded-xl !text-white !text-sm',
-            description: '!text-white/60',
+            toast: 'glass-strong !rounded-xl !text-foreground !text-sm',
+            description: '!text-foreground/60',
             success: '!border-l-2 !border-l-[var(--color-success)]',
             error: '!border-l-2 !border-l-[var(--color-danger)]',
           },
@@ -56,7 +56,7 @@ export default function Layout({ children }: LayoutProps) {
             onClick={() => setIsStatsOpen(true)}
             className={cn(
               'p-2 rounded-full cursor-pointer',
-              'text-white/40 hover:text-white hover:bg-white/10',
+              'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
               'transition-all duration-200'
             )}
             title="Mes statistiques"
@@ -66,7 +66,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Center: Title */}
-        <h1 className="text-center text-sm md:text-xl font-light tracking-[0.25em] md:tracking-[0.35em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-white/60 via-white/80 to-white/60">
+        <h1 className="text-center text-sm md:text-xl font-light tracking-[0.25em] md:tracking-[0.35em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-foreground/60 via-foreground/80 to-foreground/60">
           AubeSonore
         </h1>
 
@@ -74,20 +74,20 @@ export default function Layout({ children }: LayoutProps) {
         <div className="absolute right-4 top-1/2 -translate-y-1/2">
           <div className="relative">
             {isLoading ? (
-              <div className="w-8 h-8 rounded-full bg-white/5 animate-pulse" />
+              <div className="w-8 h-8 rounded-full bg-foreground/5 animate-pulse" />
             ) : isAuthenticated && user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
                     className={cn(
                       'flex items-center gap-2 p-2 rounded-full cursor-pointer',
-                      'bg-white/5 hover:bg-white/10 border border-white/10',
+                      'bg-foreground/5 hover:bg-foreground/10 border border-foreground/10',
                       'transition-all duration-200'
                     )}
                     aria-label="Menu utilisateur"
                   >
-                    <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                      <span className="text-xs font-medium text-white/80">
+                    <div className="w-6 h-6 rounded-full bg-foreground/20 flex items-center justify-center">
+                      <span className="text-xs font-medium text-foreground/80">
                         {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -95,10 +95,10 @@ export default function Layout({ children }: LayoutProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <div className="px-3 py-2">
-                    <p className="text-sm font-medium text-white truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {user.name || 'Utilisateur'}
                     </p>
-                    <p className="text-xs text-white/50 truncate">{user.email}</p>
+                    <p className="text-xs text-foreground/50 truncate">{user.email}</p>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem intent="danger" onSelect={() => void signOut()}>
@@ -112,9 +112,9 @@ export default function Layout({ children }: LayoutProps) {
                 onClick={() => setIsAuthModalOpen(true)}
                 className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
-                  'bg-white/5 hover:bg-white/10',
-                  'border border-white/10',
-                  'transition-all duration-200 text-sm text-white/70 hover:text-white'
+                  'bg-foreground/5 hover:bg-foreground/10',
+                  'border border-foreground/10',
+                  'transition-all duration-200 text-sm text-foreground/70 hover:text-foreground'
                 )}
               >
                 <LogIn className="w-4 h-4" />
@@ -132,7 +132,7 @@ export default function Layout({ children }: LayoutProps) {
 
       {/* Footer */}
       <footer className="shrink-0 py-3 md:py-4">
-        <p className="text-center text-[10px] md:text-xs text-muted-foreground/50 tracking-widest">
+        <p className="text-center text-[10px] md:text-xs text-foreground/50/50 tracking-widest">
           AubeSonore | Éveillez vos sens
         </p>
       </footer>

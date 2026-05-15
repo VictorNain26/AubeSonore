@@ -163,22 +163,26 @@ export function VolumeControl({
   const VolumeIcon = showMuted ? VolumeX : Volume2;
 
   return (
+    // Container wraps the trigger button and the slider popup so a single hover
+    // area keeps the slider open. The focusable, interactive elements are the
+    // inner [button] and [role="slider"]; this <div> is layout-only.
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       ref={containerRef}
       className="relative"
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onKeyDown={handleKeyDown}
-      role="toolbar"
-      aria-label="Volume control"
+      role="group"
+      aria-label="Contrôle du volume"
     >
       {/* Volume Icon Button - Fixed position, never moves */}
       <button
         onClick={handleIconClick}
         className={cn(
           'p-2 rounded-full transition-all duration-200 cursor-pointer',
-          'text-white/60 hover:text-white hover:bg-white/10',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50'
+          'text-foreground/60 hover:text-foreground hover:bg-foreground/10',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50'
         )}
         aria-label={showMuted ? 'Unmute' : 'Mute'}
         title={isMobile ? 'Volume' : showMuted ? 'Unmute (M)' : 'Mute (M)'}
@@ -186,7 +190,10 @@ export function VolumeControl({
         <VolumeIcon className="w-5 h-5" />
       </button>
 
-      {/* Slider - Absolute positioned overlay, opens UPWARD */}
+      {/* Slider - Absolute positioned overlay, opens UPWARD.
+          role="presentation" because the focusable element is the inner
+          [role="slider"]; this wrapper exists only to keep the hover-extended
+          dead-zone open. */}
       <div
         className={cn(
           'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50',
@@ -197,10 +204,9 @@ export function VolumeControl({
         )}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
-        role="group"
-        aria-label="Volume slider"
+        role="presentation"
       >
-        <div className="bg-black/80 backdrop-blur-md rounded-xl p-3 shadow-lg border border-white/10">
+        <div className="glass-strong rounded-xl p-3 shadow-lg">
           {/* Vertical Slider Track - wider touch area */}
           <div
             ref={sliderRef}
@@ -220,11 +226,11 @@ export function VolumeControl({
             aria-orientation="vertical"
           >
             {/* Visual track (narrow) */}
-            <div className="relative w-1.5 h-full rounded-full bg-white/20">
+            <div className="relative w-1.5 h-full rounded-full bg-foreground/20">
               {/* Track Fill (from bottom) */}
               <div
                 className={cn(
-                  'absolute inset-x-0 bottom-0 rounded-full bg-white/80',
+                  'absolute inset-x-0 bottom-0 rounded-full bg-foreground/80',
                   !isDragging && 'transition-[height] duration-75'
                 )}
                 style={{ height: `${displayVolume * 100}%` }}
@@ -239,7 +245,7 @@ export function VolumeControl({
               {/* Visible thumb */}
               <div
                 className={cn(
-                  'w-4 h-4 rounded-full bg-white shadow-md',
+                  'w-4 h-4 rounded-full bg-foreground shadow-md',
                   'transition-transform duration-150',
                   isDragging && 'scale-110'
                 )}

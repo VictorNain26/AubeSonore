@@ -4,8 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { useAuth } from '../contexts/AuthContext';
+import { useBannerSlot } from '../stores/bannerSlotStore';
 
 const DISMISS_KEY = 'aubesonore_push_dismiss';
+const SLOT_PRIORITY = 5; // PWA install (10) wins if both want to show
 
 export function NotificationBanner() {
   const { isSupported, permission, isSubscribed, subscribe } = usePushNotifications();
@@ -32,8 +34,9 @@ export function NotificationBanner() {
   }, []);
 
   // Only show for authenticated users, on supported browsers, not already subscribed/dismissed/denied
-  const show =
+  const wantsShow =
     isAuthenticated && isSupported && !isSubscribed && !isDismissed && permission !== 'denied';
+  const show = useBannerSlot('push', SLOT_PRIORITY, wantsShow);
 
   return (
     <AnimatePresence>
@@ -45,15 +48,9 @@ export function NotificationBanner() {
           transition={{ duration: 0.3 }}
           className="fixed bottom-4 inset-x-4 z-[100] flex justify-center"
         >
-          <div
-            className={cn(
-              'flex items-center gap-3 px-4 py-3 max-w-sm w-full',
-              'bg-black/80 backdrop-blur-md rounded-xl',
-              'border border-white/10 shadow-2xl'
-            )}
-          >
-            <Bell className="w-5 h-5 text-purple-400/80 shrink-0" />
-            <p className="text-sm text-white/70 flex-1">
+          <div className="flex items-center gap-3 px-4 py-3 max-w-sm w-full glass-strong rounded-xl shadow-2xl">
+            <Bell className="w-5 h-5 text-accent/80 shrink-0" />
+            <p className="text-sm text-foreground/70 flex-1">
               Recevoir les notifications des sessions live ?
             </p>
             <button
@@ -61,8 +58,8 @@ export function NotificationBanner() {
               disabled={isLoading}
               className={cn(
                 'px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer',
-                'bg-white/10 hover:bg-white/15 text-white',
-                'border border-white/10 transition-all duration-200',
+                'bg-foreground/10 hover:bg-foreground/15 text-foreground',
+                'border border-foreground/10 transition-all duration-200',
                 isLoading && 'animate-pulse'
               )}
             >
@@ -70,7 +67,7 @@ export function NotificationBanner() {
             </button>
             <button
               onClick={handleDismiss}
-              className="p-1.5 rounded-full text-white/30 hover:text-white/60 transition-colors cursor-pointer"
+              className="p-1.5 rounded-full text-foreground/30 hover:text-foreground/60 transition-colors cursor-pointer"
               aria-label="Fermer"
             >
               <X className="w-4 h-4" />

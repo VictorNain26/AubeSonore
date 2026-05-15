@@ -62,9 +62,12 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
   };
 
   return (
-    <div className={cn('group flex items-center gap-3 py-2', isDeleting && 'opacity-50')}>
+    <div
+      role="listitem"
+      className={cn('group flex items-center gap-3 py-2', isDeleting && 'opacity-50')}
+    >
       {/* Artwork */}
-      <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-white/5 flex items-center justify-center">
+      <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-foreground/5 flex items-center justify-center">
         {artwork ? (
           <img
             src={artwork}
@@ -76,14 +79,14 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
             onError={() => setImgError(true)}
           />
         ) : (
-          <Music className="w-5 h-5 text-white/30" />
+          <Music className="w-5 h-5 text-foreground/30" />
         )}
       </div>
 
       {/* Track info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-white truncate">{track.title}</p>
-        <p className="text-xs text-white/50 truncate">{track.artist}</p>
+        <p className="text-sm text-foreground truncate">{track.title}</p>
+        <p className="text-xs text-foreground/50 truncate">{track.artist}</p>
       </div>
 
       {/* Actions - always visible */}
@@ -94,7 +97,7 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           rel="noopener noreferrer"
           className={cn(
             'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer',
-            'text-white/40 hover:text-white hover:bg-white/10',
+            'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
             'transition-all duration-200'
           )}
           title={
@@ -111,7 +114,7 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           disabled={isDeleting}
           className={cn(
             'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center',
-            'text-white/40 hover:text-red-400 hover:bg-white/10',
+            'text-foreground/40 hover:text-danger hover:bg-foreground/10',
             'transition-all duration-200',
             'opacity-0 group-hover:opacity-100',
             isDeleting ? 'cursor-not-allowed !opacity-100' : 'cursor-pointer'
@@ -144,12 +147,12 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
         <button
           className={cn(
             'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
-            'bg-white/5 hover:bg-white/10 border border-white/10',
+            'bg-foreground/5 hover:bg-foreground/10 border border-foreground/10',
             'transition-all duration-200 text-sm'
           )}
           aria-label="Sélectionner la plateforme préférée"
         >
-          <span className="text-white/60">{selectedPlatform?.name}</span>
+          <span className="text-foreground/60">{selectedPlatform?.name}</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="end" className="w-44 max-h-[280px] overflow-y-auto">
@@ -157,7 +160,7 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
           <DropdownMenuItem
             key={platform.id}
             onSelect={() => onChange(platform.id)}
-            className={cn(selected === platform.id && 'bg-white/10 !text-white')}
+            className={cn(selected === platform.id && 'bg-foreground/10 !text-foreground')}
           >
             {platform.name}
           </DropdownMenuItem>
@@ -174,11 +177,11 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center mb-4">
-        <Library className="w-8 h-8 text-white/30" />
+      <div className="w-16 h-16 rounded-2xl bg-foreground/5 flex items-center justify-center mb-4">
+        <Library className="w-8 h-8 text-foreground/30" />
       </div>
-      <p className="text-sm text-white/50 mb-1">Votre bibliothèque est vide</p>
-      <p className="text-xs text-white/30 max-w-[200px]">
+      <p className="text-sm text-foreground/50 mb-1">Votre bibliothèque est vide</p>
+      <p className="text-xs text-foreground/50 max-w-[200px]">
         Survolez la pochette et appuyez sur + pour sauvegarder
       </p>
     </div>
@@ -204,7 +207,7 @@ function OverflowMenu({
         <button
           className={cn(
             'p-2 rounded-full cursor-pointer',
-            'text-white/40 hover:text-white hover:bg-white/10',
+            'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
             'transition-all duration-200'
           )}
           aria-label="Plus d'options"
@@ -285,7 +288,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
           <Dialog.Portal forceMount>
             <Dialog.Overlay asChild>
               <motion.div
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+                className="fixed inset-0 bg-overlay/60 backdrop-blur-sm z-50"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -301,25 +304,19 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                 exit={{ opacity: 0, y: '-48%', scale: 0.96 }}
                 transition={{ duration: 0.2 }}
               >
-                <div
-                  className={cn(
-                    'bg-black/80 backdrop-blur-md rounded-2xl',
-                    'border border-white/10 shadow-2xl overflow-hidden',
-                    'max-h-[70vh] flex flex-col'
-                  )}
-                >
+                <div className="glass-strong rounded-2xl shadow-2xl overflow-hidden max-h-[70vh] flex flex-col">
                   {/* Header */}
-                  <div className="px-5 pt-5 pb-4 shrink-0 border-b border-white/10">
+                  <div className="px-5 pt-5 pb-4 shrink-0 border-b border-foreground/10">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                          <Library className="w-5 h-5 text-white/60" />
+                        <div className="w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center">
+                          <Library className="w-5 h-5 text-foreground/60" />
                         </div>
                         <div>
-                          <Dialog.Title className="text-lg font-medium text-white">
+                          <Dialog.Title className="text-lg font-medium text-foreground">
                             Ma Bibliothèque
                           </Dialog.Title>
-                          <Dialog.Description className="text-xs text-white/40">
+                          <Dialog.Description className="text-xs text-foreground/40">
                             {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
                           </Dialog.Description>
                         </div>
@@ -336,7 +333,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                         <Dialog.Close
                           className={cn(
                             'p-2 rounded-full cursor-pointer',
-                            'text-white/40 hover:text-white hover:bg-white/10',
+                            'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
                             'transition-all duration-200'
                           )}
                           aria-label="Fermer"
@@ -348,8 +345,8 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
                     {/* Platform selector */}
                     {tracks.length > 0 && (
-                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
-                        <span className="text-xs text-white/40">Ouvrir avec</span>
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-foreground/5">
+                        <span className="text-xs text-foreground/40">Ouvrir avec</span>
                         <PlatformSelector
                           selected={preferredPlatform}
                           onChange={handleUpdatePlatform}
@@ -362,12 +359,12 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                   <div className="flex-1 overflow-y-auto px-5 py-4 overscroll-contain">
                     {isLoading ? (
                       <div className="flex items-center justify-center py-12">
-                        <div className="w-8 h-8 rounded-full border-2 border-white/10 border-t-white/50 animate-spin" />
+                        <div className="w-8 h-8 rounded-full border-2 border-foreground/10 border-t-foreground/50 animate-spin" />
                       </div>
                     ) : tracks.length === 0 ? (
                       <EmptyState />
                     ) : (
-                      <div className="divide-y divide-white/5">
+                      <div className="divide-y divide-foreground/5" role="list">
                         {sortedTracks.map((track) => (
                           <TrackItem
                             key={track.id}

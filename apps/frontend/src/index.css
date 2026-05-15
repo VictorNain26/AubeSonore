@@ -2,8 +2,8 @@
 
 /* =============================================================================
    DESIGN TOKENS — Tailwind 4 @theme
-   Generates utility classes (bg-glass, text-foreground, bg-accent, …) AND
-   exposes them as --color-* CSS variables for arbitrary values / inline styles.
+   Single source of truth. Opacity steps come from Tailwind modifiers
+   (text-foreground/70) so the theme stays minimal — no aliases, no doublons.
    ============================================================================= */
 
 @theme {
@@ -12,25 +12,18 @@
   --color-card: hsl(222 18% 10%);
   --color-overlay: hsl(0 0% 0%);
 
-  /* ── Glass system — opacities baked in for instant use ─────────────────── */
+  /* ── Glass system — alpha baked in (cannot derive from foreground/N) ────── */
   --color-glass: hsla(0 0% 100% / 0.03);
   --color-glass-hover: hsla(0 0% 100% / 0.06);
   --color-glass-active: hsla(0 0% 100% / 0.1);
   --color-glass-border: hsla(0 0% 100% / 0.08);
   --color-glass-border-strong: hsla(0 0% 100% / 0.12);
 
-  /* ── Text hierarchy ────────────────────────────────────────────────────── */
+  /* ── Foreground (text) ─────────────────────────────────────────────────── */
   --color-foreground: hsl(0 0% 100%);
-  --color-foreground-secondary: hsla(0 0% 100% / 0.7);
-  --color-foreground-tertiary: hsla(0 0% 100% / 0.5);
-  --color-foreground-muted: hsla(0 0% 100% / 0.35);
-  --color-muted-foreground: hsla(0 0% 100% / 0.5); /* legacy alias for text-muted-foreground */
 
-  /* ── Brand accent (purple) ─────────────────────────────────────────────── */
+  /* ── Brand + semantic ──────────────────────────────────────────────────── */
   --color-accent: hsl(270 60% 60%);
-  --color-accent-muted: hsla(270 40% 50% / 0.2);
-
-  /* ── Semantic ──────────────────────────────────────────────────────────── */
   --color-danger: hsl(0 72% 51%);
   --color-success: hsl(142 71% 45%);
 
@@ -64,7 +57,7 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Scrollbar — minimal */
+  /* Scrollbar — minimal. Opacities derived from foreground via color-mix. */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -73,11 +66,11 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-foreground-muted);
+    background: color-mix(in srgb, var(--color-foreground) 35%, transparent);
     border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: var(--color-foreground-tertiary);
+    background: color-mix(in srgb, var(--color-foreground) 50%, transparent);
   }
 
   /* Focus visible — accessibility */
@@ -88,34 +81,42 @@
 }
 
 /* =============================================================================
-   UTILITIES — kept project-specific, not auto-generated
+   UTILITIES — project-specific, kept atomic
    ============================================================================= */
 
 @layer utilities {
-  /* Glass overlay for modals, popovers, dropdowns */
+  /* Glass surface for modals, popovers, dropdowns */
   .glass-strong {
-    background: hsla(0 0% 0% / 0.8);
+    background: color-mix(in srgb, var(--color-overlay) 80%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--color-glass-border);
   }
 
-  /* Aurora ambient backdrop */
+  /* Aurora ambient backdrop — radial purple glow on background */
   .aurora-bg {
     background:
-      radial-gradient(ellipse at 20% 80%, hsla(270 60% 60% / 0.06) 0%, transparent 50%),
-      radial-gradient(ellipse at 80% 20%, hsla(270 60% 60% / 0.04) 0%, transparent 50%),
+      radial-gradient(
+        ellipse at 20% 80%,
+        color-mix(in srgb, var(--color-accent) 6%, transparent) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        ellipse at 80% 20%,
+        color-mix(in srgb, var(--color-accent) 4%, transparent) 0%,
+        transparent 50%
+      ),
       var(--color-background);
   }
 
   /* Loading skeleton */
   .skeleton {
-    background: hsla(0 0% 100% / 0.05);
+    background: color-mix(in srgb, var(--color-foreground) 5%, transparent);
     animation: pulse-soft 2s ease-in-out infinite;
     border-radius: var(--radius-md);
   }
 
-  /* Pulse ring used on active play button */
+  /* Pulse ring on active play button */
   .animate-pulse-ring {
     animation: pulse-ring 2s ease-in-out infinite;
   }
@@ -125,7 +126,7 @@
     padding-bottom: env(safe-area-inset-bottom);
   }
 
-  /* Visually hidden but accessible (used by skip-link) */
+  /* Skip-link — visually hidden until focused */
   .sr-only-focusable {
     position: absolute;
     width: 1px;
@@ -170,18 +171,18 @@
 
 @keyframes pulse-ring {
   0% {
-    box-shadow: 0 0 0 0 hsla(270 60% 60% / 0.4);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 40%, transparent);
   }
   70% {
-    box-shadow: 0 0 0 10px hsla(270 60% 60% / 0);
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-accent) 0%, transparent);
   }
   100% {
-    box-shadow: 0 0 0 0 hsla(270 60% 60% / 0);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 0%, transparent);
   }
 }
 
 /* =============================================================================
-   REDUCED MOTION — respect user OS setting
+   REDUCED MOTION — respect OS setting
    ============================================================================= */
 
 @media (prefers-reduced-motion: reduce) {

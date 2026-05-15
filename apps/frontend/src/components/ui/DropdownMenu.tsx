@@ -46,9 +46,9 @@ const DropdownMenuItem = forwardRef<
       'transition-colors',
       'data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:pointer-events-none',
       intent === 'default' &&
-        'text-white/70 data-[highlighted]:text-white data-[highlighted]:bg-white/5',
+        'text-foreground/70 data-[highlighted]:text-foreground data-[highlighted]:bg-foreground/5',
       intent === 'danger' &&
-        'text-red-400/80 data-[highlighted]:text-red-400 data-[highlighted]:bg-white/5',
+        'text-danger/80 data-[highlighted]:text-danger data-[highlighted]:bg-foreground/5',
       className
     )}
     {...props}
@@ -62,7 +62,7 @@ const DropdownMenuLabel = forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn('px-3 py-1.5 text-xs font-medium text-white/40', className)}
+    className={cn('px-3 py-1.5 text-xs font-medium text-foreground/40', className)}
     {...props}
   />
 ));
@@ -74,7 +74,7 @@ const DropdownMenuSeparator = forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-white/5', className)}
+    className={cn('-mx-1 my-1 h-px bg-foreground/5', className)}
     {...props}
   />
 ));

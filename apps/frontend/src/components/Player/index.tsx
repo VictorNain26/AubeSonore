@@ -289,7 +289,7 @@ export default function Player() {
           <h2 className="text-lg md:text-xl font-medium text-foreground truncate">
             {nowPlaying?.song.title || 'En attente...'}
           </h2>
-          <p className="text-sm text-muted-foreground truncate px-2 mt-0.5">
+          <p className="text-sm text-foreground/50 truncate px-2 mt-0.5">
             {nowPlaying?.song.artist || '—'}
           </p>
         </motion.div>
@@ -299,15 +299,13 @@ export default function Player() {
           SECTION 4: Waveform Progress
           ================================================================= */}
       <div className="flex items-center gap-3 mb-5">
-        <span className="text-xs text-muted-foreground tabular-nums w-10 text-right">
+        <span className="text-xs text-foreground/50 tabular-nums w-10 text-right">
           {formatTime(elapsed)}
         </span>
         <div className="flex-1">
           <WaveformProgress progress={progress} isPlaying={isPlaying} songId={nowPlaying?.sh_id} />
         </div>
-        <span className="text-xs text-muted-foreground tabular-nums w-10">
-          {formatTime(duration)}
-        </span>
+        <span className="text-xs text-foreground/50 tabular-nums w-10">{formatTime(duration)}</span>
       </div>
 
       {/* =================================================================
@@ -331,17 +329,19 @@ export default function Player() {
           onClick={togglePlay}
           className={cn(
             'w-16 h-16 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
-            'border border-white/20 transition-all duration-200',
-            'hover:scale-105 hover:bg-white/15 active:scale-95',
-            'bg-white/10 backdrop-blur-sm',
-            isPlaying && 'animate-pulse-ring'
+            'border transition-all duration-200 backdrop-blur-sm',
+            'hover:scale-105 active:scale-95',
+            isPlaying
+              ? 'border-accent/40 bg-accent/15 hover:bg-accent/25 animate-pulse-ring'
+              : 'border-foreground/20 bg-foreground/10 hover:bg-foreground/15'
           )}
-          aria-label={isPlaying ? 'Stop' : 'Play'}
+          aria-label={isPlaying ? 'Arrêter la lecture' : 'Lancer la lecture'}
+          aria-pressed={isPlaying}
         >
           {isPlaying ? (
-            <Square className="w-5 h-5 text-white" />
+            <Square className="w-5 h-5 text-foreground" />
           ) : (
-            <Play className="w-7 h-7 text-white ml-0.5" />
+            <Play className="w-7 h-7 text-foreground ml-0.5" />
           )}
         </button>
 
@@ -352,8 +352,8 @@ export default function Player() {
             onClick={handleOpenLibrary}
             className={cn(
               'p-2 rounded-full transition-all duration-200 relative cursor-pointer',
-              'text-white/60 hover:text-white hover:bg-white/10',
-              isAuthenticated && tracks.length > 0 && 'text-purple-400/80 hover:text-purple-400'
+              'text-foreground/60 hover:text-foreground hover:bg-foreground/10',
+              isAuthenticated && tracks.length > 0 && 'text-accent/80 hover:text-accent'
             )}
             title="Ma bibliothèque"
           >
@@ -362,15 +362,22 @@ export default function Player() {
 
           {/* Listeners count + LIVE indicator */}
           {np?.listeners ? (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <div
+              className="flex items-center gap-1.5 text-xs text-foreground/50"
+              aria-live="polite"
+              aria-atomic="true"
+            >
               {np.live.is_live && (
-                <span className="flex items-center gap-1 text-red-400 font-medium">
-                  <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                <span className="flex items-center gap-1 text-danger font-medium">
+                  <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
                   LIVE
                 </span>
               )}
-              <Users className="w-3.5 h-3.5" />
-              <span>{np.listeners.current}</span>
+              <Users className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>
+                <span className="sr-only">Auditeurs : </span>
+                {np.listeners.current}
+              </span>
             </div>
           ) : null}
         </div>
@@ -388,25 +395,29 @@ export default function Player() {
         const historyEntries = np?.song_history?.slice(0, 5);
         if (!historyEntries || historyEntries.length === 0) return null;
         return (
-          <div className="border-t border-white/10 pt-4">
-            <p className="text-xs text-muted-foreground mb-2">Historique</p>
-            {historyEntries.map((entry, index) => (
-              <motion.div
-                key={entry.sh_id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.25, delay: index * 0.05 }}
-              >
-                <HistoryItem
-                  entry={entry}
-                  isLiked={isHistoryTrackLiked(entry)}
-                  isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
-                  onToggle={() => {
-                    void handleToggleLike(entry.song.title, entry.song.artist, entry.song.art);
-                  }}
-                />
-              </motion.div>
-            ))}
+          <div className="border-t border-foreground/10 pt-4">
+            <p id="history-label" className="text-xs text-foreground/50 mb-2">
+              Historique
+            </p>
+            <div role="list" aria-labelledby="history-label">
+              {historyEntries.map((entry, index) => (
+                <motion.div
+                  key={entry.sh_id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.25, delay: index * 0.05 }}
+                >
+                  <HistoryItem
+                    entry={entry}
+                    isLiked={isHistoryTrackLiked(entry)}
+                    isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
+                    onToggle={() => {
+                      void handleToggleLike(entry.song.title, entry.song.artist, entry.song.art);
+                    }}
+                  />
+                </motion.div>
+              ))}
+            </div>
           </div>
         );
       })()}

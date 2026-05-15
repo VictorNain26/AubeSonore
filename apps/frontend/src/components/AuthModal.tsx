@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Mail, Lock, User, Loader2, X } from 'lucide-react';
+import { Mail, Lock, User, Loader2, X, Eye, EyeOff } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -26,6 +26,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,7 +68,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
           <Dialog.Portal forceMount>
             <Dialog.Overlay asChild>
               <motion.div
-                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+                className="fixed inset-0 bg-overlay/60 backdrop-blur-sm z-50"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -83,18 +84,13 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                 exit={{ opacity: 0, y: '-48%', scale: 0.96 }}
                 transition={{ duration: 0.2 }}
               >
-                <div
-                  className={cn(
-                    'bg-black/80 backdrop-blur-md rounded-2xl',
-                    'border border-white/10 shadow-2xl overflow-hidden'
-                  )}
-                >
+                <div className="glass-strong rounded-2xl shadow-2xl overflow-hidden">
                   {/* Header */}
                   <div className="relative px-6 pt-6 pb-4">
                     <Dialog.Close
                       className={cn(
                         'absolute top-4 right-4 p-2 rounded-full cursor-pointer',
-                        'text-white/40 hover:text-white hover:bg-white/10',
+                        'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
                         'transition-all duration-200'
                       )}
                       aria-label="Fermer"
@@ -103,10 +99,10 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                     </Dialog.Close>
 
                     <div className="text-center">
-                      <Dialog.Title className="text-xl font-medium text-white mb-1">
+                      <Dialog.Title className="text-xl font-medium text-foreground mb-1">
                         {mode === 'signin' ? 'Bon retour' : 'Créer un compte'}
                       </Dialog.Title>
-                      <Dialog.Description className="text-sm text-white/50">
+                      <Dialog.Description className="text-sm text-foreground/50">
                         {mode === 'signin'
                           ? 'Connectez-vous pour retrouver vos morceaux'
                           : 'Inscrivez-vous pour sauvegarder vos likes'}
@@ -123,7 +119,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                   >
                     {mode === 'signup' && (
                       <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/30" />
                         <input
                           type="text"
                           placeholder="Nom"
@@ -132,9 +128,9 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                           required
                           className={cn(
                             'w-full pl-11 pr-4 py-3 rounded-xl',
-                            'bg-white/5 border border-white/10',
-                            'text-white placeholder:text-white/30',
-                            'focus:outline-none focus:border-white/20 focus:bg-white/10',
+                            'bg-foreground/5 border border-foreground/10',
+                            'text-foreground placeholder:text-foreground/50',
+                            'focus:outline-none focus:border-foreground/20 focus:bg-foreground/10',
                             'transition-all duration-200'
                           )}
                         />
@@ -142,7 +138,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                     )}
 
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/30" />
                       <input
                         type="email"
                         placeholder="Email"
@@ -151,31 +147,47 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                         required
                         className={cn(
                           'w-full pl-11 pr-4 py-3 rounded-xl',
-                          'bg-white/5 border border-white/10',
-                          'text-white placeholder:text-white/30',
-                          'focus:outline-none focus:border-white/20 focus:bg-white/10',
+                          'bg-foreground/5 border border-foreground/10',
+                          'text-foreground placeholder:text-foreground/50',
+                          'focus:outline-none focus:border-foreground/20 focus:bg-foreground/10',
                           'transition-all duration-200'
                         )}
                       />
                     </div>
 
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/30" />
+                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/30" />
                       <input
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         placeholder="Mot de passe"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         minLength={6}
                         className={cn(
-                          'w-full pl-11 pr-4 py-3 rounded-xl',
-                          'bg-white/5 border border-white/10',
-                          'text-white placeholder:text-white/30',
-                          'focus:outline-none focus:border-white/20 focus:bg-white/10',
+                          'w-full pl-11 pr-11 py-3 rounded-xl',
+                          'bg-foreground/5 border border-foreground/10',
+                          'text-foreground placeholder:text-foreground/50',
+                          'focus:outline-none focus:border-foreground/20 focus:bg-foreground/10',
                           'transition-all duration-200'
                         )}
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((s) => !s)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-foreground/40 hover:text-foreground/70 transition-colors cursor-pointer"
+                        aria-label={
+                          showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+                        }
+                        aria-pressed={showPassword}
+                        tabIndex={-1}
+                      >
+                        {showPassword ? (
+                          <EyeOff className="w-4 h-4" />
+                        ) : (
+                          <Eye className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
 
                     <button
@@ -183,8 +195,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                       disabled={isLoading}
                       className={cn(
                         'w-full py-3 rounded-xl font-medium',
-                        'bg-white/10 hover:bg-white/15 border border-white/10',
-                        'text-white transition-all duration-200',
+                        'bg-foreground/10 hover:bg-foreground/15 border border-foreground/10',
+                        'text-foreground transition-all duration-200',
                         'disabled:opacity-50 disabled:cursor-not-allowed',
                         'flex items-center justify-center gap-2'
                       )}
@@ -205,17 +217,21 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin' }: AuthModal
                       <button
                         type="button"
                         onClick={switchMode}
-                        className="text-sm text-white/50 hover:text-white transition-all duration-200"
+                        className="text-sm text-foreground/50 hover:text-foreground transition-all duration-200"
                       >
                         {mode === 'signin' ? (
                           <>
                             Pas encore de compte ?{' '}
-                            <span className="text-white/70 hover:text-white">S&apos;inscrire</span>
+                            <span className="text-foreground/70 hover:text-foreground">
+                              S&apos;inscrire
+                            </span>
                           </>
                         ) : (
                           <>
                             Déjà un compte ?{' '}
-                            <span className="text-white/70 hover:text-white">Se connecter</span>
+                            <span className="text-foreground/70 hover:text-foreground">
+                              Se connecter
+                            </span>
                           </>
                         )}
                       </button>

@@ -39,7 +39,7 @@ export default function HomePage() {
       )}
 
       {/* Dark overlay for text readability */}
-      {loadedArt && <div className="fixed inset-0 bg-black/40 pointer-events-none" />}
+      {loadedArt && <div className="fixed inset-0 bg-overlay/40 pointer-events-none" />}
 
       {/* Player content */}
       <div className="relative z-10 w-full">

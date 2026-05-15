@@ -5,30 +5,46 @@ import type { ArtistInfo } from '@aubesonore/shared-types/client';
 
 export type { ArtistInfo } from '@aubesonore/shared-types/client';
 
-const cache = new LruCache<string, ArtistInfo>(100);
+// 24h TTL cache. The previous 300ms debounce has been removed: artistName
+// only changes on track flips (every few minutes), so the delay only added
+// dead time. A 0ms setTimeout still defers state mutations off the effect's
+// synchronous body so React isn't asked to cascade renders.
+
+interface CachedArtistInfo {
+  data: ArtistInfo;
+  expiresAt: number;
+}
+
+const ARTIST_INFO_TTL_MS = 24 * 60 * 60 * 1000;
+const cache = new LruCache<string, CachedArtistInfo>(100);
+
+function readCache(key: string): ArtistInfo | undefined {
+  const entry = cache.get(key);
+  if (!entry) return undefined;
+  if (Date.now() > entry.expiresAt) return undefined;
+  return entry.data;
+}
+
+function writeCache(key: string, data: ArtistInfo): void {
+  cache.set(key, { data, expiresAt: Date.now() + ARTIST_INFO_TTL_MS });
+}
 
 export function useArtistInfo(artistName: string | undefined) {
-  // Read cache synchronously during render — no setState-in-effect needed for hits.
-  // The cache itself is module-scoped and mutable; React doesn't track its
-  // changes, but for this hook a re-render only happens when artistName changes,
-  // at which point we re-read.
-  const cached = artistName ? cache.get(artistName.toLowerCase()) : undefined;
+  const cached = artistName ? readCache(artistName.toLowerCase()) : undefined;
   const [fetchedData, setFetchedData] = useState<ArtistInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
+  const scheduleRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  // Cache hit → return cached. Cache miss → return whatever we last fetched
-  // for this name (which is internalData), or null.
   const data = cached ?? (artistName ? fetchedData : null);
 
   useEffect(() => {
     if (!artistName) return;
     const key = artistName.toLowerCase();
-    if (cache.get(key)) return; // Already cached; render path returns it.
+    if (readCache(key)) return;
 
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
+    clearTimeout(scheduleRef.current);
+    scheduleRef.current = setTimeout(() => {
       abortRef.current?.abort();
       const controller = new AbortController();
       abortRef.current = controller;
@@ -45,7 +61,7 @@ export function useArtistInfo(artistName: string | undefined) {
         .then((info) => {
           if (controller.signal.aborted) return;
           if (info && typeof info === 'object' && !('error' in info && info.error)) {
-            cache.set(key, info);
+            writeCache(key, info);
             setFetchedData(info);
           } else {
             setFetchedData(null);
@@ -62,10 +78,10 @@ export function useArtistInfo(artistName: string | undefined) {
             setIsLoading(false);
           }
         });
-    }, 300);
+    }, 0);
 
     return () => {
-      clearTimeout(debounceRef.current);
+      clearTimeout(scheduleRef.current);
       abortRef.current?.abort();
     };
   }, [artistName]);

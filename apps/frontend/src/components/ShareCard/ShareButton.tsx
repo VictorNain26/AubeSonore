@@ -46,7 +46,7 @@ export function ShareButton({ artUrl, title, artist, trackUrl }: ShareButtonProp
         className={cn(
           'p-2.5 sm:p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer',
           'backdrop-blur-md shadow-lg active:scale-95 border',
-          'bg-black/60 text-white hover:bg-black/70 border-white/20',
+          'bg-overlay/60 text-foreground hover:bg-overlay/70 border-foreground/20',
           isGenerating && 'animate-pulse'
         )}
         title="Partager"
