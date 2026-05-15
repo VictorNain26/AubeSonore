@@ -2,33 +2,48 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { getAnalyser } from '../../lib/player';
 
 // ─────────────────────────────────────────────
-// Waveform Radio-Style - Audio-reactive with Web Audio API
+// Audio-reactive waveform with internal rAF.
 // ─────────────────────────────────────────────
+// Receives `playedAt` / `duration` / `isPlaying` as primitive props.
+// Live progress is derived from `played_at` (immutable per track) inside
+// the rAF loop — the React tree is never re-rendered on a frame tick,
+// which is the whole point of moving the loop down into the canvas.
+//
+// Per AzuraCast docs on the static now-playing JSON: the server-reported
+// `elapsed` is frozen at file-write time, so clients must compute live
+// time from `played_at` against the current UNIX timestamp.
 
-interface WaveformProgressProps {
-  progress: number;
+interface WaveformCanvasProps {
+  playedAt: number | undefined;
+  duration: number;
   isPlaying: boolean;
   songId: number | undefined;
 }
 
-export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgressProps) {
+export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: WaveformCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const timeRef = useRef<number>(0);
   const frequencyDataRef = useRef<Uint8Array | null>(null);
   const smoothedDataRef = useRef<number[]>([]);
-  // Read `progress` via a ref inside the rAF loop so the effect does NOT
-  // tear-down/re-setup 60 times per second when the parent's elapsed timer ticks.
-  // Without this, every progress update cancels and re-arms the animation frame.
-  const progressRef = useRef(progress);
+
+  // Read latest props from refs inside the rAF callback so changes to
+  // `playedAt`/`duration`/`isPlaying`/`songId` don't tear down the loop.
+  const playedAtRef = useRef(playedAt);
+  const durationRef = useRef(duration);
+  const isPlayingRef = useRef(isPlaying);
+  const songIdRef = useRef(songId);
+
+  useLayoutEffect(() => {
+    playedAtRef.current = playedAt;
+    durationRef.current = duration;
+    isPlayingRef.current = isPlaying;
+    songIdRef.current = songId;
+  });
+
   const barsCount = 48;
 
-  // Sync progress ref with actual progress prop (without triggering re-renders)
-  useLayoutEffect(() => {
-    progressRef.current = progress;
-  }, [progress]);
-
-  // Initialize smoothed data array
+  // Initialize smoothed bar heights once
   useEffect(() => {
     if (smoothedDataRef.current.length !== barsCount) {
       smoothedDataRef.current = new Array(barsCount).fill(0.3) as number[];
@@ -38,7 +53,6 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -48,19 +62,14 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
     const handleVisibility = () => {
       paused = document.hidden;
       if (!paused) {
-        // Reset timer to avoid a delta-time spike that animates frantically
-        // when the tab regains focus.
         lastTime = performance.now();
         animationRef.current = requestAnimationFrame(draw);
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
 
-    const draw = (currentTime: number) => {
-      if (paused) {
-        // Stop scheduling new frames; visibilitychange will restart the loop.
-        return;
-      }
+    const draw = (currentTime: number): void => {
+      if (paused) return;
       const deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
       timeRef.current += deltaTime;
@@ -68,24 +77,30 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
       const time = timeRef.current;
       const width = canvas.width;
       const height = canvas.height;
+      const playedAt = playedAtRef.current;
+      const duration = durationRef.current;
+      const isPlaying = isPlayingRef.current;
+      const songId = songIdRef.current;
+
+      const elapsedSec =
+        playedAt !== undefined && duration > 0
+          ? Math.max(0, Math.min(duration, Date.now() / 1000 - playedAt))
+          : 0;
+      const currentProgress = duration > 0 ? (elapsedSec / duration) * 100 : 0;
 
       ctx.clearRect(0, 0, width, height);
 
       const barWidth = width / barsCount;
       const gap = 3;
-      const currentProgress = progressRef.current;
       const progressX = (currentProgress / 100) * width;
 
-      // Get real audio data when playing
       const analyser = getAnalyser();
       let frequencyData: Uint8Array | null = null;
 
       if (isPlaying && analyser) {
-        // Initialize frequency array if needed (analyser created after play)
         if (!frequencyDataRef.current) {
           frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount);
         }
-        // Type assertion needed for strict TypeScript
         analyser.getByteFrequencyData(frequencyDataRef.current as Uint8Array<ArrayBuffer>);
         frequencyData = frequencyDataRef.current;
       }
@@ -95,48 +110,31 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
         let barHeight: number;
 
         if (frequencyData) {
-          // Plage élargie: bins 2-35 (~80Hz - 6kHz)
           const startBin = 2;
           const endBin = 35;
           const usableBins = endBin - startBin;
-
-          // Distribution centrée en miroir
           const center = barsCount / 2;
-          const distFromCenter = Math.abs(i - center) / center; // 0-1
-
-          // Courbe logarithmique pour plus de variation
-          // Les barres proches du centre = basses, s'éloigner = montée rapide vers médiums/aigus
-          const logDist = Math.pow(distFromCenter, 0.6); // <1 = plus de détail dans les basses
+          const distFromCenter = Math.abs(i - center) / center;
+          const logDist = Math.pow(distFromCenter, 0.6);
           const binOffset = Math.floor(logDist * usableBins);
           const binIndex = startBin + binOffset;
-
-          // Prendre un seul bin pour plus de différenciation
           const value = frequencyData[binIndex] ?? 0;
-
-          // Normalize avec contraste amplifié
           const normalized = 0.15 + (value / 255) * 0.8;
-
-          // Smooth transition
           const smoothingFactor = 0.35;
           const prevValue = smoothedDataRef.current[i] ?? 0.3;
           const newValue = prevValue * (1 - smoothingFactor) + normalized * smoothingFactor;
           smoothedDataRef.current[i] = newValue;
-
           barHeight = newValue * height * 0.9;
         } else {
-          // Fallback animation when not playing or no analyser
           const position = i / barsCount;
-          const seed = songId || 1;
-
+          const seed = songId ?? 1;
           if (isPlaying) {
-            // Animated sine waves
             const wave1 = Math.sin(time * 3 + i * 0.15 + seed * 0.01) * 0.15;
             const wave2 = Math.sin(time * 5 + i * 0.25 + seed * 0.02) * 0.1;
             const wave3 = Math.sin(time * 2 + position * Math.PI * 2) * 0.12;
             const base = 0.45 + wave1 + wave2 + wave3;
             barHeight = Math.max(0.2, Math.min(0.9, base)) * height * 0.85;
           } else {
-            // Subtle breathing animation when stopped
             const breath = Math.sin(time * 0.8 + i * 0.1) * 0.08;
             const baseWave = Math.sin(position * Math.PI * 2 + seed * 0.01) * 0.15;
             barHeight = (0.35 + baseWave + breath) * height * 0.7;
@@ -147,30 +145,24 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
         const barX = x + gap / 2;
         const barW = barWidth - gap;
 
-        // Partie colorée (progression passée)
         if (x < progressX) {
           const fillWidth = Math.min(barW, progressX - barX);
           if (fillWidth > 0) {
-            // Gradient vertical avec glow
             const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
             gradient.addColorStop(0, 'rgba(139, 92, 246, 0.7)');
             gradient.addColorStop(0.5, 'rgba(168, 85, 247, 1)');
             gradient.addColorStop(1, 'rgba(139, 92, 246, 0.7)');
 
-            // Glow effect - stronger when using real audio
             ctx.shadowColor = 'rgba(168, 85, 247, 0.5)';
             ctx.shadowBlur = frequencyData ? 10 : isPlaying ? 8 : 4;
-
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.roundRect(barX, y, fillWidth, barHeight, 2);
             ctx.fill();
-
             ctx.shadowBlur = 0;
           }
         }
 
-        // Partie non colorée (reste à jouer)
         if (x + barW > progressX) {
           const startX = Math.max(barX, progressX);
           const remainingWidth = barX + barW - startX;
@@ -183,7 +175,6 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
         }
       }
 
-      // Ligne de progression (curseur)
       if (currentProgress > 0 && currentProgress < 100) {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
         ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
@@ -203,7 +194,7 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
       cancelAnimationFrame(animationRef.current);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [isPlaying, songId]);
+  }, []);
 
   return <canvas ref={canvasRef} width={384} height={48} className="w-full h-12" />;
 }

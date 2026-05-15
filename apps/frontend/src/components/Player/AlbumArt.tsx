@@ -7,6 +7,7 @@ import { useLikedTracksContext } from '../../contexts/LikedTracksContext';
 import { usePreferences } from '../../contexts/PreferencesContext';
 import { getTrackShareUrl } from '@aubesonore/core/share';
 import { isDefaultArtwork } from '@aubesonore/core/azuracast';
+import { trackFlip, toggle as toggleTransition } from './motion-presets';
 
 // ─────────────────────────────────────────────
 // Album Art Component with elegant fallback
@@ -76,10 +77,10 @@ export function AlbumArt({
               decoding="async"
               fetchPriority="high"
               onError={handleArtError}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4 }}
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              transition={trackFlip}
             />
           ) : (
             // Fallback élégant - Design sobre avec dégradé subtil
@@ -108,12 +109,14 @@ export function AlbumArt({
             <ShareButton artUrl={artUrl} title={title} artist={artist || ''} trackUrl={trackUrl} />
 
             {/* Like button - bottom right */}
-            <button
+            <motion.button
               onClick={onToggleLike}
               disabled={isLiking}
+              whileTap={{ scale: 0.9 }}
+              transition={toggleTransition}
               className={cn(
-                'p-2.5 sm:p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer',
-                'backdrop-blur-md shadow-lg active:scale-95 border',
+                'p-2.5 sm:p-3 rounded-full min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer',
+                'backdrop-blur-md shadow-lg border',
                 isLiked
                   ? 'bg-danger text-foreground border-danger'
                   : 'bg-overlay/60 text-foreground hover:bg-overlay/70 border-foreground/20',
@@ -123,8 +126,15 @@ export function AlbumArt({
               aria-label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
               aria-pressed={isLiked}
             >
-              <Heart className={cn('w-5 h-5 transition-all', isLiked && 'fill-current')} />
-            </button>
+              <motion.span
+                key={isLiked ? 'liked' : 'unliked'}
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={toggleTransition}
+              >
+                <Heart className={cn('w-5 h-5', isLiked && 'fill-current')} />
+              </motion.span>
+            </motion.button>
           </div>
         )}
       </div>
