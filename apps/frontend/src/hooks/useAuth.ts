@@ -66,8 +66,19 @@ export function useAuthState(): AuthContextType {
   }, []);
 
   useEffect(() => {
-    void refreshSession();
-  }, [refreshSession]);
+    // Call refreshSession once on mount (no dependency on refreshSession itself)
+    let isMounted = true;
+    const init = async () => {
+      if (isMounted) {
+        await refreshSession();
+      }
+    };
+    void init();
+    return () => {
+      isMounted = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
     const response = await authApi.signIn(email, password);

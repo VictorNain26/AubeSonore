@@ -62,12 +62,11 @@ export default function Player() {
   const tickListeningTime = useStatsStore((s) => s.tickListeningTime);
   const recordTrackChange = useStatsStore((s) => s.recordTrackChange);
 
-  // Sync with server elapsed time
+  // Sync with server elapsed time (store in ref, don't setState in effect)
   useEffect(() => {
     if (nowPlaying?.elapsed !== undefined) {
       baseElapsedRef.current = nowPlaying.elapsed;
       startTimeRef.current = performance.now();
-      setElapsed(nowPlaying.elapsed);
     }
   }, [nowPlaying?.elapsed, nowPlaying?.sh_id]);
 

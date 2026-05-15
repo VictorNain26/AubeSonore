@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useCallback, useRef, useMemo } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+  useLayoutEffect,
+} from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus, setAudioModeAsync } from 'expo-audio';
 
@@ -96,6 +104,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
   // Lock screen state tracking
   const lockScreenActiveRef = useRef(false);
+  const playerRef = useRef(player);
 
   // ─────────────────────────────────────────────
   // 1. Configure Audio Mode (once)
@@ -117,12 +126,17 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(status.isBuffering);
   }, [status.playing, status.isBuffering, setIsPlaying, setIsLoading]);
 
+  // Sync player ref
+  useLayoutEffect(() => {
+    playerRef.current = player;
+  }, [player]);
+
   // ─────────────────────────────────────────────
   // 3. Volume sync
   // ─────────────────────────────────────────────
   useEffect(() => {
-    player.volume = volume;
-  }, [player, volume]);
+    playerRef.current.volume = volume;
+  }, [volume]);
 
   // ─────────────────────────────────────────────
   // 4. Lock Screen Management
@@ -225,12 +239,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     player.pause();
   }, [player]);
 
-  const setVolume = useCallback(
-    (value: number) => {
-      player.volume = Math.max(0, Math.min(1, value));
-    },
-    [player]
-  );
+  const setVolume = useCallback((value: number) => {
+    playerRef.current.volume = Math.max(0, Math.min(1, value));
+  }, []);
 
   // Memoize context value
   const contextValue = useMemo(() => ({ play, stop, setVolume }), [play, stop, setVolume]);

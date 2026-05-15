@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Music, Heart } from 'lucide-react';
 import { ShareButton } from '../ShareCard/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -47,10 +47,9 @@ export function AlbumArt({
     return getTrackShareUrl(likedTrack ?? { title, artist }, preferences?.preferredPlatform);
   }, [title, artist, tracks, preferences]);
 
-  // Reset art error when song changes
-  useEffect(() => {
-    setArtError(false);
-  }, [artUrl]);
+  const handleArtError = useCallback(() => {
+    setArtError(true);
+  }, []);
 
   // Détecter la cover par défaut AzuraCast
   const isDefaultCover =
@@ -61,7 +60,7 @@ export function AlbumArt({
     artUrl.includes('placeholder');
 
   return (
-    <div className="relative group">
+    <div key={artUrl} className="relative group">
       <div
         className={cn(
           'w-64 h-64 md:w-72 md:h-72 lg:w-80 lg:h-80 rounded-2xl overflow-hidden',
@@ -80,7 +79,7 @@ export function AlbumArt({
               referrerPolicy="no-referrer"
               decoding="async"
               fetchPriority="high"
-              onError={() => setArtError(true)}
+              onError={handleArtError}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

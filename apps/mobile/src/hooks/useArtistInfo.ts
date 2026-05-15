@@ -8,27 +8,20 @@ export type { ArtistInfo } from '@aubesonore/shared-types/client';
 const cache = new LruCache<string, ArtistInfo>(100);
 
 export function useArtistInfo(artistName: string | undefined) {
-  const [data, setData] = useState<ArtistInfo | null>(null);
+  // Read cache synchronously during render — avoids setState-in-effect for hits.
+  const cached = artistName ? cache.get(artistName.toLowerCase()) : undefined;
+  const [fetchedData, setFetchedData] = useState<ArtistInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
 
+  const data = cached ?? (artistName ? fetchedData : null);
+
   useEffect(() => {
-    if (!artistName) {
-      setData(null);
-      return;
-    }
-
+    if (!artistName) return;
     const key = artistName.toLowerCase();
+    if (cache.get(key)) return;
 
-    // Check in-memory cache
-    const cached = cache.get(key);
-    if (cached) {
-      setData(cached);
-      return;
-    }
-
-    // Debounce 300ms
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       abortRef.current?.abort();
@@ -48,15 +41,15 @@ export function useArtistInfo(artistName: string | undefined) {
           if (controller.signal.aborted) return;
           if (info && !('error' in info)) {
             cache.set(key, info);
-            setData(info);
+            setFetchedData(info);
           } else {
-            setData(null);
+            setFetchedData(null);
           }
         })
         .catch((err: unknown) => {
           if (err instanceof Error && err.name !== 'AbortError') {
             console.warn('[useArtistInfo] Fetch error:', err);
-            setData(null);
+            setFetchedData(null);
           }
         })
         .finally(() => {

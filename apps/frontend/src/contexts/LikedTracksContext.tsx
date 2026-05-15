@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useLayoutEffect,
   useCallback,
   useMemo,
   useRef,
@@ -39,7 +40,9 @@ export function LikedTracksProvider({ children }: LikedTracksProviderProps) {
   // memo'd context value on every change and cascade re-renders to all
   // consumers — Player, AlbumArt, history items, modal).
   const tracksRef = useRef<LikedTrack[]>([]);
-  tracksRef.current = tracks;
+  useLayoutEffect(() => {
+    tracksRef.current = tracks;
+  }, [tracks]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: authLoading } = useAuth();

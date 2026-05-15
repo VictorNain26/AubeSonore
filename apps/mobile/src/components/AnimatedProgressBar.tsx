@@ -22,11 +22,10 @@ function AnimatedProgressBarComponent({ elapsed, duration, trackId }: AnimatedPr
   const baseElapsedRef = useRef<number>(0);
   const progress = useSharedValue(0);
 
-  // Sync with server elapsed time when it changes
+  // Sync with server elapsed time when it changes (store in ref, don't setState in effect)
   useEffect(() => {
     baseElapsedRef.current = elapsed;
     startTimeRef.current = Date.now();
-    setDisplayElapsed(elapsed);
 
     // Set initial progress
     if (duration > 0) {
@@ -40,7 +39,6 @@ function AnimatedProgressBarComponent({ elapsed, duration, trackId }: AnimatedPr
   // Smooth animation loop using requestAnimationFrame (like web app)
   useEffect(() => {
     if (duration <= 0) {
-      progress.value = 0;
       return;
     }
 
