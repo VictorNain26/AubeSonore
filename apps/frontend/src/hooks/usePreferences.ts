@@ -74,17 +74,5 @@ export function usePreferences(): UsePreferencesReturn {
   };
 }
 
-// ─────────────────────────────────────────────
-// Constantes pour les plateformes
-// ─────────────────────────────────────────────
-
-export const PLATFORMS: { id: PreferredPlatform; name: string }[] = [
-  { id: 'spotify', name: 'Spotify' },
-  { id: 'appleMusic', name: 'Apple Music' },
-  { id: 'deezer', name: 'Deezer' },
-  { id: 'youtubeMusic', name: 'YouTube Music' },
-  { id: 'youtube', name: 'YouTube' },
-  { id: 'tidal', name: 'Tidal' },
-  { id: 'amazonMusic', name: 'Amazon Music' },
-  { id: 'soundcloud', name: 'SoundCloud' },
-];
+// PLATFORMS list now lives in @aubesonore/shared-types/client (single source
+// of truth shared with backend validator + mobile).

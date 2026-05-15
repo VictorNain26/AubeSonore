@@ -220,17 +220,6 @@ export function useNowPlaying(): NowPlayingState {
 }
 
 // ─────────────────────────────────────────────
-// Utilities
-// ─────────────────────────────────────────────
-
-const DEFAULT_ARTWORK_TOKENS = ['generic', 'default', 'placeholder'] as const;
-
-export function isDefaultArtwork(url: string | null | undefined): boolean {
-  if (!url) return true;
-  return DEFAULT_ARTWORK_TOKENS.some((token) => url.includes(token));
-}
-
-// ─────────────────────────────────────────────
 // Test-only helpers
 // ─────────────────────────────────────────────
 

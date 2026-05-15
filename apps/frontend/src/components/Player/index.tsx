@@ -16,7 +16,7 @@ const LikedTracksModal = lazy(() =>
 const AuthModal = lazy(() => import('../AuthModal').then((m) => ({ default: m.AuthModal })));
 
 // Sub-components
-import { formatTime } from './utils';
+import { formatTime } from '@aubesonore/core/format';
 import { WaveformProgress } from './WaveformProgress';
 import { VolumeControl } from './VolumeControl';
 import { HistoryItem } from './HistoryItem';

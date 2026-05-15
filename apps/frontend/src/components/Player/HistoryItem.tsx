@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Music, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type SongEntry } from '../../lib/azuracast';
-import { formatTimeAgo } from './utils';
+import { formatTimeAgo } from '@aubesonore/core/format';
 
 // ─────────────────────────────────────────────
 // History Item Component
