@@ -1,12 +1,23 @@
+// Public contract every cache backend must satisfy. Consumers type their
+// dependency as `CacheStore<V>` (not `TtlCache<V>`) so we can swap a
+// `RedisCacheStore` impl in later without touching call sites. See
+// CLAUDE.md "Scaling roadmap" for the migration triggers.
+export interface CacheStore<V> {
+  get(key: string): V | undefined;
+  set(key: string, value: V, ttlMsOverride?: number): void;
+  delete(key: string): void;
+}
+
 /**
  * In-memory TTL cache with periodic sweep.
  * Suitable for a single backend instance (e.g. Koyeb worker).
- * For multi-instance deployments, swap for Redis.
+ * For multi-instance deployments, implement a Redis-backed `CacheStore<V>`
+ * with the same surface and swap at the import site.
  *
  * Without the sweep, entries that are written once and never read again
  * (e.g. one-off Songlink lookups) would sit in memory until process restart.
  */
-export class TtlCache<V> {
+export class TtlCache<V> implements CacheStore<V> {
   private readonly store = new Map<string, { value: V; expiresAt: number }>();
   private sweepTimer: ReturnType<typeof setInterval> | null = null;
 
