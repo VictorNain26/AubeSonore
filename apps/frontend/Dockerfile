@@ -1,5 +1,5 @@
 # Frontend Dockerfile - React + Vite
-FROM node:20-alpine AS base
+FROM node:26-alpine AS base
 WORKDIR /app
 
 # Install pnpm
