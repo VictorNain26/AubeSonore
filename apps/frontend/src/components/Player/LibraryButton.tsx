@@ -3,7 +3,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
 import { ModalErrorFallback } from '../ErrorFallback';
 
@@ -17,7 +17,7 @@ const LikedTracksModal = lazy(() =>
 
 export function LibraryButton() {
   const tracks = useLikedTracksStore((s) => s.tracks);
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const openAuthModal = useAuthModalStore((s) => s.open);
   const [isModalOpen, setIsModalOpen] = useState(false);
 

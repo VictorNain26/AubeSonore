@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNowPlaying, isDefaultArtwork } from '../lib/azuracast';
+import { useNowPlayingStore, isDefaultArtwork } from '../lib/azuracast';
 
 // Blurred ambient backdrop. Reads the now-playing cover, preloads the
 // image off-render, and only paints once the load succeeds — that
@@ -9,8 +9,7 @@ import { useNowPlaying, isDefaultArtwork } from '../lib/azuracast';
 // or fails to load.
 
 export function AmbientBackground() {
-  const { data: np } = useNowPlaying();
-  const artUrl = np?.now_playing?.song.art;
+  const artUrl = useNowPlayingStore((s) => s.data?.now_playing?.song.art);
   const isDefaultCover = isDefaultArtwork(artUrl);
 
   const [preloadedArt, setPreloadedArt] = useState<string | null>(null);

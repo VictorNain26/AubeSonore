@@ -1,7 +1,4 @@
-import { useEffect } from 'react';
-import { toast } from 'sonner';
-import { usePlayer } from '../../lib/player';
-import { useNowPlaying } from '../../lib/azuracast';
+import { useNowPlayingStore } from '../../lib/azuracast';
 
 import { TrackArtwork } from './TrackArtwork';
 import { TrackMeta } from './TrackMeta';
@@ -12,25 +9,16 @@ import { LibraryButton } from './LibraryButton';
 import { ListenersBadge } from './ListenersBadge';
 import { ArtistContext } from './ArtistContext';
 import { HistoryList } from './HistoryList';
-import { AuthModalHost } from './AuthModalHost';
 
-// Player is a composition root: it arranges sub-components and surfaces
-// fatal playback errors as toasts. It does NOT prop-drill anything: every
-// leaf subscribes directly to the store it cares about.
+// Player is a composition root: it arranges sub-components only. Every
+// leaf subscribes directly to the store it cares about; side effects
+// (toasts, stats, media-session) live in <PlayerSideEffects />. The
+// AuthModal is hosted at App level, not here.
 
 export default function Player() {
-  const { data: np } = useNowPlaying();
-  const playError = usePlayer((s) => s.playError);
-  const clearPlayError = usePlayer((s) => s.clearPlayError);
+  const hasData = useNowPlayingStore((s) => s.data !== null);
 
-  useEffect(() => {
-    if (playError) {
-      toast.error(`Lecture impossible : ${playError.message}`);
-      clearPlayError();
-    }
-  }, [playError, clearPlayError]);
-
-  if (!np) {
+  if (!hasData) {
     return (
       <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4">
         <div className="flex flex-col items-center mb-5">
@@ -71,11 +59,9 @@ export default function Player() {
         </div>
       </div>
 
-      <ArtistContext artistName={np.now_playing?.song.artist} />
+      <ArtistContext />
 
       <HistoryList />
-
-      <AuthModalHost />
     </div>
   );
 }

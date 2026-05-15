@@ -1,8 +1,10 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Toaster, toast } from 'sonner';
 import { LogOut, LogIn, BarChart3 } from 'lucide-react';
+import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../stores/authStore';
+import { useAuthModalStore } from '../stores/authModalStore';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -11,9 +13,6 @@ import {
   DropdownMenuSeparator,
 } from '../components/ui/DropdownMenu';
 
-const AuthModal = lazy(() =>
-  import('../components/AuthModal').then((m) => ({ default: m.AuthModal }))
-);
 const StatsModal = lazy(() =>
   import('../components/StatsModal').then((m) => ({ default: m.StatsModal }))
 );
@@ -29,31 +28,36 @@ function readResetTokenFromUrl(): string | null {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user, isAuthenticated, isLoading, signOut } = useAuth();
-  // Better Auth's forget-password emails redirect to /reset-password?token=XXX
-  // (or ?error=INVALID_TOKEN). We read the token via useState lazy init so the
-  // AuthModal opens immediately in reset mode on first paint — no setState in
-  // an effect, no flash of the closed state.
-  const [resetToken, setResetToken] = useState<string | null>(() => readResetTokenFromUrl());
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => readResetTokenFromUrl() !== null);
+  const { user, isAuthenticated, isLoading, signOut } = useAuthStore(
+    useShallow((s) => ({
+      user: s.user,
+      isAuthenticated: s.isAuthenticated,
+      isLoading: s.isLoading,
+      signOut: s.signOut,
+    }))
+  );
+  const openAuthModal = useAuthModalStore((s) => s.open);
   const [isStatsOpen, setIsStatsOpen] = useState(false);
 
-  // Surface invalid-token errors + clean the URL so a refresh doesn't replay
-  // the reset flow. No state set here.
+  // Better Auth's forget-password emails redirect to /reset-password?token=XXX
+  // (or ?error=INVALID_TOKEN). Open the modal in reset mode on first paint
+  // via the global store, then clean the URL so a refresh doesn't replay it.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (window.location.pathname !== '/reset-password') return;
+
     const error = new URLSearchParams(window.location.search).get('error');
     if (error === 'INVALID_TOKEN') {
       toast.error('Ce lien est invalide ou a expiré. Demandez un nouveau lien.');
     }
-    window.history.replaceState({}, '', '/');
-  }, []);
 
-  const closeAuthModal = () => {
-    setIsAuthModalOpen(false);
-    setResetToken(null);
-  };
+    const token = readResetTokenFromUrl();
+    if (token) {
+      openAuthModal({ resetToken: token });
+    }
+
+    window.history.replaceState({}, '', '/');
+  }, [openAuthModal]);
 
   return (
     <div className="min-h-dvh aurora-bg flex flex-col">
@@ -137,7 +141,7 @@ export default function Layout({ children }: LayoutProps) {
               </DropdownMenu>
             ) : (
               <button
-                onClick={() => setIsAuthModalOpen(true)}
+                onClick={() => openAuthModal()}
                 className={cn(
                   'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
                   'bg-foreground/5 hover:bg-foreground/10',
@@ -164,16 +168,6 @@ export default function Layout({ children }: LayoutProps) {
           AubeSonore | Éveillez vos sens
         </p>
       </footer>
-
-      {isAuthModalOpen && (
-        <Suspense fallback={null}>
-          <AuthModal
-            isOpen={isAuthModalOpen}
-            onClose={closeAuthModal}
-            {...(resetToken && { resetToken })}
-          />
-        </Suspense>
-      )}
 
       {isStatsOpen && (
         <Suspense fallback={null}>

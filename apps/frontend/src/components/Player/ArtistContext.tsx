@@ -3,12 +3,14 @@ import { ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useArtistInfo } from '../../hooks/useArtistInfo';
+import { useNowPlayingStore } from '../../lib/azuracast';
 
-interface ArtistContextProps {
-  artistName: string | undefined;
-}
+// Subscribes directly to the artist primitive: only re-renders when the
+// artist name actually changes (so the surrounding poll re-fetches that
+// keep the artist stable do not trigger a re-render here).
 
-export function ArtistContext({ artistName }: ArtistContextProps) {
+export function ArtistContext() {
+  const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
   const { data, isLoading } = useArtistInfo(artistName);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullBio, setShowFullBio] = useState(false);

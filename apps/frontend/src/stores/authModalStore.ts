@@ -1,19 +1,33 @@
 import { create } from 'zustand';
 
-// Shared "open the auth modal" trigger. Both the Like flow (when the
-// user clicks like while unauthenticated) and the Library button (when
-// the user clicks the library icon while unauthenticated) need to open
-// the same modal. A tiny Zustand store keeps the trigger out of the
-// render tree so no parent has to host the state on their behalf.
+// Shared "open the auth modal" trigger with optional mode + reset-token.
+// All callers (header Connexion button, Like flow, Library button, URL
+// reset-password handler) go through this store so a single
+// <AuthModalHost /> at the app root owns the actual mount.
 
-interface AuthModalStore {
+export type AuthMode = 'signin' | 'signup';
+
+interface AuthModalState {
   isOpen: boolean;
-  open: () => void;
+  mode: AuthMode;
+  resetToken: string | null;
+}
+
+interface AuthModalActions {
+  open: (options?: { mode?: AuthMode; resetToken?: string }) => void;
   close: () => void;
 }
 
-export const useAuthModalStore = create<AuthModalStore>((set) => ({
+export const useAuthModalStore = create<AuthModalState & AuthModalActions>((set) => ({
   isOpen: false,
-  open: () => set({ isOpen: true }),
-  close: () => set({ isOpen: false }),
+  mode: 'signin',
+  resetToken: null,
+
+  open: (options) =>
+    set({
+      isOpen: true,
+      mode: options?.mode ?? 'signin',
+      resetToken: options?.resetToken ?? null,
+    }),
+  close: () => set({ isOpen: false, mode: 'signin', resetToken: null }),
 }));

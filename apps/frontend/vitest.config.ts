@@ -44,7 +44,7 @@ export default defineConfig({
         'src/components/Player/LibraryButton.tsx',
         'src/components/Player/ListenersBadge.tsx',
         'src/components/Player/HistoryList.tsx',
-        'src/components/Player/AuthModalHost.tsx',
+        'src/components/AuthModalHost.tsx',
         'src/components/Player/WaveformCanvas.tsx',
         'src/components/Player/ElapsedReadout.tsx',
         'src/components/Player/HistoryItem.tsx',
@@ -56,7 +56,8 @@ export default defineConfig({
         'src/components/Player/utils.ts',
         'src/components/Player/motion-presets.ts',
         'src/components/Player/PlayerSideEffects.tsx',
-        'src/components/AuthDataSync.tsx',
+        'src/components/AuthInit.tsx',
+        'src/components/NowPlayingPoller.tsx',
         'src/components/AmbientBackground.tsx',
         'src/components/ShareCard/**',
         // Player-domain hooks — pure logic extracted from src/components/Player/index.tsx

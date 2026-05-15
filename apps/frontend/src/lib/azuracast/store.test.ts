@@ -4,7 +4,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../mocks/server';
 import { makeNowPlaying } from '../../mocks/handlers';
-import { useNowPlaying, __resetNowPlayingStore } from './store';
+import { useNowPlayingStore, startNowPlayingPolling, __resetNowPlayingStore } from './store';
 
 const URL_NP = 'https://radio.aubesonore.fr/api/nowplaying_static/aubesonore.json';
 
@@ -16,6 +16,15 @@ function setHidden(hidden: boolean): void {
   });
 }
 
+// Each test starts polling explicitly and stops via the returned cleanup.
+// Track started loops so a failure midway still tears them down.
+let activeStop: (() => void) | null = null;
+function start(): () => void {
+  const stop = startNowPlayingPolling();
+  activeStop = stop;
+  return stop;
+}
+
 beforeEach(() => {
   // jsdom defaults document.hidden to true, which would block the poll loop.
   setHidden(false);
@@ -25,6 +34,8 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  activeStop?.();
+  activeStop = null;
   __resetNowPlayingStore();
   vi.useRealTimers();
   vi.restoreAllMocks();
@@ -43,9 +54,10 @@ function freshNowPlaying() {
 // Initial fetch
 // ─────────────────────────────────────────────
 
-describe('useNowPlaying — initial poll', () => {
+describe('nowPlaying store — initial poll', () => {
   it('populates data on the first successful fetch', async () => {
-    const { result } = renderHook(() => useNowPlaying());
+    start();
+    const { result } = renderHook(() => useNowPlayingStore((s) => s));
     await waitFor(() => expect(result.current.data?.now_playing.song.title).toBe('Test Title'));
     expect(result.current.isConnected).toBe(true);
     expect(result.current.error).toBeNull();
@@ -54,7 +66,8 @@ describe('useNowPlaying — initial poll', () => {
   it('sets error and keeps data null when the server returns 500', async () => {
     server.use(http.get(URL_NP, () => new HttpResponse(null, { status: 500 })));
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const { result } = renderHook(() => useNowPlaying());
+    start();
+    const { result } = renderHook(() => useNowPlayingStore((s) => s));
     await waitFor(() => expect(result.current.error).toBe('HTTP 500'));
     expect(result.current.data).toBeNull();
     expect(result.current.isConnected).toBe(false);
@@ -65,7 +78,8 @@ describe('useNowPlaying — initial poll', () => {
     server.use(http.get(URL_NP, () => HttpResponse.json({ broken: true })));
     const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    const { result } = renderHook(() => useNowPlaying());
+    start();
+    const { result } = renderHook(() => useNowPlayingStore((s) => s));
     await waitFor(() => expect(result.current.error).toBe('invalid payload'));
     expect(result.current.data).toBeNull();
     expect(errSpy).toHaveBeenCalled();
@@ -75,11 +89,11 @@ describe('useNowPlaying — initial poll', () => {
 });
 
 // ─────────────────────────────────────────────
-// Subscriber lifecycle
+// Lifecycle
 // ─────────────────────────────────────────────
 
-describe('useNowPlaying — singleton lifecycle', () => {
-  it('shares a single fetch loop across multiple consumers', async () => {
+describe('nowPlaying store — lifecycle', () => {
+  it('a single startNowPlayingPolling drives many consumers from one fetch loop', async () => {
     let calls = 0;
     server.use(
       http.get(URL_NP, () => {
@@ -87,18 +101,18 @@ describe('useNowPlaying — singleton lifecycle', () => {
         return HttpResponse.json(makeNowPlaying());
       })
     );
-    const a = renderHook(() => useNowPlaying());
-    const b = renderHook(() => useNowPlaying());
-    const c = renderHook(() => useNowPlaying());
-    await waitFor(() => expect(a.result.current.data).not.toBeNull());
-    // 3 React subscribers, still 1 HTTP call.
+    start();
+    const a = renderHook(() => useNowPlayingStore((s) => s.data));
+    const b = renderHook(() => useNowPlayingStore((s) => s.data));
+    const c = renderHook(() => useNowPlayingStore((s) => s.data));
+    await waitFor(() => expect(a.result.current).not.toBeNull());
     expect(calls).toBe(1);
     a.unmount();
     b.unmount();
     c.unmount();
   });
 
-  it('stops polling after the last subscriber unmounts', async () => {
+  it('stops polling after the cleanup returned by start() is called', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     let calls = 0;
     server.use(
@@ -107,14 +121,28 @@ describe('useNowPlaying — singleton lifecycle', () => {
         return HttpResponse.json(makeNowPlaying());
       })
     );
-    const { result, unmount } = renderHook(() => useNowPlaying());
-    await vi.waitFor(() => expect(result.current.data).not.toBeNull());
-    expect(calls).toBe(1);
-    unmount();
+    const stop = start();
+    activeStop = null;
+    await vi.waitFor(() => expect(calls).toBe(1));
+    stop();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(30_000);
     });
-    // No more polling after unmount.
+    expect(calls).toBe(1);
+  });
+
+  it('startNowPlayingPolling is idempotent', async () => {
+    let calls = 0;
+    server.use(
+      http.get(URL_NP, () => {
+        calls++;
+        return HttpResponse.json(makeNowPlaying());
+      })
+    );
+    start();
+    // Second start is a no-op; we should not see a duplicate first-fetch.
+    startNowPlayingPolling();
+    await vi.waitFor(() => expect(calls).toBe(1));
     expect(calls).toBe(1);
   });
 });
@@ -123,7 +151,7 @@ describe('useNowPlaying — singleton lifecycle', () => {
 // Polling cadence
 // ─────────────────────────────────────────────
 
-describe('useNowPlaying — cadence', () => {
+describe('nowPlaying store — cadence', () => {
   it('uses the MID_TRACK cadence (~15s) when remaining is large', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     let calls = 0;
@@ -133,9 +161,8 @@ describe('useNowPlaying — cadence', () => {
         return HttpResponse.json(freshNowPlaying());
       })
     );
-    renderHook(() => useNowPlaying());
+    start();
     await vi.waitFor(() => expect(calls).toBe(1));
-    // Within 14s nothing should have fired yet (15s baseline, jitter=0)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(14_000);
     });
@@ -158,14 +185,14 @@ describe('useNowPlaying — cadence', () => {
         return new HttpResponse(null, { status: 304 });
       })
     );
-    const { result } = renderHook(() => useNowPlaying());
+    start();
+    const { result } = renderHook(() => useNowPlayingStore((s) => s));
     await vi.waitFor(() => expect(result.current.data?.now_playing.song.title).toBe('Test Title'));
     // Test payload uses 2024 played_at -> remaining < 0 -> NEAR_END cadence (5s)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5_500);
     });
     expect(calls).toBe(2);
-    // Data preserved, error cleared, still connected.
     expect(result.current.data?.now_playing.song.title).toBe('Test Title');
     expect(result.current.isConnected).toBe(true);
     expect(result.current.error).toBeNull();
@@ -184,10 +211,9 @@ describe('useNowPlaying — cadence', () => {
         return HttpResponse.json(freshNowPlaying());
       })
     );
-    const { result } = renderHook(() => useNowPlaying());
+    start();
+    const { result } = renderHook(() => useNowPlayingStore((s) => s));
     await vi.waitFor(() => expect(result.current.data).not.toBeNull());
-    // Force the cadence to fire a second poll so we observe the post-first-success path
-    // where the regression used to attach If-Modified-Since.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(16_000);
     });
@@ -203,24 +229,19 @@ describe('useNowPlaying — cadence', () => {
 // Adaptive polling cadence
 // ─────────────────────────────────────────────
 
-describe('useNowPlaying — adaptive cadence', () => {
+describe('nowPlaying store — adaptive cadence', () => {
   it('falls back to DEFAULT_POLL_MS (10s) before any data is loaded', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     server.use(
       http.get(URL_NP, async () => {
-        // Delay forever so data stays null and we observe the no-data cadence path
         await new Promise(() => {});
         return HttpResponse.json(makeNowPlaying());
       })
     );
-    // After mount, we should be in the DEFAULT band. Cannot easily assert the
-    // exact next-tick value without exposing internals, so we verify the side
-    // effect: a single in-flight request and no timer-driven re-fire yet.
-    renderHook(() => useNowPlaying());
+    start();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(100);
     });
-    // Nothing crashed and store is in a consistent state.
     expect(true).toBe(true);
   });
 
@@ -231,13 +252,12 @@ describe('useNowPlaying — adaptive cadence', () => {
       http.get(URL_NP, () => {
         calls++;
         const np = makeNowPlaying();
-        // remaining = duration(180) - elapsed(170) = 10s => below threshold
         np.now_playing.played_at = Math.floor(Date.now() / 1000) - 170;
         np.now_playing.duration = 180;
         return HttpResponse.json(np);
       })
     );
-    renderHook(() => useNowPlaying());
+    start();
     await vi.waitFor(() => expect(calls).toBe(1));
     await act(async () => {
       await vi.advanceTimersByTimeAsync(4_500);
@@ -254,7 +274,7 @@ describe('useNowPlaying — adaptive cadence', () => {
 // Jitter
 // ─────────────────────────────────────────────
 
-describe('useNowPlaying — jitter', () => {
+describe('nowPlaying store — jitter', () => {
   it('applies negative jitter (Math.random=0) so intervals shorten by 20%', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.spyOn(Math, 'random').mockReturnValue(0); // jitter = -20%
@@ -265,9 +285,8 @@ describe('useNowPlaying — jitter', () => {
         return HttpResponse.json(freshNowPlaying());
       })
     );
-    renderHook(() => useNowPlaying());
+    start();
     await vi.waitFor(() => expect(calls).toBe(1));
-    // MID_TRACK 15s × (1 - 0.2) = 12s
     await act(async () => {
       await vi.advanceTimersByTimeAsync(11_500);
     });
@@ -288,9 +307,8 @@ describe('useNowPlaying — jitter', () => {
         return HttpResponse.json(freshNowPlaying());
       })
     );
-    renderHook(() => useNowPlaying());
+    start();
     await vi.waitFor(() => expect(calls).toBe(1));
-    // MID_TRACK 15s × (1 + 0.2) = 18s
     await act(async () => {
       await vi.advanceTimersByTimeAsync(17_500);
     });
@@ -306,7 +324,7 @@ describe('useNowPlaying — jitter', () => {
 // Error backoff
 // ─────────────────────────────────────────────
 
-describe('useNowPlaying — backoff', () => {
+describe('nowPlaying store — backoff', () => {
   it('backs off exponentially on consecutive failures (1s, 2s, 4s, ...)', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
@@ -317,19 +335,16 @@ describe('useNowPlaying — backoff', () => {
         return new HttpResponse(null, { status: 500 });
       })
     );
-    renderHook(() => useNowPlaying());
+    start();
     await vi.waitFor(() => expect(calls).toBe(1));
-    // Backoff[0] = 1s
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
     expect(calls).toBe(2);
-    // Backoff[1] = 2s
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2_000);
     });
     expect(calls).toBe(3);
-    // Backoff[2] = 4s
     await act(async () => {
       await vi.advanceTimersByTimeAsync(4_000);
     });
@@ -348,14 +363,13 @@ describe('useNowPlaying — backoff', () => {
         return HttpResponse.json(freshNowPlaying());
       })
     );
-    const { result } = renderHook(() => useNowPlaying());
+    start();
+    const { result } = renderHook(() => useNowPlayingStore((s) => s));
     await vi.waitFor(() => expect(calls).toBe(1));
-    // After error, backoff[0]=1s => second call succeeds, errors should reset.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1_000);
     });
     await vi.waitFor(() => expect(result.current.data).not.toBeNull());
-    // Third call should be on the MID_TRACK cadence (15s with jitter=0), not backoff.
     await act(async () => {
       await vi.advanceTimersByTimeAsync(15_000);
     });
@@ -368,7 +382,7 @@ describe('useNowPlaying — backoff', () => {
 // Visibility-aware
 // ─────────────────────────────────────────────
 
-describe('useNowPlaying — visibility', () => {
+describe('nowPlaying store — visibility', () => {
   function fireVisibility(hidden: boolean) {
     setHidden(hidden);
     document.dispatchEvent(new Event('visibilitychange'));
@@ -383,7 +397,7 @@ describe('useNowPlaying — visibility', () => {
         return HttpResponse.json(makeNowPlaying());
       })
     );
-    renderHook(() => useNowPlaying());
+    start();
     await vi.waitFor(() => expect(calls).toBe(1));
     act(() => fireVisibility(true));
     await act(async () => {
@@ -402,7 +416,7 @@ describe('useNowPlaying — visibility', () => {
         return HttpResponse.json(makeNowPlaying());
       })
     );
-    renderHook(() => useNowPlaying());
+    start();
     await vi.waitFor(() => expect(calls).toBe(1));
     act(() => fireVisibility(true));
     act(() => fireVisibility(false));

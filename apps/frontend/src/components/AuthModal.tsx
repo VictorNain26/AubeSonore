@@ -3,7 +3,7 @@ import { Mail, Lock, User, Loader2, X, Eye, EyeOff, MailCheck, ArrowLeft } from 
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../lib/api';
 import { toast } from 'sonner';
 
@@ -74,7 +74,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
-  const { signIn, signUp } = useAuth();
+  const signIn = useAuthStore((s) => s.signIn);
+  const signUp = useAuthStore((s) => s.signUp);
 
   const resetForm = () => {
     setEmail('');

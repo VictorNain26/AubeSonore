@@ -1,14 +1,20 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useShallow } from 'zustand/react/shallow';
 import { Users } from 'lucide-react';
-import { useNowPlaying } from '../../lib/azuracast';
+import { useNowPlayingStore } from '../../lib/azuracast';
 import { dataTick } from './motion-presets';
 
 // Right-side LIVE + listeners count. The count crossfades vertically on
 // each value change for a soft swap instead of a hard substitution.
 
 export function ListenersBadge() {
-  const { data: np } = useNowPlaying();
-  if (!np?.listeners) return null;
+  const { current, isLive } = useNowPlayingStore(
+    useShallow((s) => ({
+      current: s.data?.listeners?.current,
+      isLive: s.data?.live?.is_live ?? false,
+    }))
+  );
+  if (current === undefined) return null;
 
   return (
     <div
@@ -16,7 +22,7 @@ export function ListenersBadge() {
       aria-live="polite"
       aria-atomic="true"
     >
-      {np.live.is_live && (
+      {isLive && (
         <span className="flex items-center gap-1 text-danger font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
           LIVE
@@ -26,14 +32,14 @@ export function ListenersBadge() {
       <span className="sr-only">Auditeurs : </span>
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.span
-          key={np.listeners.current}
+          key={current}
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 4 }}
           transition={dataTick}
           className="tabular-nums"
         >
-          {np.listeners.current}
+          {current}
         </motion.span>
       </AnimatePresence>
     </div>

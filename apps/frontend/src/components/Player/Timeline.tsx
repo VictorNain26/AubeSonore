@@ -1,5 +1,6 @@
+import { useShallow } from 'zustand/react/shallow';
 import { formatTime } from '@aubesonore/core/format';
-import { useNowPlaying } from '../../lib/azuracast';
+import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
 import { ElapsedReadout } from './ElapsedReadout';
 import { WaveformCanvas } from './WaveformCanvas';
@@ -10,25 +11,29 @@ import { WaveformCanvas } from './WaveformCanvas';
 // re-renders on a frame.
 
 export function Timeline() {
-  const { data: np } = useNowPlaying();
+  const { shId, playedAt, duration } = useNowPlayingStore(
+    useShallow((s) => ({
+      shId: s.data?.now_playing?.sh_id,
+      playedAt: s.data?.now_playing?.played_at,
+      duration: s.data?.now_playing?.duration ?? 0,
+    }))
+  );
   const isPlaying = usePlayer((s) => s.isPlaying);
-  const nowPlaying = np?.now_playing;
-  const duration = nowPlaying?.duration || 0;
 
   return (
     <div className="flex items-center gap-3 mb-5">
       <ElapsedReadout
-        playedAt={nowPlaying?.played_at}
+        playedAt={playedAt}
         duration={duration}
         isPlaying={isPlaying}
         className="text-xs text-foreground/50 tabular-nums w-10 text-right"
       />
       <div className="flex-1">
         <WaveformCanvas
-          playedAt={nowPlaying?.played_at}
+          playedAt={playedAt}
           duration={duration}
           isPlaying={isPlaying}
-          songId={nowPlaying?.sh_id}
+          songId={shId}
         />
       </div>
       <span className="text-xs text-foreground/50 tabular-nums w-10">{formatTime(duration)}</span>
