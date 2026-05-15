@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { preferencesApi, type UserPreferences, type PreferredPlatform } from '../lib/api';
-import { useAuth } from './useAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 // ─────────────────────────────────────────────
 // Hook pour gérer les préférences utilisateur

@@ -33,9 +33,9 @@ export default defineConfig({
         'src/types/**',
         'src/layout/**',
         'src/pages/**',
-        'src/components/AuthProvider.tsx',
         'src/components/LikedTracksModal.tsx',
         'src/components/StatsModal.tsx',
+        'src/components/PWAInstallBanner.tsx',
         'src/components/Player/AlbumArt.tsx',
         'src/components/Player/WaveformProgress.tsx',
         'src/components/Player/HistoryItem.tsx',
@@ -50,6 +50,8 @@ export default defineConfig({
         'src/lib/cast/**',
         'src/lib/shareUtils.ts',
         'src/lib/exportLibrary.ts',
+        // Browser-only Cast/AirPlay event bridges (same rationale as lib/cast/**)
+        'src/stores/castStore.ts',
         // Date-based persistence; tested via core slice (packages/core)
         'src/stores/statsStore.ts',
       ],

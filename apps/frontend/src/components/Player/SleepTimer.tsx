@@ -77,7 +77,13 @@ export function SleepTimer() {
       {isOpen &&
         createPortal(
           <>
-            <div className="fixed inset-0 z-[200]" onClick={() => setIsOpen(false)} />
+            <button
+              type="button"
+              aria-label="Fermer le menu"
+              tabIndex={-1}
+              className="fixed inset-0 z-[200] cursor-default"
+              onClick={() => setIsOpen(false)}
+            />
             <AnimatePresence>
               <motion.div
                 initial={{ opacity: 0, y: 4, scale: 0.95 }}

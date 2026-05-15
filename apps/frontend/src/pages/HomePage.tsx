@@ -1,19 +1,13 @@
 import { useState, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import Player from '../components/Player';
-import { useNowPlaying } from '../lib/azuracast';
+import { useNowPlaying, isDefaultArtwork } from '../lib/azuracast';
 import { PlayerErrorFallback } from '../components/ErrorFallback';
 
 export default function HomePage() {
   const { data: np } = useNowPlaying();
   const artUrl = np?.now_playing?.song.art;
-
-  // Detect default/generic covers to skip ambient
-  const isDefaultCover =
-    !artUrl ||
-    artUrl.includes('generic') ||
-    artUrl.includes('default') ||
-    artUrl.includes('placeholder');
+  const isDefaultCover = isDefaultArtwork(artUrl);
 
   const [internalLoadedArt, setInternalLoadedArt] = useState<string | null>(null);
 
@@ -22,11 +16,11 @@ export default function HomePage() {
 
   // Preload image before showing ambient to avoid flicker
   useEffect(() => {
-    if (isDefaultCover) {
+    if (isDefaultCover || !artUrl) {
       return;
     }
     const img = new Image();
-    img.src = artUrl!;
+    img.src = artUrl;
     img.onload = () => setInternalLoadedArt(artUrl);
     img.onerror = () => setInternalLoadedArt(null);
   }, [artUrl, isDefaultCover]);

@@ -3,7 +3,7 @@ import { Bell, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { usePushNotifications } from '../hooks/usePushNotifications';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 const DISMISS_KEY = 'aubesonore_push_dismiss';
 

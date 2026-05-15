@@ -44,30 +44,11 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
 
-    <!-- Style -->
-    <link href="/src/style.css" rel="stylesheet" />
-
-    <!-- Chromecast -->
-    <script>
-      window.__onGCastApiAvailable = function (isAvailable) {
-        if (isAvailable) {
-          const context = cast.framework.CastContext.getInstance();
-          context.setOptions({
-            receiverApplicationId: '4A922B9B',
-            autoJoinPolicy: chrome.cast.AutoJoinPolicy.ORIGIN_SCOPED,
-          });
-          console.log('SDK Cast initialisé.');
-        }
-      };
-    </script>
-    <script
-      src="https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1"
-      async
-    ></script>
+    <!-- Chromecast SDK : injecté dynamiquement par src/lib/cast/loader.ts -->
   </head>
 
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

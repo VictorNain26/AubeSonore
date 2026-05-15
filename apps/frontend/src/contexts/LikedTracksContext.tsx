@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { trackApi, type LikedTrack, type LikeTrackRequest } from '../lib/api';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from './AuthContext';
 
 // ─────────────────────────────────────────────
 // Context pour partager l'état des tracks likés

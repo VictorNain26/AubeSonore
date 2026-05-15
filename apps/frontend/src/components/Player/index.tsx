@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { usePlayer } from '../../lib/player';
 import { useNowPlaying, type SongEntry } from '../../lib/azuracast';
 import { useLikedTracksContext as useLikedTracks } from '../../contexts/LikedTracksContext';
-import { useAuth } from '../../hooks/useAuth';
+import { useAuth } from '../../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 const LikedTracksModal = lazy(() =>

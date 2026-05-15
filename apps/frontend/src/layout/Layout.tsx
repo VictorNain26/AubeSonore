@@ -3,7 +3,7 @@ import { Toaster } from 'react-hot-toast';
 import { LogOut, LogIn, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 
 const AuthModal = lazy(() =>
   import('../components/AuthModal').then((m) => ({ default: m.AuthModal }))
@@ -87,8 +87,11 @@ export default function Layout({ children }: LayoutProps) {
                   {isUserMenuOpen && (
                     <>
                       {/* Invisible click-away backdrop */}
-                      <div
-                        className="fixed inset-0 z-[200]"
+                      <button
+                        type="button"
+                        aria-label="Fermer le menu"
+                        tabIndex={-1}
+                        className="fixed inset-0 z-[200] cursor-default"
                         onClick={() => setIsUserMenuOpen(false)}
                       />
 

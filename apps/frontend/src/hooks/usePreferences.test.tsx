@@ -4,7 +4,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import { usePreferences } from './usePreferences';
-import { AuthProvider } from '../components/AuthProvider';
+import { AuthProvider } from '../contexts/AuthContext';
 import type { ReactNode } from 'react';
 
 function wrapper({ children }: { children: ReactNode }) {

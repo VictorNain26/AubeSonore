@@ -160,7 +160,13 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
       {isOpen &&
         createPortal(
           <>
-            <div className="fixed inset-0 z-[200]" onClick={() => setIsOpen(false)} />
+            <button
+              type="button"
+              aria-label="Fermer le menu"
+              tabIndex={-1}
+              className="fixed inset-0 z-[200] cursor-default"
+              onClick={() => setIsOpen(false)}
+            />
             <div
               className="fixed w-44 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[300] overflow-hidden"
               style={{
@@ -263,7 +269,13 @@ function OverflowMenu({
       {isOpen &&
         createPortal(
           <>
-            <div className="fixed inset-0 z-[200]" onClick={() => setIsOpen(false)} />
+            <button
+              type="button"
+              aria-label="Fermer le menu"
+              tabIndex={-1}
+              className="fixed inset-0 z-[200] cursor-default"
+              onClick={() => setIsOpen(false)}
+            />
             <div
               className="fixed w-56 rounded-xl bg-black/95 backdrop-blur-md border border-white/10 shadow-2xl z-[300] overflow-hidden"
               style={{ top: menuPosition.top, right: menuPosition.right }}

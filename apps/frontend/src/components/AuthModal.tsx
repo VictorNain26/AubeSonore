@@ -3,7 +3,7 @@ import { Mail, Lock, User, Loader2 } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 // ─────────────────────────────────────────────

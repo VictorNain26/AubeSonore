@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext, type ReactNode } from 'react';
 import { authApi, type User } from '../lib/api';
 
 // ─────────────────────────────────────────────
@@ -19,6 +19,8 @@ interface AuthContextType extends AuthState {
   refreshSession: () => Promise<void>;
 }
 
+export type { AuthContextType };
+
 // ─────────────────────────────────────────────
 // Context
 // ─────────────────────────────────────────────
@@ -34,9 +36,13 @@ export function useAuth(): AuthContextType {
 }
 
 // ─────────────────────────────────────────────
-// Hook interne (utilisé par le provider)
+// Provider-internal hook (owns the AuthState)
 // ─────────────────────────────────────────────
 
+/**
+ * @internal Exported for unit tests only. App code must use {@link AuthProvider}
+ * + {@link useAuth} instead — calling this directly bypasses the shared context.
+ */
 export function useAuthState(): AuthContextType {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -66,7 +72,8 @@ export function useAuthState(): AuthContextType {
   }, []);
 
   useEffect(() => {
-    // Call refreshSession once on mount (no dependency on refreshSession itself)
+    // Mount-once init. refreshSession is stable (no deps) but listing it as a
+    // dependency would still satisfy exhaustive-deps without affecting behavior.
     let isMounted = true;
     const init = async () => {
       if (isMounted) {
@@ -77,8 +84,7 @@ export function useAuthState(): AuthContextType {
     return () => {
       isMounted = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [refreshSession]);
 
   const signIn = useCallback(async (email: string, password: string) => {
     const response = await authApi.signIn(email, password);
@@ -114,6 +120,15 @@ export function useAuthState(): AuthContextType {
   };
 }
 
-// Export du contexte pour le provider
-export { AuthContext };
-export type { AuthContextType };
+// ─────────────────────────────────────────────
+// Provider
+// ─────────────────────────────────────────────
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const auth = useAuthState();
+  return <AuthContext.Provider value={auth}>{children}</AuthContext.Provider>;
+}

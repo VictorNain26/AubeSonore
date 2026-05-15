@@ -4,8 +4,7 @@ import { renderHook, waitFor, act } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
 import { LikedTracksProvider, useLikedTracksContext } from './LikedTracksContext';
-import { AuthProvider } from '../components/AuthProvider';
-import { useAuth } from '../hooks/useAuth';
+import { AuthProvider, useAuth } from './AuthContext';
 import type { ReactNode } from 'react';
 
 function wrapper({ children }: { children: ReactNode }) {
