@@ -17,16 +17,17 @@ const AuthModal = lazy(() => import('../AuthModal').then((m) => ({ default: m.Au
 
 // Sub-components
 import { formatTime } from '@aubesonore/core/format';
-import { WaveformProgress } from './WaveformProgress';
+import { WaveformCanvas } from './WaveformCanvas';
+import { ElapsedReadout } from './ElapsedReadout';
 import { VolumeControl } from './VolumeControl';
 import { HistoryItem } from './HistoryItem';
 import { AlbumArt } from './AlbumArt';
 import { CastButton } from './CastButton';
 import { SleepTimer } from './SleepTimer';
 import { ArtistContext } from './ArtistContext';
+import { trackFlip, dataTick, toggle as toggleTransition } from './motion-presets';
 
 // Player-domain hooks
-import { useTrackProgress } from '../../hooks/player/useTrackProgress';
 import { useTrackChangeEvents } from '../../hooks/player/useTrackChangeEvents';
 import { useListeningTimeTracker } from '../../hooks/player/useListeningTimeTracker';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
@@ -45,12 +46,6 @@ export default function Player() {
   const nowPlaying = np?.now_playing;
   const duration = nowPlaying?.duration || 0;
 
-  const { elapsed, progress } = useTrackProgress(
-    nowPlaying?.elapsed,
-    nowPlaying?.sh_id,
-    duration,
-    isPlaying
-  );
   useTrackChangeEvents(nowPlaying?.sh_id, nowPlaying?.song.artist, nowPlaying?.song.title);
   useListeningTimeTracker(isPlaying);
   const { likingTrackId, isAuthModalOpen, setIsAuthModalOpen, toggleLike } = useLikeAction();
@@ -157,7 +152,7 @@ export default function Player() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.3 }}
+          transition={trackFlip}
           className="text-center mb-5"
         >
           <h2 className="text-lg md:text-xl font-medium text-foreground truncate">
@@ -171,11 +166,19 @@ export default function Player() {
 
       {/* Section 3: Waveform Progress */}
       <div className="flex items-center gap-3 mb-5">
-        <span className="text-xs text-foreground/50 tabular-nums w-10 text-right">
-          {formatTime(elapsed)}
-        </span>
+        <ElapsedReadout
+          playedAt={nowPlaying?.played_at}
+          duration={duration}
+          isPlaying={isPlaying}
+          className="text-xs text-foreground/50 tabular-nums w-10 text-right"
+        />
         <div className="flex-1">
-          <WaveformProgress progress={progress} isPlaying={isPlaying} songId={nowPlaying?.sh_id} />
+          <WaveformCanvas
+            playedAt={nowPlaying?.played_at}
+            duration={duration}
+            isPlaying={isPlaying}
+            songId={nowPlaying?.sh_id}
+          />
         </div>
         <span className="text-xs text-foreground/50 tabular-nums w-10">{formatTime(duration)}</span>
       </div>
@@ -195,12 +198,14 @@ export default function Player() {
         </div>
 
         {/* Center: Play / Stop */}
-        <button
+        <motion.button
           onClick={togglePlay}
+          whileTap={{ scale: 0.92 }}
+          whileHover={{ scale: 1.05 }}
+          transition={toggleTransition}
           className={cn(
             'w-16 h-16 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
-            'border transition-all duration-200 backdrop-blur-sm',
-            'hover:scale-105 active:scale-95',
+            'border backdrop-blur-sm',
             isPlaying
               ? 'border-accent/40 bg-accent/15 hover:bg-accent/25 animate-pulse-ring'
               : 'border-foreground/20 bg-foreground/10 hover:bg-foreground/15'
@@ -208,12 +213,30 @@ export default function Player() {
           aria-label={isPlaying ? 'Arrêter la lecture' : 'Lancer la lecture'}
           aria-pressed={isPlaying}
         >
-          {isPlaying ? (
-            <Square className="w-5 h-5 text-foreground" />
-          ) : (
-            <Play className="w-7 h-7 text-foreground ml-0.5" />
-          )}
-        </button>
+          <AnimatePresence mode="wait" initial={false}>
+            {isPlaying ? (
+              <motion.span
+                key="stop"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={toggleTransition}
+              >
+                <Square className="w-5 h-5 text-foreground" />
+              </motion.span>
+            ) : (
+              <motion.span
+                key="play"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={toggleTransition}
+              >
+                <Play className="w-7 h-7 text-foreground ml-0.5" />
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
 
         {/* Right */}
         <div className="flex-1 flex justify-end items-center gap-2">
@@ -244,10 +267,19 @@ export default function Player() {
                 </span>
               )}
               <Users className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>
-                <span className="sr-only">Auditeurs : </span>
-                {np.listeners.current}
-              </span>
+              <span className="sr-only">Auditeurs : </span>
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.span
+                  key={np.listeners.current}
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={dataTick}
+                  className="tabular-nums"
+                >
+                  {np.listeners.current}
+                </motion.span>
+              </AnimatePresence>
             </div>
           ) : null}
         </div>

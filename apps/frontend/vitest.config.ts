@@ -37,7 +37,8 @@ export default defineConfig({
         'src/components/StatsModal.tsx',
         'src/components/PWAInstallBanner.tsx',
         'src/components/Player/AlbumArt.tsx',
-        'src/components/Player/WaveformProgress.tsx',
+        'src/components/Player/WaveformCanvas.tsx',
+        'src/components/Player/ElapsedReadout.tsx',
         'src/components/Player/HistoryItem.tsx',
         'src/components/Player/VolumeControl.tsx',
         'src/components/Player/CastButton.tsx',
@@ -45,6 +46,7 @@ export default defineConfig({
         'src/components/Player/ArtistContext.tsx',
         'src/components/Player/index.tsx',
         'src/components/Player/utils.ts',
+        'src/components/Player/motion-presets.ts',
         'src/components/ShareCard/**',
         // Player-domain hooks — pure logic extracted from src/components/Player/index.tsx
         // (which is itself excluded above). Covered by manual QA on the Player.
