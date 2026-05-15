@@ -1,13 +1,14 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
 
 // Encapsulates the like / unlike flow used by both TrackArtwork (current
 // track) and HistoryList (previously played). Guards against:
 // - unauthenticated users (opens the shared auth modal)
-// - double-click on the same track (likingTrackId lock)
+// - double-click on the same track (likingTrackId lock — lives in the
+//   store so concurrent instances of this hook share the same lock)
 // - duplicate row in the liked list (lookup by case-insensitive title+artist)
 
 interface UseLikeAction {
@@ -19,9 +20,10 @@ export function useLikeAction(): UseLikeAction {
   const likeTrack = useLikedTracksStore((s) => s.likeTrack);
   const unlikeTrack = useLikedTracksStore((s) => s.unlikeTrack);
   const tracks = useLikedTracksStore((s) => s.tracks);
-  const { isAuthenticated } = useAuth();
+  const likingTrackId = useLikedTracksStore((s) => s.likingTrackId);
+  const setLikingTrackId = useLikedTracksStore((s) => s.setLikingTrackId);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const openAuthModal = useAuthModalStore((s) => s.open);
-  const [likingTrackId, setLikingTrackId] = useState<string | null>(null);
 
   const toggleLike = useCallback(
     async (title: string, artist: string, artworkUrl?: string): Promise<void> => {
@@ -31,7 +33,9 @@ export function useLikeAction(): UseLikeAction {
       }
 
       const trackKey = `${title}-${artist}`;
-      if (likingTrackId === trackKey) return;
+      // Read the latest value from the store (not the subscribed selector)
+      // so back-to-back synchronous calls see the lock set by the first.
+      if (useLikedTracksStore.getState().likingTrackId === trackKey) return;
 
       setLikingTrackId(trackKey);
       try {
@@ -62,7 +66,7 @@ export function useLikeAction(): UseLikeAction {
         setLikingTrackId(null);
       }
     },
-    [likeTrack, unlikeTrack, tracks, likingTrackId, isAuthenticated, openAuthModal]
+    [likeTrack, unlikeTrack, tracks, isAuthenticated, openAuthModal, setLikingTrackId]
   );
 
   return { likingTrackId, toggleLike };

@@ -1,12 +1,15 @@
-import { useSyncExternalStore } from 'react';
+import { create } from 'zustand';
 import { safeParse } from 'valibot';
 import { STATIC_NOWPLAYING_URL } from '../../utils/config';
 import { NowPlayingSchema } from './validators';
 import type { NowPlaying } from '@aubesonore/shared-types/azuracast';
-import type { NowPlayingState } from './types';
 
 // ─────────────────────────────────────────────
-// Singleton store backing useNowPlaying()
+// Now-playing store (Zustand). Polling lifecycle lives outside the store
+// in `startNowPlayingPolling`, which is started once by the
+// <NowPlayingPoller /> mounted at the app root. Consumers read slices via
+// granular selectors so a poll only re-renders components whose actual
+// slice changed.
 // ─────────────────────────────────────────────
 // Why polling instead of SSE/WebSocket:
 // AzuraCast writes a static JSON file every ~10s with `Cache-Control: max-age=10`.
@@ -15,15 +18,18 @@ import type { NowPlayingState } from './types';
 // keeps the client free of any reconnect / heartbeat / stale-watchdog complexity.
 // For a music station (3-5 min tracks, no live DJ) a 5s avg latency on track
 // changes is imperceptible. See the AzuraCast docs §"Static Now Playing JSON".
-//
-// Design:
-// - One fetch loop shared by N React subscribers (useSyncExternalStore).
-// - Lazy lifecycle: start on first subscriber, stop on last unsubscribe.
-// - Pauses polling while the document is hidden (data + battery savings).
-// - Exponential backoff on consecutive errors, capped at 16s.
-// - Sends only CORS-safelisted headers so the request stays a simple GET
-//   (no preflight). Cache freshness is delegated to Cache-Control max-age=10
-//   served by AzuraCast and, in production, to the CDN in front of it.
+
+interface NowPlayingState {
+  data: NowPlaying | null;
+  isConnected: boolean;
+  error: string | null;
+}
+
+export const useNowPlayingStore = create<NowPlayingState>(() => ({
+  data: null,
+  isConnected: false,
+  error: null,
+}));
 
 // Adaptive polling cadence:
 // - DEFAULT_POLL_MS  : when we have no NowPlaying data yet (cold start)
@@ -37,17 +43,11 @@ const NEAR_END_THRESHOLD_SEC = 20;
 const JITTER_RATIO = 0.2;
 const BACKOFF_MS = [1_000, 2_000, 4_000, 8_000, 16_000] as const;
 
-let state: NowPlayingState = { data: null, isConnected: false, error: null };
-const listeners = new Set<() => void>();
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let inflight: AbortController | null = null;
 let consecutiveErrors = 0;
 let visibilityListenerAttached = false;
-
-function setState(partial: Partial<NowPlayingState>): void {
-  state = { ...state, ...partial };
-  for (const listener of listeners) listener();
-}
+let isStarted = false;
 
 function clearTimer(): void {
   if (pollTimer !== null) {
@@ -67,7 +67,7 @@ function cancelInflight(): void {
 // The static file freezes `elapsed`/`remaining`, so derive remaining live from
 // `played_at` per the AzuraCast docs.
 function baseInterval(): number {
-  const np = state.data?.now_playing;
+  const np = useNowPlayingStore.getState().data?.now_playing;
   if (!np) return DEFAULT_POLL_MS;
   const nowSec = Math.floor(Date.now() / 1000);
   const remaining = np.duration - (nowSec - np.played_at);
@@ -101,7 +101,7 @@ async function pollOnce(): Promise<void> {
     // Keep current data and confirm the connection is healthy.
     if (response.status === 304) {
       consecutiveErrors = 0;
-      setState({ isConnected: true, error: null });
+      useNowPlayingStore.setState({ isConnected: true, error: null });
       return;
     }
 
@@ -117,13 +117,17 @@ async function pollOnce(): Promise<void> {
     }
 
     consecutiveErrors = 0;
-    setState({ data: parsed.output as NowPlaying, isConnected: true, error: null });
+    useNowPlayingStore.setState({
+      data: parsed.output as NowPlaying,
+      isConnected: true,
+      error: null,
+    });
   } catch (err) {
     if (err instanceof Error && err.name === 'AbortError') return;
     consecutiveErrors++;
     const message = err instanceof Error ? err.message : 'fetch failed';
     console.warn('[AzuraCast] poll failed:', message);
-    setState({ isConnected: false, error: message });
+    useNowPlayingStore.setState({ isConnected: false, error: message });
   } finally {
     if (inflight === controller) inflight = null;
   }
@@ -131,26 +135,26 @@ async function pollOnce(): Promise<void> {
 
 function scheduleNext(): void {
   clearTimer();
-  if (listeners.size === 0) return;
+  if (!isStarted) return;
   pollTimer = setTimeout(() => {
     void runPoll();
   }, nextDelay());
 }
 
 async function runPoll(): Promise<void> {
-  if (listeners.size === 0) return;
+  if (!isStarted) return;
   if (typeof document !== 'undefined' && document.hidden) return;
   await pollOnce();
   scheduleNext();
 }
 
 function handleVisibility(): void {
-  if (listeners.size === 0) return;
+  if (!isStarted) return;
   if (document.hidden) {
-    // Pause: cancel any in-flight fetch + timer, but keep listeners alive.
+    // Pause: cancel any in-flight fetch + timer, keep store data intact.
     clearTimer();
     cancelInflight();
-    setState({ isConnected: false });
+    useNowPlayingStore.setState({ isConnected: false });
   } else {
     // Resume immediately on focus return.
     consecutiveErrors = 0;
@@ -172,44 +176,28 @@ function detachVisibilityListener(): void {
   visibilityListenerAttached = false;
 }
 
-function start(): void {
+/**
+ * Start the polling loop. Returns a cleanup function that stops the loop
+ * and detaches listeners. Idempotent: calling twice with no stop between
+ * is a no-op and returns a no-op cleanup.
+ */
+export function startNowPlayingPolling(): () => void {
+  if (isStarted) return () => {};
+  isStarted = true;
   attachVisibilityListener();
-  if (typeof document !== 'undefined' && document.hidden) return;
-  void runPoll();
-}
-
-function stop(): void {
-  detachVisibilityListener();
-  clearTimer();
-  cancelInflight();
-  consecutiveErrors = 0;
-  // Keep state.data so remounted consumers see the last value immediately.
-  setState({ isConnected: false });
-}
-
-// ─────────────────────────────────────────────
-// useSyncExternalStore wiring
-// ─────────────────────────────────────────────
-
-function subscribe(listener: () => void): () => void {
-  // Add the listener BEFORE start() so the async runPoll() doesn't bail out
-  // on its `listeners.size === 0` early-return — `void runPoll()` queues work
-  // that runs after subscribe() finishes, but its sync prologue already runs.
-  const wasEmpty = listeners.size === 0;
-  listeners.add(listener);
-  if (wasEmpty) start();
+  if (!(typeof document !== 'undefined' && document.hidden)) {
+    void runPoll();
+  }
   return () => {
-    listeners.delete(listener);
-    if (listeners.size === 0) stop();
+    if (!isStarted) return;
+    isStarted = false;
+    detachVisibilityListener();
+    clearTimer();
+    cancelInflight();
+    consecutiveErrors = 0;
+    // Keep state.data so remounted consumers see the last value immediately.
+    useNowPlayingStore.setState({ isConnected: false });
   };
-}
-
-function getSnapshot(): NowPlayingState {
-  return state;
-}
-
-export function useNowPlaying(): NowPlayingState {
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 // ─────────────────────────────────────────────
@@ -218,10 +206,13 @@ export function useNowPlaying(): NowPlayingState {
 
 /**
  * @internal Reset module state. Exported for unit tests only — calling this
- * from app code will break in-flight subscribers.
+ * from app code will tear down the polling loop for everyone.
  */
 export function __resetNowPlayingStore(): void {
-  stop();
-  state = { data: null, isConnected: false, error: null };
-  listeners.clear();
+  isStarted = false;
+  detachVisibilityListener();
+  clearTimer();
+  cancelInflight();
+  consecutiveErrors = 0;
+  useNowPlayingStore.setState({ data: null, isConnected: false, error: null });
 }

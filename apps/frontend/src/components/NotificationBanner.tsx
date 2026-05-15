@@ -3,7 +3,7 @@ import { Bell, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { usePushNotifications } from '../hooks/usePushNotifications';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuthStore } from '../stores/authStore';
 import { useBannerSlot } from '../stores/bannerSlotStore';
 
 const DISMISS_KEY = 'aubesonore_push_dismiss';
@@ -11,7 +11,7 @@ const SLOT_PRIORITY = 5; // PWA install (10) wins if both want to show
 
 export function NotificationBanner() {
   const { isSupported, permission, isSubscribed, subscribe } = usePushNotifications();
-  const { isAuthenticated } = useAuth();
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
 
   const [isDismissed, setIsDismissed] = useState(() => {
     return localStorage.getItem(DISMISS_KEY) === 'true';

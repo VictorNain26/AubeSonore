@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import { preferencesApi, type UserPreferences, type PreferredPlatform } from '../lib/api';
 
-// User preferences (currently: preferredPlatform), out of React Context.
-// Auth-driven refresh/clear is wired by <AuthDataSync /> — this store is
-// auth-agnostic.
+// User preferences (currently: preferredPlatform). Auth-driven
+// refresh/clear is wired by <AuthInit /> — this store is auth-agnostic.
 
 interface PreferencesState {
   preferences: UserPreferences | null;

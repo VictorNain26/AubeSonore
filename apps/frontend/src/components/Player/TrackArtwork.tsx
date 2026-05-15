@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { Music, Heart } from 'lucide-react';
 import { ShareButton } from '../ShareCard/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useNowPlaying, isDefaultArtwork } from '../../lib/azuracast';
+import { useNowPlayingStore, isDefaultArtwork } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
 import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
 import { usePreferencesStore } from '../../stores/preferencesStore';
@@ -15,22 +16,21 @@ import { trackFlip, toggle as toggleTransition } from './motion-presets';
 // No props: the component is self-sufficient.
 
 export function TrackArtwork() {
-  const { data: np } = useNowPlaying();
+  const { artUrl, title, artist, isLive } = useNowPlayingStore(
+    useShallow((s) => ({
+      artUrl: s.data?.now_playing?.song.art,
+      title: s.data?.now_playing?.song.title,
+      artist: s.data?.now_playing?.song.artist,
+      isLive: s.data?.live.is_live ?? false,
+    }))
+  );
   const isPlaying = usePlayer((s) => s.isPlaying);
   const tracks = useLikedTracksStore((s) => s.tracks);
   const preferences = usePreferencesStore((s) => s.preferences);
   const { likingTrackId, toggleLike } = useLikeAction();
   const [artError, setArtError] = useState(false);
 
-  const nowPlaying = np?.now_playing;
-  const artUrl = nowPlaying?.song.art;
-  const title = nowPlaying?.song.title;
-  const artist = nowPlaying?.song.artist;
-  const isLive = np?.live.is_live;
-
-  const isLiked = nowPlaying
-    ? isTrackLiked(tracks, nowPlaying.song.title, nowPlaying.song.artist)
-    : false;
+  const isLiked = title && artist ? isTrackLiked(tracks, title, artist) : false;
   const isLiking = likingTrackId === `${title}-${artist}`;
 
   const trackUrl = useMemo(() => {
@@ -45,10 +45,10 @@ export function TrackArtwork() {
 
   const handleArtError = useCallback(() => setArtError(true), []);
   const handleToggleLike = useCallback(() => {
-    if (nowPlaying) {
-      void toggleLike(nowPlaying.song.title, nowPlaying.song.artist, nowPlaying.song.art);
+    if (title && artist) {
+      void toggleLike(title, artist, artUrl);
     }
-  }, [nowPlaying, toggleLike]);
+  }, [title, artist, artUrl, toggleLike]);
 
   const isDefaultCover = !artUrl || artError || isDefaultArtwork(artUrl);
 

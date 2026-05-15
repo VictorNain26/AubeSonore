@@ -5,7 +5,12 @@ import { server } from '../mocks/server';
 import { useLikedTracksStore, isTrackLiked } from './likedTracksStore';
 
 beforeEach(() => {
-  useLikedTracksStore.setState({ tracks: [], isLoading: false, error: null });
+  useLikedTracksStore.setState({
+    tracks: [],
+    isLoading: false,
+    error: null,
+    likingTrackId: null,
+  });
 });
 
 describe('likedTracksStore', () => {
@@ -94,6 +99,29 @@ describe('likedTracksStore', () => {
     expect(isTrackLiked(tracks, 'hello world', 'artist name')).toBe(true);
     expect(isTrackLiked(tracks, 'HELLO WORLD', 'ARTIST NAME')).toBe(true);
     expect(isTrackLiked(tracks, 'Other', 'Other')).toBe(false);
+  });
+
+  it('isTrackLiked does not collide on adjacent-substring titles/artists', () => {
+    // Without a separator, ("Hellow", "orld") and ("Hello", "World") would
+    // both produce the key "helloworld" and incorrectly match each other.
+    const tracks = [
+      {
+        id: 'x',
+        userId: 'u1',
+        title: 'Hellow',
+        artist: 'orld',
+        album: null,
+        artworkUrl: null,
+        youtubeUrl: 'https://y/x',
+        isrc: null,
+        songlinkUrl: null,
+        platformLinks: null,
+        createdAt: '2026-01-01T00:00:00Z',
+      },
+    ];
+
+    expect(isTrackLiked(tracks, 'Hello', 'World')).toBe(false);
+    expect(isTrackLiked(tracks, 'Hellow', 'orld')).toBe(true);
   });
 
   it('clear() wipes tracks and error', () => {

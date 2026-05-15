@@ -1,16 +1,18 @@
 import { create } from 'zustand';
 import { trackApi, type LikedTrack, type LikeTrackRequest } from '../lib/api';
 
-// Liked-tracks state, kept out of React Context so consumers can subscribe
-// to slices granularly (Zustand selectors). The auth coupling that the
-// previous Context had is now driven from a thin <AuthDataSync /> sibling
-// that calls refresh()/clear() on auth state transitions — the store
-// itself stays auth-agnostic.
+// Liked-tracks state. Consumers subscribe to slices granularly via
+// Zustand selectors. Auth-driven refresh/clear is wired by <AuthInit />
+// — the store itself stays auth-agnostic.
 
 interface LikedTracksState {
   tracks: LikedTrack[];
   isLoading: boolean;
   error: string | null;
+  // Cross-component lock for in-flight like/unlike. Lives here (not in
+  // useLikeAction) so simultaneous clicks from TrackArtwork + HistoryList
+  // on the same track see the same value and can short-circuit.
+  likingTrackId: string | null;
 }
 
 interface LikedTracksActions {
@@ -18,18 +20,26 @@ interface LikedTracksActions {
   clear: () => void;
   likeTrack: (data: LikeTrackRequest) => Promise<LikedTrack | null>;
   unlikeTrack: (trackId: string) => Promise<boolean>;
+  setLikingTrackId: (id: string | null) => void;
 }
 
 // Pure helper: callers subscribe to `tracks` themselves so a like/unlike
 // triggers a re-render. Exposing this as an action on the store would
 // return a stable function reference and silently miss those re-renders.
+// NUL byte separator: never appears in user-entered text, so the composed
+// key is collision-free for adjacent-substring titles ("Hellow"+"orld"
+// vs "Hello"+"World").
+const LIKED_KEY_SEP = String.fromCharCode(0);
+
 export function isTrackLiked(
   tracks: readonly LikedTrack[],
   title: string,
   artist: string
 ): boolean {
-  const needle = `${title.toLowerCase()}${artist.toLowerCase()}`;
-  return tracks.some((t) => `${t.title.toLowerCase()}${t.artist.toLowerCase()}` === needle);
+  const needle = `${title.toLowerCase()}${LIKED_KEY_SEP}${artist.toLowerCase()}`;
+  return tracks.some(
+    (t) => `${t.title.toLowerCase()}${LIKED_KEY_SEP}${t.artist.toLowerCase()}` === needle
+  );
 }
 
 type LikedTracksStore = LikedTracksState & LikedTracksActions;
@@ -38,6 +48,9 @@ export const useLikedTracksStore = create<LikedTracksStore>((set, get) => ({
   tracks: [],
   isLoading: false,
   error: null,
+  likingTrackId: null,
+
+  setLikingTrackId: (id) => set({ likingTrackId: id }),
 
   refresh: async () => {
     set({ isLoading: true, error: null });
@@ -57,7 +70,7 @@ export const useLikedTracksStore = create<LikedTracksStore>((set, get) => ({
   },
 
   likeTrack: async (data) => {
-    const tempId = `temp-${Date.now()}`;
+    const tempId = `temp-${crypto.randomUUID()}`;
     const optimisticTrack: LikedTrack = {
       id: tempId,
       userId: '',
