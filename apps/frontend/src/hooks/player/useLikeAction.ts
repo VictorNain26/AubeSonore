@@ -2,30 +2,29 @@ import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 import { useLikedTracksContext as useLikedTracks } from '../../contexts/LikedTracksContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { useAuthModalStore } from '../../stores/authModalStore';
 
-// Encapsulates the like / unlike flow used by both AlbumArt (current track)
-// and HistoryItem (previously played). Guards against:
-// - unauthenticated users (opens the auth modal)
+// Encapsulates the like / unlike flow used by both TrackArtwork (current
+// track) and HistoryList (previously played). Guards against:
+// - unauthenticated users (opens the shared auth modal)
 // - double-click on the same track (likingTrackId lock)
 // - duplicate row in the liked list (lookup by case-insensitive title+artist)
 
 interface UseLikeAction {
   likingTrackId: string | null;
-  isAuthModalOpen: boolean;
-  setIsAuthModalOpen: (open: boolean) => void;
   toggleLike: (title: string, artist: string, artworkUrl?: string) => Promise<void>;
 }
 
 export function useLikeAction(): UseLikeAction {
   const { likeTrack, unlikeTrack, tracks } = useLikedTracks();
   const { isAuthenticated } = useAuth();
+  const openAuthModal = useAuthModalStore((s) => s.open);
   const [likingTrackId, setLikingTrackId] = useState<string | null>(null);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const toggleLike = useCallback(
     async (title: string, artist: string, artworkUrl?: string): Promise<void> => {
       if (!isAuthenticated) {
-        setIsAuthModalOpen(true);
+        openAuthModal();
         return;
       }
 
@@ -61,8 +60,8 @@ export function useLikeAction(): UseLikeAction {
         setLikingTrackId(null);
       }
     },
-    [likeTrack, unlikeTrack, tracks, likingTrackId, isAuthenticated]
+    [likeTrack, unlikeTrack, tracks, likingTrackId, isAuthenticated, openAuthModal]
   );
 
-  return { likingTrackId, isAuthModalOpen, setIsAuthModalOpen, toggleLike };
+  return { likingTrackId, toggleLike };
 }
