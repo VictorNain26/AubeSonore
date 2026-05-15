@@ -3,8 +3,21 @@ name: CI
 on:
   push:
     branches: [master]
+  # Run on every pull request regardless of base branch, so stacked PRs
+  # (e.g. fix/A → fix/B → master) get full CI on each link of the chain
+  # at creation time. Filtering by base would skip everything that does
+  # not directly target master, which was a real foot-gun during the
+  # player-page refactor (PRs B-E had no Quality/Build/Tests until each
+  # one was retargeted and a no-op commit was pushed).
   pull_request:
-    branches: [master]
+
+# Cancel any in-flight run when a new push lands on the same PR / branch.
+# AI-agent iteration loops can push 5-10 times in a few minutes; without
+# cancellation each push stacks a fresh Quality/Build/Tests run and we
+# race the previous one to no purpose.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
@@ -13,6 +26,10 @@ env:
 jobs:
   quality:
     name: Quality (lint, typecheck, test, audit)
+    # Skip drafts: AI agents push partial / in-progress work as drafts.
+    # We only burn Actions minutes once the author marks the PR ready.
+    # Push events to master (no `pull_request` payload) always run.
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -65,6 +82,7 @@ jobs:
 
   backend-test:
     name: Backend tests (bun)
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -124,6 +142,7 @@ jobs:
 
   mobile-check:
     name: Mobile typecheck
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
