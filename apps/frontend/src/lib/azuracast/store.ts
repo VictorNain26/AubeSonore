@@ -21,8 +21,9 @@ import type { NowPlayingState } from './types';
 // - Lazy lifecycle: start on first subscriber, stop on last unsubscribe.
 // - Pauses polling while the document is hidden (data + battery savings).
 // - Exponential backoff on consecutive errors, capped at 16s.
-// - Uses If-Modified-Since to skip the JSON parse on unchanged frames (the
-//   server happily responds 304 once it has seen the date once).
+// - Sends only CORS-safelisted headers so the request stays a simple GET
+//   (no preflight). Cache freshness is delegated to Cache-Control max-age=10
+//   served by AzuraCast and, in production, to the CDN in front of it.
 
 // Adaptive polling cadence:
 // - DEFAULT_POLL_MS  : when we have no NowPlaying data yet (cold start)
@@ -41,7 +42,6 @@ const listeners = new Set<() => void>();
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let inflight: AbortController | null = null;
 let consecutiveErrors = 0;
-let lastModified: string | null = null;
 let visibilityListenerAttached = false;
 
 function setState(partial: Partial<NowPlayingState>): void {
@@ -91,17 +91,14 @@ async function pollOnce(): Promise<void> {
   inflight = controller;
 
   try {
-    const headers: HeadersInit = { Accept: 'application/json' };
-    if (lastModified !== null) headers['If-Modified-Since'] = lastModified;
-
     const response = await fetch(STATIC_NOWPLAYING_URL, {
       signal: controller.signal,
       cache: 'no-store',
-      headers,
+      headers: { Accept: 'application/json' },
     });
 
-    // 304 = file unchanged since our last successful read. Keep current data,
-    // just confirm the connection is healthy.
+    // 304 may still come from an intermediate cache validating via ETag.
+    // Keep current data and confirm the connection is healthy.
     if (response.status === 304) {
       consecutiveErrors = 0;
       setState({ isConnected: true, error: null });
@@ -111,9 +108,6 @@ async function pollOnce(): Promise<void> {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
-
-    const modified = response.headers.get('last-modified');
-    if (modified !== null) lastModified = modified;
 
     const json: unknown = await response.json();
     const parsed = safeParse(NowPlayingSchema, json);
@@ -189,7 +183,6 @@ function stop(): void {
   clearTimer();
   cancelInflight();
   consecutiveErrors = 0;
-  lastModified = null;
   // Keep state.data so remounted consumers see the last value immediately.
   setState({ isConnected: false });
 }

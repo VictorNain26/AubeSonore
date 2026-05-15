@@ -146,21 +146,16 @@ describe('useNowPlaying — cadence', () => {
     expect(calls).toBe(2);
   });
 
-  it('honours 304 Not Modified by keeping current data and clearing errors', async () => {
+  it('treats a defensive 304 (e.g. CDN ETag revalidation) as healthy and keeps current data', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     let calls = 0;
     server.use(
-      http.get(URL_NP, ({ request }) => {
+      http.get(URL_NP, () => {
         calls++;
         if (calls === 1) {
-          return HttpResponse.json(makeNowPlaying(), {
-            headers: { 'Last-Modified': 'Wed, 01 Jan 2025 00:00:00 GMT' },
-          });
+          return HttpResponse.json(makeNowPlaying());
         }
-        // Subsequent calls => server reports 304 because we sent If-Modified-Since
-        const ims = request.headers.get('if-modified-since');
-        if (ims !== null) return new HttpResponse(null, { status: 304 });
-        return HttpResponse.json(makeNowPlaying());
+        return new HttpResponse(null, { status: 304 });
       })
     );
     const { result } = renderHook(() => useNowPlaying());
@@ -174,6 +169,33 @@ describe('useNowPlaying — cadence', () => {
     expect(result.current.data?.now_playing.song.title).toBe('Test Title');
     expect(result.current.isConnected).toBe(true);
     expect(result.current.error).toBeNull();
+  });
+
+  it('never sends If-Modified-Since (would trigger a CORS preflight nginx returns 405 for)', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const sentHeaders: Array<Record<string, string>> = [];
+    server.use(
+      http.get(URL_NP, ({ request }) => {
+        const entries: Record<string, string> = {};
+        request.headers.forEach((value, key) => {
+          entries[key.toLowerCase()] = value;
+        });
+        sentHeaders.push(entries);
+        return HttpResponse.json(freshNowPlaying());
+      })
+    );
+    const { result } = renderHook(() => useNowPlaying());
+    await vi.waitFor(() => expect(result.current.data).not.toBeNull());
+    // Force the cadence to fire a second poll so we observe the post-first-success path
+    // where the regression used to attach If-Modified-Since.
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(16_000);
+    });
+    expect(sentHeaders.length).toBeGreaterThanOrEqual(2);
+    for (const headers of sentHeaders) {
+      expect(headers['if-modified-since']).toBeUndefined();
+      expect(headers['if-none-match']).toBeUndefined();
+    }
   });
 });
 
