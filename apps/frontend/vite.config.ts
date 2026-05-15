@@ -26,6 +26,11 @@ export default defineConfig(({ mode }) => {
         filename: 'sw.ts',
         registerType: 'autoUpdate',
         injectRegister: 'auto',
+        injectManifest: {
+          // resvg-wasm ships a ~2.5 MB wasm chunk; default cap is 2 MiB.
+          // We precache it so offline share-image generation keeps working.
+          maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+        },
         includeAssets: [
           'favicon.png',
           'favicon-48.png',
