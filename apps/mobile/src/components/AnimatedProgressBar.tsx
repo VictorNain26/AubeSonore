@@ -1,18 +1,12 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import { formatTime } from '@aubesonore/core/format';
 
 interface AnimatedProgressBarProps {
   elapsed: number;
   duration: number;
   trackId?: string;
-}
-
-function formatTime(seconds: number): string {
-  if (!seconds || seconds <= 0) return '0:00';
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
 function AnimatedProgressBarComponent({ elapsed, duration, trackId }: AnimatedProgressBarProps) {

@@ -1,22 +1,10 @@
 import { View, Text, Pressable, ScrollView, Modal } from 'react-native';
 import { useState } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import type { PreferredPlatform } from '../types';
+import { PLATFORMS, type PreferredPlatform } from '@aubesonore/shared-types/client';
 
-// ─────────────────────────────────────────────
-// Platform Definitions
-// ─────────────────────────────────────────────
-
-export const PLATFORMS: { id: PreferredPlatform; name: string }[] = [
-  { id: 'spotify', name: 'Spotify' },
-  { id: 'appleMusic', name: 'Apple Music' },
-  { id: 'deezer', name: 'Deezer' },
-  { id: 'youtubeMusic', name: 'YouTube Music' },
-  { id: 'youtube', name: 'YouTube' },
-  { id: 'tidal', name: 'Tidal' },
-  { id: 'amazonMusic', name: 'Amazon Music' },
-  { id: 'soundcloud', name: 'SoundCloud' },
-];
+// Re-export for legacy local consumers (drop once they import from shared-types).
+export { PLATFORMS };
 
 // ─────────────────────────────────────────────
 // Component

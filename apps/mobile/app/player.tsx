@@ -13,6 +13,7 @@ import { useRouter } from 'expo-router';
 import { useShallow } from 'zustand/react/shallow';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { isDefaultArtwork } from '@aubesonore/core/azuracast';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   useSharedValue,
@@ -88,11 +89,7 @@ export default function PlayerModal() {
 
   // Determine artwork URL
   const artUrl = currentSong?.art;
-  const isDefaultCover =
-    !artUrl ||
-    artUrl.includes('generic') ||
-    artUrl.includes('default') ||
-    artUrl.includes('placeholder');
+  const isDefaultCover = isDefaultArtwork(artUrl);
   const displayArtUrl = isDefaultCover ? DEFAULT_ARTWORK : artUrl;
 
   // ─────────────────────────────────────────────

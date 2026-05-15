@@ -2,26 +2,13 @@ import { memo, useCallback } from 'react';
 import { View, Text, FlatList, Image, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { formatTimeAgo } from '@aubesonore/core/format';
 
 import { usePlayerStore } from '../../src/stores/playerStore';
 import { useLikedTracksStore } from '../../src/stores/likedTracksStore';
 import { useLikeToggle } from '../../src/hooks/useLikeToggle';
 import { EmptyState } from '../../src/components';
 import type { SongEntry, Song } from '../../src/types';
-
-// ─────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────
-
-function formatTimeAgo(timestamp: number): string {
-  const now = Math.floor(Date.now() / 1000);
-  const diff = now - timestamp;
-
-  if (diff < 60) return "À l'instant";
-  if (diff < 3600) return `Il y a ${Math.floor(diff / 60)} min`;
-  if (diff < 86400) return `Il y a ${Math.floor(diff / 3600)}h`;
-  return `Il y a ${Math.floor(diff / 86400)}j`;
-}
 
 // Extracted to avoid creating new function on every render
 const getHistoryKey = (item: SongEntry) => `${item.sh_id}-${item.played_at}`;

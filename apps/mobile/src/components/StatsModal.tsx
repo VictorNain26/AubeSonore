@@ -1,5 +1,6 @@
 import { View, Text, Modal, Pressable, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { formatDurationMinutes } from '@aubesonore/core/format';
 
 import { useStatsStore } from '../stores/statsStore';
 
@@ -8,12 +9,8 @@ interface StatsModalProps {
   onClose: () => void;
 }
 
-function formatTime(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m > 0 ? `${h}h ${m}min` : `${h}h`;
-}
+// Local alias preserved so the JSX call sites stay untouched (`formatTime(min)`).
+const formatTime = formatDurationMinutes;
 
 function StatCard({
   icon,
