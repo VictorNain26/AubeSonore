@@ -52,8 +52,10 @@ self.addEventListener('push', (event) => {
         data: { url: url || '/' },
       })
     );
-  } catch {
-    // Ignore malformed push
+  } catch (err) {
+    // Log but don't fail the SW — push payload format is owned by the backend
+    // and a corrupt one shouldn't kill the worker. Visible in DevTools > SW.
+    console.warn('[SW] malformed push payload', err);
   }
 });
 
