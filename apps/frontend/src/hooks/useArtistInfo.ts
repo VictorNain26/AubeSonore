@@ -8,27 +8,25 @@ export type { ArtistInfo } from '@aubesonore/shared-types/client';
 const cache = new LruCache<string, ArtistInfo>(100);
 
 export function useArtistInfo(artistName: string | undefined) {
-  const [data, setData] = useState<ArtistInfo | null>(null);
+  // Read cache synchronously during render — no setState-in-effect needed for hits.
+  // The cache itself is module-scoped and mutable; React doesn't track its
+  // changes, but for this hook a re-render only happens when artistName changes,
+  // at which point we re-read.
+  const cached = artistName ? cache.get(artistName.toLowerCase()) : undefined;
+  const [fetchedData, setFetchedData] = useState<ArtistInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Cache hit → return cached. Cache miss → return whatever we last fetched
+  // for this name (which is internalData), or null.
+  const data = cached ?? (artistName ? fetchedData : null);
+
   useEffect(() => {
-    if (!artistName) {
-      setData(null);
-      return;
-    }
-
+    if (!artistName) return;
     const key = artistName.toLowerCase();
+    if (cache.get(key)) return; // Already cached; render path returns it.
 
-    // Check cache
-    const cached = cache.get(key);
-    if (cached) {
-      setData(cached);
-      return;
-    }
-
-    // Debounce 300ms
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       abortRef.current?.abort();
@@ -48,15 +46,15 @@ export function useArtistInfo(artistName: string | undefined) {
           if (controller.signal.aborted) return;
           if (info && typeof info === 'object' && !('error' in info && info.error)) {
             cache.set(key, info);
-            setData(info);
+            setFetchedData(info);
           } else {
-            setData(null);
+            setFetchedData(null);
           }
         })
         .catch((err: unknown) => {
           if (err instanceof Error && err.name !== 'AbortError') {
             console.warn('[useArtistInfo] Fetch error:', err.message);
-            setData(null);
+            setFetchedData(null);
           }
         })
         .finally(() => {

@@ -15,18 +15,20 @@ export default function HomePage() {
     artUrl.includes('default') ||
     artUrl.includes('placeholder');
 
-  const [loadedArt, setLoadedArt] = useState<string | null>(null);
+  const [internalLoadedArt, setInternalLoadedArt] = useState<string | null>(null);
+
+  // Derive loadedArt: clear if default cover
+  const loadedArt = isDefaultCover ? null : internalLoadedArt;
 
   // Preload image before showing ambient to avoid flicker
   useEffect(() => {
     if (isDefaultCover) {
-      setLoadedArt(null);
       return;
     }
     const img = new Image();
     img.src = artUrl!;
-    img.onload = () => setLoadedArt(artUrl);
-    img.onerror = () => setLoadedArt(null);
+    img.onload = () => setInternalLoadedArt(artUrl);
+    img.onerror = () => setInternalLoadedArt(null);
   }, [artUrl, isDefaultCover]);
 
   return (

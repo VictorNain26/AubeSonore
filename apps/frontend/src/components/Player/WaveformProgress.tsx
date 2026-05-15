@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { getAnalyser } from '../../lib/player';
 
 // ─────────────────────────────────────────────
@@ -21,8 +21,12 @@ export function WaveformProgress({ progress, isPlaying, songId }: WaveformProgre
   // tear-down/re-setup 60 times per second when the parent's elapsed timer ticks.
   // Without this, every progress update cancels and re-arms the animation frame.
   const progressRef = useRef(progress);
-  progressRef.current = progress;
   const barsCount = 48;
+
+  // Sync progress ref with actual progress prop (without triggering re-renders)
+  useLayoutEffect(() => {
+    progressRef.current = progress;
+  }, [progress]);
 
   // Initialize smoothed data array
   useEffect(() => {

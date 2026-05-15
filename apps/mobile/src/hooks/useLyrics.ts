@@ -26,15 +26,17 @@ function getCacheKey(artist: string, title: string): string {
 }
 
 export function useLyrics(artist: string | undefined, title: string | undefined): LyricsResult {
-  const [syncedLines, setSyncedLines] = useState<LyricLine[] | null>(null);
-  const [plainLyrics, setPlainLyrics] = useState<string | null>(null);
+  const [internalSyncedLines, setInternalSyncedLines] = useState<LyricLine[] | null>(null);
+  const [internalPlainLyrics, setInternalPlainLyrics] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
+  // Derive lyrics: clear if artist or title missing
+  const syncedLines = artist && title ? internalSyncedLines : null;
+  const plainLyrics = artist && title ? internalPlainLyrics : null;
+
   useEffect(() => {
     if (!artist || !title) {
-      setSyncedLines(null);
-      setPlainLyrics(null);
       return;
     }
 
@@ -53,8 +55,8 @@ export function useLyrics(artist: string | undefined, title: string | undefined)
         const cached = await AsyncStorage.getItem(cacheKey);
         if (cached && !cancelled) {
           const data = JSON.parse(cached) as CachedLyrics;
-          setSyncedLines(data.synced ? parseLRC(data.synced) : null);
-          setPlainLyrics(data.plain ?? null);
+          setInternalSyncedLines(data.synced ? parseLRC(data.synced) : null);
+          setInternalPlainLyrics(data.plain ?? null);
           return;
         }
       } catch {
@@ -63,8 +65,8 @@ export function useLyrics(artist: string | undefined, title: string | undefined)
 
       if (cancelled) return;
       setIsLoading(true);
-      setSyncedLines(null);
-      setPlainLyrics(null);
+      setInternalSyncedLines(null);
+      setInternalPlainLyrics(null);
 
       try {
         const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist!)}&track_name=${encodeURIComponent(title!)}`;
@@ -84,9 +86,9 @@ export function useLyrics(artist: string | undefined, title: string | undefined)
         const plain = data.plainLyrics ?? null;
 
         if (synced) {
-          setSyncedLines(parseLRC(synced));
+          setInternalSyncedLines(parseLRC(synced));
         }
-        setPlainLyrics(plain);
+        setInternalPlainLyrics(plain);
 
         try {
           await AsyncStorage.setItem(cacheKey, JSON.stringify({ synced, plain }));

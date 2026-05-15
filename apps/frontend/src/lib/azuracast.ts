@@ -46,6 +46,7 @@ export function useNowPlaying() {
   const [error, setError] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectRef = useRef<() => void>(() => {});
 
   const connect = useCallback(() => {
     // Nettoyage
@@ -102,9 +103,14 @@ export function useNowPlaying() {
       eventSource.onmessage = null;
       eventSource.onopen = null;
       eventSource.close();
-      reconnectTimeoutRef.current = setTimeout(connect, 3000);
+      reconnectTimeoutRef.current = setTimeout(() => connectRef.current(), 3000);
     };
   }, []);
+
+  // Keep connectRef in sync with the current connect function
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
 
   useEffect(() => {
     let cancelled = false;

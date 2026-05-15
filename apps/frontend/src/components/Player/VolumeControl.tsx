@@ -26,8 +26,12 @@ export function VolumeControl({
   const closeTimeoutRef = useRef<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [isHovering, setIsHovering] = useState(false);
   const [localVolume, setLocalVolume] = useState(volume);
   const [isMobile, setIsMobile] = useState(false);
+
+  // Sync local volume with prop when not dragging (use derived state)
+  const effectiveVolume = isDragging ? localVolume : volume;
 
   // Detect mobile (no hover)
   useEffect(() => {
@@ -47,19 +51,16 @@ export function VolumeControl({
   const handleMouseEnter = () => {
     if (isMobile) return;
     if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    setIsHovering(true);
     setIsOpen(true);
   };
 
   const handleMouseLeave = () => {
     if (isMobile || isDragging) return;
+    setIsHovering(false);
     // Delay before closing to allow reaching the slider
     closeTimeoutRef.current = window.setTimeout(() => setIsOpen(false), 300);
   };
-
-  // Sync local volume with prop when not dragging
-  useEffect(() => {
-    if (!isDragging) setLocalVolume(volume);
-  }, [volume, isDragging]);
 
   // Close slider when clicking outside (mobile)
   useEffect(() => {
@@ -156,8 +157,8 @@ export function VolumeControl({
     }
   };
 
-  const displayVolume = localVolume;
-  const isExpanded = isOpen || isDragging || (!isMobile && containerRef.current?.matches(':hover'));
+  const displayVolume = effectiveVolume;
+  const isExpanded = isOpen || isDragging || (!isMobile && isHovering);
   const showMuted = isMuted || displayVolume === 0;
   const VolumeIcon = showMuted ? VolumeX : Volume2;
 
