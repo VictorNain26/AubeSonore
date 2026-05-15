@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState, useCallback } from 'react';
+import { lazy, Suspense, useEffect, useState, useCallback } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Play, Square, Users, Library } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,99 +25,35 @@ import { CastButton } from './CastButton';
 import { SleepTimer } from './SleepTimer';
 import { ArtistContext } from './ArtistContext';
 
-// Stores
-import { useSleepTimer } from '../../stores/sleepTimerStore';
-import { useStatsStore } from '../../stores/statsStore';
-
-// ─────────────────────────────────────────────
-// Main Player Component
-// ─────────────────────────────────────────────
+// Player-domain hooks
+import { useTrackProgress } from '../../hooks/player/useTrackProgress';
+import { useTrackChangeEvents } from '../../hooks/player/useTrackChangeEvents';
+import { useListeningTimeTracker } from '../../hooks/player/useListeningTimeTracker';
+import { useLikeAction } from '../../hooks/player/useLikeAction';
 
 export default function Player() {
-  const [elapsed, setElapsed] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [likingTrackId, setLikingTrackId] = useState<string | null>(null);
   const { isPlaying, volume, play, stop, setVolume } = usePlayer();
   const playError = usePlayer((s) => s.playError);
   const clearPlayError = usePlayer((s) => s.clearPlayError);
   const { data: np } = useNowPlaying();
-  const { likeTrack, unlikeTrack, isTrackLiked, tracks } = useLikedTracks();
+  const { isTrackLiked, tracks } = useLikedTracks();
   const { isAuthenticated } = useAuth();
-  const animationRef = useRef<number>(0);
-  const startTimeRef = useRef<number>(0);
-  const baseElapsedRef = useRef<number>(0);
-  const prevShIdRef = useRef<number | undefined>(undefined);
 
   const nowPlaying = np?.now_playing;
   const duration = nowPlaying?.duration || 0;
-  const progress = duration > 0 ? (elapsed / duration) * 100 : 0;
 
-  // Sleep timer — end-of-track mode
-  const sleepTimerTrigger = useSleepTimer((s) => s.triggerEndOfTrack);
-
-  // Stats store
-  const tickListeningTime = useStatsStore((s) => s.tickListeningTime);
-  const recordTrackChange = useStatsStore((s) => s.recordTrackChange);
-
-  // Sync with server elapsed time (store in ref, don't setState in effect)
-  useEffect(() => {
-    if (nowPlaying?.elapsed !== undefined) {
-      baseElapsedRef.current = nowPlaying.elapsed;
-      startTimeRef.current = performance.now();
-    }
-  }, [nowPlaying?.elapsed, nowPlaying?.sh_id]);
-
-  // Smooth animation loop for elapsed time - runs only while playing
-  useEffect(() => {
-    if (!isPlaying || duration <= 0) return;
-
-    startTimeRef.current = performance.now();
-    const animate = () => {
-      const now = performance.now();
-      const deltaSeconds = (now - startTimeRef.current) / 1000;
-      const newElapsed = Math.min(baseElapsedRef.current + deltaSeconds, duration);
-      setElapsed(newElapsed);
-      animationRef.current = requestAnimationFrame(animate);
-    };
-    animationRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-    };
-  }, [duration, isPlaying]);
-
-  // Track change detection — stats + sleep timer end-of-track
-  useEffect(() => {
-    const shId = nowPlaying?.sh_id;
-    if (shId && shId !== prevShIdRef.current) {
-      if (prevShIdRef.current !== undefined) {
-        // Track changed
-        sleepTimerTrigger();
-        if (nowPlaying?.song.artist && nowPlaying?.song.title) {
-          recordTrackChange(nowPlaying.song.artist, nowPlaying.song.title);
-        }
-      }
-      prevShIdRef.current = shId;
-    }
-  }, [
+  const { elapsed, progress } = useTrackProgress(
+    nowPlaying?.elapsed,
     nowPlaying?.sh_id,
-    nowPlaying?.song.artist,
-    nowPlaying?.song.title,
-    sleepTimerTrigger,
-    recordTrackChange,
-  ]);
-
-  // Stats: tick listening time every 10s while playing
-  useEffect(() => {
-    if (!isPlaying) return;
-    const id = setInterval(() => {
-      void tickListeningTime();
-    }, 10_000);
-    return () => clearInterval(id);
-  }, [isPlaying, tickListeningTime]);
+    duration,
+    isPlaying
+  );
+  useTrackChangeEvents(nowPlaying?.sh_id, nowPlaying?.song.artist, nowPlaying?.song.title);
+  useListeningTimeTracker(isPlaying);
+  const { likingTrackId, isAuthModalOpen, setIsAuthModalOpen, toggleLike } = useLikeAction();
 
   useEffect(() => {
     if (playError) {
@@ -154,68 +90,18 @@ export default function Player() {
     [setVolume]
   );
 
-  // Check if current track is liked
   const isCurrentTrackLiked = nowPlaying
     ? isTrackLiked(nowPlaying.song.title, nowPlaying.song.artist)
     : false;
 
-  // Handle toggle like/unlike for any track (current or history)
-  const handleToggleLike = useCallback(
-    async (title: string, artist: string, artworkUrl?: string) => {
-      // Check authentication first
-      if (!isAuthenticated) {
-        setIsAuthModalOpen(true);
-        return;
-      }
-
-      const trackKey = `${title}-${artist}`;
-      if (likingTrackId === trackKey) return; // Prevent double-click
-
-      setLikingTrackId(trackKey);
-      try {
-        // Check if already liked
-        const existingTrack = tracks.find(
-          (t) =>
-            t.title.toLowerCase() === title.toLowerCase() &&
-            t.artist.toLowerCase() === artist.toLowerCase()
-        );
-
-        if (existingTrack) {
-          // Unlike
-          const success = await unlikeTrack(existingTrack.id);
-          if (success) {
-            toast.success('Retiré de votre bibliothèque');
-          }
-        } else {
-          // Like
-          const requestData: Parameters<typeof likeTrack>[0] = {
-            title,
-            artist,
-            youtubeUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} ${artist}`)}`,
-          };
-          if (artworkUrl) {
-            requestData.artworkUrl = artworkUrl;
-          }
-          await likeTrack(requestData);
-          toast.success('Ajouté à votre bibliothèque');
-        }
-      } finally {
-        setLikingTrackId(null);
-      }
-    },
-    [likeTrack, unlikeTrack, tracks, likingTrackId, isAuthenticated]
-  );
-
-  // Handle opening library modal
   const handleOpenLibrary = useCallback(() => {
     if (!isAuthenticated) {
       setIsAuthModalOpen(true);
       return;
     }
     setIsModalOpen(true);
-  }, [isAuthenticated]);
+  }, [isAuthenticated, setIsAuthModalOpen]);
 
-  // Check if a history track is liked
   const isHistoryTrackLiked = useCallback(
     (entry: SongEntry) => isTrackLiked(entry.song.title, entry.song.artist),
     [isTrackLiked]
@@ -225,22 +111,18 @@ export default function Player() {
   if (!np) {
     return (
       <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4">
-        {/* Album art skeleton */}
         <div className="flex flex-col items-center mb-5">
           <div className="w-64 h-64 md:w-72 md:h-72 lg:w-80 lg:h-80 rounded-2xl skeleton" />
         </div>
-        {/* Title skeleton */}
         <div className="flex flex-col items-center gap-2 mb-5">
           <div className="h-6 w-48 rounded skeleton" />
           <div className="h-4 w-32 rounded skeleton" />
         </div>
-        {/* Waveform skeleton */}
         <div className="flex items-center gap-3 mb-5">
           <div className="h-3 w-10 rounded skeleton" />
           <div className="flex-1 h-8 rounded skeleton" />
           <div className="h-3 w-10 rounded skeleton" />
         </div>
-        {/* Controls skeleton */}
         <div className="flex items-center justify-center mb-6">
           <div className="w-16 h-16 rounded-full skeleton" />
         </div>
@@ -250,9 +132,7 @@ export default function Player() {
 
   return (
     <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4">
-      {/* =================================================================
-          SECTION 1: Album Art (Focal Point) + Like/Share Buttons
-          ================================================================= */}
+      {/* Section 1: Album Art + Like/Share */}
       <div className="flex flex-col items-center mb-5">
         <AlbumArt
           artUrl={nowPlaying?.song.art}
@@ -264,19 +144,13 @@ export default function Player() {
           isLive={np?.live.is_live}
           onToggleLike={() => {
             if (nowPlaying) {
-              void handleToggleLike(
-                nowPlaying.song.title,
-                nowPlaying.song.artist,
-                nowPlaying.song.art
-              );
+              void toggleLike(nowPlaying.song.title, nowPlaying.song.artist, nowPlaying.song.art);
             }
           }}
         />
       </div>
 
-      {/* =================================================================
-          SECTION 2: Track Info
-          ================================================================= */}
+      {/* Section 2: Track Info */}
       <AnimatePresence mode="wait">
         <motion.div
           key={nowPlaying?.sh_id || 'waiting'}
@@ -295,9 +169,7 @@ export default function Player() {
         </motion.div>
       </AnimatePresence>
 
-      {/* =================================================================
-          SECTION 4: Waveform Progress
-          ================================================================= */}
+      {/* Section 3: Waveform Progress */}
       <div className="flex items-center gap-3 mb-5">
         <span className="text-xs text-foreground/50 tabular-nums w-10 text-right">
           {formatTime(elapsed)}
@@ -308,11 +180,9 @@ export default function Player() {
         <span className="text-xs text-foreground/50 tabular-nums w-10">{formatTime(duration)}</span>
       </div>
 
-      {/* =================================================================
-          SECTION 5: Playback Controls
-          ================================================================= */}
+      {/* Section 4: Playback Controls */}
       <div className="flex items-center mb-6 px-2">
-        {/* Left controls */}
+        {/* Left */}
         <div className="flex-1 flex justify-start items-center gap-1">
           <CastButton />
           <VolumeControl
@@ -324,7 +194,7 @@ export default function Player() {
           <SleepTimer />
         </div>
 
-        {/* Center: Play/Stop */}
+        {/* Center: Play / Stop */}
         <button
           onClick={togglePlay}
           className={cn(
@@ -345,9 +215,8 @@ export default function Player() {
           )}
         </button>
 
-        {/* Right controls */}
+        {/* Right */}
         <div className="flex-1 flex justify-end items-center gap-2">
-          {/* Library button */}
           <button
             onClick={handleOpenLibrary}
             className={cn(
@@ -356,11 +225,12 @@ export default function Player() {
               isAuthenticated && tracks.length > 0 && 'text-accent/80 hover:text-accent'
             )}
             title="Ma bibliothèque"
+            aria-label="Ouvrir ma bibliothèque"
           >
             <Library className="w-5 h-5" />
           </button>
 
-          {/* Listeners count + LIVE indicator */}
+          {/* Listeners + LIVE */}
           {np?.listeners ? (
             <div
               className="flex items-center gap-1.5 text-xs text-foreground/50"
@@ -383,14 +253,10 @@ export default function Player() {
         </div>
       </div>
 
-      {/* =================================================================
-          SECTION 7: Artist Context
-          ================================================================= */}
+      {/* Section 5: Artist Context */}
       <ArtistContext artistName={nowPlaying?.song.artist} />
 
-      {/* =================================================================
-          SECTION 8: History (Previous Tracks)
-          ================================================================= */}
+      {/* Section 6: History */}
       {(() => {
         const historyEntries = np?.song_history?.slice(0, 5);
         if (!historyEntries || historyEntries.length === 0) return null;
@@ -412,7 +278,7 @@ export default function Player() {
                     isLiked={isHistoryTrackLiked(entry)}
                     isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
                     onToggle={() => {
-                      void handleToggleLike(entry.song.title, entry.song.artist, entry.song.art);
+                      void toggleLike(entry.song.title, entry.song.artist, entry.song.art);
                     }}
                   />
                 </motion.div>
