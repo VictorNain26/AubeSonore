@@ -19,6 +19,17 @@ export const auth = betterAuth({
     schema: { user, session, verification, account },
   }),
 
+  // Secondary cookie cache: signed cookie carries a 5-min-fresh session snapshot.
+  // Every authenticated request reads from the cookie instead of hitting the DB
+  // — saves 1 SELECT+JOIN per request on the hot path. The cookie is rotated
+  // server-side on every login/logout, so stale-after-revoke is bounded to maxAge.
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60,
+    },
+  },
+
   rateLimit: {
     enabled: true,
     window: 60,
