@@ -14,7 +14,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useLikedTracksContext as useLikedTracks } from '../contexts/LikedTracksContext';
-import { usePreferences } from '../hooks/usePreferences';
+import { usePreferences } from '../contexts/PreferencesContext';
 import { PLATFORMS } from '@aubesonore/shared-types/client';
 import type { LikedTrack, PreferredPlatform } from '../lib/api';
 import { trackApi } from '../lib/api';

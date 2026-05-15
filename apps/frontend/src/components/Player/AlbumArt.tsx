@@ -4,7 +4,7 @@ import { ShareButton } from '../ShareCard/ShareButton';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useLikedTracksContext } from '../../contexts/LikedTracksContext';
-import { usePreferences } from '../../hooks/usePreferences';
+import { usePreferences } from '../../contexts/PreferencesContext';
 import { getTrackShareUrl } from '@aubesonore/core/share';
 import { isDefaultArtwork } from '@aubesonore/core/azuracast';
 

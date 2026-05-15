@@ -1,26 +1,39 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { preferencesApi, type UserPreferences, type PreferredPlatform } from '../lib/api';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from './AuthContext';
 
 // ─────────────────────────────────────────────
-// Hook pour gérer les préférences utilisateur
+// Single source of truth for user preferences.
+// Previously usePreferences() was a hook instantiated in 2 places
+// (AlbumArt + LikedTracksModal) which led to duplicated fetches and out-of-sync
+// state when one side updated the preferred platform.
 // ─────────────────────────────────────────────
 
-interface UsePreferencesReturn {
+interface PreferencesContextValue {
   preferences: UserPreferences | null;
   isLoading: boolean;
   error: string | null;
   updatePlatform: (platform: PreferredPlatform) => Promise<boolean>;
 }
 
-export function usePreferences(): UsePreferencesReturn {
+const PreferencesContext = createContext<PreferencesContextValue | null>(null);
+
+export function PreferencesProvider({ children }: { children: ReactNode }) {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const prevAuthRef = useRef<boolean | null>(null);
 
-  // Charger les préférences (seulement si authentifié)
   useEffect(() => {
     if (authLoading) return;
 
@@ -28,7 +41,6 @@ export function usePreferences(): UsePreferencesReturn {
     prevAuthRef.current = isAuthenticated;
 
     if (isAuthenticated && wasAuthenticated !== true) {
-      // Vient de se connecter -> charger les préférences
       const loadPreferences = async () => {
         try {
           setIsLoading(true);
@@ -43,13 +55,11 @@ export function usePreferences(): UsePreferencesReturn {
       };
       void loadPreferences();
     } else if (!isAuthenticated && wasAuthenticated === true) {
-      // Vient de se déconnecter -> vider les préférences
       setPreferences(null);
       setError(null);
     }
   }, [isAuthenticated, authLoading]);
 
-  // Mettre à jour la plateforme préférée
   const updatePlatform = useCallback(
     async (platform: PreferredPlatform): Promise<boolean> => {
       if (!isAuthenticated) return false;
@@ -66,13 +76,18 @@ export function usePreferences(): UsePreferencesReturn {
     [isAuthenticated]
   );
 
-  return {
-    preferences,
-    isLoading,
-    error,
-    updatePlatform,
-  };
+  const value = useMemo<PreferencesContextValue>(
+    () => ({ preferences, isLoading, error, updatePlatform }),
+    [preferences, isLoading, error, updatePlatform]
+  );
+
+  return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
 }
 
-// PLATFORMS list now lives in @aubesonore/shared-types/client (single source
-// of truth shared with backend validator + mobile).
+export function usePreferences(): PreferencesContextValue {
+  const ctx = useContext(PreferencesContext);
+  if (!ctx) {
+    throw new Error('usePreferences must be used within a PreferencesProvider');
+  }
+  return ctx;
+}
