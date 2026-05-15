@@ -35,6 +35,8 @@ export default defineConfig(({ mode }) => {
           'favicon.png',
           'favicon-48.png',
           'robots.txt',
+          'sitemap.xml',
+          'llms.txt',
           'icons/apple-touch-icon.png',
         ],
         manifest: {
