@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { useNowPlaying, isDefaultArtwork } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
-import { useLikedTracksContext } from '../../contexts/LikedTracksContext';
-import { usePreferences } from '../../contexts/PreferencesContext';
+import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
+import { usePreferencesStore } from '../../stores/preferencesStore';
 import { getTrackShareUrl } from '@aubesonore/core/share';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
 import { trackFlip, toggle as toggleTransition } from './motion-presets';
@@ -17,8 +17,8 @@ import { trackFlip, toggle as toggleTransition } from './motion-presets';
 export function TrackArtwork() {
   const { data: np } = useNowPlaying();
   const isPlaying = usePlayer((s) => s.isPlaying);
-  const { tracks, isTrackLiked } = useLikedTracksContext();
-  const { preferences } = usePreferences();
+  const tracks = useLikedTracksStore((s) => s.tracks);
+  const preferences = usePreferencesStore((s) => s.preferences);
   const { likingTrackId, toggleLike } = useLikeAction();
   const [artError, setArtError] = useState(false);
 
@@ -28,7 +28,9 @@ export function TrackArtwork() {
   const artist = nowPlaying?.song.artist;
   const isLive = np?.live.is_live;
 
-  const isLiked = nowPlaying ? isTrackLiked(nowPlaying.song.title, nowPlaying.song.artist) : false;
+  const isLiked = nowPlaying
+    ? isTrackLiked(tracks, nowPlaying.song.title, nowPlaying.song.artist)
+    : false;
   const isLiking = likingTrackId === `${title}-${artist}`;
 
   const trackUrl = useMemo(() => {

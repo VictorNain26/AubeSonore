@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
-import { useLikedTracksContext as useLikedTracks } from '../../contexts/LikedTracksContext';
+import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAuthModalStore } from '../../stores/authModalStore';
 
@@ -16,7 +16,9 @@ interface UseLikeAction {
 }
 
 export function useLikeAction(): UseLikeAction {
-  const { likeTrack, unlikeTrack, tracks } = useLikedTracks();
+  const likeTrack = useLikedTracksStore((s) => s.likeTrack);
+  const unlikeTrack = useLikedTracksStore((s) => s.unlikeTrack);
+  const tracks = useLikedTracksStore((s) => s.tracks);
   const { isAuthenticated } = useAuth();
   const openAuthModal = useAuthModalStore((s) => s.open);
   const [likingTrackId, setLikingTrackId] = useState<string | null>(null);

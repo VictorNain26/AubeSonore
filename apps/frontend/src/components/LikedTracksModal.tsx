@@ -13,8 +13,8 @@ import {
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { useLikedTracksContext as useLikedTracks } from '../contexts/LikedTracksContext';
-import { usePreferences } from '../contexts/PreferencesContext';
+import { useLikedTracksStore } from '../stores/likedTracksStore';
+import { usePreferencesStore } from '../stores/preferencesStore';
 import { PLATFORMS } from '@aubesonore/shared-types/client';
 import type { LikedTrack, PreferredPlatform } from '../lib/api';
 import { trackApi } from '../lib/api';
@@ -240,8 +240,11 @@ function OverflowMenu({
 }
 
 export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
-  const { tracks, isLoading, unlikeTrack } = useLikedTracks();
-  const { preferences, updatePlatform } = usePreferences();
+  const tracks = useLikedTracksStore((s) => s.tracks);
+  const isLoading = useLikedTracksStore((s) => s.isLoading);
+  const unlikeTrack = useLikedTracksStore((s) => s.unlikeTrack);
+  const preferences = usePreferencesStore((s) => s.preferences);
+  const updatePlatform = usePreferencesStore((s) => s.updatePlatform);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefreshAll = useCallback(() => {
