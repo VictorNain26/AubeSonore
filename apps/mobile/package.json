@@ -22,7 +22,7 @@
     "workflow:dev": "eas workflow:run development.yml",
     "fingerprint": "eas fingerprint:generate",
     "submit:android": "eas submit --platform android --profile production",
-    "lint": "eslint . --ext .ts,.tsx",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

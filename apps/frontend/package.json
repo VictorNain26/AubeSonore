@@ -6,8 +6,8 @@
   "packageManager": "pnpm@10.13.1",
   "scripts": {
     "dev": "vite --port 5173 --host 0.0.0.0",
-    "build": "tsc && vite build",
-    "lint": "pnpm run typecheck && eslint .",
+    "build": "vite build",
+    "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
