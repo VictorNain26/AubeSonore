@@ -28,8 +28,6 @@ import { ArtistContext } from './ArtistContext';
 import { trackFlip, dataTick, toggle as toggleTransition } from './motion-presets';
 
 // Player-domain hooks
-import { useTrackChangeEvents } from '../../hooks/player/useTrackChangeEvents';
-import { useListeningTimeTracker } from '../../hooks/player/useListeningTimeTracker';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
 
 export default function Player() {
@@ -46,8 +44,6 @@ export default function Player() {
   const nowPlaying = np?.now_playing;
   const duration = nowPlaying?.duration || 0;
 
-  useTrackChangeEvents(nowPlaying?.sh_id, nowPlaying?.song.artist, nowPlaying?.song.title);
-  useListeningTimeTracker(isPlaying);
   const { likingTrackId, isAuthModalOpen, setIsAuthModalOpen, toggleLike } = useLikeAction();
 
   useEffect(() => {

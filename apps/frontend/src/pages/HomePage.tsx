@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import Player from '../components/Player';
+import { PlayerSideEffects } from '../components/Player/PlayerSideEffects';
 import { useNowPlaying, isDefaultArtwork } from '../lib/azuracast';
 import { PlayerErrorFallback } from '../components/ErrorFallback';
 
@@ -47,6 +48,8 @@ export default function HomePage() {
           <Player />
         </ErrorBoundary>
       </div>
+
+      <PlayerSideEffects />
     </div>
   );
 }
