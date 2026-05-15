@@ -57,6 +57,7 @@ export default defineConfig({
         'src/components/Player/motion-presets.ts',
         'src/components/Player/PlayerSideEffects.tsx',
         'src/components/AuthDataSync.tsx',
+        'src/components/AmbientBackground.tsx',
         'src/components/ShareCard/**',
         // Player-domain hooks — pure logic extracted from src/components/Player/index.tsx
         // (which is itself excluded above). Covered by manual QA on the Player.
