@@ -1,5 +1,5 @@
 import { render, type RenderOptions } from '@testing-library/react';
-import { AuthProvider } from './components/AuthProvider';
+import { AuthProvider } from './contexts/AuthContext';
 import { LikedTracksProvider } from './contexts/LikedTracksContext';
 import type { ReactElement, ReactNode } from 'react';
 
