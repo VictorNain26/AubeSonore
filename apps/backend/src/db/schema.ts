@@ -9,29 +9,11 @@ import {
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
+import type { PlatformLinks, PreferredPlatform } from '@aubesonore/shared-types/client';
 
-// ─────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────
-export type PlatformLinks = {
-  spotify?: string;
-  appleMusic?: string;
-  deezer?: string;
-  youtubeMusic?: string;
-  tidal?: string;
-  amazonMusic?: string;
-  soundcloud?: string;
-};
-
-export type PreferredPlatform =
-  | 'spotify'
-  | 'appleMusic'
-  | 'deezer'
-  | 'youtubeMusic'
-  | 'tidal'
-  | 'amazonMusic'
-  | 'soundcloud'
-  | 'youtube';
+// Re-export so existing imports (`from '../db/schema'`) keep working.
+// Source of truth lives in @aubesonore/shared-types/client.
+export type { PlatformLinks, PreferredPlatform };
 
 // ─────────────────────────────────────────────
 // USER TABLE

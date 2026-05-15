@@ -31,15 +31,21 @@ export interface PlatformLinks {
   soundcloud?: string;
 }
 
-export type PreferredPlatform =
-  | 'spotify'
-  | 'appleMusic'
-  | 'deezer'
-  | 'youtubeMusic'
-  | 'tidal'
-  | 'amazonMusic'
-  | 'soundcloud'
-  | 'youtube';
+// Canonical list of preferred platforms — single source of truth.
+// Derive the `PreferredPlatform` type from this array so adding a platform
+// only takes one edit (no chance of the type and validator drifting).
+export const PREFERRED_PLATFORMS = [
+  'spotify',
+  'appleMusic',
+  'deezer',
+  'youtubeMusic',
+  'tidal',
+  'amazonMusic',
+  'soundcloud',
+  'youtube',
+] as const;
+
+export type PreferredPlatform = (typeof PREFERRED_PLATFORMS)[number];
 
 export interface ClientLikedTrack {
   id: string;
@@ -97,3 +103,8 @@ export const PLATFORM_NAMES: Record<PreferredPlatform, string> = {
   soundcloud: 'SoundCloud',
   youtube: 'YouTube',
 };
+
+// Convenience: the same data shaped as a list for `<select>` / `<Picker>` UIs.
+// Stable ordering matches PREFERRED_PLATFORMS.
+export const PLATFORMS: ReadonlyArray<{ id: PreferredPlatform; name: string }> =
+  PREFERRED_PLATFORMS.map((id) => ({ id, name: PLATFORM_NAMES[id] }));

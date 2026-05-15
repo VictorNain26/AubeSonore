@@ -1,5 +1,6 @@
 import { sendMail } from '../../services/mailerService.js';
 import { env } from '../../config/env';
+import { logger } from '../logger';
 
 interface SendBetterAuthEmailParams {
   to: string;
@@ -21,12 +22,10 @@ export async function sendBetterAuthEmail({
   isResetPassword = false,
 }: SendBetterAuthEmailParams): Promise<void> {
   if (env.DISABLE_EMAILS) {
-    console.log(`📩 [sendBetterAuthEmail] (DEBUG MODE) Email NON envoyé à ${to}`);
-    console.log('🧩 Détail (DEBUG) :', {
+    logger.info('better_auth_email.skipped_debug_mode', {
+      to,
       subject,
-      preheader,
       buttonLink,
-      buttonText,
       isVerificationEmail,
       isResetPassword,
     });
@@ -46,9 +45,13 @@ export async function sendBetterAuthEmail({
       },
     });
 
-    console.log(`✅ [sendBetterAuthEmail] Email envoyé à ${to} — Sujet : "${subject}"`);
+    logger.info('better_auth_email.sent', { to, subject });
   } catch (error) {
-    console.error('[BetterAuth Email Error]', error);
-    throw new Error("Erreur lors de l'envoi de l'e-mail.");
+    logger.error('better_auth_email.failed', {
+      to,
+      subject,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw error instanceof Error ? error : new Error("Erreur lors de l'envoi de l'e-mail.");
   }
 }
