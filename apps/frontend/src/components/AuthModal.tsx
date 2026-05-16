@@ -142,7 +142,10 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
   // ── Title + description per mode ────────────────────────────────────────
   const headerCopy = {
     signin: { title: 'Bon retour', desc: 'Connectez-vous pour retrouver vos découvertes' },
-    signup: { title: 'Créer un compte', desc: 'Inscrivez-vous pour ne plus perdre vos découvertes' },
+    signup: {
+      title: 'Créer un compte',
+      desc: 'Inscrivez-vous pour ne plus perdre vos découvertes',
+    },
     forgot: { title: 'Mot de passe oublié', desc: 'On vous envoie un lien de réinitialisation' },
     'verification-sent': {
       title: 'Vérifiez votre boîte mail',
