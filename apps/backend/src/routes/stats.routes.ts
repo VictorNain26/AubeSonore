@@ -26,11 +26,7 @@ export const statsRoutes = new Elysia({ prefix: '/api/stats' })
     }
 
     const snapshot = body as StatsState;
-    if (
-      !snapshot ||
-      typeof snapshot !== 'object' ||
-      !Array.isArray(snapshot.events)
-    ) {
+    if (!snapshot || typeof snapshot !== 'object' || !Array.isArray(snapshot.events)) {
       set.status = 400;
       return { error: 'Snapshot invalide' };
     }
