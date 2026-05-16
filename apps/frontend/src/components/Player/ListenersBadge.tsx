@@ -19,10 +19,7 @@ function useBroadcastElapsed(broadcastStart: number | null): string | null {
   const [elapsed, setElapsed] = useState<string | null>(null);
 
   useEffect(() => {
-    if (broadcastStart === null) {
-      setElapsed(null);
-      return;
-    }
+    if (broadcastStart === null) return;
 
     const compute = () => {
       const diffSeconds = Math.floor(Date.now() / 1000) - broadcastStart;
@@ -34,7 +31,7 @@ function useBroadcastElapsed(broadcastStart: number | null): string | null {
     return () => clearInterval(id);
   }, [broadcastStart]);
 
-  return elapsed;
+  return broadcastStart === null ? null : elapsed;
 }
 
 export function ListenersBadge() {
