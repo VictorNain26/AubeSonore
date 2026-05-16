@@ -10,6 +10,7 @@ import {
 } from 'drizzle-orm/pg-core';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import type { PlatformLinks, PreferredPlatform } from '@aubesonore/shared-types/client';
+import type { StatsState } from '@aubesonore/shared-types/stats';
 
 // Re-export so existing imports (`from '../db/schema'`) keep working.
 // Source of truth lives in @aubesonore/shared-types/client.
@@ -183,6 +184,17 @@ export const pushSubscriptions = pgTable(
 );
 
 // ─────────────────────────────────────────────
+// USER_STATS TABLE
+// ─────────────────────────────────────────────
+export const userStats = pgTable('user_stats', {
+  userId: text('user_id')
+    .primaryKey()
+    .references(() => user.id, { onDelete: 'cascade' }),
+  snapshot: jsonb('snapshot').notNull().$type<StatsState>(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ─────────────────────────────────────────────
 // TYPES INFÉRÉS
 // ─────────────────────────────────────────────
 
@@ -206,3 +218,6 @@ export type NewUserPreferences = InferInsertModel<typeof userPreferences>;
 
 export type PushSubscription = InferSelectModel<typeof pushSubscriptions>;
 export type NewPushSubscription = InferInsertModel<typeof pushSubscriptions>;
+
+export type UserStats = InferSelectModel<typeof userStats>;
+export type NewUserStats = InferInsertModel<typeof userStats>;
