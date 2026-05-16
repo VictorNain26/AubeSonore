@@ -4,14 +4,12 @@ import { AZURACAST_HISTORY_URL } from '../utils/config';
 
 export function useStationHistory(enabled: boolean) {
   const [tracks, setTracks] = useState<SongEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!enabled) return;
     const controller = new AbortController();
-    setIsLoading(true);
-    setError(null);
 
     fetch(`${AZURACAST_HISTORY_URL}?rows=50&per_page=50`, {
       signal: controller.signal,
@@ -23,16 +21,17 @@ export function useStationHistory(enabled: boolean) {
       })
       .then((data) => {
         setTracks(Array.isArray(data) ? data : []);
-        setIsLoading(false);
+        setDone(true);
       })
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === 'AbortError') return;
         setError(err instanceof Error ? err.message : 'Erreur réseau');
-        setIsLoading(false);
+        setDone(true);
       });
 
     return () => controller.abort();
   }, [enabled]);
 
-  return { tracks, isLoading, error };
+  // isLoading is derived: true while enabled but fetch hasn't resolved yet
+  return { tracks, isLoading: enabled && !done, error };
 }

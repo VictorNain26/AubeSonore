@@ -68,7 +68,7 @@ export function HistoryList() {
         )}
       >
         <History className="w-3.5 h-3.5" />
-        Voir l'historique complet
+        Voir l&apos;historique complet
       </button>
       {isFullHistoryOpen && (
         <Suspense fallback={null}>

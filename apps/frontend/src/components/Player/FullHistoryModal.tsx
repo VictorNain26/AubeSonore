@@ -87,13 +87,13 @@ export function FullHistoryModal({ isOpen, onClose }: FullHistoryModalProps) {
 
                     {error && !isLoading && (
                       <p className="text-sm text-foreground/40 text-center py-8">
-                        Impossible de charger l'historique.
+                        Impossible de charger l&apos;historique.
                       </p>
                     )}
 
                     {!isLoading && !error && tracks.length === 0 && (
                       <p className="text-sm text-foreground/40 text-center py-8">
-                        Aucun morceau dans l'historique.
+                        Aucun morceau dans l&apos;historique.
                       </p>
                     )}
 
@@ -104,9 +104,7 @@ export function FullHistoryModal({ isOpen, onClose }: FullHistoryModalProps) {
                             key={entry.sh_id}
                             entry={entry}
                             isLiked={isEntryLiked(entry)}
-                            isLiking={
-                              likingTrackId === `${entry.song.title}-${entry.song.artist}`
-                            }
+                            isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
                             onToggle={() => {
                               void toggleLike(entry.song.title, entry.song.artist, entry.song.art);
                             }}
