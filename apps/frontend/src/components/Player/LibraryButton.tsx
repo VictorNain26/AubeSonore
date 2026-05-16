@@ -40,8 +40,8 @@ export function LibraryButton() {
           'text-foreground/60 hover:text-foreground hover:bg-foreground/10',
           isAuthenticated && tracks.length > 0 && 'text-accent/80 hover:text-accent'
         )}
-        title="Ma bibliothèque"
-        aria-label="Ouvrir ma bibliothèque"
+        title="Mes découvertes"
+        aria-label="Ouvrir mes découvertes"
       >
         <Library className="w-5 h-5" />
       </button>

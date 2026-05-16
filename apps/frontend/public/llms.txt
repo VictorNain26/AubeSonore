@@ -1,23 +1,37 @@
 # AubeSonore
 
-> Webradio de découverte musicale indépendante. Diffusion continue 24/7,
-> principalement musique émergente francophone.
+> Radio de découverte musicale émergente, gratuite et sans publicité.
+> Diffusion continue 24h/24 depuis le navigateur ou en application PWA.
 
-AubeSonore est une webradio gratuite accessible depuis le navigateur ou en
-installation PWA. Les auditeurs peuvent sauvegarder leurs morceaux préférés
-et les ouvrir sur leur plateforme de streaming favorite (Spotify, Apple
-Music, Deezer, YouTube Music, Tidal, Amazon Music, Qobuz, Bandcamp,
-SoundCloud).
+AubeSonore est une webradio indépendante dédiée à la découverte musicale.
+Elle diffuse en continu des artistes émergents et indépendants, sans critère
+géographique ou linguistique particulier — le seul critère est la qualité et
+l'originalité de la musique. La sélection est faite par curation humaine.
+
+Les auditeurs peuvent sauvegarder leurs coups de cœur et les retrouver
+directement sur leur plateforme de streaming préférée (Spotify, Apple Music,
+Deezer, YouTube Music, Tidal, Amazon Music, Qobuz, Bandcamp, SoundCloud).
+
+## Caractéristiques
+
+- Accès gratuit, sans publicité, sans inscription obligatoire
+- Diffusion non-stop 24h/24
+- Curation humaine (pas algorithmique)
+- Artistes : émergents, indépendants, toutes origines géographiques
+- Genres : indie, folk, électronique, pop alternative, world, hip-hop indé, et plus
+- Fonctionnalités : like de morceaux, bibliothèque personnelle, export vers les plateformes, partage de découvertes, historique des titres joués, biographies d'artistes
+- Installable comme PWA (Progressive Web App) sur mobile et desktop
+- Compatible Chromecast et AirPlay
 
 ## Liens publics
 
-- [Page d'accueil](https://aubesonore.fr/): Le player web de la webradio.
-- [Flux audio MP3](https://radio.aubesonore.fr/listen/aubesonore/radio.mp3): Stream direct.
-- [Now Playing JSON](https://radio.aubesonore.fr/api/nowplaying_static/aubesonore.json): Métadonnées du morceau en cours, rafraîchies environ toutes les 10 secondes.
+- [Page d'accueil](https://aubesonore.fr/) : le player web de la radio
+- [Flux audio MP3](https://radio.aubesonore.fr/listen/aubesonore/radio.mp3) : stream direct
+- [Now Playing JSON](https://radio.aubesonore.fr/api/nowplaying_static/aubesonore.json) : métadonnées du morceau en cours, rafraîchies toutes les 10 secondes
 
 ## À propos
 
-- Genre : musique indépendante, découverte, émergente
-- Langue principale : français
-- Pays : France
-- Type : webradio non-stop, sans publicité
+- Type : webradio non-stop, sans publicité, accès libre
+- Langue de l'interface : français
+- Pays d'origine : France
+- Positionnement : découverte musicale émergente, toutes origines

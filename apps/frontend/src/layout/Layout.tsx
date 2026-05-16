@@ -165,7 +165,7 @@ export default function Layout({ children }: LayoutProps) {
       {/* Footer */}
       <footer className="shrink-0 py-3 md:py-4">
         <p className="text-center text-[10px] md:text-xs text-foreground/25 tracking-widest">
-          AubeSonore | Éveillez vos sens
+          AubeSonore | Découverte musicale en direct
         </p>
       </footer>
 

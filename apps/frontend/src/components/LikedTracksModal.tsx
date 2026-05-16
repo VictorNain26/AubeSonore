@@ -180,9 +180,9 @@ function EmptyState() {
       <div className="w-16 h-16 rounded-2xl bg-foreground/5 flex items-center justify-center mb-4">
         <Library className="w-8 h-8 text-foreground/30" />
       </div>
-      <p className="text-sm text-foreground/50 mb-1">Votre bibliothèque est vide</p>
+      <p className="text-sm text-foreground/50 mb-1">Aucune découverte sauvegardée</p>
       <p className="text-xs text-foreground/50 max-w-[200px]">
-        Survolez la pochette et appuyez sur + pour sauvegarder
+        Appuyez sur ♥ sur une pochette pour sauvegarder un morceau
       </p>
     </div>
   );
@@ -219,7 +219,7 @@ function OverflowMenu({
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuItem disabled={isRefreshing} onSelect={() => onRefresh()}>
           <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
-          Rafraîchir les liens
+          Mettre à jour les liens
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => void exportAsCSV(tracks)}>
@@ -317,7 +317,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                         </div>
                         <div>
                           <Dialog.Title className="text-lg font-medium text-foreground">
-                            Ma Bibliothèque
+                            Mes découvertes
                           </Dialog.Title>
                           <Dialog.Description className="text-xs text-foreground/40">
                             {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
