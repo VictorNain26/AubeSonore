@@ -86,8 +86,8 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                     {/* Description */}
                     <p className="text-sm text-foreground/70 leading-relaxed">
                       {/* TODO: replace with final radio description */}
-                      AubeSonore est une webradio indépendante dédiée à la découverte musicale.
-                      Nous sélectionnons pour vous des sons rares, des artistes émergents et des
+                      AubeSonore est une webradio indépendante dédiée à la découverte musicale. Nous
+                      sélectionnons pour vous des sons rares, des artistes émergents et des
                       classiques oubliés.
                     </p>
 
