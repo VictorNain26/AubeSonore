@@ -21,7 +21,7 @@ function mergeStats(local: StatsState, server: StatsState): Partial<StatsState> 
         ? local.lastActiveDay > server.lastActiveDay
           ? local.lastActiveDay
           : server.lastActiveDay
-        : local.lastActiveDay ?? server.lastActiveDay,
+        : (local.lastActiveDay ?? server.lastActiveDay),
     events: mergedEvents,
   };
 }
