@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useShallow } from 'zustand/react/shallow';
 import { Users } from 'lucide-react';
@@ -7,13 +8,44 @@ import { dataTick } from './motion-presets';
 // Right-side LIVE + listeners count. The count crossfades vertically on
 // each value change for a soft swap instead of a hard substitution.
 
+function formatElapsed(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h >= 1) return `${h}h ${m}min`;
+  return `${m}min`;
+}
+
+function useBroadcastElapsed(broadcastStart: number | null): string | null {
+  const [elapsed, setElapsed] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (broadcastStart === null) return;
+
+    const compute = () => {
+      const diffSeconds = Math.floor(Date.now() / 1000) - broadcastStart;
+      setElapsed(diffSeconds > 0 ? formatElapsed(diffSeconds) : null);
+    };
+
+    compute();
+    const id = setInterval(compute, 1000);
+    return () => clearInterval(id);
+  }, [broadcastStart]);
+
+  return broadcastStart === null ? null : elapsed;
+}
+
 export function ListenersBadge() {
-  const { current, isLive } = useNowPlayingStore(
+  const { current, isLive, streamerName, broadcastStart } = useNowPlayingStore(
     useShallow((s) => ({
       current: s.data?.listeners?.current,
       isLive: s.data?.live?.is_live ?? false,
+      streamerName: s.data?.live?.streamer_name ?? '',
+      broadcastStart: s.data?.live?.broadcast_start ?? null,
     }))
   );
+
+  const elapsed = useBroadcastElapsed(isLive && streamerName ? broadcastStart : null);
+
   if (current === undefined) return null;
 
   return (
@@ -26,6 +58,12 @@ export function ListenersBadge() {
         <span className="flex items-center gap-1 text-danger font-medium">
           <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
           LIVE
+        </span>
+      )}
+      {isLive && streamerName && (
+        <span className="text-foreground/50">
+          {streamerName}
+          {elapsed && ` · depuis ${elapsed}`}
         </span>
       )}
       <Users className="w-3.5 h-3.5" aria-hidden="true" />
