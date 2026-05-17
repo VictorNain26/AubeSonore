@@ -184,8 +184,8 @@ export function VolumeControl({
           'text-foreground/60 hover:text-foreground hover:bg-foreground/10',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50'
         )}
-        aria-label={showMuted ? 'Unmute' : 'Mute'}
-        title={isMobile ? 'Volume' : showMuted ? 'Unmute (M)' : 'Mute (M)'}
+        aria-label={showMuted ? 'Rétablir le son' : 'Couper le son'}
+        title={isMobile ? 'Volume' : showMuted ? 'Rétablir le son (M)' : 'Couper le son (M)'}
       >
         <VolumeIcon className="w-5 h-5" />
       </button>

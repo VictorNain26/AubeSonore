@@ -200,7 +200,7 @@ export default function Layout({ children }: LayoutProps) {
           ))}
         </div>
         <p className="text-center text-[10px] md:text-xs text-foreground/25 tracking-widest">
-          AubeSonore | Éveillez vos sens
+          AubeSonore | Découverte musicale émergente
         </p>
       </footer>
 

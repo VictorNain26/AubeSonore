@@ -114,7 +114,7 @@ export function StatsModal({ isOpen, onClose }: StatsModalProps) {
                       />
                       <StatCard
                         icon={Disc3}
-                        label="Morceaux entendus"
+                        label="Titres découverts"
                         value={String(stats.tracksHeard)}
                       />
                     </div>
