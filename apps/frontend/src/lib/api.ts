@@ -2,6 +2,7 @@ import { API_BASE_URL } from '../utils/config';
 import { createTrackApi, createPreferencesApi } from '@aubesonore/core/api';
 import type { ApiClient } from '@aubesonore/core/api';
 import type { AuthResponse } from '@aubesonore/shared-types/client';
+import type { StatsState } from '@aubesonore/shared-types/stats';
 
 export type {
   ClientLikedTrack as LikedTrack,
@@ -131,4 +132,13 @@ export const authApi = {
 
   getGoogleAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=google`,
   getSpotifyAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=spotify`,
+};
+
+export const statsApi = {
+  getStats: () => fetchApi<StatsState | null>('/api/stats'),
+  putStats: (snapshot: StatsState) =>
+    fetchApi<void>('/api/stats', {
+      method: 'PUT',
+      body: JSON.stringify(snapshot),
+    }),
 };
