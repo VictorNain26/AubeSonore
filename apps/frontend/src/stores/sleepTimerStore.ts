@@ -5,9 +5,11 @@ import { getAudioElement, usePlayer } from '../lib/player';
 
 export const useSleepTimer = create<SleepTimerStore>(
   createSleepTimerSlice({
-    getVolume: () => getAudioElement().volume,
+    getVolume: () => usePlayer.getState().volume,
     setVolume: (v) => {
-      getAudioElement().volume = v;
+      const clamped = Math.max(0, Math.min(1, v));
+      getAudioElement().volume = clamped;
+      usePlayer.setState({ volume: clamped });
     },
     stop: () => usePlayer.getState().stop(),
   })
