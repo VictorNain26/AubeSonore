@@ -52,6 +52,7 @@ export default defineConfig({
         'src/components/Player/CastButton.tsx',
         'src/components/Player/SleepTimer.tsx',
         'src/components/Player/ArtistContext.tsx',
+        'src/components/Player/FullHistoryModal.tsx',
         'src/components/Player/index.tsx',
         'src/components/Player/utils.ts',
         'src/components/Player/motion-presets.ts',
@@ -63,6 +64,7 @@ export default defineConfig({
         // Player-domain hooks — pure logic extracted from src/components/Player/index.tsx
         // (which is itself excluded above). Covered by manual QA on the Player.
         'src/hooks/player/**',
+        'src/hooks/useStationHistory.ts',
         // UI primitives — thin wrappers over Radix; behavior validated visually.
         'src/components/ui/**',
         // External SDK wrappers — covered by browser, not unit tests

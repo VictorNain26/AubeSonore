@@ -12,3 +12,4 @@ export const STATION_SHORTCODE: string = import.meta.env.VITE_STATION_SHORTCODE 
 const azuracastUrls = buildAzuracastUrls(AZURACAST_URL, STATION_SHORTCODE);
 export const STREAM_URL: string = azuracastUrls.stream;
 export const STATIC_NOWPLAYING_URL: string = azuracastUrls.staticNowPlaying;
+export const AZURACAST_HISTORY_URL: string = azuracastUrls.history;

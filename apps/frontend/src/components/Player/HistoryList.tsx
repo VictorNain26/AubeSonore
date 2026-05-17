@@ -1,9 +1,15 @@
-import { useCallback } from 'react';
+import { lazy, Suspense, useCallback, useState } from 'react';
 import { motion } from 'framer-motion';
+import { History } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useNowPlayingStore, type SongEntry } from '../../lib/azuracast';
 import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
 import { HistoryItem } from './HistoryItem';
+
+const FullHistoryModal = lazy(() =>
+  import('./FullHistoryModal').then((m) => ({ default: m.FullHistoryModal }))
+);
 
 // Recent-track history (max 5). Subscribes directly to the store and
 // keeps its own like-action wiring so the parent never has to thread
@@ -20,6 +26,7 @@ export function HistoryList() {
   const historyEntries = useNowPlayingStore((s) => s.data?.song_history);
   const tracks = useLikedTracksStore((s) => s.tracks);
   const { likingTrackId, toggleLike } = useLikeAction();
+  const [isFullHistoryOpen, setIsFullHistoryOpen] = useState(false);
 
   const isHistoryTrackLiked = useCallback(
     (entry: SongEntry) => isTrackLiked(tracks, entry.song.title, entry.song.artist),
@@ -53,6 +60,24 @@ export function HistoryList() {
           </motion.div>
         ))}
       </div>
+      <button
+        onClick={() => setIsFullHistoryOpen(true)}
+        className={cn(
+          'mt-2 flex items-center gap-1.5 text-xs text-foreground/40',
+          'hover:text-foreground/70 transition-colors duration-200 cursor-pointer'
+        )}
+      >
+        <History className="w-3.5 h-3.5" />
+        Voir l&apos;historique complet
+      </button>
+      {isFullHistoryOpen && (
+        <Suspense fallback={null}>
+          <FullHistoryModal
+            isOpen={isFullHistoryOpen}
+            onClose={() => setIsFullHistoryOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

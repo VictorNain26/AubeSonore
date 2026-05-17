@@ -30,6 +30,8 @@ export interface AzuracastUrls {
   sse: string;
   /** Centrifugo WebSocket for real-time updates (rarely needed). */
   websocket: string;
+  /** Public station history endpoint (no auth required for public stations). */
+  history: string;
 }
 
 export function buildAzuracastUrls(baseUrl: string, shortcode: string): AzuracastUrls {
@@ -42,5 +44,6 @@ export function buildAzuracastUrls(baseUrl: string, shortcode: string): Azuracas
     restNowPlaying: `${base}/api/nowplaying/${shortcode}`,
     sse: `${base}/api/live/nowplaying/sse`,
     websocket: `${base.replace(/^http/, 'ws')}/api/live/nowplaying/websocket`,
+    history: `${base}/api/station/${shortcode}/history`,
   };
 }
