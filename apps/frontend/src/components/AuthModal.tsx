@@ -50,17 +50,6 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
-function SpotifyLogo({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="#1DB954"
-        d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm5.5 17.32a.75.75 0 0 1-1.03.25c-2.83-1.73-6.39-2.12-10.58-1.16a.75.75 0 1 1-.33-1.46c4.59-1.05 8.53-.6 11.7 1.33.36.22.47.68.24 1.04Zm1.47-3.28a.94.94 0 0 1-1.29.31c-3.24-1.99-8.18-2.57-12.01-1.4a.94.94 0 1 1-.55-1.8c4.39-1.34 9.85-.7 13.55 1.59.45.27.59.86.3 1.3Zm.13-3.42c-3.89-2.31-10.3-2.52-14.01-1.4a1.13 1.13 0 1 1-.66-2.16c4.26-1.29 11.34-1.04 15.83 1.62a1.13 1.13 0 1 1-1.16 1.94Z"
-      />
-    </svg>
-  );
-}
-
 // ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
@@ -130,7 +119,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     }
   };
 
-  const handleOAuth = async (provider: 'google' | 'spotify') => {
+  const handleOAuth = async (provider: 'google') => {
     setIsLoading(true);
     try {
       await authApi.signInWithProvider(provider);
@@ -263,15 +252,6 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
                             >
                               <GoogleLogo className="w-5 h-5" />
                               Continuer avec Google
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => void handleOAuth('spotify')}
-                              disabled={isLoading}
-                              className={oauthButtonClass}
-                            >
-                              <SpotifyLogo className="w-5 h-5" />
-                              Continuer avec Spotify
                             </button>
                           </div>
 

@@ -132,7 +132,7 @@ export const authApi = {
 
   // Better Auth's /sign-in/social is POST-only: POST {provider, callbackURL},
   // receive { url } (the provider authorize URL) and redirect the browser to it.
-  signInWithProvider: async (provider: 'google' | 'spotify'): Promise<void> => {
+  signInWithProvider: async (provider: 'google'): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/auth/sign-in/social`, {
       method: 'POST',
       credentials: 'include',
