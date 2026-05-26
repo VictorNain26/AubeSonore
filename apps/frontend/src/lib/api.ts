@@ -130,8 +130,25 @@ export const authApi = {
     }
   },
 
-  getGoogleAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=google`,
-  getSpotifyAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=spotify`,
+  // Better Auth's /sign-in/social is POST-only: POST {provider, callbackURL},
+  // receive { url } (the provider authorize URL) and redirect the browser to it.
+  signInWithProvider: async (provider: 'google' | 'spotify'): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/sign-in/social`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, callbackURL: window.location.origin }),
+    });
+    if (!response.ok) {
+      const error = (await response.json().catch(() => ({ message: 'Erreur connexion' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message || 'Connexion impossible');
+    }
+    const data = (await response.json()) as { url?: string };
+    if (!data.url) throw new Error('URL de redirection manquante');
+    window.location.href = data.url;
+  },
 };
 
 export const statsApi = {

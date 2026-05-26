@@ -130,8 +130,15 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     }
   };
 
-  const handleOAuth = (url: string) => {
-    window.location.href = url;
+  const handleOAuth = async (provider: 'google' | 'spotify') => {
+    setIsLoading(true);
+    try {
+      await authApi.signInWithProvider(provider);
+      // On success the browser navigates to the provider; keep loading state.
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Connexion impossible');
+      setIsLoading(false);
+    }
   };
 
   const switchTo = (next: AuthMode) => {
@@ -250,7 +257,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
                           <div className="space-y-2">
                             <button
                               type="button"
-                              onClick={() => handleOAuth(authApi.getGoogleAuthUrl())}
+                              onClick={() => void handleOAuth('google')}
                               disabled={isLoading}
                               className={oauthButtonClass}
                             >
@@ -259,7 +266,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleOAuth(authApi.getSpotifyAuthUrl())}
+                              onClick={() => void handleOAuth('spotify')}
                               disabled={isLoading}
                               className={oauthButtonClass}
                             >
