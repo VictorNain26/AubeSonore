@@ -1,7 +1,7 @@
 import { db, schema } from '../db/index';
 import { eq, and, desc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
-import type { User, LikedTrack, PlatformLinks } from '../db/schema';
+import type { User, LikedTrack } from '../db/schema';
 import { searchSonglink } from './songlinkService';
 
 // Hard cap on the liked-tracks listing payload. Power users with thousands
