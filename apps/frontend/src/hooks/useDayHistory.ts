@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { array, safeParse } from 'valibot';
 import { SongEntrySchema, useNowPlayingStore, type SongEntry } from '../lib/azuracast';
 import { dedupeBySongId } from '../lib/dayTimeline';
@@ -16,7 +16,6 @@ export function useDayHistory(): {
   const [fetched, setFetched] = useState<SongEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cutoff] = useState(() => Math.floor(Date.now() / 1000) - DAY_SECONDS);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -44,9 +43,13 @@ export function useDayHistory(): {
     return () => controller.abort();
   }, []);
 
-  const entries = dedupeBySongId([...(liveSongHistory ?? []), ...fetched]).filter(
-    (e) => e.played_at >= cutoff
-  );
+  const entries = useMemo(() => {
+    const all = dedupeBySongId([...(liveSongHistory ?? []), ...fetched]);
+    if (all.length === 0) return all;
+    const newest = Math.max(...all.map((e) => e.played_at));
+    const cutoff = newest - DAY_SECONDS;
+    return all.filter((e) => e.played_at >= cutoff);
+  }, [liveSongHistory, fetched]);
 
   return { entries, isLoading, error };
 }

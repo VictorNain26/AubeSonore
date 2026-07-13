@@ -47,7 +47,11 @@ describe('useDayHistory', () => {
     server.use(
       http.get(HISTORY_URL, () => {
         calls++;
-        return HttpResponse.json([historyEntry(1, now - 100), historyEntry(2, now - 200)]);
+        return HttpResponse.json([
+          historyEntry(1, now - 100),
+          historyEntry(2, now - 200),
+          historyEntry(4, now - 25 * 3600),
+        ]);
       })
     );
     const np = makeNowPlaying() as unknown as NowPlaying;
