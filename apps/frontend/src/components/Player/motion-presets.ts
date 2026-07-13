@@ -1,4 +1,4 @@
-import type { Transition } from 'framer-motion';
+import type { Transition } from 'motion/react';
 
 // Single source of truth for the player page transitions. Importing from
 // here avoids divergent durations / eases drifting across components, and

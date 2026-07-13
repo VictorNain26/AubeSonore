@@ -2,7 +2,6 @@ import { API_BASE_URL } from '../utils/config';
 import { createTrackApi, createPreferencesApi } from '@aubesonore/core/api';
 import type { ApiClient } from '@aubesonore/core/api';
 import type { AuthResponse } from '@aubesonore/shared-types/client';
-import type { StatsState } from '@aubesonore/shared-types/stats';
 
 export type {
   ClientLikedTrack as LikedTrack,
@@ -130,15 +129,23 @@ export const authApi = {
     }
   },
 
-  getGoogleAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=google`,
-  getSpotifyAuthUrl: (): string => `${API_BASE_URL}/api/auth/sign-in/social?provider=spotify`,
-};
-
-export const statsApi = {
-  getStats: () => fetchApi<StatsState | null>('/api/stats'),
-  putStats: (snapshot: StatsState) =>
-    fetchApi<void>('/api/stats', {
-      method: 'PUT',
-      body: JSON.stringify(snapshot),
-    }),
+  // Better Auth's /sign-in/social is POST-only: POST {provider, callbackURL},
+  // receive { url } (the provider authorize URL) and redirect the browser to it.
+  signInWithProvider: async (provider: 'google'): Promise<void> => {
+    const response = await fetch(`${API_BASE_URL}/api/auth/sign-in/social`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider, callbackURL: window.location.origin }),
+    });
+    if (!response.ok) {
+      const error = (await response.json().catch(() => ({ message: 'Erreur connexion' }))) as {
+        message?: string;
+      };
+      throw new Error(error.message || 'Connexion impossible');
+    }
+    const data = (await response.json()) as { url?: string };
+    if (!data.url) throw new Error('URL de redirection manquante');
+    window.location.href = data.url;
+  },
 };

@@ -3,10 +3,9 @@ import { toast } from 'sonner';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
-import { isDefaultArtwork } from '../../lib/azuracast';
 
 // Encapsulates the like / unlike flow used by both TrackArtwork (current
-// track) and HistoryList (previously played). Guards against:
+// track) and DayTimeline (previously played). Guards against:
 // - unauthenticated users (opens the shared auth modal)
 // - double-click on the same track (likingTrackId lock — lives in the
 //   store so concurrent instances of this hook share the same lock)
@@ -57,7 +56,7 @@ export function useLikeAction(): UseLikeAction {
             artist,
             youtubeUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} ${artist}`)}`,
           };
-          if (artworkUrl && !isDefaultArtwork(artworkUrl)) {
+          if (artworkUrl) {
             requestData.artworkUrl = artworkUrl;
           }
           await likeTrack(requestData);

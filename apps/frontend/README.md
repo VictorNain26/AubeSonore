@@ -1,6 +1,6 @@
-# AubeSonore Frontend
+# OurMusic Frontend
 
-Frontend React/Vite pour la webradio collaborative **AubeSonore**.
+Frontend React/Vite pour la webradio collaborative **OurMusic**.
 Cette application permet d’écouter la radio en streaming, de liker des morceaux et de synchroniser vos favoris sur Spotify.
 
 ## Fonctionnalités
@@ -45,8 +45,8 @@ Le répertoire `dist/` contient alors les fichiers statiques.
 Un `Dockerfile` est fourni pour servir l’application via Nginx :
 
 ```bash
-docker build -t aubesonore-frontend .
-docker run -p 80:80 aubesonore-frontend
+docker build -t ourmusic-frontend .
+docker run -p 80:80 ourmusic-frontend
 ```
 
 ## Tests

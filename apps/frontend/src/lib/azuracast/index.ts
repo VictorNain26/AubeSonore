@@ -5,7 +5,7 @@ export { useNowPlayingStore, startNowPlayingPolling, __resetNowPlayingStore } fr
 // isDefaultArtwork moved to @aubesonore/core/azuracast (shared with mobile +
 // backend). Re-exported here so existing import sites keep working.
 export { isDefaultArtwork } from '@aubesonore/core/azuracast';
-export { NowPlayingSchema, type ValidatedNowPlaying } from './validators';
+export { NowPlayingSchema, SongEntrySchema, type ValidatedNowPlaying } from './validators';
 export type { NowPlayingState } from './types';
 
 // Re-export the shared-types domain shapes so a consumer never needs two

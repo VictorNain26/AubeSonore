@@ -34,7 +34,6 @@ export default defineConfig({
         'src/layout/**',
         'src/pages/**',
         'src/components/LikedTracksModal.tsx',
-        'src/components/StatsModal.tsx',
         'src/components/PWAInstallBanner.tsx',
         'src/components/Player/TrackArtwork.tsx',
         'src/components/Player/TrackMeta.tsx',
@@ -43,7 +42,6 @@ export default defineConfig({
         'src/components/Player/SecondaryControls.tsx',
         'src/components/Player/LibraryButton.tsx',
         'src/components/Player/ListenersBadge.tsx',
-        'src/components/Player/HistoryList.tsx',
         'src/components/AuthModalHost.tsx',
         'src/components/Player/WaveformCanvas.tsx',
         'src/components/Player/ElapsedReadout.tsx',
@@ -52,7 +50,6 @@ export default defineConfig({
         'src/components/Player/CastButton.tsx',
         'src/components/Player/SleepTimer.tsx',
         'src/components/Player/ArtistContext.tsx',
-        'src/components/Player/FullHistoryModal.tsx',
         'src/components/Player/index.tsx',
         'src/components/Player/utils.ts',
         'src/components/Player/motion-presets.ts',
@@ -60,21 +57,16 @@ export default defineConfig({
         'src/components/AuthInit.tsx',
         'src/components/NowPlayingPoller.tsx',
         'src/components/AmbientBackground.tsx',
-        'src/components/ShareCard/**',
         // Player-domain hooks — pure logic extracted from src/components/Player/index.tsx
         // (which is itself excluded above). Covered by manual QA on the Player.
         'src/hooks/player/**',
-        'src/hooks/useStationHistory.ts',
         // UI primitives — thin wrappers over Radix; behavior validated visually.
         'src/components/ui/**',
         // External SDK wrappers — covered by browser, not unit tests
         'src/lib/cast/**',
-        'src/lib/shareUtils.ts',
         'src/lib/exportLibrary.ts',
         // Browser-only Cast/AirPlay event bridges (same rationale as lib/cast/**)
         'src/stores/castStore.ts',
-        // Date-based persistence; tested via core slice (packages/core)
-        'src/stores/statsStore.ts',
       ],
       // Floor thresholds — ratchet up as coverage grows.
       // Current actual: ~85% statements/functions/lines, ~60% branches on remaining surface.

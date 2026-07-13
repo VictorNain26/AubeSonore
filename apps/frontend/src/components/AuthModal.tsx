@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Mail, Lock, User, Loader2, X, Eye, EyeOff, MailCheck, ArrowLeft } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../lib/api';
@@ -45,17 +45,6 @@ function GoogleLogo({ className }: { className?: string }) {
       <path
         fill="#EA4335"
         d="M12 5.38c1.62 0 3.07.56 4.21 1.65l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.07l3.66 2.85C6.7 7.32 9.13 5.38 12 5.38Z"
-      />
-    </svg>
-  );
-}
-
-function SpotifyLogo({ className }: { className?: string }) {
-  return (
-    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="#1DB954"
-        d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24Zm5.5 17.32a.75.75 0 0 1-1.03.25c-2.83-1.73-6.39-2.12-10.58-1.16a.75.75 0 1 1-.33-1.46c4.59-1.05 8.53-.6 11.7 1.33.36.22.47.68.24 1.04Zm1.47-3.28a.94.94 0 0 1-1.29.31c-3.24-1.99-8.18-2.57-12.01-1.4a.94.94 0 1 1-.55-1.8c4.39-1.34 9.85-.7 13.55 1.59.45.27.59.86.3 1.3Zm.13-3.42c-3.89-2.31-10.3-2.52-14.01-1.4a1.13 1.13 0 1 1-.66-2.16c4.26-1.29 11.34-1.04 15.83 1.62a1.13 1.13 0 1 1-1.16 1.94Z"
       />
     </svg>
   );
@@ -130,8 +119,15 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     }
   };
 
-  const handleOAuth = (url: string) => {
-    window.location.href = url;
+  const handleOAuth = async (provider: 'google') => {
+    setIsLoading(true);
+    try {
+      await authApi.signInWithProvider(provider);
+      // On success the browser navigates to the provider; keep loading state.
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Connexion impossible');
+      setIsLoading(false);
+    }
   };
 
   const switchTo = (next: AuthMode) => {
@@ -250,21 +246,12 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
                           <div className="space-y-2">
                             <button
                               type="button"
-                              onClick={() => handleOAuth(authApi.getGoogleAuthUrl())}
+                              onClick={() => void handleOAuth('google')}
                               disabled={isLoading}
                               className={oauthButtonClass}
                             >
                               <GoogleLogo className="w-5 h-5" />
                               Continuer avec Google
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleOAuth(authApi.getSpotifyAuthUrl())}
-                              disabled={isLoading}
-                              className={oauthButtonClass}
-                            >
-                              <SpotifyLogo className="w-5 h-5" />
-                              Continuer avec Spotify
                             </button>
                           </div>
 

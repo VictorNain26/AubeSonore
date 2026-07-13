@@ -3,10 +3,11 @@ import { AuthModalHost } from './components/AuthModalHost';
 import { NowPlayingPoller } from './components/NowPlayingPoller';
 import Layout from './layout/Layout';
 import HomePage from './pages/HomePage';
-import { NotificationBanner } from './components/NotificationBanner';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
+import { useMoment } from './hooks/useMoment';
 
 export default function App() {
+  useMoment();
   return (
     <>
       <AuthInit />
@@ -16,7 +17,6 @@ export default function App() {
       </Layout>
       <AuthModalHost />
       <PWAInstallBanner />
-      <NotificationBanner />
     </>
   );
 }

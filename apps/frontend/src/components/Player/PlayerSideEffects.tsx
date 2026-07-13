@@ -4,7 +4,6 @@ import { useShallow } from 'zustand/react/shallow';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
 import { useTrackChangeEvents } from '../../hooks/player/useTrackChangeEvents';
-import { useListeningTimeTracker } from '../../hooks/player/useListeningTimeTracker';
 import { useMediaSession } from '../../hooks/player/useMediaSession';
 
 // Invisible component that hosts player side-effects driven by external
@@ -28,7 +27,6 @@ export function PlayerSideEffects(): null {
   const clearPlayError = usePlayer((s) => s.clearPlayError);
 
   useTrackChangeEvents(shId, artist, title);
-  useListeningTimeTracker(isPlaying);
   useMediaSession({ title, artist, album, artworkUrl: art }, isPlaying);
 
   useEffect(() => {
