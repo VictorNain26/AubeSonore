@@ -50,9 +50,13 @@ export function DayTimeline() {
         artist: entry.song.artist,
         url,
         momentLabel: MOMENT_SHARE_PHRASES[moment],
-      }).then((result) => {
-        if (result === 'copied') toast('Lien copié');
-      });
+      })
+        .then((result) => {
+          if (result === 'copied') toast('Lien copié');
+        })
+        .catch(() => {
+          toast('Partage impossible');
+        });
     },
     [tracks, preferences]
   );

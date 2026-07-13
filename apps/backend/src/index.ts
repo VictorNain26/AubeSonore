@@ -98,6 +98,12 @@ const server = app.listen({ port: env.PORT, hostname: '0.0.0.0' });
 
 logger.info('listening', { port: env.PORT, env: env.NODE_ENV });
 
+if (!env.AZURACAST_BASE_URL || !env.AZURACAST_API_KEY) {
+  console.warn(
+    '/api/radio/history will return 502 until AZURACAST_BASE_URL and AZURACAST_API_KEY are set'
+  );
+}
+
 let isShuttingDown = false;
 
 async function gracefulShutdown(signal: string): Promise<void> {
