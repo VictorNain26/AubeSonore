@@ -38,6 +38,17 @@ export function useMoment(): Moment {
 
   useEffect(() => {
     document.documentElement.dataset.moment = moment;
+    if (document.documentElement.dataset.momentReady) return;
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        document.documentElement.dataset.momentReady = 'true';
+      });
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
   }, [moment]);
 
   return moment;

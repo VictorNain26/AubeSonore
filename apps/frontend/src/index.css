@@ -95,6 +95,9 @@
       'rlig' 1,
       'calt' 1;
     -webkit-font-smoothing: antialiased;
+  }
+
+  html[data-moment-ready='true'] body {
     transition:
       background-color 1200ms var(--ease-fluid),
       color 1200ms var(--ease-fluid);
