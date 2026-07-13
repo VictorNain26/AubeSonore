@@ -68,6 +68,9 @@ export const handlers = [
   http.get(`${AZURA}/api/nowplaying_static/aubesonore.json`, () =>
     HttpResponse.json(makeNowPlaying())
   ),
+
+  // AzuraCast station history
+  http.get(`${AZURA}/api/station/aubesonore/history`, () => HttpResponse.json([])),
 ];
 
 export function makeNowPlaying() {
