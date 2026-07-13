@@ -21,11 +21,11 @@
 }
 
 [data-moment='day'] {
-  --sky-1: hsl(212 48% 16%);
-  --sky-2: hsl(206 52% 30%);
-  --sky-3: hsl(196 58% 44%);
+  --sky-1: hsl(214 45% 10%);
+  --sky-2: hsl(208 52% 22%);
+  --sky-3: hsl(199 62% 34%);
   --halo: hsl(48 95% 76%);
-  --accent-moment: hsl(200 70% 58%);
+  --accent-moment: hsl(199 72% 56%);
 }
 
 [data-moment='dusk'] {
