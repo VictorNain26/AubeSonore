@@ -1,77 +1,112 @@
+# AubeSonore — self-hosted production stack (home server)
+# Frontend stays on Vercel; this hosts backend + Postgres + the Cloudflare tunnel.
+# AzuraCast runs from its own compose (~/azuracast) and is reached via the host gateway.
+
+name: aubesonore
+
 services:
-  # PostgreSQL Database
+  # Stages TLS material into a volume with postgres-owned perms (PG rejects a key
+  # that is group/world readable). Runs as root, sets uid 70 (postgres in alpine).
+  pg-cert-init:
+    image: alpine:3
+    container_name: aubesonore-pg-cert-init
+    restart: "no"
+    volumes:
+      - ./certs:/src:ro
+      - pg_certs:/dst
+    command: >
+      sh -c "cp /src/server.crt /src/server.key /src/ca.crt /src/pg_hba.conf /dst/ &&
+             chown 70:70 /dst/server.crt /dst/server.key /dst/ca.crt /dst/pg_hba.conf &&
+             chmod 600 /dst/server.key && chmod 640 /dst/server.crt /dst/pg_hba.conf && chmod 644 /dst/ca.crt"
+
   postgres:
     image: postgres:16-alpine
-    container_name: ourmusic-db
+    container_name: aubesonore-db
     restart: unless-stopped
+    depends_on:
+      pg-cert-init:
+        condition: service_completed_successfully
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-ourmusic}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ourmusic_secret}
-      POSTGRES_DB: ${POSTGRES_DB:-ourmusic}
+      POSTGRES_USER: ${POSTGRES_USER:-aubesonore}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-aubesonore}
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/certs/server.crt
+      - -c
+      - ssl_key_file=/certs/server.key
+      - -c
+      - hba_file=/certs/pg_hba.conf
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
+      - pg_certs:/certs:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ourmusic}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aubesonore}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      options: { max-size: "10m", max-file: "3" }
 
-  # Backend - Bun + Elysia
   backend:
     build:
-      context: ./apps/backend
+      context: .
       dockerfile: Dockerfile
-    container_name: ourmusic-backend
+    container_name: aubesonore-backend
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       PORT: 3000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-ourmusic}:${POSTGRES_PASSWORD:-ourmusic_secret}@postgres:5432/${POSTGRES_DB:-ourmusic}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-aubesonore}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aubesonore}
+      DATABASE_SSL: "true"
+      DATABASE_CA_CERT_FILE: /certs/ca.crt
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
-      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
-      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8080}
-      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-http://localhost:3000}
-      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:8080,http://localhost:5173}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-https://api.aubesonore.fr}
+      BACKEND_BASE_URL: ${BACKEND_BASE_URL:-https://api.aubesonore.fr}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://aubesonore.fr}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-https://aubesonore.fr}
+      COOKIE_DOMAIN: ${COOKIE_DOMAIN:-.aubesonore.fr}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
-      DISABLE_EMAILS: ${DISABLE_EMAILS:-true}
-      AZURACAST_BASE_URL: ${AZURACAST_BASE_URL:-}
+      DISABLE_EMAILS: ${DISABLE_EMAILS:-false}
+      ENABLE_CRON: ${ENABLE_CRON:-false}
+      AZURACAST_BASE_URL: ${AZURACAST_BASE_URL:-http://host.docker.internal:8080}
       AZURACAST_API_KEY: ${AZURACAST_API_KEY:-}
       AZURACAST_STATION_ID: ${AZURACAST_STATION_ID:-1}
+    volumes:
+      - pg_certs:/certs:ro
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3001:3000"
     healthcheck:
       test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 15s
+    logging:
+      options: { max-size: "10m", max-file: "3" }
 
-  # Frontend - React + Vite (served by Nginx)
-  frontend:
-    build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
-        VITE_AZURACAST_BASE_URL: ${VITE_AZURACAST_BASE_URL:-https://your-azuracast-instance.com}
-        VITE_SITE_BASE_URL: ${VITE_SITE_BASE_URL:-http://localhost:8080}
-    container_name: ourmusic-frontend
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: aubesonore-tunnel
     restart: unless-stopped
-    depends_on:
-      - backend
-    ports:
-      - "8080:80"
+    network_mode: host
+    profiles: ["public"]
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    logging:
+      options: { max-size: "10m", max-file: "3" }
 
 volumes:
   postgres_data:
-
-networks:
-  default:
-    name: ourmusic-network
+  pg_certs:

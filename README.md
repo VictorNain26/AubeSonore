@@ -1,17 +1,17 @@
-# OurMusic
+# AubeSonore
 
 Une webradio moderne avec interface React et backend TypeScript/Bun, organisee en monorepo.
 
 ## Production
 
 - **Frontend**: https://aubesonore.fr
-- **Backend API**: https://ourmusic-backend-tomia-f4ec3e9e.koyeb.app
+- **Backend API**: https://aubesonore-backend-tomia-f4ec3e9e.koyeb.app
 - **Database**: Railway PostgreSQL
 
 ## Architecture
 
 ```
-ourmusic/
+aubesonore/
 ├── apps/
 │   ├── backend/          # API Bun + Elysia + TypeScript
 │   └── frontend/         # Vite + React + TypeScript
@@ -69,10 +69,10 @@ cp apps/backend/.env.example apps/backend/.env
 cp apps/frontend/.env.example apps/frontend/.env
 
 # Option 1: PostgreSQL via Docker
-docker run -d --name ourmusic-db \
-  -e POSTGRES_USER=ourmusic \
-  -e POSTGRES_PASSWORD=ourmusic123 \
-  -e POSTGRES_DB=ourmusic \
+docker run -d --name aubesonore-db \
+  -e POSTGRES_USER=aubesonore \
+  -e POSTGRES_PASSWORD=aubesonore123 \
+  -e POSTGRES_DB=aubesonore \
   -p 5432:5432 \
   postgres:16-alpine
 
@@ -98,7 +98,7 @@ L'application sera disponible sur:
 
 ```bash
 PORT=3000
-DATABASE_URL=postgresql://user:pass@localhost:5432/ourmusic
+DATABASE_URL=postgresql://user:pass@localhost:5432/aubesonore
 
 # Better Auth
 BETTER_AUTH_SECRET=your-secret-key-min-32-chars

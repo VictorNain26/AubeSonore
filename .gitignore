@@ -67,3 +67,4 @@ MIGRATION.md
 *.pid
 .turbo
 .vercel
+certs/

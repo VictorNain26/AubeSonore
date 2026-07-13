@@ -10,9 +10,9 @@ async function testVerificationEmail(): Promise<void> {
   console.log('Test: Envoi de l email de verification...');
   await sendMail({
     to: testEmail,
-    subject: 'Test OurMusic - Verification d email',
+    subject: 'Test AubeSonore - Verification d email',
     variables: {
-      preheader: 'Ceci est un test pour la verification d email OurMusic',
+      preheader: 'Ceci est un test pour la verification d email AubeSonore',
       isVerificationEmail: true,
       buttonLink: testLink,
       buttonText: 'Verifier mon email',
@@ -28,9 +28,9 @@ async function testResetPasswordEmail(): Promise<void> {
   console.log('Test: Envoi de l email de reinitialisation du mot de passe...');
   await sendMail({
     to: testEmail,
-    subject: 'Test OurMusic - Reinitialisation de mot de passe',
+    subject: 'Test AubeSonore - Reinitialisation de mot de passe',
     variables: {
-      preheader: 'Ceci est un test pour la reinitialisation de mot de passe OurMusic',
+      preheader: 'Ceci est un test pour la reinitialisation de mot de passe AubeSonore',
       isResetPassword: true,
       buttonLink: testLink,
       buttonText: 'Reinitialiser mon mot de passe',

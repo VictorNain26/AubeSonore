@@ -4,6 +4,8 @@
  * Never read `process.env` / `Bun.env` outside this module.
  */
 
+import { readFileSync } from 'node:fs';
+
 interface EnvConfig {
   // Core
   PORT: number;
@@ -16,6 +18,8 @@ interface EnvConfig {
   DATABASE_CA_CERT: string | undefined;
   /** Optional pool size override. Defaults to 10 (safe on Railway eco-small). */
   DATABASE_POOL_MAX: number;
+  /** Whether to use TLS for the DB connection. Defaults to true in prod (managed PG); set false for a local plain Postgres on a private Docker network. */
+  DATABASE_SSL: boolean;
 
   // Auth
   BETTER_AUTH_SECRET: string;
@@ -80,6 +84,15 @@ function parseOrigins(name: string): string[] {
     .filter(Boolean);
 }
 
+/** CA cert from inline PEM (DATABASE_CA_CERT, \n-escaped) or a mounted file (DATABASE_CA_CERT_FILE). */
+function resolveCaCert(): string | undefined {
+  const inline = optional('DATABASE_CA_CERT');
+  if (inline) return inline.replace(/\\n/g, '\n');
+  const file = optional('DATABASE_CA_CERT_FILE');
+  if (file) return readFileSync(file, 'utf8');
+  return undefined;
+}
+
 const nodeEnv = Bun.env.NODE_ENV ?? Bun.env.ENV ?? 'development';
 const isProd = nodeEnv === 'production';
 
@@ -89,8 +102,9 @@ export const env: EnvConfig = {
   IS_PROD: isProd,
 
   DATABASE_URL: required('DATABASE_URL'),
-  DATABASE_CA_CERT: optional('DATABASE_CA_CERT')?.replace(/\\n/g, '\n'),
+  DATABASE_CA_CERT: resolveCaCert(),
   DATABASE_POOL_MAX: parseInteger('DATABASE_POOL_MAX', 10),
+  DATABASE_SSL: Bun.env.DATABASE_SSL ? Bun.env.DATABASE_SSL === 'true' : isProd,
 
   BETTER_AUTH_SECRET: required('BETTER_AUTH_SECRET'),
   BETTER_AUTH_URL: required('BETTER_AUTH_URL'),
