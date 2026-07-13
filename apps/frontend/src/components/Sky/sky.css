@@ -23,6 +23,12 @@
   opacity: 0.5;
   filter: blur(24px);
 }
+.sky-scroll-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
 .sky-grain {
   position: absolute;
   inset: 0;

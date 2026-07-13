@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useSkyChoreography } from './useSkyChoreography';
+import { useScrollSky } from './useScrollSky';
 import './sky.css';
 
 const GRAIN =
@@ -29,11 +30,13 @@ export function SkyBackground() {
   }, []);
 
   useSkyChoreography(ref);
+  useScrollSky();
 
   return (
     <div id="sky-root" ref={ref} className="sky" aria-hidden="true">
       <div className="sky-gradient" />
       <div className="sky-halo" />
+      <div className="sky-scroll-overlay" />
       <div className="sky-grain" style={{ backgroundImage: GRAIN }} />
     </div>
   );

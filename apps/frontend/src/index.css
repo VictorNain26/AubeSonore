@@ -3,6 +3,7 @@
 /* =============================================================================
    MOMENT-DRIVEN TOKENS — per-time-of-day sky and accent colors
    ============================================================================= */
+/* mirrored in lib/moments.ts SKY_STOPS */
 
 :root {
   --sky-1: hsl(228 32% 5%);

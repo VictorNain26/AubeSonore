@@ -23,6 +23,14 @@ export const MOMENT_SHARE_PHRASES: Record<Moment, string> = {
 
 export const MOMENT_ORDER: Moment[] = ['dawn', 'day', 'dusk', 'night'];
 
+// must mirror the [data-moment] blocks in index.css
+export const SKY_STOPS: Record<Moment, [string, string, string]> = {
+  dawn: ['hsl(254 32% 12%)', 'hsl(340 42% 26%)', 'hsl(24 68% 46%)'],
+  day: ['hsl(214 45% 10%)', 'hsl(208 52% 22%)', 'hsl(199 62% 34%)'],
+  dusk: ['hsl(258 36% 10%)', 'hsl(288 34% 20%)', 'hsl(14 62% 38%)'],
+  night: ['hsl(228 32% 5%)', 'hsl(232 30% 9%)', 'hsl(248 28% 13%)'],
+};
+
 export function getMoment(date: Date): Moment {
   const h = date.getHours();
   if (h >= 5 && h < 9) return 'dawn';
