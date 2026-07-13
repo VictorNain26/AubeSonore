@@ -12,6 +12,10 @@ import { getAnalyser } from '../../lib/player';
 // Per AzuraCast docs on the static now-playing JSON: the server-reported
 // `elapsed` is frozen at file-write time, so clients must compute live
 // time from `played_at` against the current UNIX timestamp.
+//
+// Rendering is a fine ink stroke: played bars in flat `--color-accent`
+// (alpha 0.9), unplayed bars in `--color-ink` at low alpha. No gradients,
+// no shadow/glow — the waveform reads as a thin trace, not a light show.
 
 interface WaveformCanvasProps {
   playedAt: number | undefined;
@@ -27,7 +31,8 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
   const frequencyDataRef = useRef<Uint8Array | null>(null);
   const smoothedDataRef = useRef<number[]>([]);
   const accentColorRef = useRef<string>('');
-  const accentMomentKeyRef = useRef<string | undefined>(undefined);
+  const inkColorRef = useRef<string>('');
+  const colorMomentKeyRef = useRef<string | undefined>(undefined);
 
   // Read latest props from refs inside the rAF callback so changes to
   // `playedAt`/`duration`/`isPlaying`/`songId` don't tear down the loop.
@@ -97,13 +102,16 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
       const progressX = (currentProgress / 100) * width;
 
       const momentKey = document.documentElement.dataset.moment;
-      if (momentKey !== accentMomentKeyRef.current || !accentColorRef.current) {
-        accentColorRef.current = getComputedStyle(document.documentElement)
-          .getPropertyValue('--color-accent')
-          .trim();
-        accentMomentKeyRef.current = momentKey;
+      if (momentKey !== colorMomentKeyRef.current || !accentColorRef.current) {
+        const style = getComputedStyle(document.documentElement);
+        accentColorRef.current = style.getPropertyValue('--color-accent').trim();
+        inkColorRef.current = style.getPropertyValue('--color-ink').trim();
+        colorMomentKeyRef.current = momentKey;
       }
       const accentColor = accentColorRef.current;
+      const inkColor = inkColorRef.current;
+      const playedFill = `color-mix(in srgb, ${accentColor} 90%, transparent)`;
+      const unplayedFill = `color-mix(in srgb, ${inkColor} 25%, transparent)`;
 
       const analyser = getAnalyser();
       let frequencyData: Uint8Array | null = null;
@@ -159,18 +167,10 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
         if (x < progressX) {
           const fillWidth = Math.min(barW, progressX - barX);
           if (fillWidth > 0) {
-            const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
-            gradient.addColorStop(0, `color-mix(in srgb, ${accentColor} 70%, transparent)`);
-            gradient.addColorStop(0.5, accentColor);
-            gradient.addColorStop(1, `color-mix(in srgb, ${accentColor} 70%, transparent)`);
-
-            ctx.shadowColor = `color-mix(in srgb, ${accentColor} 50%, transparent)`;
-            ctx.shadowBlur = frequencyData ? 10 : isPlaying ? 8 : 4;
-            ctx.fillStyle = gradient;
+            ctx.fillStyle = playedFill;
             ctx.beginPath();
-            ctx.roundRect(barX, y, fillWidth, barHeight, 2);
+            ctx.roundRect(barX, y, fillWidth, barHeight, 1);
             ctx.fill();
-            ctx.shadowBlur = 0;
           }
         }
 
@@ -178,22 +178,12 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
           const startX = Math.max(barX, progressX);
           const remainingWidth = barX + barW - startX;
           if (remainingWidth > 0) {
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+            ctx.fillStyle = unplayedFill;
             ctx.beginPath();
-            ctx.roundRect(startX, y, remainingWidth, barHeight, 2);
+            ctx.roundRect(startX, y, remainingWidth, barHeight, 1);
             ctx.fill();
           }
         }
-      }
-
-      if (currentProgress > 0 && currentProgress < 100) {
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.shadowColor = 'rgba(255, 255, 255, 0.5)';
-        ctx.shadowBlur = 6;
-        ctx.beginPath();
-        ctx.roundRect(progressX - 1, 4, 2, height - 8, 1);
-        ctx.fill();
-        ctx.shadowBlur = 0;
       }
 
       animationRef.current = requestAnimationFrame(draw);
@@ -207,5 +197,5 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
     };
   }, []);
 
-  return <canvas ref={canvasRef} width={384} height={48} className="w-full h-12" />;
+  return <canvas ref={canvasRef} width={384} height={32} className="w-full h-8" />;
 }

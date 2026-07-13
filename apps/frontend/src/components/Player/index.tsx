@@ -1,7 +1,6 @@
 import { useNowPlayingStore } from '../../lib/azuracast';
 
 import { TrackArtwork } from './TrackArtwork';
-import { MomentBadge } from './MomentBadge';
 import { TrackMeta } from './TrackMeta';
 import { Timeline } from './Timeline';
 import { PlaybackControls } from './PlaybackControls';
@@ -9,7 +8,6 @@ import { SecondaryControls } from './SecondaryControls';
 import { LibraryButton } from './LibraryButton';
 import { ListenersBadge } from './ListenersBadge';
 import { ArtistContext } from './ArtistContext';
-import { DayTimeline } from './DayTimeline';
 
 // Player is a composition root: it arranges sub-components only. Every
 // leaf subscribes directly to the store it cares about; side effects
@@ -21,38 +19,36 @@ export default function Player() {
 
   if (!hasData) {
     return (
-      <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4">
-        <div className="flex flex-col items-center mb-5">
-          <div className="w-64 h-64 md:w-72 md:h-72 lg:w-80 lg:h-80 rounded-2xl skeleton" />
+      <div className="w-full">
+        <div className="flex flex-col items-start gap-6 mb-6">
+          <div className="w-full max-w-[280px] aspect-square rounded-lg skeleton" />
+          <div className="w-full flex flex-col gap-2">
+            <div className="h-10 w-3/4 rounded skeleton" />
+            <div className="h-5 w-1/3 rounded skeleton" />
+          </div>
         </div>
-        <div className="flex flex-col items-center gap-2 mb-5">
-          <div className="h-6 w-48 rounded skeleton" />
-          <div className="h-4 w-32 rounded skeleton" />
-        </div>
-        <div className="flex items-center gap-3 mb-5">
+        <div className="flex items-center gap-3 mb-6">
           <div className="h-3 w-10 rounded skeleton" />
           <div className="flex-1 h-8 rounded skeleton" />
           <div className="h-3 w-10 rounded skeleton" />
         </div>
-        <div className="flex items-center justify-center mb-6">
-          <div className="w-16 h-16 rounded-full skeleton" />
+        <div className="flex items-center gap-2">
+          <div className="w-14 h-14 rounded-full skeleton" />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full max-w-lg md:max-w-xl lg:max-w-2xl mx-auto px-4">
-      <div className="flex flex-col items-center mb-5">
+    <div className="w-full">
+      <div className="flex flex-col items-start gap-6">
         <TrackArtwork />
+        <TrackMeta />
       </div>
-
-      <MomentBadge />
-      <TrackMeta />
 
       <Timeline />
 
-      <div className="flex items-center mb-6 px-2">
+      <div className="mt-4 flex items-center">
         <SecondaryControls />
         <PlaybackControls />
         <div className="flex-1 flex justify-end items-center gap-2">
@@ -63,7 +59,7 @@ export default function Player() {
 
       <ArtistContext />
 
-      <DayTimeline />
+      {/* RecentRail: Task 7 */}
     </div>
   );
 }

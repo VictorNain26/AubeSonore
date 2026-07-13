@@ -50,7 +50,7 @@ export function ListenersBadge() {
 
   return (
     <div
-      className="flex items-center gap-1.5 text-xs text-foreground/50"
+      className="flex items-center gap-1.5 text-caption text-ink-faint"
       aria-live="polite"
       aria-atomic="true"
     >
@@ -61,7 +61,7 @@ export function ListenersBadge() {
         </span>
       )}
       {isLive && streamerName && (
-        <span className="text-foreground/50">
+        <span className="text-ink-faint">
           {streamerName}
           {elapsed && ` · depuis ${elapsed}`}
         </span>

@@ -21,12 +21,12 @@ export function Timeline() {
   const isPlaying = usePlayer((s) => s.isPlaying);
 
   return (
-    <div className="flex items-center gap-3 mb-5">
+    <div className="flex items-center gap-3 mb-6">
       <ElapsedReadout
         playedAt={playedAt}
         duration={duration}
         isPlaying={isPlaying}
-        className="text-xs text-foreground/50 tabular-nums w-10 text-right"
+        className="text-caption text-ink-faint tabular-nums w-10 text-right"
       />
       <div className="flex-1">
         <WaveformCanvas
@@ -36,7 +36,7 @@ export function Timeline() {
           songId={shId}
         />
       </div>
-      <span className="text-xs text-foreground/50 tabular-nums w-10">{formatTime(duration)}</span>
+      <span className="text-caption text-ink-faint tabular-nums w-10">{formatTime(duration)}</span>
     </div>
   );
 }

@@ -180,9 +180,9 @@ export function VolumeControl({
       <button
         onClick={handleIconClick}
         className={cn(
-          'p-2 rounded-full transition-all duration-200 cursor-pointer',
-          'text-foreground/60 hover:text-foreground hover:bg-foreground/10',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/50'
+          'p-2 rounded-md transition-colors cursor-pointer',
+          'text-ink-faint hover:text-ink hover:bg-paper-raised',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
         )}
         aria-label={showMuted ? 'Rétablir le son' : 'Couper le son'}
         title={isMobile ? 'Volume' : showMuted ? 'Rétablir le son (M)' : 'Couper le son (M)'}
@@ -206,7 +206,7 @@ export function VolumeControl({
         onMouseLeave={handleMouseLeave}
         role="presentation"
       >
-        <div className="glass-strong rounded-xl p-3 shadow-lg">
+        <div className="panel p-3">
           {/* Vertical Slider Track - wider touch area */}
           <div
             ref={sliderRef}
@@ -226,11 +226,11 @@ export function VolumeControl({
             aria-orientation="vertical"
           >
             {/* Visual track (narrow) */}
-            <div className="relative w-1.5 h-full rounded-full bg-foreground/20">
+            <div className="relative w-1.5 h-full rounded-full bg-line">
               {/* Track Fill (from bottom) */}
               <div
                 className={cn(
-                  'absolute inset-x-0 bottom-0 rounded-full bg-foreground/80',
+                  'absolute inset-x-0 bottom-0 rounded-full bg-ink',
                   !isDragging && 'transition-[height] duration-75'
                 )}
                 style={{ height: `${displayVolume * 100}%` }}
@@ -245,7 +245,7 @@ export function VolumeControl({
               {/* Visible thumb */}
               <div
                 className={cn(
-                  'w-4 h-4 rounded-full bg-foreground shadow-md',
+                  'w-4 h-4 rounded-full bg-ink',
                   'transition-transform duration-150',
                   isDragging && 'scale-110'
                 )}
