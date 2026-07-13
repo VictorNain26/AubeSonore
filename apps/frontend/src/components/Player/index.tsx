@@ -9,7 +9,7 @@ import { SecondaryControls } from './SecondaryControls';
 import { LibraryButton } from './LibraryButton';
 import { ListenersBadge } from './ListenersBadge';
 import { ArtistContext } from './ArtistContext';
-import { HistoryList } from './HistoryList';
+import { DayTimeline } from './DayTimeline';
 
 // Player is a composition root: it arranges sub-components only. Every
 // leaf subscribes directly to the store it cares about; side effects
@@ -63,7 +63,7 @@ export default function Player() {
 
       <ArtistContext />
 
-      <HistoryList />
+      <DayTimeline />
     </div>
   );
 }

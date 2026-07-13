@@ -5,7 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
 
 // Encapsulates the like / unlike flow used by both TrackArtwork (current
-// track) and HistoryList (previously played). Guards against:
+// track) and DayTimeline (previously played). Guards against:
 // - unauthenticated users (opens the shared auth modal)
 // - double-click on the same track (likingTrackId lock — lives in the
 //   store so concurrent instances of this hook share the same lock)
