@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { SkyBackground } from '../components/Sky/SkyBackground';
+import { CoverTint } from '../components/Sky/CoverTint';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -70,6 +71,7 @@ export default function Layout({ children }: LayoutProps) {
   return (
     <div className="min-h-dvh flex flex-col">
       <SkyBackground />
+      <CoverTint />
       {/* Skip-link for keyboard users */}
       <a href="#main" className="sr-only-focusable">
         Aller au contenu principal
