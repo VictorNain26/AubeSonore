@@ -34,7 +34,6 @@ export default defineConfig({
         'src/layout/**',
         'src/pages/**',
         'src/components/LikedTracksModal.tsx',
-        'src/components/StatsModal.tsx',
         'src/components/PWAInstallBanner.tsx',
         'src/components/Player/TrackArtwork.tsx',
         'src/components/Player/TrackMeta.tsx',
@@ -73,8 +72,6 @@ export default defineConfig({
         'src/lib/exportLibrary.ts',
         // Browser-only Cast/AirPlay event bridges (same rationale as lib/cast/**)
         'src/stores/castStore.ts',
-        // Date-based persistence; tested via core slice (packages/core)
-        'src/stores/statsStore.ts',
       ],
       // Floor thresholds — ratchet up as coverage grows.
       // Current actual: ~85% statements/functions/lines, ~60% branches on remaining surface.

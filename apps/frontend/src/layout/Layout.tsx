@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Toaster, toast } from 'sonner';
-import { LogOut, LogIn, BarChart3, Info, Globe, Music, MessageSquare } from 'lucide-react';
+import { LogOut, LogIn, Info, Globe, Music, MessageSquare } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
@@ -12,10 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from '../components/ui/DropdownMenu';
-
-const StatsModal = lazy(() =>
-  import('../components/StatsModal').then((m) => ({ default: m.StatsModal }))
-);
 
 const AboutModal = lazy(() =>
   import('../components/AboutModal').then((m) => ({ default: m.AboutModal }))
@@ -48,7 +44,6 @@ export default function Layout({ children }: LayoutProps) {
     }))
   );
   const openAuthModal = useAuthModalStore((s) => s.open);
-  const [isStatsOpen, setIsStatsOpen] = useState(false);
   const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   // Better Auth's forget-password emails redirect to /reset-password?token=XXX
@@ -92,21 +87,10 @@ export default function Layout({ children }: LayoutProps) {
         }}
       />
 
-      {/* Header - Logo centered, stats left, auth right */}
+      {/* Header - Logo centered, about left, auth right */}
       <header className="shrink-0 py-4 md:py-5 px-4 relative z-20">
-        {/* Left: Stats + About buttons */}
+        {/* Left: About button */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          <button
-            onClick={() => setIsStatsOpen(true)}
-            className={cn(
-              'p-2 rounded-full cursor-pointer',
-              'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
-              'transition-all duration-200'
-            )}
-            title="Mes statistiques"
-          >
-            <BarChart3 className="w-5 h-5" />
-          </button>
           <button
             onClick={() => setIsAboutOpen(true)}
             className={cn(
@@ -203,12 +187,6 @@ export default function Layout({ children }: LayoutProps) {
           AubeSonore | Découverte musicale émergente
         </p>
       </footer>
-
-      {isStatsOpen && (
-        <Suspense fallback={null}>
-          <StatsModal isOpen={isStatsOpen} onClose={() => setIsStatsOpen(false)} />
-        </Suspense>
-      )}
 
       {isAboutOpen && (
         <Suspense fallback={null}>

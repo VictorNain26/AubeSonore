@@ -2,7 +2,6 @@ import { useEffect } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
-import { useStatsStore } from '../stores/statsStore';
 
 // Invisible side-effect host that hydrates the auth session once and
 // bridges auth transitions to the auth-dependent stores (liked tracks,
@@ -23,7 +22,6 @@ export function AuthInit(): null {
       if (useAuthStore.getState().isAuthenticated) {
         void useLikedTracksStore.getState().refresh();
         void usePreferencesStore.getState().refresh();
-        void useStatsStore.getState().syncFromServer();
       }
     })();
 
@@ -36,7 +34,6 @@ export function AuthInit(): null {
       if (state.isAuthenticated) {
         void useLikedTracksStore.getState().refresh();
         void usePreferencesStore.getState().refresh();
-        void useStatsStore.getState().syncFromServer();
       } else {
         useLikedTracksStore.getState().clear();
         usePreferencesStore.getState().clear();
