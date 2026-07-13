@@ -1,5 +1,7 @@
 # AubeSonore — self-hosted production stack (home server)
-# Frontend stays on Vercel; this hosts backend + Postgres + the Cloudflare tunnel.
+# Frontend stays on Vercel; this hosts backend + Postgres.
+# Public exposure (aubesonore.fr / api / radio) is handled by the host-level
+# cloudflared systemd service, not by this compose.
 # AzuraCast runs from its own compose (~/azuracast) and is reached via the host gateway.
 
 name: aubesonore
@@ -92,18 +94,6 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
-    logging:
-      options: { max-size: "10m", max-file: "3" }
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: aubesonore-tunnel
-    restart: unless-stopped
-    network_mode: host
-    profiles: ["public"]
-    command: tunnel --no-autoupdate run
-    environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
     logging:
       options: { max-size: "10m", max-file: "3" }
 
