@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,9 +25,12 @@ export function DayTimeline() {
 
   const groups = useMemo(() => groupByMoment(entries), [entries]);
 
+  useEffect(() => {
+    if (isExpanded) window.dispatchEvent(new CustomEvent('aubesonore:timeline-expanded'));
+  }, [isExpanded]);
+
   const handleExpand = useCallback(() => {
     setIsExpanded(true);
-    window.dispatchEvent(new CustomEvent('aubesonore:timeline-expanded'));
   }, []);
 
   const handleShare = useCallback(
