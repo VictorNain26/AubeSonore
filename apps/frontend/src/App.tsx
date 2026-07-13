@@ -3,7 +3,6 @@ import { AuthModalHost } from './components/AuthModalHost';
 import { NowPlayingPoller } from './components/NowPlayingPoller';
 import Layout from './layout/Layout';
 import HomePage from './pages/HomePage';
-import { NotificationBanner } from './components/NotificationBanner';
 import { PWAInstallBanner } from './components/PWAInstallBanner';
 
 export default function App() {
@@ -16,7 +15,6 @@ export default function App() {
       </Layout>
       <AuthModalHost />
       <PWAInstallBanner />
-      <NotificationBanner />
     </>
   );
 }
