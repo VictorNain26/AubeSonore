@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
+import { SkyBackground } from '../components/Sky/SkyBackground';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -67,7 +68,8 @@ export default function Layout({ children }: LayoutProps) {
   }, [openAuthModal]);
 
   return (
-    <div className="min-h-dvh aurora-bg flex flex-col">
+    <div className="min-h-dvh flex flex-col">
+      <SkyBackground />
       {/* Skip-link for keyboard users */}
       <a href="#main" className="sr-only-focusable">
         Aller au contenu principal

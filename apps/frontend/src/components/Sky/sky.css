@@ -1,0 +1,31 @@
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: -10;
+  overflow: hidden;
+  --halo-x: 50%;
+  --halo-y: 40%;
+}
+.sky-gradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, var(--sky-3), var(--sky-2) 45%, var(--sky-1));
+  transition: background 1.2s ease;
+}
+.sky-halo {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    circle at var(--halo-x) var(--halo-y),
+    var(--halo) 0%,
+    transparent 26%
+  );
+  opacity: 0.5;
+  filter: blur(24px);
+}
+.sky-grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  mix-blend-mode: overlay;
+}
