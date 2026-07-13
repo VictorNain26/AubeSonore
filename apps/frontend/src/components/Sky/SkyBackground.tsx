@@ -1,4 +1,5 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useSkyChoreography } from './useSkyChoreography';
 import './sky.css';
 
 const GRAIN =
@@ -12,8 +13,10 @@ function haloPosition(date: Date): { x: number; y: number } {
 }
 
 export function SkyBackground() {
+  const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const root = document.getElementById('sky-root');
+    const root = ref.current;
     if (!root) return;
     const apply = () => {
       const { x, y } = haloPosition(new Date());
@@ -25,8 +28,10 @@ export function SkyBackground() {
     return () => clearInterval(id);
   }, []);
 
+  useSkyChoreography(ref);
+
   return (
-    <div id="sky-root" className="sky" aria-hidden="true">
+    <div id="sky-root" ref={ref} className="sky" aria-hidden="true">
       <div className="sky-gradient" />
       <div className="sky-halo" />
       <div className="sky-grain" style={{ backgroundImage: GRAIN }} />
