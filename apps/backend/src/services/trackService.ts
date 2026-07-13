@@ -1,7 +1,7 @@
 import { db, schema } from '../db/index';
 import { eq, and, desc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
-import type { User, LikedTrack, PlatformLinks } from '../db/schema';
+import type { User, LikedTrack } from '../db/schema';
 import { searchSonglink } from './songlinkService';
 
 // Hard cap on the liked-tracks listing payload. Power users with thousands
@@ -87,12 +87,17 @@ async function enrichTrackInBackground(
   const songlinkData = await searchSonglink(title, artist);
   if (!songlinkData) return;
 
-  const updates: Partial<{ songlinkUrl: string; platformLinks: PlatformLinks }> = {
-    songlinkUrl: songlinkData.pageUrl,
-    platformLinks: songlinkData.platformLinks,
-  };
-
-  await db.update(schema.likedTracks).set(updates).where(eq(schema.likedTracks.id, trackId));
+  await db
+    .update(schema.likedTracks)
+    .set({
+      songlinkUrl: songlinkData.pageUrl,
+      platformLinks: songlinkData.platformLinks,
+      // Songlink artwork (Apple Music CDN) is stable across AzuraCast track
+      // rotations. Always overwrite the AzuraCast URL which becomes a 404
+      // once the file is deleted from the station library.
+      ...(songlinkData.artworkUrl ? { artworkUrl: songlinkData.artworkUrl } : {}),
+    })
+    .where(eq(schema.likedTracks.id, trackId));
 }
 
 export type LikedTrackListItem = LikedTrack;
@@ -243,6 +248,7 @@ export async function refreshAllLinks({
           .set({
             songlinkUrl: songlinkData.pageUrl,
             platformLinks: songlinkData.platformLinks,
+            ...(songlinkData.artworkUrl ? { artworkUrl: songlinkData.artworkUrl } : {}),
           })
           .where(eq(schema.likedTracks.id, track.id));
         return true;

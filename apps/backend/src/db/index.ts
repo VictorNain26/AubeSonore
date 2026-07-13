@@ -15,7 +15,7 @@ import * as schema from './schema';
  *   Heroku posture — their internal certs are self-signed and not exposed.
  *   Acceptable tradeoff for now; the connection is encrypted in transit.
  */
-const sslConfig = env.IS_PROD
+const sslConfig = env.DATABASE_SSL
   ? env.DATABASE_CA_CERT
     ? { rejectUnauthorized: true, ca: env.DATABASE_CA_CERT }
     : { rejectUnauthorized: false }

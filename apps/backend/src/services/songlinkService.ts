@@ -11,7 +11,7 @@ import { logger } from '../lib/logger';
 const SONGLINK_API_BASE = 'https://api.song.link/v1-alpha.1/links';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export const songlinkCache = new TtlCache<SonglinkResult | null>(SEVEN_DAYS_MS);
-export const itunesCache = new TtlCache<string | null>(SEVEN_DAYS_MS);
+export const itunesCache = new TtlCache<ItunesResult | null>(SEVEN_DAYS_MS);
 
 interface SonglinkPlatform {
   url: string;
@@ -50,6 +50,8 @@ interface SonglinkResponse {
 export interface SonglinkResult {
   pageUrl: string;
   platformLinks: PlatformLinks;
+  /** Best artwork URL found: Songlink entity thumbnail (~1400px) or iTunes fallback (600px). */
+  artworkUrl?: string;
   metadata?: {
     title?: string;
     artist?: string;
@@ -154,7 +156,13 @@ interface ItunesSearchResponse {
     trackViewUrl: string;
     trackName: string;
     artistName: string;
+    artworkUrl100?: string;
   }>;
+}
+
+interface ItunesResult {
+  trackViewUrl: string;
+  artworkUrl: string | null;
 }
 
 /**
@@ -163,7 +171,7 @@ interface ItunesSearchResponse {
  * Même convention que `getSonglinkData` : succès et "0 results" cachés ;
  * erreurs transitoires (5xx, timeout) ne polluent pas le cache 7 jours.
  */
-async function searchItunes(title: string, artist: string): Promise<string | null> {
+async function searchItunes(title: string, artist: string): Promise<ItunesResult | null> {
   const cacheKey = `${title.toLowerCase()}|${artist.toLowerCase()}`;
   const cached = itunesCache.get(cacheKey);
   if (cached !== undefined) return cached;
@@ -202,9 +210,14 @@ async function searchItunes(title: string, artist: string): Promise<string | nul
   }
 
   if (data.resultCount > 0 && data.results[0]?.trackViewUrl) {
-    const url = data.results[0].trackViewUrl;
-    itunesCache.set(cacheKey, url);
-    return url;
+    const hit = data.results[0];
+    // Replace the 100px thumbnail suffix with 600px — same CDN URL, no extra request.
+    const artworkUrl = hit.artworkUrl100
+      ? hit.artworkUrl100.replace('100x100bb', '600x600bb')
+      : null;
+    const result: ItunesResult = { trackViewUrl: hit.trackViewUrl, artworkUrl };
+    itunesCache.set(cacheKey, result);
+    return result;
   }
 
   // 0 results = definitive negative. Cache 7 days.
@@ -228,8 +241,8 @@ export async function searchSonglink(
   const cached = songlinkCache.get(cacheKey);
   if (cached !== undefined) return cached;
 
-  const appleMusicUrl = await searchItunes(title, artist);
-  if (!appleMusicUrl) {
+  const itunesResult = await searchItunes(title, artist);
+  if (!itunesResult) {
     // iTunes returned null. Cache only when itunesCache itself confirmed
     // (transient itunes failure already returned null without caching, so
     // we cannot distinguish here — accept that a transient itunes miss will
@@ -239,7 +252,12 @@ export async function searchSonglink(
   }
 
   try {
-    const result = await getSonglinkData(appleMusicUrl);
+    const result = await getSonglinkData(itunesResult.trackViewUrl);
+    if (result) {
+      // Prefer Songlink entity thumbnail (~1400px), fall back to iTunes (600px).
+      const artworkUrl = result.metadata?.thumbnailUrl ?? itunesResult.artworkUrl ?? undefined;
+      if (artworkUrl) result.artworkUrl = artworkUrl;
+    }
     songlinkCache.set(cacheKey, result);
     return result;
   } catch {

@@ -1,6 +1,6 @@
-# OurMusic Backend
+# AubeSonore Backend
 
-OurMusic Backend is an API built with [Elysia](https://elysiajs.com/) and runs on [Bun](https://bun.sh/). It exposes various routes that connect the OurMusic application to Spotify and manage the tracks liked by users.
+AubeSonore Backend is an API built with [Elysia](https://elysiajs.com/) and runs on [Bun](https://bun.sh/). It exposes various routes that connect the AubeSonore application to Spotify and manage the tracks liked by users.
 
 ## Features
 
@@ -52,8 +52,8 @@ A health endpoint is available at [http://localhost:3000/health](http://localhos
 A Docker image is provided:
 
 ```bash
-docker build -t ourmusic-backend .
-docker run --env-file .env -p 3000:3000 ourmusic-backend
+docker build -t aubesonore-backend .
+docker run --env-file .env -p 3000:3000 aubesonore-backend
 ```
 
 Migrations are launched automatically via `entrypoint.sh` when the container starts.
