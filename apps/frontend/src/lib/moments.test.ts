@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getMoment, nextBoundary, MOMENT_LABELS } from './moments';
+import { getMoment, nextBoundary, MOMENT_LABELS, MOMENT_TAGLINES, MOMENT_ORDER } from './moments';
 
 const at = (h: number, m = 0) => new Date(2026, 6, 13, h, m);
 
@@ -37,4 +37,10 @@ describe('nextBoundary', () => {
 
 it('labels are the French UI copy', () => {
   expect(MOMENT_LABELS).toEqual({ dawn: 'Aube', day: 'Jour', dusk: 'Crépuscule', night: 'Nuit' });
+});
+
+it('has a tagline for every moment', () => {
+  for (const m of MOMENT_ORDER) {
+    expect(MOMENT_TAGLINES[m]).toBeTruthy();
+  }
 });

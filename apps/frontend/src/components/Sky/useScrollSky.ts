@@ -1,9 +1,18 @@
 import { useEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { SKY_STOPS, type Moment } from '../../lib/moments';
+import type { Moment } from '../../lib/moments';
 
 gsap.registerPlugin(ScrollTrigger);
+
+// TODO(task-10): components/Sky is removed in Task 10; this local copy of the
+// former lib/moments.ts SKY_STOPS keeps this file typechecking until then.
+const SKY_STOPS: Record<Moment, [string, string, string]> = {
+  dawn: ['hsl(254 32% 12%)', 'hsl(340 42% 26%)', 'hsl(24 68% 46%)'],
+  day: ['hsl(214 45% 10%)', 'hsl(208 52% 22%)', 'hsl(199 62% 34%)'],
+  dusk: ['hsl(258 36% 10%)', 'hsl(288 34% 20%)', 'hsl(14 62% 38%)'],
+  night: ['hsl(228 32% 5%)', 'hsl(232 30% 9%)', 'hsl(248 28% 13%)'],
+};
 
 const OVERLAY_PEAK = 0.85;
 const SCAN_FRAME_BUDGET = 600;
