@@ -95,7 +95,7 @@ export default function Layout({ children }: LayoutProps) {
 
       <header className="mx-auto w-full max-w-[640px] px-6 pt-8 pb-4 flex items-start justify-between">
         <div>
-          <p className="font-display tracking-tight">AubeSonore</p>
+          <p className="font-display text-lead tracking-tight">AubeSonore</p>
           <MomentLine />
         </div>
 
@@ -117,8 +117,8 @@ export default function Layout({ children }: LayoutProps) {
                   className="flex items-center gap-2 p-2 rounded-md text-ink-faint hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer"
                   aria-label="Menu utilisateur"
                 >
-                  <div className="w-6 h-6 rounded-full bg-paper-raised flex items-center justify-center">
-                    <span className="text-xs font-medium text-ink-soft">
+                  <div className="h-7 w-7 rounded-full bg-paper-raised flex items-center justify-center">
+                    <span className="text-caption font-medium text-ink">
                       {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -142,8 +142,8 @@ export default function Layout({ children }: LayoutProps) {
             <button
               onClick={() => openAuthModal()}
               className={cn(
-                'flex items-center gap-2 px-3 py-1.5 rounded-md cursor-pointer',
-                'text-ink-soft hover:text-ink hover:bg-paper-raised transition-colors text-sm'
+                'flex items-center gap-2 rounded-md border border-line px-3 py-1.5',
+                'text-body text-ink-soft hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer'
               )}
             >
               <LogIn className="w-4 h-4" />
@@ -158,8 +158,9 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      <footer className="rule mx-auto w-full max-w-[640px] px-6 py-6">
-        <p className="text-caption text-ink-faint tracking-widest uppercase">
+      <footer className="mx-auto w-full max-w-[640px] px-6 py-6">
+        <div className="rule mb-4" />
+        <p className="text-caption text-ink-faint tracking-widest">
           AubeSonore — Découverte musicale émergente
         </p>
       </footer>
