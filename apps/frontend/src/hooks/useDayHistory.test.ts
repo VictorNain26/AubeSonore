@@ -8,7 +8,7 @@ import { useNowPlayingStore, __resetNowPlayingStore } from '../lib/azuracast';
 import type { NowPlaying, SongEntry } from '../lib/azuracast';
 import { useDayHistory } from './useDayHistory';
 
-const HISTORY_URL = 'https://radio.aubesonore.fr/api/station/aubesonore/history';
+const HISTORY_URL = 'http://localhost:3000/api/radio/history';
 
 function historyEntry(sh_id: number, playedAt: number): SongEntry {
   return {

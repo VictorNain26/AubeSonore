@@ -69,8 +69,8 @@ export const handlers = [
     HttpResponse.json(makeNowPlaying())
   ),
 
-  // AzuraCast station history
-  http.get(`${AZURA}/api/station/aubesonore/history`, () => HttpResponse.json([])),
+  // Radio history (proxied through the backend — AzuraCast key stays server-side)
+  http.get(`${API}/api/radio/history`, () => HttpResponse.json([])),
 ];
 
 export function makeNowPlaying() {

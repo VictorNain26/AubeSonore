@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { array, safeParse } from 'valibot';
 import { SongEntrySchema, useNowPlayingStore, type SongEntry } from '../lib/azuracast';
 import { dedupeBySongId } from '../lib/dayTimeline';
-import { AZURACAST_HISTORY_URL } from '../utils/config';
+import { API_BASE_URL } from '../utils/config';
 
 const HistoryResponseSchema = array(SongEntrySchema);
 const DAY_SECONDS = 24 * 60 * 60;
@@ -20,7 +20,7 @@ export function useDayHistory(): {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch(`${AZURACAST_HISTORY_URL}?rows=120&per_page=120`, {
+    fetch(`${API_BASE_URL}/api/radio/history?rows=120`, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     })
