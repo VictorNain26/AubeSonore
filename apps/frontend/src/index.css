@@ -1,6 +1,47 @@
 @import 'tailwindcss';
 
 /* =============================================================================
+   MOMENT-DRIVEN TOKENS — per-time-of-day sky and accent colors
+   ============================================================================= */
+
+:root {
+  --sky-1: hsl(228 32% 5%);
+  --sky-2: hsl(232 30% 9%);
+  --sky-3: hsl(248 28% 13%);
+  --halo: hsl(210 40% 72%);
+  --accent-moment: hsl(232 34% 62%);
+}
+
+[data-moment='dawn'] {
+  --sky-1: hsl(254 32% 12%);
+  --sky-2: hsl(340 42% 26%);
+  --sky-3: hsl(24 68% 46%);
+  --halo: hsl(28 90% 66%);
+  --accent-moment: hsl(20 80% 62%);
+}
+
+[data-moment='day'] {
+  --sky-1: hsl(212 48% 16%);
+  --sky-2: hsl(206 52% 30%);
+  --sky-3: hsl(196 58% 44%);
+  --halo: hsl(48 95% 76%);
+  --accent-moment: hsl(200 70% 58%);
+}
+
+[data-moment='dusk'] {
+  --sky-1: hsl(258 36% 10%);
+  --sky-2: hsl(288 34% 20%);
+  --sky-3: hsl(14 62% 38%);
+  --halo: hsl(16 85% 60%);
+  --accent-moment: hsl(300 45% 60%);
+}
+
+:root,
+[data-moment] {
+  transition: none;
+}
+
+/* =============================================================================
    DESIGN TOKENS — Tailwind 4 @theme
    Single source of truth. Opacity steps come from Tailwind modifiers
    (text-foreground/70) so the theme stays minimal — no aliases, no doublons.
@@ -23,7 +64,7 @@
   --color-foreground: hsl(0 0% 100%);
 
   /* ── Brand + semantic ──────────────────────────────────────────────────── */
-  --color-accent: hsl(270 60% 60%);
+  --color-accent: var(--accent-moment);
   --color-danger: hsl(0 72% 51%);
   --color-success: hsl(142 71% 45%);
 
