@@ -35,21 +35,3 @@ registerRoute(
     ] as unknown as WorkboxPlugin[],
   })
 );
-
-// Runtime cache for WebAssembly modules (resvg-wasm used by satori share).
-// CacheFirst: wasm files are content-addressed (Vite hashes them in the
-// filename), so once cached they never need a network revalidation.
-registerRoute(
-  ({ url }) => url.pathname.endsWith('.wasm'),
-  new CacheFirst({
-    cacheName: 'aubesonore-wasm',
-    plugins: [
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-      new ExpirationPlugin({
-        maxEntries: 5,
-        maxAgeSeconds: 90 * 24 * 60 * 60, // 90 days
-        purgeOnQuotaError: true,
-      }),
-    ] as unknown as WorkboxPlugin[],
-  })
-);

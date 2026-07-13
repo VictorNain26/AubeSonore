@@ -26,13 +26,6 @@ export default defineConfig(({ mode }) => {
         filename: 'sw.ts',
         registerType: 'autoUpdate',
         injectRegister: 'auto',
-        injectManifest: {
-          // Exclude resvg's ~2.5 MB wasm from the install-time precache —
-          // shares are an explicit user action, so paying that bandwidth
-          // upfront for every PWA install is wasteful. The wasm is cached
-          // at runtime on first share (see src/sw.ts: registerRoute *.wasm).
-          globIgnores: ['**/*.wasm'],
-        },
         includeAssets: [
           'favicon.png',
           'favicon-48.png',

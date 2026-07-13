@@ -59,7 +59,6 @@ export default defineConfig({
         'src/components/AuthInit.tsx',
         'src/components/NowPlayingPoller.tsx',
         'src/components/AmbientBackground.tsx',
-        'src/components/ShareCard/**',
         // Player-domain hooks — pure logic extracted from src/components/Player/index.tsx
         // (which is itself excluded above). Covered by manual QA on the Player.
         'src/hooks/player/**',
@@ -68,7 +67,6 @@ export default defineConfig({
         'src/components/ui/**',
         // External SDK wrappers — covered by browser, not unit tests
         'src/lib/cast/**',
-        'src/lib/shareUtils.ts',
         'src/lib/exportLibrary.ts',
         // Browser-only Cast/AirPlay event bridges (same rationale as lib/cast/**)
         'src/stores/castStore.ts',
