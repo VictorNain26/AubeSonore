@@ -34,6 +34,11 @@ interface EnvConfig {
   // External APIs
   LASTFM_API_KEY: string | undefined;
 
+  // AzuraCast (radio history proxy — key must stay server-side)
+  AZURACAST_BASE_URL: string;
+  AZURACAST_API_KEY: string;
+  AZURACAST_STATION_ID: string;
+
   // Web Push
   VAPID_PUBLIC_KEY: string | undefined;
   VAPID_PRIVATE_KEY: string | undefined;
@@ -105,6 +110,10 @@ export const env: EnvConfig = {
   SPOTIFY_CLIENT_SECRET: optional('SPOTIFY_CLIENT_SECRET'),
 
   LASTFM_API_KEY: optional('LASTFM_API_KEY'),
+
+  AZURACAST_BASE_URL: Bun.env.AZURACAST_BASE_URL ?? '',
+  AZURACAST_API_KEY: Bun.env.AZURACAST_API_KEY ?? '',
+  AZURACAST_STATION_ID: Bun.env.AZURACAST_STATION_ID ?? '1',
 
   VAPID_PUBLIC_KEY: optional('VAPID_PUBLIC_KEY'),
   VAPID_PRIVATE_KEY: optional('VAPID_PRIVATE_KEY'),

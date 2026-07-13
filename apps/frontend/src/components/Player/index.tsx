@@ -1,6 +1,7 @@
 import { useNowPlayingStore } from '../../lib/azuracast';
 
 import { TrackArtwork } from './TrackArtwork';
+import { MomentBadge } from './MomentBadge';
 import { TrackMeta } from './TrackMeta';
 import { Timeline } from './Timeline';
 import { PlaybackControls } from './PlaybackControls';
@@ -8,7 +9,7 @@ import { SecondaryControls } from './SecondaryControls';
 import { LibraryButton } from './LibraryButton';
 import { ListenersBadge } from './ListenersBadge';
 import { ArtistContext } from './ArtistContext';
-import { HistoryList } from './HistoryList';
+import { DayTimeline } from './DayTimeline';
 
 // Player is a composition root: it arranges sub-components only. Every
 // leaf subscribes directly to the store it cares about; side effects
@@ -46,6 +47,7 @@ export default function Player() {
         <TrackArtwork />
       </div>
 
+      <MomentBadge />
       <TrackMeta />
 
       <Timeline />
@@ -61,7 +63,7 @@ export default function Player() {
 
       <ArtistContext />
 
-      <HistoryList />
+      <DayTimeline />
     </div>
   );
 }

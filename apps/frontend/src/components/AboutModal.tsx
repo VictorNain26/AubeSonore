@@ -1,6 +1,6 @@
 import { Info, Globe, Music, MessageSquare, Mail, X } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 interface AboutModalProps {
@@ -85,10 +85,10 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                   <div className="px-5 py-5 space-y-5">
                     {/* Description */}
                     <p className="text-sm text-foreground/70 leading-relaxed">
-                      {/* TODO: replace with final radio description */}
-                      AubeSonore est une webradio indépendante dédiée à la découverte musicale. Nous
-                      sélectionnons pour vous des sons rares, des artistes émergents et des
-                      classiques oubliés.
+                      AubeSonore est une webradio indépendante dédiée à la découverte musicale, hors
+                      des sentiers battus : nous sélectionnons pour vous des sons rares, des
+                      artistes émergents et des classiques oubliés, et son ambiance suit la lumière
+                      du jour, entre aube et nuit.
                     </p>
 
                     {/* Social links */}

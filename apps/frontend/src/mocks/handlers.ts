@@ -51,15 +51,6 @@ export const handlers = [
     HttpResponse.json({ preferences: { id: 'p1', userId: 'u1', preferredPlatform: 'spotify' } })
   ),
 
-  // Push - key is a valid 65-byte base64url-encoded P-256 uncompressed public point
-  http.get(`${API}/api/push/vapid-key`, () =>
-    HttpResponse.json({
-      key: 'BAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-P0A',
-    })
-  ),
-  http.post(`${API}/api/push/subscribe`, () => HttpResponse.json({ message: 'ok' })),
-  http.delete(`${API}/api/push/unsubscribe`, () => HttpResponse.json({ message: 'ok' })),
-
   // Artist info
   http.get(`${API}/api/artist`, ({ request }) => {
     const url = new URL(request.url);
@@ -77,6 +68,9 @@ export const handlers = [
   http.get(`${AZURA}/api/nowplaying_static/aubesonore.json`, () =>
     HttpResponse.json(makeNowPlaying())
   ),
+
+  // Radio history (proxied through the backend — AzuraCast key stays server-side)
+  http.get(`${API}/api/radio/history`, () => HttpResponse.json([])),
 ];
 
 export function makeNowPlaying() {

@@ -11,8 +11,10 @@ import { preferencesRoutes } from './routes/preferences.routes';
 import { artistRoutes } from './routes/artist.routes';
 import { pushRoutes } from './routes/push.routes';
 import { statsRoutes } from './routes/stats.routes';
+import { radioRoutes } from './routes/radio.routes';
 import { songlinkCache, itunesCache } from './services/songlinkService';
 import { lastfmCache } from './services/lastfmService';
+import { radioHistoryCache } from './services/radioService';
 import { purgeExpiredAuthRows } from './services/pushService';
 
 // Apply pending DB migrations BEFORE serving traffic. The runner tracks
@@ -29,6 +31,7 @@ try {
 songlinkCache.startSweep();
 itunesCache.startSweep();
 lastfmCache.startSweep();
+radioHistoryCache.startSweep();
 
 // Periodic purge of Better Auth's expired session/verification rows.
 // Without this they accumulate indefinitely — Better Auth does not self-clean.
@@ -69,6 +72,7 @@ const app = new Elysia()
   .use(artistRoutes)
   .use(pushRoutes)
   .use(statsRoutes)
+  .use(radioRoutes)
   .get('/health', () => ({ status: 'ok', uptime: process.uptime() }))
   .get('/', () => ({ message: 'AubeSonore API' }))
   .onError(({ error, set, request }) => {
@@ -94,6 +98,12 @@ const server = app.listen({ port: env.PORT, hostname: '0.0.0.0' });
 
 logger.info('listening', { port: env.PORT, env: env.NODE_ENV });
 
+if (!env.AZURACAST_BASE_URL || !env.AZURACAST_API_KEY) {
+  console.warn(
+    '/api/radio/history will return 502 until AZURACAST_BASE_URL and AZURACAST_API_KEY are set'
+  );
+}
+
 let isShuttingDown = false;
 
 async function gracefulShutdown(signal: string): Promise<void> {
@@ -110,6 +120,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
   songlinkCache.dispose();
   itunesCache.dispose();
   lastfmCache.dispose();
+  radioHistoryCache.dispose();
 
   try {
     await pool.end();

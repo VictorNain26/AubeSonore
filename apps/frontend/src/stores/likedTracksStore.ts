@@ -10,7 +10,7 @@ interface LikedTracksState {
   isLoading: boolean;
   error: string | null;
   // Cross-component lock for in-flight like/unlike. Lives here (not in
-  // useLikeAction) so simultaneous clicks from TrackArtwork + HistoryList
+  // useLikeAction) so simultaneous clicks from TrackArtwork + DayTimeline
   // on the same track see the same value and can short-circuit.
   likingTrackId: string | null;
 }

@@ -26,6 +26,8 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
   const timeRef = useRef<number>(0);
   const frequencyDataRef = useRef<Uint8Array | null>(null);
   const smoothedDataRef = useRef<number[]>([]);
+  const accentColorRef = useRef<string>('');
+  const accentMomentKeyRef = useRef<string | undefined>(undefined);
 
   // Read latest props from refs inside the rAF callback so changes to
   // `playedAt`/`duration`/`isPlaying`/`songId` don't tear down the loop.
@@ -94,6 +96,15 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
       const gap = 3;
       const progressX = (currentProgress / 100) * width;
 
+      const momentKey = document.documentElement.dataset.moment;
+      if (momentKey !== accentMomentKeyRef.current || !accentColorRef.current) {
+        accentColorRef.current = getComputedStyle(document.documentElement)
+          .getPropertyValue('--color-accent')
+          .trim();
+        accentMomentKeyRef.current = momentKey;
+      }
+      const accentColor = accentColorRef.current;
+
       const analyser = getAnalyser();
       let frequencyData: Uint8Array | null = null;
 
@@ -149,11 +160,11 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
           const fillWidth = Math.min(barW, progressX - barX);
           if (fillWidth > 0) {
             const gradient = ctx.createLinearGradient(0, y, 0, y + barHeight);
-            gradient.addColorStop(0, 'rgba(139, 92, 246, 0.7)');
-            gradient.addColorStop(0.5, 'rgba(168, 85, 247, 1)');
-            gradient.addColorStop(1, 'rgba(139, 92, 246, 0.7)');
+            gradient.addColorStop(0, `color-mix(in srgb, ${accentColor} 70%, transparent)`);
+            gradient.addColorStop(0.5, accentColor);
+            gradient.addColorStop(1, `color-mix(in srgb, ${accentColor} 70%, transparent)`);
 
-            ctx.shadowColor = 'rgba(168, 85, 247, 0.5)';
+            ctx.shadowColor = `color-mix(in srgb, ${accentColor} 50%, transparent)`;
             ctx.shadowBlur = frequencyData ? 10 : isPlaying ? 8 : 4;
             ctx.fillStyle = gradient;
             ctx.beginPath();

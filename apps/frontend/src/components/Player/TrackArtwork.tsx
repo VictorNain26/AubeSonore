@@ -1,8 +1,8 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Music, Heart } from 'lucide-react';
-import { ShareButton } from '../ShareCard/ShareButton';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Music, Heart, Share2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useNowPlayingStore, isDefaultArtwork } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
@@ -10,6 +10,9 @@ import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore
 import { usePreferencesStore } from '../../stores/preferencesStore';
 import { getTrackShareUrl } from '@aubesonore/core/share';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
+import { useMoment } from '../../hooks/useMoment';
+import { shareTrack } from '../../lib/shareTrack';
+import { MOMENT_SHARE_PHRASES } from '../../lib/moments';
 import { trackFlip, toggle as toggleTransition } from './motion-presets';
 
 // Album art + like + share, subscribing directly to the stores it needs.
@@ -25,6 +28,7 @@ export function TrackArtwork() {
     }))
   );
   const isPlaying = usePlayer((s) => s.isPlaying);
+  const moment = useMoment();
   const tracks = useLikedTracksStore((s) => s.tracks);
   const preferences = usePreferencesStore((s) => s.preferences);
   const { likingTrackId, toggleLike } = useLikeAction();
@@ -49,6 +53,21 @@ export function TrackArtwork() {
       void toggleLike(title, artist, artUrl);
     }
   }, [title, artist, artUrl, toggleLike]);
+  const handleShare = useCallback(() => {
+    if (!title || !artist || !trackUrl) return;
+    void shareTrack({
+      title,
+      artist,
+      url: trackUrl,
+      momentLabel: MOMENT_SHARE_PHRASES[moment],
+    })
+      .then((result) => {
+        if (result === 'copied') toast('Lien copié');
+      })
+      .catch(() => {
+        toast('Partage impossible');
+      });
+  }, [title, artist, trackUrl, moment]);
 
   const isDefaultCover = !artUrl || artError || isDefaultArtwork(artUrl);
 
@@ -96,7 +115,20 @@ export function TrackArtwork() {
 
         {title && (
           <div className="absolute inset-0 flex items-end justify-between p-2 sm:p-3">
-            <ShareButton artUrl={artUrl} title={title} artist={artist || ''} trackUrl={trackUrl} />
+            <motion.button
+              onClick={handleShare}
+              whileTap={{ scale: 0.9 }}
+              transition={toggleTransition}
+              className={cn(
+                'p-2.5 sm:p-3 rounded-full transition-all duration-200 min-w-[44px] min-h-[44px] flex items-center justify-center cursor-pointer',
+                'backdrop-blur-md shadow-lg border',
+                'bg-overlay/60 text-foreground hover:bg-overlay/70 border-foreground/20'
+              )}
+              title="Partager"
+              aria-label="Partager ce morceau"
+            >
+              <Share2 className="w-5 h-5" />
+            </motion.button>
 
             <motion.button
               onClick={handleToggleLike}

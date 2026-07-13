@@ -1,18 +1,20 @@
 import { memo, useState } from 'react';
-import { Music, Heart } from 'lucide-react';
+import { Music, Heart, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { type SongEntry } from '../../lib/azuracast';
-import { formatTimeAgo } from '@aubesonore/core/format';
 
 // ─────────────────────────────────────────────
 // History Item Component
 // ─────────────────────────────────────────────
+
+const timeFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
 interface HistoryItemProps {
   entry: SongEntry;
   isLiked: boolean;
   isLiking: boolean;
   onToggle: () => void;
+  onShare: () => void;
 }
 
 export const HistoryItem = memo(function HistoryItem({
@@ -20,6 +22,7 @@ export const HistoryItem = memo(function HistoryItem({
   isLiked,
   isLiking,
   onToggle,
+  onShare,
 }: HistoryItemProps) {
   const [imgError, setImgError] = useState(false);
 
@@ -44,6 +47,17 @@ export const HistoryItem = memo(function HistoryItem({
         <p className="text-sm text-foreground truncate">{entry.song.title}</p>
         <p className="text-xs text-foreground/50 truncate">{entry.song.artist}</p>
       </div>
+      <button
+        onClick={onShare}
+        className={cn(
+          'p-2.5 rounded-full transition-all min-w-[44px] min-h-[44px] flex items-center justify-center',
+          'active:scale-90 cursor-pointer text-foreground/30 hover:text-foreground/70'
+        )}
+        title="Partager"
+        aria-label="Partager"
+      >
+        <Share2 className="w-4 h-4" />
+      </button>
       {/* Heart toggle - 44px touch target, single tap to add/remove */}
       <button
         onClick={onToggle}
@@ -60,7 +74,9 @@ export const HistoryItem = memo(function HistoryItem({
       >
         <Heart className={cn('w-5 h-5 transition-all', isLiked && 'fill-current scale-110')} />
       </button>
-      <span className="text-xs text-foreground/40 shrink-0">{formatTimeAgo(entry.played_at)}</span>
+      <span className="text-xs text-foreground/40 shrink-0">
+        {timeFormatter.format(new Date(entry.played_at * 1000))}
+      </span>
     </div>
   );
 });

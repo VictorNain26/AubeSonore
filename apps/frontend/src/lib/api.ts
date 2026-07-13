@@ -2,7 +2,6 @@ import { API_BASE_URL } from '../utils/config';
 import { createTrackApi, createPreferencesApi } from '@aubesonore/core/api';
 import type { ApiClient } from '@aubesonore/core/api';
 import type { AuthResponse } from '@aubesonore/shared-types/client';
-import type { StatsState } from '@aubesonore/shared-types/stats';
 
 export type {
   ClientLikedTrack as LikedTrack,
@@ -149,13 +148,4 @@ export const authApi = {
     if (!data.url) throw new Error('URL de redirection manquante');
     window.location.href = data.url;
   },
-};
-
-export const statsApi = {
-  getStats: () => fetchApi<StatsState | null>('/api/stats'),
-  putStats: (snapshot: StatsState) =>
-    fetchApi<void>('/api/stats', {
-      method: 'PUT',
-      body: JSON.stringify(snapshot),
-    }),
 };

@@ -26,7 +26,7 @@ const SongSchema = looseObject({
 });
 
 // SongEntry as it appears in now_playing and song_history. Both have sh_id.
-const SongEntrySchema = looseObject({
+export const SongEntrySchema = looseObject({
   sh_id: number(),
   played_at: number(),
   duration: number(),
