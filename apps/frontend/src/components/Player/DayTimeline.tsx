@@ -127,7 +127,7 @@ function TimelineSection({
 
   return (
     <section data-moment-section={group.moment} className="mb-4">
-      <p className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm font-display text-xs tracking-widest uppercase text-foreground/50 py-2">
+      <p className="sticky top-0 z-10 bg-background/40 backdrop-blur font-display text-xs tracking-widest uppercase text-foreground/50 py-2">
         {MOMENT_LABELS[group.moment]} — {bounds.start}h à {bounds.end}h
       </p>
       <div role="list">

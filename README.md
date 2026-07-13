@@ -45,7 +45,9 @@ ourmusic/
 
 - React 19
 - Zustand (state management)
-- Tailwind CSS + shadcn/ui
+- Tailwind CSS
+- Identite jour/nuit : l'ambiance visuelle suit le moment (aube, jour, crepuscule, nuit)
+- Fil-journee : historique d'ecoute regroupe par moment de la journee
 - PWA ready
 - TypeScript strict
 

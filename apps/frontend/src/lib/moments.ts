@@ -43,7 +43,7 @@ export function nextBoundary(date: Date): Date {
   const starts = [5, 9, 17, 22];
   const next = new Date(date);
   const upcoming = starts.find((h) => h > date.getHours());
-  if (upcoming) {
+  if (upcoming !== undefined) {
     next.setHours(upcoming);
   } else {
     next.setHours(5);

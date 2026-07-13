@@ -25,7 +25,7 @@ describe('useMoment', () => {
 
     act(() => {
       vi.setSystemTime(new Date(2026, 0, 1, 17, 0, 0));
-      vi.advanceTimersByTime(60 * 1000);
+      vi.advanceTimersByTime(60 * 1000 + 500);
     });
 
     expect(result.current).toBe('dusk');

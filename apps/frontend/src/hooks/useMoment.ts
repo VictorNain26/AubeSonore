@@ -10,7 +10,7 @@ export function useMoment(): Moment {
     const arm = () => {
       const now = new Date();
       setMoment(getMoment(now));
-      const delay = nextBoundary(now).getTime() - now.getTime();
+      const delay = nextBoundary(now).getTime() - now.getTime() + 500;
       timer = setTimeout(arm, delay);
     };
     arm();

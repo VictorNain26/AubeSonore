@@ -60,9 +60,13 @@ export function TrackArtwork() {
       artist,
       url: trackUrl,
       momentLabel: MOMENT_SHARE_PHRASES[moment],
-    }).then((result) => {
-      if (result === 'copied') toast('Lien copié');
-    });
+    })
+      .then((result) => {
+        if (result === 'copied') toast('Lien copié');
+      })
+      .catch(() => {
+        toast('Partage impossible');
+      });
   }, [title, artist, trackUrl, moment]);
 
   const isDefaultCover = !artUrl || artError || isDefaultArtwork(artUrl);

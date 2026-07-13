@@ -9,8 +9,8 @@ import { useSleepTimer } from '../../stores/sleepTimerStore';
 
 export function useTrackChangeEvents(
   shId: number | undefined,
-  artist: string | undefined,
-  title: string | undefined
+  _artist: string | undefined,
+  _title: string | undefined
 ): void {
   const sleepTimerTrigger = useSleepTimer((s) => s.triggerEndOfTrack);
   const prevShIdRef = useRef<number | undefined>(undefined);
@@ -22,5 +22,5 @@ export function useTrackChangeEvents(
       }
       prevShIdRef.current = shId;
     }
-  }, [shId, artist, title, sleepTimerTrigger]);
+  }, [shId, sleepTimerTrigger]);
 }
