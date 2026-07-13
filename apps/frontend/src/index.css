@@ -77,6 +77,10 @@
   /* ── Easings ───────────────────────────────────────────────────────────── */
   --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
+
+  /* ── Typography ────────────────────────────────────────────────────────── */
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-display: 'Fraunces Variable', Georgia, serif;
 }
 
 /* =============================================================================
@@ -91,6 +95,7 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
+    font-family: var(--font-sans);
     font-feature-settings:
       'rlig' 1,
       'calt' 1;

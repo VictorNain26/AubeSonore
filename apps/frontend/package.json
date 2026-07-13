@@ -17,6 +17,7 @@
   "dependencies": {
     "@aubesonore/core": "workspace:*",
     "@aubesonore/shared-types": "workspace:*",
+    "@fontsource-variable/fraunces": "^5.2.9",
     "@fontsource/inter": "^5.2.8",
     "@gsap/react": "^2.1.2",
     "@radix-ui/react-dialog": "^1.1.14",

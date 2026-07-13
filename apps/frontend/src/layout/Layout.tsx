@@ -109,7 +109,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         {/* Center: Title */}
-        <h1 className="text-center text-sm md:text-xl font-light tracking-[0.25em] md:tracking-[0.35em] uppercase text-transparent bg-clip-text bg-gradient-to-r from-foreground/60 via-foreground/80 to-foreground/60">
+        <h1 className="text-center text-lg md:text-2xl font-display tracking-tight text-foreground [text-shadow:0_0_24px_var(--halo)]">
           AubeSonore
         </h1>
 
