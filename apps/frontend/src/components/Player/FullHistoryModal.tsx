@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { History, X, Loader2 } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
 import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
 import { useLikeAction } from '../../hooks/player/useLikeAction';

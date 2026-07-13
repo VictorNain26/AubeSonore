@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useShallow } from 'zustand/react/shallow';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { trackFlip } from './motion-presets';

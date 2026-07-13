@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Music, Heart, Share2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useNowPlayingStore, isDefaultArtwork } from '../../lib/azuracast';

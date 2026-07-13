@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Play, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '../../lib/player';

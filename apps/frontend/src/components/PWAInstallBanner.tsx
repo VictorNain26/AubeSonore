@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useBannerSlot } from '../stores/bannerSlotStore';
