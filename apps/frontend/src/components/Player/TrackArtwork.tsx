@@ -10,7 +10,9 @@ import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore
 import { usePreferencesStore } from '../../stores/preferencesStore';
 import { getTrackShareUrl } from '@aubesonore/core/share';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
+import { useMoment } from '../../hooks/useMoment';
 import { shareTrack } from '../../lib/shareTrack';
+import { MOMENT_SHARE_PHRASES } from '../../lib/moments';
 import { trackFlip, toggle as toggleTransition } from './motion-presets';
 
 // Album art + like + share, subscribing directly to the stores it needs.
@@ -26,6 +28,7 @@ export function TrackArtwork() {
     }))
   );
   const isPlaying = usePlayer((s) => s.isPlaying);
+  const moment = useMoment();
   const tracks = useLikedTracksStore((s) => s.tracks);
   const preferences = usePreferencesStore((s) => s.preferences);
   const { likingTrackId, toggleLike } = useLikeAction();
@@ -52,10 +55,15 @@ export function TrackArtwork() {
   }, [title, artist, artUrl, toggleLike]);
   const handleShare = useCallback(() => {
     if (!title || !artist || !trackUrl) return;
-    void shareTrack({ title, artist, url: trackUrl, momentLabel: "à l'instant" }).then((result) => {
+    void shareTrack({
+      title,
+      artist,
+      url: trackUrl,
+      momentLabel: MOMENT_SHARE_PHRASES[moment],
+    }).then((result) => {
       if (result === 'copied') toast('Lien copié');
     });
-  }, [title, artist, trackUrl]);
+  }, [title, artist, trackUrl, moment]);
 
   const isDefaultCover = !artUrl || artError || isDefaultArtwork(artUrl);
 

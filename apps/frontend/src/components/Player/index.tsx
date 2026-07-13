@@ -1,6 +1,7 @@
 import { useNowPlayingStore } from '../../lib/azuracast';
 
 import { TrackArtwork } from './TrackArtwork';
+import { MomentBadge } from './MomentBadge';
 import { TrackMeta } from './TrackMeta';
 import { Timeline } from './Timeline';
 import { PlaybackControls } from './PlaybackControls';
@@ -46,6 +47,7 @@ export default function Player() {
         <TrackArtwork />
       </div>
 
+      <MomentBadge />
       <TrackMeta />
 
       <Timeline />
