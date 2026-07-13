@@ -15,7 +15,10 @@ export async function getStationHistory(rows: number): Promise<unknown[]> {
   const cached = radioHistoryCache.get(cacheKey);
   if (cached !== undefined) return cached;
 
-  const url = `${env.AZURACAST_BASE_URL}/api/station/${env.AZURACAST_STATION_ID}/history?rows=${rows}&per_page=${rows}`;
+  // `per_page` alone: `rows` without pagination ignores the limit (returns
+  // the full 5800+ entry history), and the paginated response is an
+  // envelope `{page, per_page, total, rows: [...]}`, not a flat array.
+  const url = `${env.AZURACAST_BASE_URL}/api/station/${env.AZURACAST_STATION_ID}/history?per_page=${rows}`;
   const response = await fetch(url, {
     headers: { 'X-API-Key': env.AZURACAST_API_KEY },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
@@ -25,7 +28,11 @@ export async function getStationHistory(rows: number): Promise<unknown[]> {
     throw new Error(`AzuraCast history error: ${response.status}`);
   }
 
-  const data = (await response.json()) as unknown[];
-  radioHistoryCache.set(cacheKey, data);
-  return data;
+  const payload = (await response.json()) as { rows?: unknown };
+  if (!Array.isArray(payload.rows)) {
+    throw new Error('AzuraCast history error: unexpected payload shape');
+  }
+  const historyRows: unknown[] = payload.rows;
+  radioHistoryCache.set(cacheKey, historyRows);
+  return historyRows;
 }

@@ -24,14 +24,16 @@ describe('getStationHistory', () => {
     globalThis.fetch = ((url: string, init?: RequestInit) => {
       capturedUrl = url;
       capturedHeaders = init?.headers;
-      return Promise.resolve(new Response(JSON.stringify([{ sh_id: 1 }]), { status: 200 }));
+      return Promise.resolve(
+        new Response(JSON.stringify({ page: 1, per_page: 5, total: 5800, rows: [{ sh_id: 1 }] }), {
+          status: 200,
+        })
+      );
     }) as unknown as typeof fetch;
 
     const result = await getStationHistory(5);
 
-    expect(capturedUrl).toBe(
-      'http://azuracast.test/api/station/aubesonore/history?rows=5&per_page=5'
-    );
+    expect(capturedUrl).toBe('http://azuracast.test/api/station/aubesonore/history?per_page=5');
     expect(capturedHeaders).toMatchObject({ 'X-API-Key': 'secret-key' });
     expect(result).toEqual([{ sh_id: 1 }]);
   });
@@ -40,7 +42,9 @@ describe('getStationHistory', () => {
     let calls = 0;
     globalThis.fetch = (() => {
       calls++;
-      return Promise.resolve(new Response(JSON.stringify([{ sh_id: calls }]), { status: 200 }));
+      return Promise.resolve(
+        new Response(JSON.stringify({ page: 1, rows: [{ sh_id: calls }] }), { status: 200 })
+      );
     }) as unknown as typeof fetch;
 
     const first = await getStationHistory(5);
@@ -61,5 +65,21 @@ describe('getStationHistory', () => {
       err = e;
     }
     expect(err).toBeInstanceOf(Error);
+  });
+
+  it('throws when the payload is not the paginated envelope', async () => {
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response(JSON.stringify([{ sh_id: 1 }]), { status: 200 })
+      )) as unknown as typeof fetch;
+
+    let err: unknown;
+    try {
+      await getStationHistory(5);
+    } catch (e) {
+      err = e;
+    }
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toMatch(/unexpected payload shape/);
   });
 });
