@@ -4,6 +4,7 @@ export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
   return (
     <div role="alert" className="rule w-full max-w-lg mx-auto pt-6 text-center">
       <p className="font-display text-title text-ink">{"La lecture s'est interrompue"}</p>
+      <p className="mt-2 text-body text-ink-soft">Rechargez ou réessayez dans un instant.</p>
       <button
         type="button"
         onClick={resetErrorBoundary}
@@ -27,6 +28,9 @@ export function ModalErrorFallback({ onClose }: ModalErrorFallbackProps) {
     >
       <div className="panel p-6 text-center max-w-sm w-full mx-4">
         <p className="font-display text-title text-ink">Une erreur est survenue.</p>
+        <p className="mt-2 text-body text-ink-soft">
+          Fermez cette fenêtre et réessayez dans un instant.
+        </p>
         <button
           type="button"
           onClick={onClose}
