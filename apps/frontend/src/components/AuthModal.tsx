@@ -164,7 +164,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
   const inputClass = cn(
     'w-full pl-11 pr-4 py-2 rounded-md border border-line bg-paper',
     'text-body text-ink placeholder:text-ink-faint',
-    'focus:outline-none focus:border-accent',
+    'focus:outline-none focus:border-accent focus-visible:ring-2 focus-visible:ring-accent',
     'transition-colors'
   );
 
