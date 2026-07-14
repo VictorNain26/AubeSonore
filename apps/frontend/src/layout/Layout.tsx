@@ -23,14 +23,20 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+const timeFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
 function MomentLine() {
   const moment = useMoment();
-  const time = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(
-    new Date()
-  );
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <p className="text-caption tracking-widest uppercase text-ink-soft">
-      {MOMENT_LABELS[moment]} <span className="text-ink-faint">— {time}</span>
+      {MOMENT_LABELS[moment]} <span className="text-ink-faint">— {timeFormatter.format(now)}</span>
     </p>
   );
 }

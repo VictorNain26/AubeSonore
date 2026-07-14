@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import { MotionConfig } from 'motion/react';
 import { AuthInit } from './components/AuthInit';
 import { AuthModalHost } from './components/AuthModalHost';
 import { NowPlayingPoller } from './components/NowPlayingPoller';
@@ -19,7 +20,7 @@ export default function App() {
     );
   }
   return (
-    <>
+    <MotionConfig reducedMotion="user">
       <AuthInit />
       <NowPlayingPoller />
       <Layout>
@@ -27,6 +28,6 @@ export default function App() {
       </Layout>
       <AuthModalHost />
       <PWAInstallBanner />
-    </>
+    </MotionConfig>
   );
 }
