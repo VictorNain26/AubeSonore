@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../lib/api';
 import { toast } from 'sonner';
+import { modal } from './Player/motion-presets';
 
 // ─────────────────────────────────────────────
 // Types
@@ -154,18 +155,17 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
   }[mode];
 
   const oauthButtonClass = cn(
-    'w-full flex items-center justify-center gap-3 py-3 rounded-xl',
-    'bg-foreground/5 hover:bg-foreground/10 border border-foreground/10',
-    'text-foreground text-sm font-medium transition-all duration-200 cursor-pointer',
+    'w-full flex items-center justify-center gap-3 py-2.5 rounded-md',
+    'border border-line text-ink hover:bg-paper-raised',
+    'text-body font-medium transition-colors cursor-pointer',
     'disabled:opacity-50 disabled:cursor-not-allowed'
   );
 
   const inputClass = cn(
-    'w-full pl-11 pr-4 py-3 rounded-xl',
-    'bg-foreground/5 border border-foreground/10',
-    'text-foreground placeholder:text-foreground/50',
-    'focus:outline-none focus:border-foreground/20 focus:bg-foreground/10',
-    'transition-all duration-200'
+    'w-full pl-11 pr-4 py-2 rounded-md border border-line bg-paper',
+    'text-body text-ink placeholder:text-ink-faint',
+    'focus:outline-none focus:border-accent',
+    'transition-colors'
   );
 
   return (
@@ -175,242 +175,236 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
           <Dialog.Portal forceMount>
             <Dialog.Overlay asChild>
               <motion.div
-                className="fixed inset-0 bg-overlay/60 backdrop-blur-sm z-50"
+                className="fixed inset-0 bg-ink/20 z-50"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={modal}
               />
             </Dialog.Overlay>
 
             <Dialog.Content asChild>
               <motion.div
-                className="fixed inset-x-4 top-1/2 max-w-sm mx-auto z-50"
-                initial={{ opacity: 0, y: '-48%', scale: 0.96 }}
+                className="panel fixed inset-x-4 top-1/2 w-full max-w-md mx-auto p-6 z-50"
+                initial={{ opacity: 0, y: '-46%', scale: 0.97 }}
                 animate={{ opacity: 1, y: '-50%', scale: 1 }}
-                exit={{ opacity: 0, y: '-48%', scale: 0.96 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, y: '-46%', scale: 0.97 }}
+                transition={modal}
               >
-                <div className="glass-strong rounded-2xl shadow-2xl overflow-hidden">
-                  {/* Header */}
-                  <div className="relative px-6 pt-6 pb-4">
-                    <Dialog.Close
-                      className={cn(
-                        'absolute top-4 right-4 p-2 rounded-full cursor-pointer',
-                        'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
-                        'transition-all duration-200'
-                      )}
-                      aria-label="Fermer"
-                    >
-                      <X className="w-5 h-5" />
-                    </Dialog.Close>
+                {/* Header */}
+                <div className="relative">
+                  <Dialog.Close
+                    className={cn(
+                      'absolute top-0 right-0 p-2 rounded-full cursor-pointer',
+                      'text-ink-faint hover:text-ink hover:bg-paper-raised',
+                      'transition-colors'
+                    )}
+                    aria-label="Fermer"
+                  >
+                    <X className="w-5 h-5" />
+                  </Dialog.Close>
 
-                    {mode === 'forgot' && (
-                      <button
-                        type="button"
-                        onClick={() => switchTo('signin')}
-                        className={cn(
-                          'absolute top-4 left-4 p-2 rounded-full cursor-pointer',
-                          'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
-                          'transition-all duration-200'
-                        )}
-                        aria-label="Retour à la connexion"
-                      >
-                        <ArrowLeft className="w-5 h-5" />
-                      </button>
+                  {mode === 'forgot' && (
+                    <button
+                      type="button"
+                      onClick={() => switchTo('signin')}
+                      className={cn(
+                        'absolute top-0 left-0 p-2 rounded-full cursor-pointer',
+                        'text-ink-faint hover:text-ink hover:bg-paper-raised',
+                        'transition-colors'
+                      )}
+                      aria-label="Retour à la connexion"
+                    >
+                      <ArrowLeft className="w-5 h-5" />
+                    </button>
+                  )}
+
+                  <div className="text-center pt-2 pb-4">
+                    <Dialog.Title className="font-display text-title text-ink mb-1">
+                      {headerCopy.title}
+                    </Dialog.Title>
+                    <Dialog.Description className="text-body text-ink-soft">
+                      {headerCopy.desc}
+                    </Dialog.Description>
+                  </div>
+                </div>
+
+                {/* Body */}
+                {mode === 'verification-sent' ? (
+                  <VerificationSentBody email={pendingEmail} onClose={handleClose} />
+                ) : (
+                  <form
+                    onSubmit={(e) => {
+                      void handleSubmit(e);
+                    }}
+                    className="space-y-4"
+                  >
+                    {mode !== 'forgot' && mode !== 'reset-password' && (
+                      <>
+                        {/* OAuth */}
+                        <div className="space-y-2">
+                          <button
+                            type="button"
+                            onClick={() => void handleOAuth('google')}
+                            disabled={isLoading}
+                            className={oauthButtonClass}
+                          >
+                            <GoogleLogo className="w-5 h-5" />
+                            Continuer avec Google
+                          </button>
+                        </div>
+
+                        {/* Divider */}
+                        <div className="flex items-center gap-3 py-1">
+                          <div className="flex-1 h-px bg-line" />
+                          <span className="text-caption text-ink-faint uppercase tracking-wider">
+                            ou
+                          </span>
+                          <div className="flex-1 h-px bg-line" />
+                        </div>
+                      </>
                     )}
 
-                    <div className="text-center pt-2">
-                      <Dialog.Title className="text-xl font-medium text-foreground mb-1">
-                        {headerCopy.title}
-                      </Dialog.Title>
-                      <Dialog.Description className="text-sm text-foreground/50">
-                        {headerCopy.desc}
-                      </Dialog.Description>
-                    </div>
-                  </div>
-
-                  {/* Body */}
-                  {mode === 'verification-sent' ? (
-                    <VerificationSentBody email={pendingEmail} onClose={handleClose} />
-                  ) : (
-                    <form
-                      onSubmit={(e) => {
-                        void handleSubmit(e);
-                      }}
-                      className="px-6 pb-6 space-y-4"
-                    >
-                      {mode !== 'forgot' && mode !== 'reset-password' && (
-                        <>
-                          {/* OAuth */}
-                          <div className="space-y-2">
-                            <button
-                              type="button"
-                              onClick={() => void handleOAuth('google')}
-                              disabled={isLoading}
-                              className={oauthButtonClass}
-                            >
-                              <GoogleLogo className="w-5 h-5" />
-                              Continuer avec Google
-                            </button>
-                          </div>
-
-                          {/* Divider */}
-                          <div className="flex items-center gap-3 py-1">
-                            <div className="flex-1 h-px bg-foreground/10" />
-                            <span className="text-xs text-foreground/40 uppercase tracking-wider">
-                              ou
-                            </span>
-                            <div className="flex-1 h-px bg-foreground/10" />
-                          </div>
-                        </>
-                      )}
-
-                      {mode === 'signup' && (
-                        <div className="relative">
-                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40" />
-                          <input
-                            type="text"
-                            placeholder="Nom"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            required
-                            autoComplete="name"
-                            className={inputClass}
-                          />
-                        </div>
-                      )}
-
+                    {mode === 'signup' && (
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40" />
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
                         <input
-                          type="email"
-                          placeholder="Email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          type="text"
+                          placeholder="Nom"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
                           required
-                          autoComplete="email"
+                          autoComplete="name"
                           className={inputClass}
                         />
                       </div>
+                    )}
 
-                      {mode !== 'forgot' && (
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40" />
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder={
-                              mode === 'reset-password' ? 'Nouveau mot de passe' : 'Mot de passe'
-                            }
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            required
-                            minLength={6}
-                            autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                            className={cn(inputClass, 'pr-11')}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword((s) => !s)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-foreground/40 hover:text-foreground/70 transition-colors cursor-pointer"
-                            aria-label={
-                              showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
-                            }
-                            aria-pressed={showPassword}
-                            tabIndex={-1}
-                          >
-                            {showPassword ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+                      <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        autoComplete="email"
+                        className={inputClass}
+                      />
+                    </div>
+
+                    {mode !== 'forgot' && (
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder={
+                            mode === 'reset-password' ? 'Nouveau mot de passe' : 'Mot de passe'
+                          }
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          minLength={6}
+                          autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                          className={cn(inputClass, 'pr-11')}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((s) => !s)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-ink-faint hover:text-ink transition-colors cursor-pointer"
+                          aria-label={
+                            showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
+                          }
+                          aria-pressed={showPassword}
+                          tabIndex={-1}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                    {mode === 'reset-password' && (
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Confirmez le mot de passe"
+                          value={passwordConfirm}
+                          onChange={(e) => setPasswordConfirm(e.target.value)}
+                          required
+                          minLength={6}
+                          autoComplete="new-password"
+                          className={inputClass}
+                        />
+                      </div>
+                    )}
+
+                    {mode === 'signin' && (
+                      <div className="text-right -mt-2">
+                        <button
+                          type="button"
+                          onClick={() => switchTo('forgot')}
+                          className="text-caption text-accent hover:underline cursor-pointer"
+                        >
+                          Mot de passe oublié ?
+                        </button>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={isLoading}
+                      className={cn(
+                        'w-full py-2.5 rounded-md font-medium',
+                        'bg-accent text-on-accent hover:opacity-90',
+                        'transition-opacity cursor-pointer',
+                        'disabled:opacity-50 disabled:cursor-not-allowed',
+                        'flex items-center justify-center gap-2'
                       )}
-
-                      {mode === 'reset-password' && (
-                        <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40" />
-                          <input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="Confirmez le mot de passe"
-                            value={passwordConfirm}
-                            onChange={(e) => setPasswordConfirm(e.target.value)}
-                            required
-                            minLength={6}
-                            autoComplete="new-password"
-                            className={inputClass}
-                          />
-                        </div>
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Chargement...
+                        </>
+                      ) : mode === 'signin' ? (
+                        'Se connecter'
+                      ) : mode === 'signup' ? (
+                        "S'inscrire"
+                      ) : mode === 'forgot' ? (
+                        'Envoyer le lien'
+                      ) : (
+                        'Réinitialiser'
                       )}
+                    </button>
 
-                      {mode === 'signin' && (
-                        <div className="text-right -mt-2">
-                          <button
-                            type="button"
-                            onClick={() => switchTo('forgot')}
-                            className="text-xs text-foreground/50 hover:text-foreground transition-colors cursor-pointer"
-                          >
-                            Mot de passe oublié ?
-                          </button>
-                        </div>
-                      )}
-
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className={cn(
-                          'w-full py-3 rounded-xl font-medium',
-                          'bg-foreground/10 hover:bg-foreground/15 border border-foreground/10',
-                          'text-foreground transition-all duration-200 cursor-pointer',
-                          'disabled:opacity-50 disabled:cursor-not-allowed',
-                          'flex items-center justify-center gap-2'
-                        )}
-                      >
-                        {isLoading ? (
-                          <>
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                            Chargement...
-                          </>
-                        ) : mode === 'signin' ? (
-                          'Se connecter'
-                        ) : mode === 'signup' ? (
-                          "S'inscrire"
-                        ) : mode === 'forgot' ? (
-                          'Envoyer le lien'
-                        ) : (
-                          'Réinitialiser'
-                        )}
-                      </button>
-
-                      {mode !== 'forgot' && mode !== 'reset-password' && (
-                        <div className="text-center pt-2">
-                          <button
-                            type="button"
-                            onClick={() => switchTo(mode === 'signin' ? 'signup' : 'signin')}
-                            className="text-sm text-foreground/50 hover:text-foreground transition-all duration-200 cursor-pointer"
-                          >
-                            {mode === 'signin' ? (
-                              <>
-                                Pas encore de compte ?{' '}
-                                <span className="text-foreground/70 hover:text-foreground">
-                                  S&apos;inscrire
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                Déjà un compte ?{' '}
-                                <span className="text-foreground/70 hover:text-foreground">
-                                  Se connecter
-                                </span>
-                              </>
-                            )}
-                          </button>
-                        </div>
-                      )}
-                    </form>
-                  )}
-                </div>
+                    {mode !== 'forgot' && mode !== 'reset-password' && (
+                      <div className="text-center pt-2">
+                        <button
+                          type="button"
+                          onClick={() => switchTo(mode === 'signin' ? 'signup' : 'signin')}
+                          className="text-body text-ink-soft cursor-pointer"
+                        >
+                          {mode === 'signin' ? (
+                            <>
+                              Pas encore de compte ?{' '}
+                              <span className="text-accent hover:underline">S&apos;inscrire</span>
+                            </>
+                          ) : (
+                            <>
+                              Déjà un compte ?{' '}
+                              <span className="text-accent hover:underline">Se connecter</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </form>
+                )}
               </motion.div>
             </Dialog.Content>
           </Dialog.Portal>
@@ -426,25 +420,24 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
 
 function VerificationSentBody({ email, onClose }: { email: string; onClose: () => void }) {
   return (
-    <div className="px-6 pb-6 space-y-4 text-center">
+    <div className="space-y-4 text-center">
       <div className="mx-auto w-14 h-14 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center">
         <MailCheck className="w-7 h-7 text-accent" />
       </div>
-      <p className="text-sm text-foreground/70">
-        Un email a été envoyé à{' '}
-        <span className="text-foreground font-medium break-all">{email}</span>. Cliquez sur le lien
-        pour activer votre compte.
+      <p className="text-body text-ink-soft">
+        Un email a été envoyé à <span className="text-ink font-medium break-all">{email}</span>.
+        Cliquez sur le lien pour activer votre compte.
       </p>
-      <p className="text-xs text-foreground/40">
+      <p className="text-caption text-ink-faint">
         Pas reçu ? Vérifiez vos spams. Le lien expire dans 24 h.
       </p>
       <button
         type="button"
         onClick={onClose}
         className={cn(
-          'w-full py-3 rounded-xl font-medium',
-          'bg-foreground/10 hover:bg-foreground/15 border border-foreground/10',
-          'text-foreground transition-all duration-200 cursor-pointer'
+          'w-full py-2.5 rounded-md font-medium',
+          'border border-line text-ink hover:bg-paper-raised',
+          'transition-colors cursor-pointer'
         )}
       >
         J&apos;ai compris

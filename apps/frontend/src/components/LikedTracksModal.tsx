@@ -28,6 +28,7 @@ import {
   DropdownMenuSeparator,
 } from './ui/DropdownMenu';
 import { toast } from 'sonner';
+import { modal } from './Player/motion-presets';
 
 // ─────────────────────────────────────────────
 // Types
@@ -67,7 +68,7 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
       className={cn('group flex items-center gap-3 py-2', isDeleting && 'opacity-50')}
     >
       {/* Artwork */}
-      <div className="w-10 h-10 rounded overflow-hidden shrink-0 bg-foreground/5 flex items-center justify-center">
+      <div className="w-10 h-10 rounded-sm overflow-hidden shrink-0 bg-paper-raised flex items-center justify-center">
         {artwork ? (
           <img
             src={artwork}
@@ -79,14 +80,14 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
             onError={() => setImgError(true)}
           />
         ) : (
-          <Music className="w-5 h-5 text-foreground/30" />
+          <Music className="w-5 h-5 text-ink-faint" />
         )}
       </div>
 
       {/* Track info */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm text-foreground truncate">{track.title}</p>
-        <p className="text-xs text-foreground/50 truncate">{track.artist}</p>
+        <p className="text-body text-ink truncate">{track.title}</p>
+        <p className="text-caption text-ink-soft truncate">{track.artist}</p>
       </div>
 
       {/* Actions - always visible */}
@@ -97,8 +98,8 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           rel="noopener noreferrer"
           className={cn(
             'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer',
-            'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
-            'transition-all duration-200'
+            'text-ink-faint hover:text-ink hover:bg-paper-raised',
+            'transition-colors'
           )}
           title={
             isSearch
@@ -114,8 +115,8 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           disabled={isDeleting}
           className={cn(
             'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center',
-            'text-foreground/40 hover:text-danger hover:bg-foreground/10',
-            'transition-all duration-200',
+            'text-ink-faint hover:text-danger hover:bg-paper-raised',
+            'transition-colors',
             'opacity-0 group-hover:opacity-100',
             isDeleting ? 'cursor-not-allowed !opacity-100' : 'cursor-pointer'
           )}
@@ -147,12 +148,12 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
         <button
           className={cn(
             'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
-            'bg-foreground/5 hover:bg-foreground/10 border border-foreground/10',
-            'transition-all duration-200 text-sm'
+            'border border-line text-ink hover:bg-paper-raised',
+            'transition-colors text-caption'
           )}
           aria-label="Sélectionner la plateforme préférée"
         >
-          <span className="text-foreground/60">{selectedPlatform?.name}</span>
+          <span className="text-ink-soft">{selectedPlatform?.name}</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="end" className="w-44 max-h-[280px] overflow-y-auto">
@@ -160,7 +161,7 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
           <DropdownMenuItem
             key={platform.id}
             onSelect={() => onChange(platform.id)}
-            className={cn(selected === platform.id && 'bg-foreground/10 !text-foreground')}
+            className={cn(selected === platform.id && 'bg-paper-raised !text-ink')}
           >
             {platform.name}
           </DropdownMenuItem>
@@ -177,11 +178,11 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-foreground/5 flex items-center justify-center mb-4">
-        <Library className="w-8 h-8 text-foreground/30" />
+      <div className="w-16 h-16 rounded-lg bg-paper-raised flex items-center justify-center mb-4">
+        <Library className="w-8 h-8 text-ink-faint" />
       </div>
-      <p className="text-sm text-foreground/50 mb-1">Aucune découverte sauvegardée</p>
-      <p className="text-xs text-foreground/50 max-w-[200px]">
+      <p className="text-body text-ink-soft mb-1">Aucune découverte sauvegardée</p>
+      <p className="text-caption text-ink-faint max-w-[200px]">
         Appuyez sur ♥ sur une pochette pour sauvegarder un morceau
       </p>
     </div>
@@ -207,8 +208,8 @@ function OverflowMenu({
         <button
           className={cn(
             'p-2 rounded-full cursor-pointer',
-            'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
-            'transition-all duration-200'
+            'text-ink-faint hover:text-ink hover:bg-paper-raised',
+            'transition-colors'
           )}
           aria-label="Plus d'options"
           title="Plus d'options"
@@ -291,94 +292,92 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
           <Dialog.Portal forceMount>
             <Dialog.Overlay asChild>
               <motion.div
-                className="fixed inset-0 bg-overlay/60 backdrop-blur-sm z-50"
+                className="fixed inset-0 bg-ink/20 z-50"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={modal}
               />
             </Dialog.Overlay>
 
             <Dialog.Content asChild>
               <motion.div
-                className="fixed inset-x-4 top-1/2 max-w-md mx-auto z-50"
-                initial={{ opacity: 0, y: '-48%', scale: 0.96 }}
+                className="panel fixed inset-x-4 top-1/2 w-full max-w-lg mx-auto p-6 z-50 max-h-[70vh] flex flex-col"
+                initial={{ opacity: 0, y: '-46%', scale: 0.97 }}
                 animate={{ opacity: 1, y: '-50%', scale: 1 }}
-                exit={{ opacity: 0, y: '-48%', scale: 0.96 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, y: '-46%', scale: 0.97 }}
+                transition={modal}
               >
-                <div className="glass-strong rounded-2xl shadow-2xl overflow-hidden max-h-[70vh] flex flex-col">
-                  {/* Header */}
-                  <div className="px-5 pt-5 pb-4 shrink-0 border-b border-foreground/10">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-foreground/5 flex items-center justify-center">
-                          <Library className="w-5 h-5 text-foreground/60" />
-                        </div>
-                        <div>
-                          <Dialog.Title className="text-lg font-medium text-foreground">
-                            Mes découvertes
-                          </Dialog.Title>
-                          <Dialog.Description className="text-xs text-foreground/40">
-                            {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
-                          </Dialog.Description>
-                        </div>
+                {/* Header */}
+                <div className="shrink-0 pb-4 border-b border-line">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-md bg-paper-raised flex items-center justify-center">
+                        <Library className="w-5 h-5 text-ink-soft" />
                       </div>
-
-                      <div className="flex items-center gap-1">
-                        {tracks.length > 0 && (
-                          <OverflowMenu
-                            tracks={tracks}
-                            isRefreshing={isRefreshing}
-                            onRefresh={handleRefreshAll}
-                          />
-                        )}
-                        <Dialog.Close
-                          className={cn(
-                            'p-2 rounded-full cursor-pointer',
-                            'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
-                            'transition-all duration-200'
-                          )}
-                          aria-label="Fermer"
-                        >
-                          <X className="w-5 h-5" />
-                        </Dialog.Close>
+                      <div>
+                        <Dialog.Title className="font-display text-title text-ink">
+                          Mes découvertes
+                        </Dialog.Title>
+                        <Dialog.Description className="text-caption text-ink-faint">
+                          {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
+                        </Dialog.Description>
                       </div>
                     </div>
 
-                    {/* Platform selector */}
-                    {tracks.length > 0 && (
-                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-foreground/5">
-                        <span className="text-xs text-foreground/40">Ouvrir avec</span>
-                        <PlatformSelector
-                          selected={preferredPlatform}
-                          onChange={handleUpdatePlatform}
+                    <div className="flex items-center gap-1">
+                      {tracks.length > 0 && (
+                        <OverflowMenu
+                          tracks={tracks}
+                          isRefreshing={isRefreshing}
+                          onRefresh={handleRefreshAll}
                         />
-                      </div>
-                    )}
+                      )}
+                      <Dialog.Close
+                        className={cn(
+                          'p-2 rounded-full cursor-pointer',
+                          'text-ink-faint hover:text-ink hover:bg-paper-raised',
+                          'transition-colors'
+                        )}
+                        aria-label="Fermer"
+                      >
+                        <X className="w-5 h-5" />
+                      </Dialog.Close>
+                    </div>
                   </div>
 
-                  {/* Content */}
-                  <div className="flex-1 overflow-y-auto px-5 py-4 overscroll-contain">
-                    {isLoading ? (
-                      <div className="flex items-center justify-center py-12">
-                        <div className="w-8 h-8 rounded-full border-2 border-foreground/10 border-t-foreground/50 animate-spin" />
-                      </div>
-                    ) : tracks.length === 0 ? (
-                      <EmptyState />
-                    ) : (
-                      <div className="divide-y divide-foreground/5" role="list">
-                        {sortedTracks.map((track) => (
-                          <TrackItem
-                            key={track.id}
-                            track={track}
-                            preferredPlatform={preferredPlatform}
-                            onDelete={handleUnlikeTrack}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  {/* Platform selector */}
+                  {tracks.length > 0 && (
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-line">
+                      <span className="text-caption text-ink-faint">Ouvrir avec</span>
+                      <PlatformSelector
+                        selected={preferredPlatform}
+                        onChange={handleUpdatePlatform}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto py-4 overscroll-contain">
+                  {isLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <div className="w-8 h-8 rounded-full border-2 border-line border-t-ink-soft animate-spin" />
+                    </div>
+                  ) : tracks.length === 0 ? (
+                    <EmptyState />
+                  ) : (
+                    <div className="divide-y divide-line" role="list">
+                      {sortedTracks.map((track) => (
+                        <TrackItem
+                          key={track.id}
+                          track={track}
+                          preferredPlatform={preferredPlatform}
+                          onDelete={handleUnlikeTrack}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             </Dialog.Content>
