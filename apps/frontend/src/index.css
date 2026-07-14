@@ -42,7 +42,7 @@
 /* Dérivés — jamais redéfinis par moment, toujours calculés */
 :root,
 [data-moment] {
-  --ink-soft: color-mix(in srgb, var(--ink) 62%, var(--paper));
+  --ink-soft: color-mix(in srgb, var(--ink) 75%, var(--paper));
   --ink-faint: color-mix(in srgb, var(--ink) 63%, var(--paper));
   --line: color-mix(in srgb, var(--ink) 16%, transparent);
   --paper-raised: color-mix(in srgb, var(--ink) 4%, var(--paper));
