@@ -1,13 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { array, safeParse } from 'valibot';
 import { SongEntrySchema, useNowPlayingStore, type SongEntry } from '../lib/azuracast';
-import { dedupeBySongId } from '../lib/dayTimeline';
+import { takeRecent } from '../lib/recentTracks';
 import { API_BASE_URL } from '../utils/config';
 
 const HistoryResponseSchema = array(SongEntrySchema);
-const DAY_SECONDS = 24 * 60 * 60;
 
-export function useDayHistory(): {
+export function useRecentHistory(): {
   entries: SongEntry[];
   isLoading: boolean;
   error: string | null;
@@ -20,7 +19,7 @@ export function useDayHistory(): {
   useEffect(() => {
     const controller = new AbortController();
 
-    fetch(`${API_BASE_URL}/api/radio/history?rows=120`, {
+    fetch(`${API_BASE_URL}/api/radio/history?rows=24`, {
       signal: controller.signal,
       headers: { Accept: 'application/json' },
     })
@@ -43,13 +42,10 @@ export function useDayHistory(): {
     return () => controller.abort();
   }, []);
 
-  const entries = useMemo(() => {
-    const all = dedupeBySongId([...(liveSongHistory ?? []), ...fetched]);
-    if (all.length === 0) return all;
-    const newest = Math.max(...all.map((e) => e.played_at));
-    const cutoff = newest - DAY_SECONDS;
-    return all.filter((e) => e.played_at >= cutoff);
-  }, [liveSongHistory, fetched]);
+  const entries = useMemo(
+    () => takeRecent([...(liveSongHistory ?? []), ...fetched], 8),
+    [liveSongHistory, fetched]
+  );
 
   return { entries, isLoading, error };
 }
