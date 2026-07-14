@@ -19,7 +19,7 @@
   /* Aube — papier crème rosé, encre brune, accent corail doux */
   --paper: hsl(28 60% 94%);
   --ink: hsl(22 32% 11%);
-  --accent: hsl(12 62% 46%);
+  --accent: hsl(12 62% 42%);
   --on-accent: hsl(28 60% 96%);
 }
 
@@ -35,7 +35,7 @@
   /* Crépuscule — ivoire ambré, encre chaude, accent terracotta */
   --paper: hsl(36 48% 92%);
   --ink: hsl(18 34% 11%);
-  --accent: hsl(16 70% 44%);
+  --accent: hsl(16 70% 40%);
   --on-accent: hsl(36 48% 96%);
 }
 
@@ -43,7 +43,7 @@
 :root,
 [data-moment] {
   --ink-soft: color-mix(in srgb, var(--ink) 62%, var(--paper));
-  --ink-faint: color-mix(in srgb, var(--ink) 38%, var(--paper));
+  --ink-faint: color-mix(in srgb, var(--ink) 63%, var(--paper));
   --line: color-mix(in srgb, var(--ink) 16%, transparent);
   --paper-raised: color-mix(in srgb, var(--ink) 4%, var(--paper));
 }

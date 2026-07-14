@@ -126,10 +126,10 @@ export default function Layout({ children }: LayoutProps) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2">
-                  <p className="text-sm font-medium text-ink truncate">
+                  <p className="text-body font-medium text-ink truncate">
                     {user.name || 'Utilisateur'}
                   </p>
-                  <p className="text-xs text-ink-soft truncate">{user.email}</p>
+                  <p className="text-caption text-ink-soft truncate">{user.email}</p>
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem intent="danger" onSelect={() => void signOut()}>

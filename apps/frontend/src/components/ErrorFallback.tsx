@@ -22,10 +22,7 @@ interface ModalErrorFallbackProps extends FallbackProps {
 
 export function ModalErrorFallback({ onClose }: ModalErrorFallbackProps) {
   return (
-    <div
-      role="alert"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/60"
-    >
+    <div role="alert" className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/20">
       <div className="panel p-6 text-center max-w-sm w-full mx-4">
         <p className="font-display text-title text-ink">Une erreur est survenue.</p>
         <p className="mt-2 text-body text-ink-soft">

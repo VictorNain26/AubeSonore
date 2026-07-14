@@ -42,7 +42,7 @@ export function SleepTimer() {
         >
           <Moon className="w-5 h-5" />
           {isActive && mode === 'timer' && (
-            <span className="absolute -top-1 -right-2 min-w-[18px] px-1 text-[10px] font-medium tabular-nums text-accent">
+            <span className="absolute -top-1 -right-2 min-w-[18px] px-1 text-caption font-medium tabular-nums text-accent">
               {formatCountdown(remainingMs)}
             </span>
           )}

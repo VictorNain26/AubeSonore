@@ -67,9 +67,9 @@ export const RailCard = memo(function RailCard({
           </button>
         </div>
       </div>
-      <p className="mt-1.5 truncate text-xs text-ink">{entry.song.title}</p>
-      <p className="truncate text-[11px] text-ink-soft">{entry.song.artist}</p>
-      <p className="text-[10px] text-ink-faint">
+      <p className="mt-1.5 truncate text-body text-ink">{entry.song.title}</p>
+      <p className="truncate text-caption text-ink-soft">{entry.song.artist}</p>
+      <p className="text-caption text-ink-faint">
         {timeFormatter.format(new Date(entry.played_at * 1000))}
       </p>
     </div>
