@@ -47,36 +47,45 @@ export function RecentRail() {
     const el = railRef.current;
     if (!el || prefersReduced) return;
 
-    let dragging = false;
+    let tracking = false;
+    let captured = false;
     let pointerId: number | null = null;
     let lastX = 0;
     let totalMoved = 0;
 
     const onPointerDown = (e: PointerEvent) => {
       if (e.pointerType !== 'mouse' || e.button !== 0) return;
-      dragging = true;
+      tracking = true;
+      captured = false;
       pointerId = e.pointerId;
       lastX = e.clientX;
       totalMoved = 0;
-      el.setPointerCapture(e.pointerId);
-      setIsDragging(true);
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (!dragging || e.pointerId !== pointerId) return;
+      if (!tracking || e.pointerId !== pointerId) return;
       const dx = e.clientX - lastX;
       lastX = e.clientX;
       totalMoved += Math.abs(dx);
+      if (!captured) {
+        if (totalMoved <= 5) return;
+        captured = true;
+        el.setPointerCapture(e.pointerId);
+        suppressNextClickRef.current = true;
+        setIsDragging(true);
+      }
       el.scrollLeft -= dx;
     };
 
     const endDrag = (e: PointerEvent) => {
-      if (!dragging || e.pointerId !== pointerId) return;
-      dragging = false;
-      if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+      if (!tracking || e.pointerId !== pointerId) return;
+      tracking = false;
       pointerId = null;
-      if (totalMoved > 5) suppressNextClickRef.current = true;
-      setIsDragging(false);
+      if (captured) {
+        captured = false;
+        if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+        setIsDragging(false);
+      }
     };
 
     el.addEventListener('pointerdown', onPointerDown);
