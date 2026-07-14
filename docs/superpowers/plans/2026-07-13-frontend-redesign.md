@@ -27,12 +27,14 @@
 ### Task 1: Branch setup + remove push notifications
 
 **Files:**
+
 - Delete: `apps/frontend/src/hooks/usePushNotifications.ts`, `apps/frontend/src/hooks/usePushNotifications.test.ts`, `apps/frontend/src/components/NotificationBanner.tsx`, `apps/frontend/src/components/NotificationBanner.test.tsx`
 - Modify: `apps/frontend/src/App.tsx` (drop `<NotificationBanner/>` + its import)
 - Modify: `apps/frontend/src/sw.ts` (drop `push` and `notificationclick` listeners, ~lines 57–99)
 - Modify: `apps/frontend/src/mocks/handlers.ts` (drop the three `/api/push/*` handlers)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `bannerSlotStore` keeps only the `'pwa'` consumer (do NOT delete `src/stores/bannerSlotStore.ts` — `PWAInstallBanner` uses it).
 
@@ -67,6 +69,7 @@ git add -A apps/frontend/src && git commit -m "feat(frontend): remove push notif
 ### Task 2: Remove listening stats
 
 **Files:**
+
 - Delete: `apps/frontend/src/components/StatsModal.tsx`, `apps/frontend/src/stores/statsStore.ts`, `apps/frontend/src/hooks/player/useListeningTimeTracker.ts`
 - Modify: `apps/frontend/src/layout/Layout.tsx` (drop Stats button, `isStatsOpen` state, lazy import, `BarChart3` icon import)
 - Modify: `apps/frontend/src/components/AuthInit.tsx` (drop `useStatsStore.getState().syncFromServer()` call + import)
@@ -75,6 +78,7 @@ git add -A apps/frontend/src && git commit -m "feat(frontend): remove push notif
 - Modify: `apps/frontend/src/lib/api.ts` (drop `statsApi` export), `apps/frontend/src/mocks/handlers.ts` (drop `/api/stats` handlers), `apps/frontend/vitest.config.ts` (drop `statsStore` coverage exclude)
 
 **Interfaces:**
+
 - Consumes: nothing.
 - Produces: `useTrackChangeEvents(shId, artist, title)` keeps its exact signature (PlayerSideEffects continues to call it) but no longer records stats. `@aubesonore/core/stats` and `@aubesonore/shared-types/stats` are NOT deleted (mobile consumes them).
 
@@ -94,6 +98,7 @@ git add -A apps/frontend && git commit -m "feat(frontend): remove listening stat
 ### Task 3: Replace satori share cards with Web Share API
 
 **Files:**
+
 - Delete: `apps/frontend/src/components/ShareCard/` (ShareButton.tsx, ShareCardRenderer.tsx), `apps/frontend/src/lib/shareUtils.ts`
 - Create: `apps/frontend/src/lib/shareTrack.ts`
 - Test: `apps/frontend/src/lib/shareTrack.test.ts`
@@ -102,6 +107,7 @@ git add -A apps/frontend && git commit -m "feat(frontend): remove listening stat
 - Modify: `apps/frontend/package.json` (remove `satori`, `@resvg/resvg-wasm`; KEEP `@fontsource/inter` — Task 9 starts importing it globally)
 
 **Interfaces:**
+
 - Consumes: `getTrackShareUrl`, `buildShareText` from `@aubesonore/core/share` (existing, satori-free).
 - Produces: `shareTrack(input: { title: string; artist: string; url: string; momentLabel: string }): Promise<'shared' | 'copied'>` — uses `navigator.share` when available, else `navigator.clipboard.writeText`, text format `«${title} — ${artist}», découvert ${momentLabel} sur AubeSonore ${url}`. Task 5 provides `MOMENT_SHARE_PHRASES` and Task 12 wires it in; until then TrackArtwork passes the neutral phrase `'à l'instant'`.
 
@@ -112,7 +118,12 @@ git add -A apps/frontend && git commit -m "feat(frontend): remove listening stat
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { shareTrack } from './shareTrack';
 
-const input = { title: 'Balance Act', artist: 'Psychic Lines', url: 'https://aubesonore.fr', momentLabel: "à l'aube" };
+const input = {
+  title: 'Balance Act',
+  artist: 'Psychic Lines',
+  url: 'https://aubesonore.fr',
+  momentLabel: "à l'aube",
+};
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -133,7 +144,7 @@ describe('shareTrack', () => {
     vi.stubGlobal('navigator', { clipboard: { writeText } });
     await expect(shareTrack(input)).resolves.toBe('copied');
     expect(writeText).toHaveBeenCalledWith(
-      "« Balance Act — Psychic Lines », découvert à l'aube sur AubeSonore https://aubesonore.fr",
+      "« Balance Act — Psychic Lines », découvert à l'aube sur AubeSonore https://aubesonore.fr"
     );
   });
 
@@ -157,7 +168,12 @@ interface ShareTrackInput {
   momentLabel: string;
 }
 
-export async function shareTrack({ title, artist, url, momentLabel }: ShareTrackInput): Promise<'shared' | 'copied'> {
+export async function shareTrack({
+  title,
+  artist,
+  url,
+  momentLabel,
+}: ShareTrackInput): Promise<'shared' | 'copied'> {
   const text = `« ${title} — ${artist} », découvert ${momentLabel} sur AubeSonore`;
   if (typeof navigator.share === 'function') {
     try {
@@ -180,10 +196,12 @@ export async function shareTrack({ title, artist, url, momentLabel }: ShareTrack
 ### Task 4: Migrate framer-motion → motion
 
 **Files:**
+
 - Modify: every file importing `framer-motion` (13 after Tasks 1–2 removed NotificationBanner/StatsModal): `components/AboutModal.tsx`, `AuthModal.tsx`, `LikedTracksModal.tsx`, `PWAInstallBanner.tsx`, `Player/TrackArtwork.tsx`, `Player/TrackMeta.tsx`, `Player/PlaybackControls.tsx`, `Player/ListenersBadge.tsx`, `Player/ArtistContext.tsx`, `Player/FullHistoryModal.tsx`, `Player/HistoryList.tsx`, `Player/motion-presets.ts`
 - Modify: `apps/frontend/package.json` (remove `framer-motion`, add `motion@^12`), `apps/frontend/vite.config.ts` (`manualChunks`: chunk test `framer-motion` → `motion`)
 
 **Interfaces:**
+
 - Produces: all animation imports come from `'motion/react'` (`import { motion, AnimatePresence } from 'motion/react'`; types like `Transition` from `'motion/react'`). `motion-presets.ts` exports (`trackFlip`, `toggle`, `dataTick`) unchanged.
 
 - [ ] **Step 1:** `pnpm --filter @aubesonore/frontend remove framer-motion && pnpm --filter @aubesonore/frontend add motion`
@@ -198,20 +216,22 @@ export async function shareTrack({ title, artist, url, momentLabel }: ShareTrack
 ### Task 5: `lib/moments.ts` — pure moment logic
 
 **Files:**
+
 - Create: `apps/frontend/src/lib/moments.ts`
 - Test: `apps/frontend/src/lib/moments.test.ts`
 
 **Interfaces:**
+
 - Produces (exact — later tasks depend on these names):
 
 ```ts
 export type Moment = 'dawn' | 'day' | 'dusk' | 'night';
 export const MOMENT_BOUNDS: Record<Moment, { start: number; end: number }>; // hours, night = {start:22,end:5}
-export const MOMENT_LABELS: Record<Moment, string>;       // Aube, Jour, Crépuscule, Nuit
+export const MOMENT_LABELS: Record<Moment, string>; // Aube, Jour, Crépuscule, Nuit
 export const MOMENT_SHARE_PHRASES: Record<Moment, string>; // à l'aube, en journée, au crépuscule, dans la nuit
-export const MOMENT_ORDER: Moment[];                        // ['dawn','day','dusk','night']
+export const MOMENT_ORDER: Moment[]; // ['dawn','day','dusk','night']
 export function getMoment(date: Date): Moment;
-export function nextBoundary(date: Date): Date;             // next moment switch, local time
+export function nextBoundary(date: Date): Date; // next moment switch, local time
 ```
 
 - [ ] **Step 1: Write the failing tests**
@@ -225,8 +245,15 @@ const at = (h: number, m = 0) => new Date(2026, 6, 13, h, m);
 
 describe('getMoment', () => {
   it.each([
-    [5, 'dawn'], [8, 'dawn'], [9, 'day'], [16, 'day'],
-    [17, 'dusk'], [21, 'dusk'], [22, 'night'], [0, 'night'], [4, 'night'],
+    [5, 'dawn'],
+    [8, 'dawn'],
+    [9, 'day'],
+    [16, 'day'],
+    [17, 'dusk'],
+    [21, 'dusk'],
+    [22, 'night'],
+    [0, 'night'],
+    [4, 'night'],
   ] as const)('%ih → %s', (h, expected) => {
     expect(getMoment(at(h))).toBe(expected);
   });
@@ -268,11 +295,17 @@ export const MOMENT_BOUNDS: Record<Moment, { start: number; end: number }> = {
 };
 
 export const MOMENT_LABELS: Record<Moment, string> = {
-  dawn: 'Aube', day: 'Jour', dusk: 'Crépuscule', night: 'Nuit',
+  dawn: 'Aube',
+  day: 'Jour',
+  dusk: 'Crépuscule',
+  night: 'Nuit',
 };
 
 export const MOMENT_SHARE_PHRASES: Record<Moment, string> = {
-  dawn: "à l'aube", day: 'en journée', dusk: 'au crépuscule', night: 'dans la nuit',
+  dawn: "à l'aube",
+  day: 'en journée',
+  dusk: 'au crépuscule',
+  night: 'dans la nuit',
 };
 
 export const MOMENT_ORDER: Moment[] = ['dawn', 'day', 'dusk', 'night'];
@@ -305,11 +338,13 @@ export function nextBoundary(date: Date): Date {
 ### Task 6: `useMoment()` hook + `data-moment` on `<html>`
 
 **Files:**
+
 - Create: `apps/frontend/src/hooks/useMoment.ts`
 - Test: `apps/frontend/src/hooks/useMoment.test.ts`
 - Modify: `apps/frontend/src/App.tsx` (mount a `<MomentRoot/>`-style null component or call the hook in App)
 
 **Interfaces:**
+
 - Consumes: `getMoment`, `nextBoundary` from `lib/moments`.
 - Produces: `export function useMoment(): Moment` — returns current moment, re-renders at each boundary; side effect sets `document.documentElement.dataset.moment`. Single `setTimeout` to `nextBoundary`; recompute on `visibilitychange` (background tabs throttle timers).
 
@@ -389,10 +424,12 @@ export function useMoment(): Moment {
 ### Task 7: Moment design tokens in `index.css`
 
 **Files:**
+
 - Modify: `apps/frontend/src/index.css`
 - Delete: `apps/frontend/tailwind.config.js` (stale — references CSS vars that don't exist; Tailwind 4 runs off `@theme`)
 
 **Interfaces:**
+
 - Produces CSS custom properties consumed by Tasks 8/10/12/15: per-moment `--sky-1`, `--sky-2`, `--sky-3` (gradient stops), `--halo` (sun/moon color), `--color-accent` override. Default (`:root`) = night values; `[data-moment='…']` overrides for the other three.
 
 - [ ] **Step 1:** Add to `index.css` (keep the existing `@theme` block; add `--color-accent` var indirection):
@@ -445,10 +482,12 @@ In the `@theme` block, change `--color-accent: hsl(270 60% 60%);` to `--color-ac
 ### Task 8: `SkyBackground` — static generative sky (CSS only)
 
 **Files:**
+
 - Create: `apps/frontend/src/components/Sky/SkyBackground.tsx`, `apps/frontend/src/components/Sky/sky.css`
 - Modify: `apps/frontend/src/layout/Layout.tsx` (replace `aurora-bg` class with `<SkyBackground/>` as first child), `apps/frontend/src/index.css` (remove `.aurora-bg`)
 
 **Interfaces:**
+
 - Consumes: tokens from Task 7.
 - Produces: `export function SkyBackground(): JSX.Element` — `fixed inset-0 -z-10`, three stacked layers: (1) `.sky-gradient` using `linear-gradient(to top, var(--sky-3), var(--sky-2) 45%, var(--sky-1))`; (2) `.sky-halo` — radial gradient disc (`var(--halo)`) positioned by CSS vars `--halo-x`/`--halo-y` (percentages) that the component computes from the current hour (arc across the sky: 5h→22h maps x 8%→92%, y follows a sine; night pins the moon high-left) and refreshes every 5 min via one `setInterval`; (3) `.sky-grain` — a tiny inline SVG turbulence data-URI at ~4% opacity, `mix-blend-mode: overlay`. Exposes `id="sky-root"` for GSAP (Tasks 9/16).
 
@@ -512,7 +551,11 @@ export function SkyBackground() {
 .sky-halo {
   position: absolute;
   inset: -20%;
-  background: radial-gradient(circle at var(--halo-x) var(--halo-y), var(--halo) 0%, transparent 26%);
+  background: radial-gradient(
+    circle at var(--halo-x) var(--halo-y),
+    var(--halo) 0%,
+    transparent 26%
+  );
   opacity: 0.5;
   filter: blur(24px);
 }
@@ -531,10 +574,12 @@ export function SkyBackground() {
 ### Task 9: GSAP choreography — light rises on load & at moment switches
 
 **Files:**
+
 - Create: `apps/frontend/src/components/Sky/useSkyChoreography.ts`
 - Modify: `apps/frontend/src/components/Sky/SkyBackground.tsx` (call the hook), `apps/frontend/package.json` (add `gsap`, `@gsap/react`)
 
 **Interfaces:**
+
 - Consumes: `useMoment()` (Task 6), `#sky-root` DOM (Task 8).
 - Produces: `export function useSkyChoreography(ref: React.RefObject<HTMLElement | null>): void` — (a) intro timeline once on mount: halo rises from below (`yPercent: 18 → 0`, `opacity: 0 → 0.5`, gradient layer fades in, ~2.4 s, `power2.out`); (b) on `moment` change: brief light swell (halo `opacity` to 0.75 and back over 2 s) layered on the CSS gradient transition. Both no-op to a plain 300 ms fade when `window.matchMedia('(prefers-reduced-motion: reduce)').matches`.
 
@@ -569,7 +614,12 @@ export function useSkyChoreography(ref: React.RefObject<HTMLElement | null>): vo
         gsap
           .timeline({ defaults: { ease: 'power2.out' } })
           .fromTo(gradient, { opacity: 0 }, { opacity: 1, duration: 1.6 }, 0)
-          .fromTo(halo, { yPercent: 18, opacity: 0 }, { yPercent: 0, opacity: 0.5, duration: 2.4 }, 0.3);
+          .fromTo(
+            halo,
+            { yPercent: 18, opacity: 0 },
+            { yPercent: 0, opacity: 0.5, duration: 2.4 },
+            0.3
+          );
         return;
       }
       if (reduced()) return;
@@ -578,7 +628,7 @@ export function useSkyChoreography(ref: React.RefObject<HTMLElement | null>): vo
         .to(halo, { opacity: 0.75, duration: 1, ease: 'sine.inOut' })
         .to(halo, { opacity: 0.5, duration: 1, ease: 'sine.inOut' });
     },
-    { dependencies: [moment], scope: ref },
+    { dependencies: [moment], scope: ref }
   );
 }
 ```
@@ -591,10 +641,12 @@ Rework `SkyBackground` to hold a `useRef<HTMLDivElement>(null)` on the root div 
 ### Task 10: Cover tint — rework `AmbientBackground`
 
 **Files:**
+
 - Modify: `apps/frontend/src/components/AmbientBackground.tsx` → rename file/export to `apps/frontend/src/components/Sky/CoverTint.tsx`
 - Modify: `apps/frontend/src/pages/HomePage.tsx` (drop `<AmbientBackground/>`), `apps/frontend/src/layout/Layout.tsx` (mount `<CoverTint/>` right after `<SkyBackground/>`)
 
 **Interfaces:**
+
 - Consumes: `useNowPlayingStore`, `isDefaultArtwork` (existing), sky layer beneath.
 - Produces: `export function CoverTint(): JSX.Element | null` — keeps the preload discipline of the current component verbatim; changes: downscale the artwork through an offscreen canvas to ≤ 64 px before display (`drawImage` to a 64×64 canvas, `toDataURL`), render as `fixed inset-0 object-cover scale-150 blur-[40px] opacity-25 mix-blend-soft-light pointer-events-none transition-opacity duration-1000`. No overlay div anymore (the sky provides depth). Returns null on default/missing cover — the sky alone carries the atmosphere.
 
@@ -605,9 +657,11 @@ Rework `SkyBackground` to hold a `useRef<HTMLDivElement>(null)` on the root div 
 ### Task 11: Typography — Inter global + Fraunces display + wordmark
 
 **Files:**
+
 - Modify: `apps/frontend/package.json` (add `@fontsource-variable/fraunces`), `apps/frontend/src/main.tsx` (font imports), `apps/frontend/src/index.css` (`@theme` font tokens + base body rule), `apps/frontend/src/layout/Layout.tsx` (wordmark + moment styling)
 
 **Interfaces:**
+
 - Produces: `--font-sans: 'Inter', system-ui, sans-serif` (the repo has static `@fontsource/inter` — import weights 400/500/600 via `@fontsource/inter/400.css` etc.) and `--font-display: 'Fraunces Variable', Georgia, serif`. Tailwind exposes `font-sans`/`font-display`.
 
 - [ ] **Step 1:** `pnpm --filter @aubesonore/frontend add @fontsource-variable/fraunces`
@@ -628,12 +682,14 @@ In `index.css` `@theme`: add `--font-sans: 'Inter', system-ui, sans-serif; --fon
 ### Task 12: Moment badge + SplitText title entrance
 
 **Files:**
+
 - Create: `apps/frontend/src/components/Player/MomentBadge.tsx`
 - Modify: `apps/frontend/src/components/Player/index.tsx` (mount badge above `<TrackMeta/>`), `apps/frontend/src/components/Player/TrackMeta.tsx` (SplitText entrance on title change)
 - Modify: `apps/frontend/src/components/Player/TrackArtwork.tsx` (share now uses the real moment phrase)
 - Test: extend `apps/frontend/src/lib/shareTrack.test.ts` usage site — no new unit test needed beyond existing; badge is presentational.
 
 **Interfaces:**
+
 - Consumes: `useMoment`, `MOMENT_LABELS`, `MOMENT_SHARE_PHRASES` (Task 5), `gsap/SplitText` (free plugin — `import { SplitText } from 'gsap/SplitText'`, register once).
 - Produces: `export function MomentBadge(): JSX.Element` — renders `«Nuit · 23h47»`: `font-display`, `text-accent`, small caps feel; clock updates once per minute (single interval). `TrackMeta` title animates per `sh_id` change: SplitText into chars, stagger `y: '0.6em' → 0`, `opacity 0 → 1`, 0.6 s total, killed + reverted on unmount; skipped under reduced-motion (falls back to existing `motion` trackFlip crossfade).
 
@@ -675,15 +731,20 @@ export function MomentBadge() {
 ### Task 13: `groupByMoment` — pure day-timeline grouping
 
 **Files:**
+
 - Create: `apps/frontend/src/lib/dayTimeline.ts`
 - Test: `apps/frontend/src/lib/dayTimeline.test.ts`
 
 **Interfaces:**
+
 - Consumes: `SongEntry` type (`lib/azuracast`), `getMoment`, `MOMENT_ORDER` (Task 5).
 - Produces:
 
 ```ts
-export interface MomentGroup { moment: Moment; entries: SongEntry[] }
+export interface MomentGroup {
+  moment: Moment;
+  entries: SongEntry[];
+}
 export function groupByMoment(entries: SongEntry[]): MomentGroup[];
 // entries assumed newest-first (AzuraCast order); output groups newest-first,
 // entries within a group newest-first; empty moments omitted; an entry's moment
@@ -700,8 +761,25 @@ import { groupByMoment, dedupeBySongId } from './dayTimeline';
 import type { SongEntry } from '../lib/azuracast';
 
 const entry = (sh_id: number, h: number): SongEntry =>
-  ({ sh_id, played_at: new Date(2026, 6, 13, h).getTime() / 1000, duration: 200, playlist: '', streamer: '', is_request: false,
-     song: { id: String(sh_id), art: '', text: '', artist: 'A', title: `T${sh_id}`, album: '', genre: '', isrc: '', lyrics: '' } }) as SongEntry;
+  ({
+    sh_id,
+    played_at: new Date(2026, 6, 13, h).getTime() / 1000,
+    duration: 200,
+    playlist: '',
+    streamer: '',
+    is_request: false,
+    song: {
+      id: String(sh_id),
+      art: '',
+      text: '',
+      artist: 'A',
+      title: `T${sh_id}`,
+      album: '',
+      genre: '',
+      isrc: '',
+      lyrics: '',
+    },
+  }) as SongEntry;
 
 describe('groupByMoment', () => {
   it('groups newest-first by moment, omitting empty moments', () => {
@@ -718,7 +796,9 @@ describe('groupByMoment', () => {
 
 describe('dedupeBySongId', () => {
   it('drops later duplicates of the same sh_id', () => {
-    expect(dedupeBySongId([entry(1, 10), entry(1, 10), entry(2, 9)]).map((e) => e.sh_id)).toEqual([1, 2]);
+    expect(dedupeBySongId([entry(1, 10), entry(1, 10), entry(2, 9)]).map((e) => e.sh_id)).toEqual([
+      1, 2,
+    ]);
   });
 });
 ```
@@ -757,12 +837,14 @@ export function dedupeBySongId(entries: SongEntry[]): SongEntry[] {
 ### Task 14: `useDayHistory` — one fetch + live merge
 
 **Files:**
+
 - Create: `apps/frontend/src/hooks/useDayHistory.ts`
 - Test: `apps/frontend/src/hooks/useDayHistory.test.ts` (MSW)
 - Modify: `apps/frontend/src/mocks/handlers.ts` (add AzuraCast history handler fixture)
 - Delete (in Task 15 once consumers are gone): `hooks/useStationHistory.ts`
 
 **Interfaces:**
+
 - Consumes: `AZURACAST_HISTORY_URL` pattern from the current `useStationHistory.ts` (read it, reuse `buildAzuracastUrls` from `@aubesonore/core/azuracast` + `utils/config.ts`), `useNowPlayingStore` (`song_history` for live freshness), `dedupeBySongId`.
 - Produces: `export function useDayHistory(): { entries: SongEntry[]; isLoading: boolean; error: string | null }` — on mount fetches `?rows=120` once (covers a full day at ~4 min/track); merges `[...liveSongHistory, ...fetched]` deduped by `sh_id`, filtered to `played_at >= startOfToday 05:00` (the radio day starts at dawn; night tracks from 00:00–05:00 belong to yesterday's night and stay visible until 05:00 — implement: keep entries where `played_at >= (now.getHours() < 5 ? yesterday 22:00 : today 05:00 minus nothing)` — simplest correct rule: keep the last 24 h and let grouping label them; cap display in Task 15). Live poll keeps prepending via the store subscription (selector on `song_history`).
 
@@ -773,11 +855,13 @@ export function dedupeBySongId(entries: SongEntry[]): SongEntry[] {
 ### Task 15: `DayTimeline` UI — replace HistoryList/FullHistoryModal
 
 **Files:**
+
 - Create: `apps/frontend/src/components/Player/DayTimeline.tsx`
 - Modify: `apps/frontend/src/components/Player/index.tsx` (swap `<HistoryList/>` → `<DayTimeline/>`), `apps/frontend/src/components/Player/HistoryItem.tsx` (time display: exact `HH:mm` via `Intl.DateTimeFormat` instead of `formatTimeAgo`; add share icon calling `shareTrack`)
 - Delete: `apps/frontend/src/components/Player/HistoryList.tsx`, `apps/frontend/src/components/Player/FullHistoryModal.tsx`, `apps/frontend/src/hooks/useStationHistory.ts`
 
 **Interfaces:**
+
 - Consumes: `useDayHistory` (Task 14), `groupByMoment` (Task 13), `MOMENT_LABELS`, `HistoryItem` (existing props `{entry, isLiked, isLiking, onToggle}` — extend with `onShare: () => void`), `useLikedTracksStore` + `useLikeAction` (existing, copy the wiring from current `HistoryList.tsx` before deleting it).
 - Produces: `export function DayTimeline(): JSX.Element` — section per `MomentGroup`: sticky header `«Crépuscule — 17h à 22h»` (`font-display`, `data-moment-section={moment}` attribute for Task 16's ScrollTrigger), then `HistoryItem` rows. Initial render shows the two most recent groups fully; older groups behind a `«Remonter la journée»` button (simple `useState` reveal — no virtualization, ≤ ~360 rows worst case).
 
@@ -789,10 +873,12 @@ export function dedupeBySongId(entries: SongEntry[]): SongEntry[] {
 ### Task 16: Scroll narrative — sky replays the traversed moment
 
 **Files:**
+
 - Create: `apps/frontend/src/components/Sky/useScrollSky.ts`
 - Modify: `apps/frontend/src/components/Sky/SkyBackground.tsx` (add a fourth layer `.sky-scroll-overlay`; call `useScrollSky`), `apps/frontend/src/components/Sky/sky.css`
 
 **Interfaces:**
+
 - Consumes: `[data-moment-section]` markers rendered by `DayTimeline` (Task 15), `gsap/ScrollTrigger`.
 - Produces: `export function useScrollSky(): void` — registers ScrollTrigger; for each `[data-moment-section]`, a trigger (start `top 60%`, end `bottom 60%`, scrub 0.6) that fades in `.sky-scroll-overlay` painted with THAT moment's gradient (read stops via `getComputedStyle` on a probe element carrying `data-moment`, or hardcode the same palette map imported from a shared `SKY_STOPS` record exported from `lib/moments.ts` — choose the record: single source, no DOM probing; add `export const SKY_STOPS: Record<Moment, [string, string, string]>` to `lib/moments.ts` and make `index.css` values match it verbatim, with a comment in both files pointing at each other). Overlay opacity returns to 0 when no section is active (top of page = present). **Scroll touches only this overlay — `data-moment`, tokens, and the badge stay clock-driven (spec §5).** Disabled entirely under reduced-motion. Triggers refreshed when `DayTimeline` reveals older groups (call `ScrollTrigger.refresh()` after the reveal state flips — expose via a custom event `aubesonore:timeline-expanded` dispatched by DayTimeline, listened to here).
 - [ ] **Step 1:** Add `SKY_STOPS` to `lib/moments.ts` + sync comment in `index.css`.
