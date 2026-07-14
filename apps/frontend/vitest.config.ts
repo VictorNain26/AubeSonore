@@ -46,7 +46,6 @@ export default defineConfig({
         'src/components/Player/WaveformCanvas.tsx',
         'src/components/Player/ElapsedReadout.tsx',
         'src/components/Player/RailCard.tsx',
-        'src/components/Player/RecentRail.tsx',
         'src/components/Player/VolumeControl.tsx',
         'src/components/Player/CastButton.tsx',
         'src/components/Player/SleepTimer.tsx',

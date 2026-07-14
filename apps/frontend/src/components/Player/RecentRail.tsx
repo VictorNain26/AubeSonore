@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform, useVelocity } from 'motion/react';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 import { useRecentHistory } from '../../hooks/useRecentHistory';
 import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
 import { usePreferencesStore } from '../../stores/preferencesStore';
@@ -24,6 +25,9 @@ export function RecentRail() {
   // Le geste incline les pochettes : ±4° max, comme des disques qu'on feuillette.
   const tilt = useTransform(velocity, [-1500, 0, 1500], [4, 0, -4], { clamp: true });
 
+  const [isDragging, setIsDragging] = useState(false);
+  const suppressNextClickRef = useRef(false);
+
   useEffect(() => {
     const el = railRef.current;
     if (!el || prefersReduced) return;
@@ -38,6 +42,62 @@ export function RecentRail() {
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
   }, [prefersReduced]);
+
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el || prefersReduced) return;
+
+    let dragging = false;
+    let pointerId: number | null = null;
+    let lastX = 0;
+    let totalMoved = 0;
+
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse' || e.button !== 0) return;
+      dragging = true;
+      pointerId = e.pointerId;
+      lastX = e.clientX;
+      totalMoved = 0;
+      el.setPointerCapture(e.pointerId);
+      setIsDragging(true);
+    };
+
+    const onPointerMove = (e: PointerEvent) => {
+      if (!dragging || e.pointerId !== pointerId) return;
+      const dx = e.clientX - lastX;
+      lastX = e.clientX;
+      totalMoved += Math.abs(dx);
+      el.scrollLeft -= dx;
+    };
+
+    const endDrag = (e: PointerEvent) => {
+      if (!dragging || e.pointerId !== pointerId) return;
+      dragging = false;
+      if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+      pointerId = null;
+      if (totalMoved > 5) suppressNextClickRef.current = true;
+      setIsDragging(false);
+    };
+
+    el.addEventListener('pointerdown', onPointerDown);
+    el.addEventListener('pointermove', onPointerMove);
+    el.addEventListener('pointerup', endDrag);
+    el.addEventListener('pointercancel', endDrag);
+    return () => {
+      el.removeEventListener('pointerdown', onPointerDown);
+      el.removeEventListener('pointermove', onPointerMove);
+      el.removeEventListener('pointerup', endDrag);
+      el.removeEventListener('pointercancel', endDrag);
+    };
+  }, [prefersReduced]);
+
+  const handleClickCapture = (e: MouseEvent) => {
+    if (suppressNextClickRef.current) {
+      suppressNextClickRef.current = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
 
   const handleShare = (entry: SongEntry) => {
     const likedTrack = tracks.find(
@@ -92,10 +152,18 @@ export function RecentRail() {
       <div
         ref={railRef}
         role="list"
-        className="rail-mask -mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-2"
+        onClickCapture={handleClickCapture}
+        className={cn(
+          'rail-mask -mx-6 flex gap-4 overflow-x-auto px-6 pb-2',
+          isDragging ? 'snap-none cursor-grabbing' : 'snap-x snap-mandatory cursor-grab'
+        )}
       >
         {entries.map((entry) => (
-          <motion.div key={entry.sh_id} {...(prefersReduced ? {} : { style: { rotate: tilt } })}>
+          <motion.div
+            key={entry.sh_id}
+            role="presentation"
+            {...(prefersReduced ? {} : { style: { rotate: tilt } })}
+          >
             <RailCard
               entry={entry}
               isLiked={isTrackLiked(tracks, entry.song.title, entry.song.artist)}

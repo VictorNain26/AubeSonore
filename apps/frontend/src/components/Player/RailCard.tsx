@@ -41,8 +41,9 @@ export const RailCard = memo(function RailCard({
         <div
           className={cn(
             'absolute inset-x-0 bottom-0 flex items-center justify-end gap-1 p-1.5',
-            'opacity-0 transition-opacity duration-200',
-            'group-hover:opacity-100 group-focus-within:opacity-100'
+            'pointer-events-none opacity-0 transition-opacity duration-200',
+            'group-hover:pointer-events-auto group-hover:opacity-100',
+            'group-focus-within:pointer-events-auto group-focus-within:opacity-100'
           )}
         >
           <button
