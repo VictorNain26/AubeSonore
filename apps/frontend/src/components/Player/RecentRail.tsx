@@ -155,7 +155,9 @@ export function RecentRail() {
         onClickCapture={handleClickCapture}
         className={cn(
           'rail-mask -mx-6 flex gap-4 overflow-x-auto px-6 pb-2',
-          isDragging ? 'snap-none cursor-grabbing' : 'snap-x snap-mandatory cursor-grab'
+          isDragging
+            ? 'snap-none cursor-grabbing select-none'
+            : cn('snap-x snap-mandatory', !prefersReduced && 'cursor-grab')
         )}
       >
         {entries.map((entry) => (

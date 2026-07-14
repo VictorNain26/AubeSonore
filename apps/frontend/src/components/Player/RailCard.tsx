@@ -30,6 +30,7 @@ export const RailCard = memo(function RailCard({
             src={entry.song.art}
             alt=""
             className="h-full w-full object-cover"
+            draggable={false}
             referrerPolicy="no-referrer"
             loading="lazy"
             decoding="async"
