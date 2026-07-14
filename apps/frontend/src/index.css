@@ -157,10 +157,6 @@
     );
   }
 
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
   .sr-only-focusable {
     position: absolute;
     width: 1px;
