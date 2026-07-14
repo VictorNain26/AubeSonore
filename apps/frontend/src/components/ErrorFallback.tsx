@@ -3,7 +3,7 @@ import type { FallbackProps } from 'react-error-boundary';
 export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
   return (
     <div role="alert" className="rule w-full max-w-lg mx-auto pt-6 text-center">
-      <p className="font-display text-title text-ink">Lecteur indisponible.</p>
+      <p className="font-display text-title text-ink">{"La lecture s'est interrompue"}</p>
       <button
         type="button"
         onClick={resetErrorBoundary}
