@@ -1,4 +1,4 @@
-import { useRef, type WheelEvent } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, useReducedMotion, useScroll, useTransform, useVelocity } from 'motion/react';
 import { toast } from 'sonner';
 import { useRecentHistory } from '../../hooks/useRecentHistory';
@@ -24,10 +24,20 @@ export function RecentRail() {
   // Le geste incline les pochettes : ±4° max, comme des disques qu'on feuillette.
   const tilt = useTransform(velocity, [-1500, 0, 1500], [4, 0, -4], { clamp: true });
 
-  const onWheel = (e: WheelEvent<HTMLDivElement>) => {
-    if (!railRef.current || Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
-    railRef.current.scrollLeft += e.deltaY;
-  };
+  useEffect(() => {
+    const el = railRef.current;
+    if (!el || prefersReduced) return;
+    const onWheel = (e: globalThis.WheelEvent) => {
+      if (Math.abs(e.deltaY) <= Math.abs(e.deltaX)) return;
+      const atStart = el.scrollLeft <= 0 && e.deltaY < 0;
+      const atEnd = el.scrollLeft + el.clientWidth >= el.scrollWidth - 1 && e.deltaY > 0;
+      if (atStart || atEnd) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [prefersReduced]);
 
   const handleShare = (entry: SongEntry) => {
     const likedTrack = tracks.find(
@@ -82,7 +92,6 @@ export function RecentRail() {
       <div
         ref={railRef}
         role="list"
-        onWheel={prefersReduced ? undefined : onWheel}
         className="rail-mask -mx-6 flex snap-x snap-mandatory gap-4 overflow-x-auto px-6 pb-2"
       >
         {entries.map((entry) => (
