@@ -36,8 +36,8 @@ export function LibraryButton() {
       <button
         onClick={handleOpen}
         className={cn(
-          'p-2 rounded-full transition-all duration-200 relative cursor-pointer',
-          'text-foreground/60 hover:text-foreground hover:bg-foreground/10',
+          'p-2 rounded-md transition-colors relative cursor-pointer',
+          'text-ink-faint hover:text-ink hover:bg-paper-raised',
           isAuthenticated && tracks.length > 0 && 'text-accent/80 hover:text-accent'
         )}
         title="Mes découvertes"

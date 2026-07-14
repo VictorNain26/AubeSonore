@@ -38,8 +38,8 @@ export default defineConfig(({ mode }) => {
           name: 'AubeSonore',
           short_name: 'AubeSonore',
           description: 'Webradio de découverte musicale indépendante',
-          theme_color: '#090a11',
-          background_color: '#090a11',
+          theme_color: '#f4f7fa',
+          background_color: '#f4f7fa',
           display: 'standalone',
           scope: '/',
           start_url: '/',
@@ -94,7 +94,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules')) {
               if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion'))
                 return 'motion';
-              if (id.includes('node_modules/gsap')) return 'gsap';
               if (id.includes('@radix-ui')) return 'radix';
               if (id.includes('react-dom') || id.endsWith('/react/index.js')) return 'react-vendor';
             }

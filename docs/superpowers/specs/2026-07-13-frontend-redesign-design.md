@@ -19,18 +19,18 @@ La soudure entre les deux, c'est le nom : l'aube est le moment où quelque chose
 
 Données : 1 utilisateur, 13 likes (dernier le 13/07), 0 abonnement push, 1 session en 90 jours. Projet en pré-audience : chaque feature se juge sur « sert le récit » et « usage réel ».
 
-| Feature | Décision | Justification |
-| --- | --- | --- |
-| Fond ambiant | **Repensé** — ciel génératif 2 couches | Porteur principal du thème |
-| Historique | **Repensé** — fil-journée | LA feature narrative ; reprend le refactor WIP de mai (suppression `FullHistoryModal`) |
-| Player | **Recentré** | Cœur de la scène + badge du moment |
-| Likes + export | Gardé | Usage réel |
-| Sleep timer | Gardé | Évidence de Nuit |
-| Waveform | Gardée | Exprime le rythme de la musique (2e pilier) |
-| Cast, PWA, auth (email + Google) | Gardés tels quels | Coût nul |
-| Share cards (renderer satori/resvg) | **Supprimé** → Web Share API | Zéro usage ; retire satori + resvg-wasm du bundle. Copy : « [titre] — découvert à l'aube sur AubeSonore » + lien ; fallback copie du lien |
-| Notifications push (front + SW) | **Supprimé** | 0 abonné ; une radio d'ambiance n'a rien d'événementiel à pousser |
-| Stats modal | **Supprimé** | Le fil-journée raconte mieux que des compteurs |
+| Feature                             | Décision                               | Justification                                                                                                                             |
+| ----------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Fond ambiant                        | **Repensé** — ciel génératif 2 couches | Porteur principal du thème                                                                                                                |
+| Historique                          | **Repensé** — fil-journée              | LA feature narrative ; reprend le refactor WIP de mai (suppression `FullHistoryModal`)                                                    |
+| Player                              | **Recentré**                           | Cœur de la scène + badge du moment                                                                                                        |
+| Likes + export                      | Gardé                                  | Usage réel                                                                                                                                |
+| Sleep timer                         | Gardé                                  | Évidence de Nuit                                                                                                                          |
+| Waveform                            | Gardée                                 | Exprime le rythme de la musique (2e pilier)                                                                                               |
+| Cast, PWA, auth (email + Google)    | Gardés tels quels                      | Coût nul                                                                                                                                  |
+| Share cards (renderer satori/resvg) | **Supprimé** → Web Share API           | Zéro usage ; retire satori + resvg-wasm du bundle. Copy : « [titre] — découvert à l'aube sur AubeSonore » + lien ; fallback copie du lien |
+| Notifications push (front + SW)     | **Supprimé**                           | 0 abonné ; une radio d'ambiance n'a rien d'événementiel à pousser                                                                         |
+| Stats modal                         | **Supprimé**                           | Le fil-journée raconte mieux que des compteurs                                                                                            |
 
 ## 3. Système de moments
 

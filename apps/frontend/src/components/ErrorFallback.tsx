@@ -2,12 +2,13 @@ import type { FallbackProps } from 'react-error-boundary';
 
 export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
   return (
-    <div role="alert" className="w-full max-w-lg mx-auto p-6 text-center text-foreground/80">
-      <p className="mb-3">Lecteur indisponible.</p>
+    <div role="alert" className="rule w-full max-w-lg mx-auto pt-6 text-center">
+      <p className="font-display text-title text-ink">{"La lecture s'est interrompue"}</p>
+      <p className="mt-2 text-body text-ink-soft">Rechargez ou réessayez dans un instant.</p>
       <button
         type="button"
         onClick={resetErrorBoundary}
-        className="px-4 py-2 rounded-lg bg-foreground/10 hover:bg-foreground/15 border border-foreground/10"
+        className="mt-4 rounded-md border border-line px-4 py-2 text-ink hover:bg-paper-raised"
       >
         Réessayer
       </button>
@@ -21,16 +22,16 @@ interface ModalErrorFallbackProps extends FallbackProps {
 
 export function ModalErrorFallback({ onClose }: ModalErrorFallbackProps) {
   return (
-    <div
-      role="alert"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-overlay/60"
-    >
-      <div className="p-6 rounded-xl bg-overlay/80 text-foreground/80 border border-foreground/10 max-w-sm w-full mx-4">
-        <p className="mb-3">Une erreur est survenue.</p>
+    <div role="alert" className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/20">
+      <div className="panel p-6 text-center max-w-sm w-full mx-4">
+        <p className="font-display text-title text-ink">Une erreur est survenue.</p>
+        <p className="mt-2 text-body text-ink-soft">
+          Fermez cette fenêtre et réessayez dans un instant.
+        </p>
         <button
           type="button"
           onClick={onClose}
-          className="px-4 py-2 rounded-lg bg-foreground/10 hover:bg-foreground/15 border border-foreground/10"
+          className="mt-4 rounded-md border border-line px-4 py-2 text-ink hover:bg-paper-raised"
         >
           Fermer
         </button>

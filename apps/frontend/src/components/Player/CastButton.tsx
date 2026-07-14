@@ -60,9 +60,9 @@ export function CastButton({ className }: CastButtonProps) {
       onClick={handleClick}
       disabled={isConnecting}
       className={cn(
-        'p-2 rounded-full transition-all duration-200 cursor-pointer',
-        'hover:bg-foreground/10',
-        isCasting ? 'text-accent hover:text-accent' : 'text-foreground/60 hover:text-foreground',
+        'p-2 rounded-md transition-colors cursor-pointer',
+        'hover:bg-paper-raised',
+        isCasting ? 'text-accent hover:text-accent' : 'text-ink-faint hover:text-ink',
         isConnecting && 'opacity-50 cursor-wait',
         className
       )}

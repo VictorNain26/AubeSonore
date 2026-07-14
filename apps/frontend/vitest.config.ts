@@ -45,7 +45,7 @@ export default defineConfig({
         'src/components/AuthModalHost.tsx',
         'src/components/Player/WaveformCanvas.tsx',
         'src/components/Player/ElapsedReadout.tsx',
-        'src/components/Player/HistoryItem.tsx',
+        'src/components/Player/RailCard.tsx',
         'src/components/Player/VolumeControl.tsx',
         'src/components/Player/CastButton.tsx',
         'src/components/Player/SleepTimer.tsx',

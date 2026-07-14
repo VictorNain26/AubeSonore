@@ -17,7 +17,8 @@ describe('PlayerErrorFallback', () => {
         <Boom />
       </ErrorBoundary>
     );
-    expect(screen.getByRole('alert')).toHaveTextContent('Lecteur indisponible');
+    expect(screen.getByRole('alert')).toHaveTextContent("La lecture s'est interrompue");
+    expect(screen.getByRole('alert')).toHaveTextContent('Rechargez ou réessayez dans un instant.');
     expect(screen.getByRole('button', { name: /réessayer/i })).toBeInTheDocument();
     spy.mockRestore();
   });

@@ -1,110 +1,113 @@
 @import 'tailwindcss';
 
 /* =============================================================================
-   MOMENT-DRIVEN TOKENS — per-time-of-day sky and accent colors
+   LE PAPIER DU MOMENT — le site est imprimé sur un papier qui prend la
+   couleur de la lumière. Encre foncée, un seul accent, filets fins.
+   Bornes horaires : lib/moments.ts.
    ============================================================================= */
-/* mirrored in lib/moments.ts SKY_STOPS */
 
-:root {
-  --sky-1: hsl(228 32% 5%);
-  --sky-2: hsl(232 30% 9%);
-  --sky-3: hsl(248 28% 13%);
-  --halo: hsl(210 40% 72%);
-  --accent-moment: hsl(232 34% 62%);
+:root,
+[data-moment='night'] {
+  /* Nuit — le seul moment sombre : papier encre profonde, texte ivoire, accent lunaire */
+  --paper: hsl(240 18% 10%);
+  --ink: hsl(40 30% 92%);
+  --accent: hsl(230 45% 74%);
+  --on-accent: hsl(240 18% 10%);
 }
 
 [data-moment='dawn'] {
-  --sky-1: hsl(254 32% 12%);
-  --sky-2: hsl(340 42% 26%);
-  --sky-3: hsl(24 68% 46%);
-  --halo: hsl(28 90% 66%);
-  --accent-moment: hsl(20 80% 62%);
+  /* Aube — papier crème rosé, encre brune, accent corail doux */
+  --paper: hsl(28 60% 94%);
+  --ink: hsl(22 32% 11%);
+  --accent: hsl(12 62% 42%);
+  --on-accent: hsl(28 60% 96%);
 }
 
 [data-moment='day'] {
-  --sky-1: hsl(214 45% 10%);
-  --sky-2: hsl(208 52% 22%);
-  --sky-3: hsl(199 62% 34%);
-  --halo: hsl(48 95% 76%);
-  --accent-moment: hsl(199 72% 56%);
+  /* Jour — blanc légèrement bleuté, encre presque noire, accent bleu profond */
+  --paper: hsl(210 36% 97%);
+  --ink: hsl(220 26% 12%);
+  --accent: hsl(214 74% 38%);
+  --on-accent: hsl(210 36% 97%);
 }
 
 [data-moment='dusk'] {
-  --sky-1: hsl(258 36% 10%);
-  --sky-2: hsl(288 34% 20%);
-  --sky-3: hsl(14 62% 38%);
-  --halo: hsl(16 85% 60%);
-  --accent-moment: hsl(300 45% 60%);
+  /* Crépuscule — ivoire ambré, encre chaude, accent terracotta */
+  --paper: hsl(36 48% 92%);
+  --ink: hsl(18 34% 11%);
+  --accent: hsl(16 70% 40%);
+  --on-accent: hsl(36 48% 96%);
 }
 
+/* Dérivés — jamais redéfinis par moment, toujours calculés */
 :root,
 [data-moment] {
-  transition: none;
+  --ink-soft: color-mix(in srgb, var(--ink) 75%, var(--paper));
+  --ink-faint: color-mix(in srgb, var(--ink) 63%, var(--paper));
+  --line: color-mix(in srgb, var(--ink) 16%, transparent);
+  --paper-raised: color-mix(in srgb, var(--ink) 4%, var(--paper));
 }
 
-/* =============================================================================
-   DESIGN TOKENS — Tailwind 4 @theme
-   Single source of truth. Opacity steps come from Tailwind modifiers
-   (text-foreground/70) so the theme stays minimal — no aliases, no doublons.
-   ============================================================================= */
-
 @theme {
-  /* ── Surfaces ──────────────────────────────────────────────────────────── */
-  --color-background: hsl(222 20% 6%);
-  --color-card: hsl(222 18% 10%);
-  --color-overlay: hsl(0 0% 0%);
+  --color-*: initial;
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-danger: hsl(0 62% 44%);
+  --color-success: hsl(150 55% 32%);
 
-  /* ── Glass system — alpha baked in (cannot derive from foreground/N) ────── */
-  --color-glass: hsla(0 0% 100% / 0.03);
-  --color-glass-hover: hsla(0 0% 100% / 0.06);
-  --color-glass-active: hsla(0 0% 100% / 0.1);
-  --color-glass-border: hsla(0 0% 100% / 0.08);
-  --color-glass-border-strong: hsla(0 0% 100% / 0.12);
+  --text-*: initial;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.55;
+  --text-lead: 1.1875rem;
+  --text-lead--line-height: 1.45;
+  --text-title: 1.75rem;
+  --text-title--line-height: 1.2;
+  --text-display: clamp(2.25rem, 5.5vw, 4.25rem);
+  --text-display--line-height: 1.04;
 
-  /* ── Foreground (text) ─────────────────────────────────────────────────── */
-  --color-foreground: hsl(0 0% 100%);
+  --radius-*: initial;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.875rem;
 
-  /* ── Brand + semantic ──────────────────────────────────────────────────── */
-  --color-accent: var(--accent-moment);
-  --color-danger: hsl(0 72% 51%);
-  --color-success: hsl(142 71% 45%);
-
-  /* ── Radii ─────────────────────────────────────────────────────────────── */
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-
-  /* ── Easings ───────────────────────────────────────────────────────────── */
   --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
 
-  /* ── Typography ────────────────────────────────────────────────────────── */
   --font-sans: 'Inter', system-ui, sans-serif;
   --font-display: 'Fraunces Variable', Georgia, serif;
 }
 
-/* =============================================================================
-   BASE
-   ============================================================================= */
-
 @layer base {
-  * {
-    border-color: var(--color-glass-border);
-  }
-
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    background-color: var(--color-paper);
+    color: var(--color-ink);
     font-family: var(--font-sans);
+    font-size: var(--text-body);
     font-feature-settings:
       'rlig' 1,
       'calt' 1;
     -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
   }
 
-  /* Scrollbar — minimal. Opacities derived from foreground via color-mix. */
+  html[data-moment-ready='true'] body {
+    transition:
+      background-color 1200ms var(--ease-fluid),
+      color 1200ms var(--ease-fluid);
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-on-accent);
+  }
+
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -113,51 +116,47 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--color-foreground) 35%, transparent);
+    background: color-mix(in srgb, var(--ink) 30%, transparent);
     border-radius: 9999px;
   }
-  ::-webkit-scrollbar-thumb:hover {
-    background: color-mix(in srgb, var(--color-foreground) 50%, transparent);
-  }
 
-  /* Focus visible — accessibility */
   :focus-visible {
     outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 }
 
-/* =============================================================================
-   UTILITIES — project-specific, kept atomic
-   ============================================================================= */
-
 @layer utilities {
-  /* Glass surface for modals, popovers, dropdowns */
-  .glass-strong {
-    background: color-mix(in srgb, var(--color-overlay) 80%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--color-glass-border);
+  /* Filet éditorial — la séparation se fait à l'encre, pas par des cartes */
+  .rule {
+    border-top: 1px solid var(--color-line);
   }
 
-  /* Loading skeleton */
+  /* Panneau papier — modales, dropdowns : papier levé + filet, AUCUN blur */
+  .panel {
+    background: var(--color-paper);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--ink) 25%, transparent);
+  }
+
   .skeleton {
-    background: color-mix(in srgb, var(--color-foreground) 5%, transparent);
+    background: color-mix(in srgb, var(--ink) 7%, var(--paper));
     animation: pulse-soft 2s ease-in-out infinite;
     border-radius: var(--radius-md);
   }
 
-  /* Pulse ring on active play button */
-  .animate-pulse-ring {
-    animation: pulse-ring 2s ease-in-out infinite;
+  /* Fondu des bords du rail horizontal */
+  .rail-mask {
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black 2rem,
+      black calc(100% - 2rem),
+      transparent
+    );
   }
 
-  /* iOS safe-area bottom inset */
-  .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-
-  /* Skip-link — visually hidden until focused */
   .sr-only-focusable {
     position: absolute;
     width: 1px;
@@ -179,16 +178,12 @@
     margin: 0;
     overflow: visible;
     clip: auto;
-    background: var(--color-card);
-    color: var(--color-foreground);
+    background: var(--color-paper-raised);
+    color: var(--color-ink);
     border-radius: var(--radius-md);
     z-index: 9999;
   }
 }
-
-/* =============================================================================
-   KEYFRAMES
-   ============================================================================= */
 
 @keyframes pulse-soft {
   0%,
@@ -199,22 +194,6 @@
     opacity: 0.5;
   }
 }
-
-@keyframes pulse-ring {
-  0% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 40%, transparent);
-  }
-  70% {
-    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-accent) 0%, transparent);
-  }
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 0%, transparent);
-  }
-}
-
-/* =============================================================================
-   REDUCED MOTION — respect OS setting
-   ============================================================================= */
 
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -227,50 +206,42 @@
   }
 }
 
-/* =============================================================================
-   FORM ELEMENTS — range slider
-   ============================================================================= */
-
+/* Range slider — trait d'encre, poignée encre */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   background: transparent;
   cursor: pointer;
 }
-
 input[type='range']::-webkit-slider-track {
-  background: var(--color-glass-active);
-  height: 4px;
+  background: var(--color-line);
+  height: 3px;
   border-radius: 9999px;
 }
-
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
   height: 14px;
   width: 14px;
   border-radius: 9999px;
-  background: var(--color-foreground);
+  background: var(--color-ink);
   border: none;
-  margin-top: -5px;
+  margin-top: -5.5px;
   transition: transform 150ms ease;
 }
-
 input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.15);
 }
-
 input[type='range']::-moz-range-track {
-  background: var(--color-glass-active);
-  height: 4px;
+  background: var(--color-line);
+  height: 3px;
   border-radius: 9999px;
   border: 0;
 }
-
 input[type='range']::-moz-range-thumb {
   height: 14px;
   width: 14px;
   border-radius: 9999px;
-  background: var(--color-foreground);
+  background: var(--color-ink);
   border: none;
 }

@@ -5,12 +5,10 @@ import { PlayerErrorFallback } from '../components/ErrorFallback';
 
 export default function HomePage() {
   return (
-    <div className="relative w-full flex-1 flex items-center justify-center py-4">
-      <div className="relative z-10 w-full">
-        <ErrorBoundary FallbackComponent={PlayerErrorFallback}>
-          <Player />
-        </ErrorBoundary>
-      </div>
+    <div className="mx-auto w-full max-w-[640px] flex-1 px-6 py-6">
+      <ErrorBoundary FallbackComponent={PlayerErrorFallback}>
+        <Player />
+      </ErrorBoundary>
 
       <PlayerSideEffects />
     </div>

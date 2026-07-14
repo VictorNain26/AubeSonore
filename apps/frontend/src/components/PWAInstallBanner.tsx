@@ -50,22 +50,21 @@ export function PWAInstallBanner() {
           transition={{ duration: 0.3 }}
           className="fixed bottom-4 inset-x-4 z-[100] flex justify-center"
         >
-          <div className="flex items-center gap-3 px-4 py-3 max-w-sm w-full glass-strong rounded-xl shadow-2xl">
-            <Download className="w-5 h-5 text-foreground/60 shrink-0" />
-            <p className="text-sm text-foreground/70 flex-1">Installer AubeSonore</p>
+          <div className="panel flex items-center gap-3 px-4 py-3 max-w-sm w-full">
+            <Download className="w-5 h-5 text-ink-faint shrink-0" />
+            <p className="text-body text-ink flex-1">Installer AubeSonore</p>
             <button
               onClick={handleInstall}
               className={cn(
-                'px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer',
-                'bg-foreground/10 hover:bg-foreground/15 text-foreground',
-                'border border-foreground/10 transition-all duration-200'
+                'text-body font-medium text-accent hover:underline cursor-pointer',
+                'transition-colors'
               )}
             >
               Installer
             </button>
             <button
               onClick={handleDismiss}
-              className="p-1.5 rounded-full text-foreground/30 hover:text-foreground/60 transition-colors cursor-pointer"
+              className="p-1.5 rounded-full text-ink-faint hover:text-ink transition-colors cursor-pointer"
               aria-label="Fermer"
             >
               <X className="w-4 h-4" />

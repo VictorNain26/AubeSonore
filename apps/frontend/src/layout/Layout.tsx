@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Toaster, toast } from 'sonner';
-import { LogOut, LogIn, Info, Globe, Music, MessageSquare } from 'lucide-react';
+import { LogOut, LogIn, Info } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
-import { SkyBackground } from '../components/Sky/SkyBackground';
-import { CoverTint } from '../components/Sky/CoverTint';
+import { useMoment } from '../hooks/useMoment';
+import { MOMENT_LABELS } from '../lib/moments';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -19,15 +19,26 @@ const AboutModal = lazy(() =>
   import('../components/AboutModal').then((m) => ({ default: m.AboutModal }))
 );
 
-// TODO: replace href="#" with real social URLs
-const FOOTER_SOCIAL_LINKS = [
-  { icon: Globe, label: 'Instagram', href: '#' },
-  { icon: Music, label: 'Spotify', href: '#' },
-  { icon: MessageSquare, label: 'Discord', href: '#' },
-] as const;
-
 interface LayoutProps {
   children: ReactNode;
+}
+
+const timeFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
+
+function MomentLine() {
+  const moment = useMoment();
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <p className="text-caption tracking-widest uppercase text-ink-soft">
+      {MOMENT_LABELS[moment]} <span className="text-ink-faint">— {timeFormatter.format(now)}</span>
+    </p>
+  );
 }
 
 function readResetTokenFromUrl(): string | null {
@@ -69,9 +80,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [openAuthModal]);
 
   return (
-    <div className="min-h-dvh flex flex-col">
-      <SkyBackground />
-      <CoverTint />
+    <div className="min-h-dvh flex flex-col bg-paper text-ink">
       {/* Skip-link for keyboard users */}
       <a href="#main" className="sr-only-focusable">
         Aller au contenu principal
@@ -79,92 +88,74 @@ export default function Layout({ children }: LayoutProps) {
 
       <Toaster
         position="bottom-center"
-        theme="dark"
         duration={3000}
         toastOptions={{
           classNames: {
-            toast: 'glass-strong !rounded-xl !text-foreground !text-sm',
-            description: '!text-foreground/60',
+            toast: 'panel !text-ink !text-body',
+            description: '!text-ink-soft',
             success: '!border-l-2 !border-l-[var(--color-success)]',
             error: '!border-l-2 !border-l-[var(--color-danger)]',
           },
         }}
       />
 
-      {/* Header - Logo centered, about left, auth right */}
-      <header className="shrink-0 py-4 md:py-5 px-4 relative z-20">
-        {/* Left: About button */}
-        <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-1">
-          <button
-            onClick={() => setIsAboutOpen(true)}
-            className={cn(
-              'p-2 rounded-full cursor-pointer',
-              'text-foreground/40 hover:text-foreground hover:bg-foreground/10',
-              'transition-all duration-200'
-            )}
-            title="À propos"
-          >
-            <Info className="w-5 h-5" />
-          </button>
+      <header className="mx-auto w-full max-w-[640px] px-6 pt-8 pb-4 flex items-start justify-between">
+        <div>
+          <p className="font-display text-lead tracking-tight">AubeSonore</p>
+          <MomentLine />
         </div>
 
-        {/* Center: Title */}
-        <h1 className="text-center text-lg md:text-2xl font-display tracking-tight text-foreground [text-shadow:0_0_24px_var(--halo)]">
-          AubeSonore
-        </h1>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setIsAboutOpen(true)}
+            className="p-2 rounded-md text-ink-faint hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer"
+            title="À propos"
+          >
+            <Info className="w-4 h-4" />
+          </button>
 
-        {/* Right: Auth button - absolute positioned */}
-        <div className="absolute right-4 top-1/2 -translate-y-1/2">
-          <div className="relative">
-            {isLoading ? (
-              <div className="w-8 h-8 rounded-full bg-foreground/5 animate-pulse" />
-            ) : isAuthenticated && user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className={cn(
-                      'flex items-center gap-2 p-2 rounded-full cursor-pointer',
-                      'bg-foreground/5 hover:bg-foreground/10 border border-foreground/10',
-                      'transition-all duration-200'
-                    )}
-                    aria-label="Menu utilisateur"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-foreground/20 flex items-center justify-center">
-                      <span className="text-xs font-medium text-foreground/80">
-                        {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <div className="px-3 py-2">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {user.name || 'Utilisateur'}
-                    </p>
-                    <p className="text-xs text-foreground/50 truncate">{user.email}</p>
+          {isLoading ? (
+            <div className="w-8 h-8 rounded-full bg-paper-raised animate-pulse" />
+          ) : isAuthenticated && user ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex items-center gap-2 p-2 rounded-md text-ink-faint hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer"
+                  aria-label="Menu utilisateur"
+                >
+                  <div className="h-7 w-7 rounded-full bg-paper-raised flex items-center justify-center">
+                    <span className="text-caption font-medium text-ink">
+                      {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                    </span>
                   </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem intent="danger" onSelect={() => void signOut()}>
-                    <LogOut className="w-4 h-4" />
-                    <span>Déconnexion</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <button
-                onClick={() => openAuthModal()}
-                className={cn(
-                  'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
-                  'bg-foreground/5 hover:bg-foreground/10',
-                  'border border-foreground/10',
-                  'transition-all duration-200 text-sm text-foreground/70 hover:text-foreground'
-                )}
-              >
-                <LogIn className="w-4 h-4" />
-                <span className="hidden sm:inline">Connexion</span>
-              </button>
-            )}
-          </div>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-3 py-2">
+                  <p className="text-body font-medium text-ink truncate">
+                    {user.name || 'Utilisateur'}
+                  </p>
+                  <p className="text-caption text-ink-soft truncate">{user.email}</p>
+                </div>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem intent="danger" onSelect={() => void signOut()}>
+                  <LogOut className="w-4 h-4" />
+                  <span>Déconnexion</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <button
+              onClick={() => openAuthModal()}
+              className={cn(
+                'flex items-center gap-2 rounded-md border border-line px-3 py-1.5',
+                'text-body text-ink-soft hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer'
+              )}
+            >
+              <LogIn className="w-4 h-4" />
+              <span className="hidden sm:inline">Connexion</span>
+            </button>
+          )}
         </div>
       </header>
 
@@ -173,22 +164,10 @@ export default function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      {/* Footer */}
-      <footer className="shrink-0 py-3 md:py-4 flex flex-col items-center gap-2">
-        <div className="flex items-center gap-3">
-          {FOOTER_SOCIAL_LINKS.map(({ icon: Icon, label, href }) => (
-            <a
-              key={label}
-              href={href}
-              aria-label={label}
-              className="text-foreground/20 hover:text-foreground/50 transition-colors duration-200"
-            >
-              <Icon className="w-3.5 h-3.5" />
-            </a>
-          ))}
-        </div>
-        <p className="text-center text-[10px] md:text-xs text-foreground/25 tracking-widest">
-          AubeSonore | Découverte musicale émergente
+      <footer className="mx-auto w-full max-w-[640px] px-6 py-6">
+        <div className="rule mb-4" />
+        <p className="text-caption text-ink-faint tracking-widest">
+          AubeSonore — Découverte musicale émergente
         </p>
       </footer>
 

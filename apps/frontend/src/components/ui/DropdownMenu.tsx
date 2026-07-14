@@ -16,7 +16,7 @@ const DropdownMenuContent = forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'z-[300] min-w-44 overflow-hidden rounded-xl glass-strong shadow-2xl p-1',
+        'z-[300] panel min-w-[8rem] p-1',
         'origin-[var(--radix-dropdown-menu-content-transform-origin)]',
         'data-[state=open]:opacity-100 data-[state=open]:scale-100',
         'data-[state=closed]:opacity-0 data-[state=closed]:scale-95',
@@ -42,13 +42,11 @@ const DropdownMenuItem = forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'flex w-full items-center gap-2 px-3 py-2 rounded-lg text-left text-sm cursor-pointer outline-none',
+      'flex w-full items-center gap-2 rounded-sm px-3 py-2 text-left text-body cursor-pointer outline-none',
       'transition-colors',
       'data-[disabled]:opacity-50 data-[disabled]:cursor-not-allowed data-[disabled]:pointer-events-none',
-      intent === 'default' &&
-        'text-foreground/70 data-[highlighted]:text-foreground data-[highlighted]:bg-foreground/5',
-      intent === 'danger' &&
-        'text-danger/80 data-[highlighted]:text-danger data-[highlighted]:bg-foreground/5',
+      intent === 'default' && 'text-ink data-[highlighted]:bg-paper-raised',
+      intent === 'danger' && 'text-danger data-[highlighted]:bg-paper-raised',
       className
     )}
     {...props}
@@ -62,7 +60,7 @@ const DropdownMenuLabel = forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn('px-3 py-1.5 text-xs font-medium text-foreground/40', className)}
+    className={cn('px-3 py-1.5 text-caption font-medium text-ink-faint', className)}
     {...props}
   />
 ));
@@ -74,7 +72,7 @@ const DropdownMenuSeparator = forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-foreground/5', className)}
+    className={cn('-mx-1 my-1 h-px bg-line', className)}
     {...props}
   />
 ));

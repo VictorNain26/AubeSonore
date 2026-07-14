@@ -1,0 +1,93 @@
+import { MOMENT_LABELS, MOMENT_ORDER, MOMENT_TAGLINES } from '../lib/moments';
+
+const TYPE_SCALE = [
+  { cls: 'text-display font-display', label: 'display / Fraunces' },
+  { cls: 'text-title font-display', label: 'title / Fraunces' },
+  { cls: 'text-lead', label: 'lead / Inter' },
+  { cls: 'text-body', label: 'body / Inter' },
+  { cls: 'text-caption', label: 'caption / Inter' },
+] as const;
+
+const SWATCHES = ['bg-paper', 'bg-paper-raised', 'bg-accent'] as const;
+const INKS = ['text-ink', 'text-ink-soft', 'text-ink-faint', 'text-accent'] as const;
+
+export default function DevSystemPage() {
+  return (
+    <div className="mx-auto max-w-[640px] px-6 py-12 space-y-12">
+      <header className="space-y-1">
+        <p className="text-caption tracking-widest uppercase text-ink-faint">/dev/system</p>
+        <h1 className="text-title font-display">Le système</h1>
+        <p className="text-body text-ink-soft">
+          Ajouter ?moment=dawn|day|dusk|night à l&apos;URL pour changer de papier.
+        </p>
+      </header>
+
+      <section className="space-y-3">
+        <h2 className="text-caption tracking-widest uppercase text-ink-faint">Moments</h2>
+        {MOMENT_ORDER.map((m) => (
+          <p key={m} className="text-body">
+            <span className="font-display">{MOMENT_LABELS[m]}</span>
+            <span className="text-ink-soft"> — {MOMENT_TAGLINES[m]}</span>
+          </p>
+        ))}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-caption tracking-widest uppercase text-ink-faint">Typographie</h2>
+        {TYPE_SCALE.map(({ cls, label }) => (
+          <div key={label}>
+            <p className={cls}>Aube sonore</p>
+            <p className="text-caption text-ink-faint">{label}</p>
+          </div>
+        ))}
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-caption tracking-widest uppercase text-ink-faint">Encres & papiers</h2>
+        <div className="flex gap-3">
+          {SWATCHES.map((cls) => (
+            <div key={cls} className={`h-16 w-24 rounded-md border border-line ${cls}`}>
+              <span className="text-caption text-ink-faint">{cls}</span>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-1">
+          {INKS.map((cls) => (
+            <p key={cls} className={`text-body ${cls}`}>
+              {cls} — Découverte musicale émergente
+            </p>
+          ))}
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="text-caption tracking-widest uppercase text-ink-faint">Primitives</h2>
+        <div className="flex items-center gap-3">
+          <button className="rounded-md bg-accent px-4 py-2 text-body text-on-accent">
+            Bouton plein
+          </button>
+          <button className="rounded-md border border-line px-4 py-2 text-body text-ink hover:bg-paper-raised">
+            Bouton fantôme
+          </button>
+        </div>
+        <p className="text-caption tracking-widest uppercase text-ink-soft">
+          Crépuscule — 19h42 <span className="text-ink-faint">(badge moment)</span>
+        </p>
+        <div className="rule" />
+        <div className="flex items-center gap-3 py-2">
+          <div className="h-10 w-10 rounded-sm bg-paper-raised" />
+          <div className="flex-1">
+            <p className="text-body">Titre de piste</p>
+            <p className="text-caption text-ink-soft">Artiste</p>
+          </div>
+          <span className="text-caption text-ink-faint">19h42</span>
+        </div>
+        <div className="panel max-w-xs p-4">
+          <p className="text-body">Panneau papier (modales, menus)</p>
+          <p className="text-caption text-ink-soft">Filet + ombre encre, zéro blur.</p>
+        </div>
+        <div className="skeleton h-10 w-40" />
+      </section>
+    </div>
+  );
+}
