@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
 import { usePlayer } from '../../lib/player';
-import { CastButton } from './CastButton';
+import AirPlayButton from './AirPlayButton';
 import { VolumeControl } from './VolumeControl';
 import { SleepTimer } from './SleepTimer';
 
-// Left-side cluster of secondary controls (cast / volume / sleep timer).
+// Left-side cluster of secondary controls (airplay / volume / sleep timer).
 // Volume mute-toggle bookkeeping lives here because it is a local concern
 // (rememberlast-volume-before-mute), not global player state.
 
@@ -36,7 +36,7 @@ export function SecondaryControls() {
 
   return (
     <div className="flex-1 flex justify-start items-center gap-1">
-      <CastButton />
+      <AirPlayButton />
       <VolumeControl
         volume={volume}
         isMuted={isMuted}
