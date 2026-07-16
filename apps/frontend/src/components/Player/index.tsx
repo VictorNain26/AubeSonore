@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useNowPlayingStore } from '../../lib/azuracast';
+import { useArtistInfo } from '../../hooks/useArtistInfo';
 
 import { TrackArtwork } from './TrackArtwork';
 import { TrackMeta } from './TrackMeta';
@@ -17,6 +19,9 @@ import { RecentRail } from './RecentRail';
 
 export default function Player() {
   const hasData = useNowPlayingStore((s) => s.data !== null);
+  const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
+  const { data } = useArtistInfo(artistName);
+  const [artistPanelOpen, setArtistPanelOpen] = useState(false);
 
   if (!hasData) {
     return (
@@ -44,7 +49,7 @@ export default function Player() {
     <div className="w-full">
       <div className="flex flex-col items-start gap-6">
         <TrackArtwork />
-        <TrackMeta />
+        <TrackMeta onArtistInfo={data?.bio ? () => setArtistPanelOpen(true) : undefined} />
       </div>
 
       <Timeline />
@@ -58,7 +63,7 @@ export default function Player() {
         </div>
       </div>
 
-      <ArtistContext />
+      <ArtistContext isOpen={artistPanelOpen} onClose={() => setArtistPanelOpen(false)} />
 
       <RecentRail />
     </div>
