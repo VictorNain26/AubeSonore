@@ -197,5 +197,5 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
     };
   }, []);
 
-  return <canvas ref={canvasRef} width={384} height={32} className="w-full h-8" />;
+  return <canvas ref={canvasRef} width={384} height={32} className="w-full max-w-full h-8" />;
 }

@@ -28,7 +28,7 @@ export function Timeline() {
         isPlaying={isPlaying}
         className="text-caption text-ink-faint tabular-nums w-10 text-right"
       />
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <WaveformCanvas
           playedAt={playedAt}
           duration={duration}
