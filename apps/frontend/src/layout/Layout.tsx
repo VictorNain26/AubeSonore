@@ -80,7 +80,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [openAuthModal]);
 
   return (
-    <div className="min-h-dvh flex flex-col bg-paper text-ink">
+    <div className="h-dvh min-h-[600px] grid grid-rows-[auto_1fr] bg-paper text-ink overflow-hidden">
       {/* Skip-link for keyboard users */}
       <a href="#main" className="sr-only-focusable">
         Aller au contenu principal
@@ -99,9 +99,15 @@ export default function Layout({ children }: LayoutProps) {
         }}
       />
 
-      <header className="mx-auto w-full max-w-[640px] px-6 pt-8 pb-4 flex items-start justify-between">
+      <header className="mx-auto w-full max-w-[1200px] px-6 pt-6 pb-3 flex items-start justify-between">
         <div>
-          <p className="font-display text-lead tracking-tight">AubeSonore</p>
+          <p className="font-display text-lead tracking-tight">
+            <span
+              aria-hidden="true"
+              className="inline-block w-2.5 h-2.5 rounded-full bg-[var(--color-accent-dawn)] mr-2 align-baseline"
+            />
+            AubeSonore
+          </p>
           <MomentLine />
         </div>
 
@@ -149,17 +155,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      {/* Main - scrollable content area */}
-      <main id="main" className="flex-1 flex flex-col">
+      <main id="main" className="min-h-0 overflow-hidden flex flex-col">
         {children}
       </main>
-
-      <footer className="mx-auto w-full max-w-[640px] px-6 py-6">
-        <div className="rule mb-4" />
-        <p className="text-caption text-ink-faint tracking-widest">
-          AubeSonore — Découverte musicale émergente
-        </p>
-      </footer>
 
       {isAboutOpen && (
         <Suspense fallback={null}>

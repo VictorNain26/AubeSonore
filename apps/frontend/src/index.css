@@ -60,6 +60,7 @@
   --color-on-accent: var(--on-accent);
   --color-danger: hsl(0 62% 44%);
   --color-success: hsl(150 55% 32%);
+  --color-accent-dawn: hsl(12 62% 42%);
 
   --text-*: initial;
   --text-caption: 0.75rem;

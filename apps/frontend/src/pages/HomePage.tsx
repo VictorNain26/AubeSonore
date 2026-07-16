@@ -5,7 +5,7 @@ import { PlayerErrorFallback } from '../components/ErrorFallback';
 
 export default function HomePage() {
   return (
-    <div className="mx-auto w-full max-w-[640px] flex-1 px-6 py-6">
+    <div className="mx-auto h-full w-full max-w-[1200px] px-6 pb-6 min-h-0">
       <ErrorBoundary FallbackComponent={PlayerErrorFallback}>
         <Player />
       </ErrorBoundary>

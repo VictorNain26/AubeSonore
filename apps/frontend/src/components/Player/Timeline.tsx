@@ -21,7 +21,7 @@ export function Timeline() {
   const isPlaying = usePlayer((s) => s.isPlaying);
 
   return (
-    <div className="flex items-center gap-3 mb-6">
+    <div className="flex items-center gap-3">
       <ElapsedReadout
         playedAt={playedAt}
         duration={duration}
