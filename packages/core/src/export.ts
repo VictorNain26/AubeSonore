@@ -36,15 +36,3 @@ export function formatAsCSV(tracks: ClientLikedTrack[]): string {
 
   return BOM + [header.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
 }
-
-export function formatAsTuneMyMusic(tracks: ClientLikedTrack[]): string {
-  const lines = tracks.map((t) => `${t.artist} - ${t.title}`);
-  return lines.join('\n');
-}
-
-export function formatAsSonglinkList(tracks: ClientLikedTrack[]): string {
-  const lines = tracks
-    .filter((t) => t.songlinkUrl)
-    .map((t) => `${t.artist} - ${t.title}\n${t.songlinkUrl}`);
-  return lines.join('\n\n');
-}

@@ -1,15 +1,5 @@
 import { useState, useMemo, useCallback, memo } from 'react';
-import {
-  Library,
-  ExternalLink,
-  Music,
-  Trash2,
-  Search,
-  MoreHorizontal,
-  RefreshCw,
-  Download,
-  X,
-} from 'lucide-react';
+import { Library, ExternalLink, Music, Trash2, Search, RefreshCw, Download, X } from 'lucide-react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '@/lib/utils';
@@ -18,14 +8,13 @@ import { usePreferencesStore } from '../stores/preferencesStore';
 import { PLATFORMS } from '@aubesonore/shared-types/client';
 import type { LikedTrack, PreferredPlatform } from '../lib/api';
 import { trackApi } from '../lib/api';
-import { exportAsCSV, exportAsTuneMyMusic, exportAsSonglinkList } from '../lib/exportLibrary';
+import { exportAsCSV } from '../lib/exportLibrary';
 import { getPreferredLink } from '@aubesonore/core/share';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from './ui/DropdownMenu';
 import { toast } from 'sonner';
 import { modal } from './Player/motion-presets';
@@ -193,7 +182,7 @@ function EmptyState() {
 // Composant Principal - Modal style Player
 // ─────────────────────────────────────────────
 
-function OverflowMenu({
+function LibraryActions({
   tracks,
   isRefreshing,
   onRefresh,
@@ -203,40 +192,34 @@ function OverflowMenu({
   onRefresh: () => void;
 }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            'p-2 rounded-full cursor-pointer',
-            'text-ink-faint hover:text-ink hover:bg-paper-raised',
-            'transition-colors'
-          )}
-          aria-label="Plus d'options"
-          title="Plus d'options"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem disabled={isRefreshing} onSelect={() => onRefresh()}>
-          <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
-          Mettre à jour les liens
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void exportAsCSV(tracks)}>
-          <Download className="w-4 h-4" />
-          Exporter CSV
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void exportAsTuneMyMusic(tracks)}>
-          <Download className="w-4 h-4" />
-          Exporter TuneMyMusic
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void exportAsSonglinkList(tracks)}>
-          <Download className="w-4 h-4" />
-          Exporter Liens Songlink
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <>
+      <button
+        onClick={() => onRefresh()}
+        disabled={isRefreshing}
+        className={cn(
+          'p-2 rounded-full',
+          'text-ink-faint hover:text-ink hover:bg-paper-raised',
+          'transition-colors',
+          isRefreshing ? 'cursor-not-allowed' : 'cursor-pointer'
+        )}
+        aria-label="Mettre à jour les liens"
+        title="Mettre à jour les liens"
+      >
+        <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
+      </button>
+      <button
+        onClick={() => exportAsCSV(tracks)}
+        className={cn(
+          'p-2 rounded-full cursor-pointer',
+          'text-ink-faint hover:text-ink hover:bg-paper-raised',
+          'transition-colors'
+        )}
+        aria-label="Exporter (CSV)"
+        title="Exporter (CSV)"
+      >
+        <Download className="w-4 h-4" />
+      </button>
+    </>
   );
 }
 
@@ -327,7 +310,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
                     <div className="flex items-center gap-1">
                       {tracks.length > 0 && (
-                        <OverflowMenu
+                        <LibraryActions
                           tracks={tracks}
                           isRefreshing={isRefreshing}
                           onRefresh={handleRefreshAll}
