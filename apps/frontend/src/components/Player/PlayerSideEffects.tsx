@@ -5,7 +5,6 @@ import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
 import { useTrackChangeEvents } from '../../hooks/player/useTrackChangeEvents';
 import { useMediaSession } from '../../hooks/player/useMediaSession';
-import { useAirPlayStore } from '../../stores/airplayStore';
 
 // Invisible component that hosts player side-effects driven by external
 // state (now-playing track flips, audio playing state). Keeps these
@@ -26,10 +25,6 @@ export function PlayerSideEffects(): null {
   const isPlaying = usePlayer((s) => s.isPlaying);
   const playError = usePlayer((s) => s.playError);
   const clearPlayError = usePlayer((s) => s.clearPlayError);
-
-  useEffect(() => {
-    useAirPlayStore.getState().initialize();
-  }, []);
 
   useTrackChangeEvents(shId, artist, title);
   useMediaSession({ title, artist, album, artworkUrl: art }, isPlaying);

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { usePlayer } from '../../lib/player';
-import AirPlayButton from './AirPlayButton';
+import { AirPlayButton } from './AirPlayButton';
 import { VolumeControl } from './VolumeControl';
 import { SleepTimer } from './SleepTimer';
 
