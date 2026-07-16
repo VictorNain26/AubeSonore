@@ -40,7 +40,7 @@ export function LibraryButton() {
           'relative',
           isAuthenticated && tracks.length > 0 && 'text-accent/80 hover:text-accent'
         )}
-        label="Ouvrir mes découvertes"
+        label="Ouvrir ma bibliothèque"
       >
         <Library />
       </IconButton>
