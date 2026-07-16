@@ -246,8 +246,8 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
     <ModalShell
       isOpen={isOpen}
       onClose={onClose}
-      title="Mes découvertes"
-      description={`${tracks.length} ${tracks.length > 1 ? 'titres' : 'titre'}`}
+      title="Ma bibliothèque"
+      description={`${tracks.length} ${tracks.length > 1 ? 'morceaux' : 'morceau'}`}
       maxWidthClassName="max-w-lg"
     >
       {tracks.length > 0 && (
