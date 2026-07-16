@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useCallback } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { IconButton } from '../ui/Button';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
@@ -33,18 +34,16 @@ export function LibraryButton() {
 
   return (
     <>
-      <button
+      <IconButton
         onClick={handleOpen}
         className={cn(
-          'p-2 rounded-md transition-colors relative cursor-pointer',
-          'text-ink-faint hover:text-ink hover:bg-paper-raised',
+          'relative',
           isAuthenticated && tracks.length > 0 && 'text-accent/80 hover:text-accent'
         )}
-        title="Mes découvertes"
-        aria-label="Ouvrir mes découvertes"
+        label="Ouvrir mes découvertes"
       >
-        <Library className="w-5 h-5" />
-      </button>
+        <Library />
+      </IconButton>
 
       {isModalOpen && (
         <Suspense fallback={null}>

@@ -1,5 +1,6 @@
 import { Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { IconButton } from '../ui/Button';
 import { useSleepTimer } from '../../stores/sleepTimerStore';
 import {
   DropdownMenu,
@@ -30,17 +31,11 @@ export function SleepTimer() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            'p-2 rounded-md transition-colors relative cursor-pointer',
-            isActive
-              ? 'text-accent hover:text-accent hover:bg-paper-raised'
-              : 'text-ink-faint hover:text-ink hover:bg-paper-raised'
-          )}
-          aria-label={isActive ? 'Minuterie active' : 'Minuterie de sommeil'}
-          title={isActive ? 'Minuterie active' : 'Minuterie de sommeil'}
+        <IconButton
+          className={cn('relative', isActive && 'text-accent hover:text-accent')}
+          label={isActive ? 'Minuterie active' : 'Minuterie de sommeil'}
         >
-          <Moon className="w-5 h-5" />
+          <Moon />
           {isActive && mode === 'timer' && (
             <span className="absolute -top-1 -right-2 min-w-[18px] px-1 text-caption font-medium tabular-nums text-accent">
               {formatCountdown(remainingMs)}
@@ -49,7 +44,7 @@ export function SleepTimer() {
           {isActive && mode === 'end-of-track' && (
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-accent" />
           )}
-        </button>
+        </IconButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="center" className="w-48">
         <DropdownMenuLabel>Minuterie</DropdownMenuLabel>

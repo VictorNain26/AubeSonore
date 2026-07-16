@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Toaster, toast } from 'sonner';
 import { LogOut, LogIn, Info } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { cn } from '@/lib/utils';
+import { Button, IconButton } from '../components/ui/Button';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { useMoment } from '../hooks/useMoment';
@@ -106,13 +106,9 @@ export default function Layout({ children }: LayoutProps) {
         </div>
 
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setIsAboutOpen(true)}
-            className="p-2 rounded-md text-ink-faint hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer"
-            title="À propos"
-          >
-            <Info className="w-4 h-4" />
-          </button>
+          <IconButton onClick={() => setIsAboutOpen(true)} label="À propos">
+            <Info />
+          </IconButton>
 
           {isLoading ? (
             <div className="w-8 h-8 rounded-full bg-paper-raised animate-pulse" />
@@ -145,16 +141,10 @@ export default function Layout({ children }: LayoutProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <button
-              onClick={() => openAuthModal()}
-              className={cn(
-                'flex items-center gap-2 rounded-md border border-line px-3 py-1.5',
-                'text-body text-ink-soft hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer'
-              )}
-            >
+            <Button variant="ink" onClick={() => openAuthModal()}>
               <LogIn className="w-4 h-4" />
               <span className="hidden sm:inline">Connexion</span>
-            </button>
+            </Button>
           )}
         </div>
       </header>
