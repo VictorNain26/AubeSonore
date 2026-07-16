@@ -104,7 +104,7 @@ export default function Layout({ children }: LayoutProps) {
           <p className="font-display text-lead tracking-tight">
             <span
               aria-hidden="true"
-              className="inline-block w-2.5 h-2.5 rounded-full bg-[var(--color-accent-dawn)] mr-2 align-baseline"
+              className="inline-block w-2.5 h-2.5 rounded-full bg-accent-dawn mr-2 align-baseline"
             />
             AubeSonore
           </p>

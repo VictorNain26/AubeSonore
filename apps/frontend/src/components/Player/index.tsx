@@ -43,6 +43,14 @@ export default function Player() {
             </div>
           </div>
         </div>
+        <section className="pt-4">
+          <div className="rule mb-4" />
+          <div className="flex gap-4">
+            <div className="skeleton h-[132px] w-[132px]" />
+            <div className="skeleton h-[132px] w-[132px]" />
+            <div className="skeleton h-[132px] w-[132px]" />
+          </div>
+        </section>
       </div>
     );
   }
