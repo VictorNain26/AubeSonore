@@ -1,5 +1,0 @@
-/**
- * AirPlay types (Web)
- */
-
-export {};

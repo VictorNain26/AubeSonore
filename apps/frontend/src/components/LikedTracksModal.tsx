@@ -105,7 +105,7 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           label="Retirer de ma bibliothèque"
           title="Retirer"
           className={cn(
-            'hover:text-danger opacity-0 group-hover:opacity-100',
+            'min-w-[40px] min-h-[40px] hover:text-danger opacity-0 group-hover:opacity-100',
             isDeleting && 'cursor-not-allowed !opacity-100'
           )}
         >
@@ -251,7 +251,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
       maxWidthClassName="max-w-lg"
     >
       {tracks.length > 0 && (
-        <div className="flex items-center justify-between pb-4 border-b border-line">
+        <div className="sticky top-0 z-10 bg-paper flex items-center justify-between pb-4 border-b border-line">
           <LibraryActions
             tracks={tracks}
             isRefreshing={isRefreshing}

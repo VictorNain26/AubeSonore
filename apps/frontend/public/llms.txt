@@ -19,9 +19,9 @@ Deezer, YouTube Music, Tidal, Amazon Music, Qobuz, Bandcamp, SoundCloud).
 - Curation humaine (pas algorithmique)
 - Artistes : émergents, indépendants, toutes origines géographiques
 - Genres : indie, folk, électronique, pop alternative, world, hip-hop indé, et plus
-- Fonctionnalités : like de morceaux, bibliothèque personnelle, export vers les plateformes, partage de découvertes, historique des titres joués, biographies d'artistes
+- Fonctionnalités : like de morceaux, bibliothèque personnelle, export CSV, partage de découvertes, historique des titres joués, biographies d'artistes
 - Installable comme PWA (Progressive Web App) sur mobile et desktop
-- Compatible Chromecast et AirPlay
+- Compatible AirPlay
 
 ## Liens publics
 

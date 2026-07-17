@@ -35,6 +35,12 @@ export default function Player() {
   const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
   const { data } = useArtistInfo(artistName);
   const [artistPanelOpen, setArtistPanelOpen] = useState(false);
+  const [prevArtistName, setPrevArtistName] = useState(artistName);
+
+  if (artistName !== prevArtistName) {
+    setPrevArtistName(artistName);
+    setArtistPanelOpen(false);
+  }
 
   if (!hasData) {
     return (
@@ -63,14 +69,7 @@ export default function Player() {
             <div className="w-14 h-14 rounded-full skeleton" />
           </div>
         </div>
-        <section className="pt-4">
-          <div className="rule mb-4" />
-          <div className="flex gap-4">
-            <div className="skeleton h-[132px] w-[132px]" />
-            <div className="skeleton h-[132px] w-[132px]" />
-            <div className="skeleton h-[132px] w-[132px]" />
-          </div>
-        </section>
+        <RecentRail />
       </div>
     );
   }
