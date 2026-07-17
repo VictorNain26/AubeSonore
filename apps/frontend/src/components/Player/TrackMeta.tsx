@@ -28,12 +28,12 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={trackFlip}
-          className="font-display text-display text-ink [text-wrap:balance]"
+          className="font-display text-title lg:text-display text-ink [text-wrap:balance]"
         >
           {title || 'En attente...'}
         </motion.h2>
       </AnimatePresence>
-      <p className="mt-2 text-lead text-ink-soft">
+      <p className="mt-1 lg:mt-2 text-lead text-ink-soft">
         {onArtistInfo && artist ? (
           <button
             onClick={onArtistInfo}

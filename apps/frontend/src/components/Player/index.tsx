@@ -41,9 +41,9 @@ export default function Player() {
       <div className="h-full min-h-0 grid grid-rows-[1fr_auto] grid-cols-[minmax(0,1fr)]">
         <div className="min-h-0 min-w-0 grid grid-rows-[minmax(0,1fr)_auto]">
           <div className="min-h-0 min-w-0 overflow-y-auto lg:overflow-visible flex flex-col">
-            <div className="my-auto w-full min-w-0 flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,42%)_1fr] lg:items-center lg:gap-12">
-              <div className="w-full max-w-[min(38dvh,320px)] lg:max-w-[min(52dvh,560px)] mx-auto lg:mx-0 aspect-square rounded-lg skeleton" />
-              <div className="min-w-0 flex flex-col gap-5">
+            <div className="my-auto w-full min-w-0 flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,42%)_1fr] lg:items-center lg:gap-12">
+              <div className="w-full max-w-[min(26dvh,260px)] lg:max-w-[min(52dvh,560px)] mx-auto lg:mx-0 aspect-square rounded-lg skeleton" />
+              <div className="min-w-0 flex flex-col gap-3 lg:gap-5">
                 <div className="flex flex-col gap-2">
                   <div className="h-10 w-3/4 rounded skeleton" />
                   <div className="h-5 w-1/3 rounded skeleton" />
@@ -79,9 +79,9 @@ export default function Player() {
     <div className="h-full min-h-0 grid grid-rows-[1fr_auto] grid-cols-[minmax(0,1fr)]">
       <div className="min-h-0 min-w-0 grid grid-rows-[minmax(0,1fr)_auto]">
         <div className="min-h-0 min-w-0 overflow-y-auto lg:overflow-visible flex flex-col">
-          <div className="my-auto w-full min-w-0 flex flex-col gap-5 lg:grid lg:grid-cols-[minmax(0,42%)_1fr] lg:items-center lg:gap-12">
+          <div className="my-auto w-full min-w-0 flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,42%)_1fr] lg:items-center lg:gap-12">
             <TrackArtwork />
-            <div className="min-w-0 flex flex-col gap-5">
+            <div className="min-w-0 flex flex-col gap-3 lg:gap-5">
               <TrackMeta onArtistInfo={data?.bio ? () => setArtistPanelOpen(true) : undefined} />
               <Timeline />
               <ControlsRow className="hidden lg:flex items-center" />

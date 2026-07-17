@@ -74,7 +74,7 @@ export function TrackArtwork() {
   return (
     <div
       key={artUrl}
-      className="relative w-full max-w-[min(38dvh,320px)] lg:max-w-[min(52dvh,560px)] mx-auto lg:mx-0"
+      className="relative w-full max-w-[min(26dvh,260px)] lg:max-w-[min(52dvh,560px)] mx-auto lg:mx-0"
     >
       <div
         className={cn(
