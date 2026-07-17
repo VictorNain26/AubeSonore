@@ -80,7 +80,8 @@ export function TrackArtwork() {
           isPlaying && 'scale-[1.01]'
         )}
       >
-        <AnimatePresence mode="wait">
+        {/* initial={false} : le montage est animé par la cascade Entry. */}
+        <AnimatePresence mode="wait" initial={false}>
           {!isDefaultCover ? (
             <motion.img
               key={artUrl}

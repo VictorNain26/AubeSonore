@@ -22,7 +22,9 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
 
   return (
     <div className="min-w-0">
-      <AnimatePresence mode="wait">
+      {/* initial={false} : l'entrée au montage appartient à la cascade
+          Entry du Player ; ces animations ne jouent qu'aux flips. */}
+      <AnimatePresence mode="wait" initial={false}>
         <motion.h2
           key={shId ?? 'waiting'}
           initial={{ opacity: 0, y: 10 }}
@@ -34,7 +36,7 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
           {title || "L'antenne se prépare"}
         </motion.h2>
       </AnimatePresence>
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="wait" initial={false}>
         <motion.p
           key={artist ?? 'waiting'}
           initial={{ opacity: 0, y: 8 }}
