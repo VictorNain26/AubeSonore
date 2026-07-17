@@ -28,9 +28,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           l&apos;aube à la nuit.
         </p>
         <div>
-          <p className="text-caption text-ink-faint uppercase tracking-widest mb-3">
-            Nous retrouver
-          </p>
+          <p className="eyebrow mb-3">Nous retrouver</p>
           <div className="flex gap-3">
             {SOCIAL_LINKS.map(({ icon: Icon, label, href }) => (
               <a
@@ -43,14 +41,14 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                   'transition-colors text-caption'
                 )}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="size-4" />
                 {label}
               </a>
             ))}
           </div>
         </div>
         <div className="flex items-center gap-2 text-caption text-ink-faint">
-          <Mail className="w-4 h-4 shrink-0" />
+          <Mail className="size-4 shrink-0" />
           <a href="mailto:contact@aubesonore.fr" className="text-accent hover:underline">
             contact@aubesonore.fr
           </a>

@@ -36,7 +36,7 @@ export function ArtistContext({ isOpen, onClose }: ArtistContextProps) {
               {data.similarArtists.map((name) => (
                 <span
                   key={name}
-                  className="px-2 py-0.5 rounded-full bg-paper-raised text-caption text-accent/70 border border-line"
+                  className="px-2 py-0.5 rounded-full bg-paper-raised text-caption text-accent border border-line"
                 >
                   {name}
                 </span>

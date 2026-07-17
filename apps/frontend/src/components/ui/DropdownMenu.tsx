@@ -20,7 +20,7 @@ const DropdownMenuContent = forwardRef<
         'origin-[var(--radix-dropdown-menu-content-transform-origin)]',
         'data-[state=open]:opacity-100 data-[state=open]:scale-100',
         'data-[state=closed]:opacity-0 data-[state=closed]:scale-95',
-        'transition-[opacity,transform] duration-150 ease-out',
+        'transition-[opacity,transform] duration-150 ease-(--ease-snappy)',
         className
       )}
       {...props}

@@ -3,10 +3,12 @@ import { Toaster, toast } from 'sonner';
 import { LogOut, LogIn, Info } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button, IconButton } from '../components/ui/Button';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
+import { usePlayer } from '../lib/player';
 import { useMoment } from '../hooks/useMoment';
-import { MOMENT_LABELS } from '../lib/moments';
+import { MOMENT_LABELS, MOMENT_TAGLINES } from '../lib/moments';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -35,9 +37,30 @@ function MomentLine() {
   }, []);
 
   return (
-    <p className="text-caption tracking-widest uppercase text-ink-soft">
-      {MOMENT_LABELS[moment]} <span className="text-ink-faint">— {timeFormatter.format(now)}</span>
-    </p>
+    <>
+      <p className="eyebrow text-ink-soft">
+        {MOMENT_LABELS[moment]}{' '}
+        <span className="text-ink-faint">— {timeFormatter.format(now)}</span>
+      </p>
+      <p className="hidden sm:block font-display italic text-caption text-ink-faint">
+        {MOMENT_TAGLINES[moment]}
+      </p>
+    </>
+  );
+}
+
+// Le point de la marque devient témoin d'antenne : il respire quand
+// le flux joue.
+function OnAirDot() {
+  const isPlaying = usePlayer((s) => s.isPlaying);
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        'inline-block size-2.5 rounded-full bg-accent-dawn mr-2 align-baseline',
+        isPlaying && 'animate-pulse'
+      )}
+    />
   );
 }
 
@@ -99,13 +122,10 @@ export default function Layout({ children }: LayoutProps) {
         }}
       />
 
-      <header className="mx-auto w-full max-w-[1200px] px-6 pt-6 pb-3 flex items-start justify-between">
+      <header className="mx-auto w-full max-w-page px-6 pt-6 pb-3 flex items-start justify-between">
         <div>
           <p className="font-display text-lead tracking-tight">
-            <span
-              aria-hidden="true"
-              className="inline-block w-2.5 h-2.5 rounded-full bg-accent-dawn mr-2 align-baseline"
-            />
+            <OnAirDot />
             AubeSonore
           </p>
           <MomentLine />
@@ -117,20 +137,17 @@ export default function Layout({ children }: LayoutProps) {
           </IconButton>
 
           {isLoading ? (
-            <div className="w-8 h-8 rounded-full bg-paper-raised animate-pulse" />
+            <div className="size-8 skeleton rounded-full" />
           ) : isAuthenticated && user ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button
-                  className="flex items-center gap-2 p-2 rounded-md text-ink-faint hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer"
-                  aria-label="Menu utilisateur"
-                >
-                  <div className="h-7 w-7 rounded-full bg-paper-raised flex items-center justify-center">
+                <IconButton label="Menu utilisateur">
+                  <div className="size-7 rounded-full bg-paper-raised flex items-center justify-center">
                     <span className="text-caption font-medium text-ink">
                       {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                </button>
+                </IconButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <div className="px-3 py-2">
@@ -141,14 +158,14 @@ export default function Layout({ children }: LayoutProps) {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem intent="danger" onSelect={() => void signOut()}>
-                  <LogOut className="w-4 h-4" />
+                  <LogOut className="size-4" />
                   <span>Déconnexion</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <Button variant="ink" onClick={() => openAuthModal()}>
-              <LogIn className="w-4 h-4" />
+              <LogIn className="size-4" />
               <span className="hidden sm:inline">Connexion</span>
             </Button>
           )}

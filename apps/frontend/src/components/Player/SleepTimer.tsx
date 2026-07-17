@@ -42,7 +42,7 @@ export function SleepTimer() {
             </span>
           )}
           {isActive && mode === 'end-of-track' && (
-            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-accent" />
+            <span className="absolute -top-0.5 -right-0.5 size-2 rounded-full border-2 border-accent" />
           )}
         </IconButton>
       </DropdownMenuTrigger>

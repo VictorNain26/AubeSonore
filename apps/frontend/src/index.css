@@ -79,6 +79,8 @@
   --radius-md: 0.625rem;
   --radius-lg: 0.875rem;
 
+  --container-page: 75rem;
+
   --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
 
@@ -145,6 +147,26 @@
     background: color-mix(in srgb, var(--ink) 7%, var(--paper));
     animation: pulse-soft 2s ease-in-out infinite;
     border-radius: var(--radius-md);
+  }
+
+  /* Surtitre éditorial — la seule voix en capitales du système */
+  .eyebrow {
+    font-size: var(--text-caption);
+    line-height: var(--text-caption--line-height);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  /* Cadre de la pochette — partagé entre l'artwork réel et son squelette */
+  .artwork-size {
+    width: 100%;
+    max-width: min(26dvh, 260px);
+  }
+  @media (min-width: 64rem) {
+    .artwork-size {
+      max-width: min(52dvh, 560px);
+    }
   }
 
   /* Fondu des bords du rail horizontal */

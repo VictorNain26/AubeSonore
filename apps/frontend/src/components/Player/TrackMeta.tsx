@@ -1,11 +1,11 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useShallow } from 'zustand/react/shallow';
 import { useNowPlayingStore } from '../../lib/azuracast';
-import { trackFlip } from './motion-presets';
+import { trackFlip, stagger } from '../../lib/motion';
 
 // The masthead: track title as a large serif headline, artist as its
-// dek. Only the title crossfades — a single animated element per the
-// scene's motion budget.
+// dek. On a track flip the cascade runs artwork → title → artist, one
+// stagger beat apart.
 
 interface TrackMetaProps {
   onArtistInfo?: (() => void) | undefined;
@@ -22,29 +22,41 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
 
   return (
     <div className="min-w-0">
-      <AnimatePresence mode="wait">
+      {/* initial={false} : l'entrée au montage appartient à la cascade
+          Entry du Player ; ces animations ne jouent qu'aux flips. */}
+      <AnimatePresence mode="wait" initial={false}>
         <motion.h2
           key={shId ?? 'waiting'}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={trackFlip}
+          exit={{ opacity: 0, y: -8, transition: { duration: 0.2, ease: 'easeIn' } }}
+          transition={{ ...trackFlip, delay: stagger }}
           className="font-display text-title lg:text-display text-ink [text-wrap:balance]"
         >
-          {title || 'En attente...'}
+          {title || "L'antenne se prépare"}
         </motion.h2>
       </AnimatePresence>
-      <p className="mt-1 lg:mt-2 text-lead text-ink-soft">
-        {onArtistInfo && artist ? (
-          <button
-            onClick={onArtistInfo}
-            className="cursor-pointer underline decoration-line underline-offset-4 hover:decoration-ink transition-colors"
-          >
-            {artist}
-          </button>
-        ) : (
-          (artist ?? '—')
-        )}
-      </p>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.p
+          key={artist ?? 'waiting'}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, transition: { duration: 0.2, ease: 'easeIn' } }}
+          transition={{ ...trackFlip, delay: stagger * 2 }}
+          className="mt-1 lg:mt-2 text-lead text-ink-soft"
+        >
+          {onArtistInfo && artist ? (
+            <button
+              onClick={onArtistInfo}
+              className="cursor-pointer underline decoration-line underline-offset-4 hover:decoration-ink transition-colors"
+            >
+              {artist}
+            </button>
+          ) : (
+            (artist ?? '—')
+          )}
+        </motion.p>
+      </AnimatePresence>
     </div>
   );
 }

@@ -23,13 +23,13 @@ export const RailCard = memo(function RailCard({
   const [imgError, setImgError] = useState(false);
 
   return (
-    <div role="listitem" className="group w-[132px] shrink-0 snap-start">
-      <div className="relative h-[132px] w-[132px] overflow-hidden rounded-md bg-paper-raised">
+    <div role="listitem" className="group w-33 shrink-0 snap-start">
+      <div className="relative size-33 overflow-hidden rounded-md bg-paper-raised">
         {entry.song.art && !imgError ? (
           <img
             src={entry.song.art}
             alt=""
-            className="h-full w-full object-cover"
+            className="size-full object-cover"
             draggable={false}
             referrerPolicy="no-referrer"
             loading="lazy"
@@ -37,22 +37,26 @@ export const RailCard = memo(function RailCard({
             onError={() => setImgError(true)}
           />
         ) : (
-          <Music className="absolute inset-0 m-auto h-6 w-6 text-ink-faint" />
+          <Music className="absolute inset-0 m-auto size-6 text-ink-faint" />
         )}
         <div
           className={cn(
             'absolute inset-x-0 bottom-0 flex items-center justify-end gap-1 p-1.5',
             'pointer-events-none opacity-0 transition-opacity duration-200',
             'group-hover:pointer-events-auto group-hover:opacity-100',
-            'group-focus-within:pointer-events-auto group-focus-within:opacity-100'
+            'group-focus-within:pointer-events-auto group-focus-within:opacity-100',
+            'pointer-coarse:pointer-events-auto pointer-coarse:opacity-100'
           )}
         >
           <button
             onClick={onShare}
-            className="rounded-md bg-paper p-1.5 text-ink-soft hover:text-ink cursor-pointer"
+            className={cn(
+              'flex size-8 items-center justify-center rounded-full cursor-pointer',
+              'bg-paper/90 border border-line text-ink-faint hover:text-ink transition-colors'
+            )}
             aria-label="Partager"
           >
-            <Share2 className="h-3.5 w-3.5" />
+            <Share2 className="size-3.5" />
           </button>
           <button
             onClick={onToggle}
@@ -60,12 +64,13 @@ export const RailCard = memo(function RailCard({
             aria-pressed={isLiked}
             aria-label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
             className={cn(
-              'rounded-md bg-paper p-1.5 cursor-pointer',
-              isLiked ? 'text-danger' : 'text-ink-soft hover:text-danger',
+              'flex size-8 items-center justify-center rounded-full cursor-pointer',
+              'bg-paper/90 border border-line transition-colors',
+              isLiked ? 'text-danger' : 'text-ink-faint hover:text-ink',
               isLiking && 'animate-pulse pointer-events-none'
             )}
           >
-            <Heart className={cn('h-3.5 w-3.5', isLiked && 'fill-current')} />
+            <Heart className={cn('size-3.5', isLiked && 'fill-current')} />
           </button>
         </div>
       </div>

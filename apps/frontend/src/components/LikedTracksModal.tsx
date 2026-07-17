@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, memo } from 'react';
-import { ExternalLink, Music, Trash2, Search, RefreshCw, Download } from 'lucide-react';
+import { ExternalLink, Loader2, Music, Trash2, Search, RefreshCw, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
@@ -56,19 +56,19 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
       className={cn('group flex items-center gap-3 py-2', isDeleting && 'opacity-50')}
     >
       {/* Artwork */}
-      <div className="w-10 h-10 rounded-sm overflow-hidden shrink-0 bg-paper-raised flex items-center justify-center">
+      <div className="size-10 rounded-sm overflow-hidden shrink-0 bg-paper-raised flex items-center justify-center">
         {artwork ? (
           <img
             src={artwork}
             alt={track.title}
-            className="w-full h-full object-cover"
+            className="size-full object-cover"
             referrerPolicy="no-referrer"
             loading="lazy"
             decoding="async"
             onError={() => setImgError(true)}
           />
         ) : (
-          <Music className="w-5 h-5 text-ink-faint" />
+          <Music className="size-5 text-ink-faint" />
         )}
       </div>
 
@@ -85,9 +85,8 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           target="_blank"
           rel="noopener noreferrer"
           className={cn(
-            'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center cursor-pointer',
-            'text-ink-faint hover:text-ink hover:bg-paper-raised',
-            'transition-colors'
+            'size-10 rounded-full flex items-center justify-center cursor-pointer',
+            'text-ink-faint hover:text-ink hover:bg-paper-raised transition-colors'
           )}
           title={
             isSearch
@@ -95,7 +94,7 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
               : `Ouvrir sur ${selectedPlatform?.name}`
           }
         >
-          {isSearch ? <Search className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
+          {isSearch ? <Search className="size-4" /> : <ExternalLink className="size-4" />}
         </a>
 
         <IconButton
@@ -105,11 +104,11 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           label="Retirer de ma bibliothèque"
           title="Retirer"
           className={cn(
-            'min-w-[40px] min-h-[40px] hover:text-danger opacity-0 group-hover:opacity-100',
-            isDeleting && 'cursor-not-allowed !opacity-100'
+            'size-10 hover:text-danger opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+            isDeleting && 'animate-pulse'
           )}
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="size-4" />
         </IconButton>
       </div>
     </div>
@@ -131,23 +130,20 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            'flex items-center gap-2 px-3 py-1.5 rounded-full cursor-pointer',
-            'border border-line text-ink hover:bg-paper-raised',
-            'transition-colors text-caption'
-          )}
+        <Button
+          variant="ink"
+          className="rounded-full text-caption"
           aria-label="Sélectionner la plateforme préférée"
         >
-          <span className="text-ink-soft">{selectedPlatform?.name}</span>
-        </button>
+          {selectedPlatform?.name}
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" align="end" className="w-44 max-h-[280px] overflow-y-auto">
         {PLATFORMS.map((platform) => (
           <DropdownMenuItem
             key={platform.id}
             onSelect={() => onChange(platform.id)}
-            className={cn(selected === platform.id && 'bg-paper-raised !text-ink')}
+            className={cn(selected === platform.id && 'bg-paper-raised')}
           >
             {platform.name}
           </DropdownMenuItem>
@@ -186,11 +182,11 @@ function LibraryActions({
   return (
     <div className="flex items-center gap-2">
       <Button variant="ink" onClick={() => onRefresh()} disabled={isRefreshing}>
-        <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
+        <RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} />
         Mettre à jour les liens
       </Button>
       <Button variant="ink" onClick={() => exportAsCSV(tracks)}>
-        <Download className="w-4 h-4" />
+        <Download className="size-4" />
         Exporter (CSV)
       </Button>
     </div>
@@ -266,7 +262,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-12">
-          <div className="w-8 h-8 rounded-full border-2 border-line border-t-ink-soft animate-spin" />
+          <Loader2 className="size-8 animate-spin text-ink-faint" aria-label="Chargement" />
         </div>
       ) : tracks.length === 0 ? (
         <EmptyState />
