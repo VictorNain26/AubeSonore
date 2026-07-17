@@ -201,6 +201,8 @@ export {
 
 ### Task 2: Export bibliothèque réduit au CSV
 
+> **Amendement (exécution)** : `apps/mobile` consomme encore `formatAsTuneMyMusic`/`formatAsSonglinkList` — elles restent donc dans `packages/core/src/export.ts` (mobile intouché, même décision que stats/push). Le retrait ne concerne que le frontend.
+
 **Files:**
 
 - Modify: `packages/core/src/export.ts` (racine repo), `src/lib/exportLibrary.ts`, `src/components/LikedTracksModal.tsx`
