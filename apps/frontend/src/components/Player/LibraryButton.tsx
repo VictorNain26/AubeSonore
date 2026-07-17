@@ -36,7 +36,7 @@ export function LibraryButton() {
     <>
       <IconButton
         onClick={handleOpen}
-        className={cn(isAuthenticated && tracks.length > 0 && 'text-accent/80 hover:text-accent')}
+        className={cn(isAuthenticated && tracks.length > 0 && 'text-accent hover:text-accent')}
         label="Ouvrir ma bibliothèque"
       >
         <Library />

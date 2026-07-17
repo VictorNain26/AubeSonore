@@ -1,3 +1,5 @@
+import { Heart, X } from 'lucide-react';
+import { Button, IconButton } from '../components/ui/Button';
 import { MOMENT_LABELS, MOMENT_ORDER, MOMENT_TAGLINES } from '../lib/moments';
 
 const TYPE_SCALE = [
@@ -15,7 +17,7 @@ export default function DevSystemPage() {
   return (
     <div className="mx-auto max-w-[640px] px-6 py-12 space-y-12">
       <header className="space-y-1">
-        <p className="text-caption tracking-widest uppercase text-ink-faint">/dev/system</p>
+        <p className="eyebrow">/dev/system</p>
         <h1 className="text-title font-display">Le système</h1>
         <p className="text-body text-ink-soft">
           Ajouter ?moment=dawn|day|dusk|night à l&apos;URL pour changer de papier.
@@ -23,7 +25,7 @@ export default function DevSystemPage() {
       </header>
 
       <section className="space-y-3">
-        <h2 className="text-caption tracking-widest uppercase text-ink-faint">Moments</h2>
+        <h2 className="eyebrow">Moments</h2>
         {MOMENT_ORDER.map((m) => (
           <p key={m} className="text-body">
             <span className="font-display">{MOMENT_LABELS[m]}</span>
@@ -33,17 +35,18 @@ export default function DevSystemPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-caption tracking-widest uppercase text-ink-faint">Typographie</h2>
+        <h2 className="eyebrow">Typographie</h2>
         {TYPE_SCALE.map(({ cls, label }) => (
           <div key={label}>
             <p className={cls}>Aube sonore</p>
             <p className="text-caption text-ink-faint">{label}</p>
           </div>
         ))}
+        <p className="eyebrow">Surtitre (.eyebrow) — la seule voix en capitales</p>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-caption tracking-widest uppercase text-ink-faint">Encres & papiers</h2>
+        <h2 className="eyebrow">Encres & papiers</h2>
         <div className="flex gap-3">
           {SWATCHES.map((cls) => (
             <div key={cls} className={`h-16 w-24 rounded-md border border-line ${cls}`}>
@@ -61,21 +64,24 @@ export default function DevSystemPage() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-caption tracking-widest uppercase text-ink-faint">Primitives</h2>
+        <h2 className="eyebrow">Primitives</h2>
         <div className="flex items-center gap-3">
-          <button className="rounded-md bg-accent px-4 py-2 text-body text-on-accent">
-            Bouton plein
-          </button>
-          <button className="rounded-md border border-line px-4 py-2 text-body text-ink hover:bg-paper-raised">
-            Bouton fantôme
-          </button>
+          <Button variant="accent">Bouton accent</Button>
+          <Button variant="ink">Bouton encre</Button>
+          <Button variant="ghost">Bouton fantôme</Button>
+          <IconButton label="Icône fantôme">
+            <Heart />
+          </IconButton>
+          <IconButton shape="round" label="Icône ronde">
+            <X />
+          </IconButton>
         </div>
-        <p className="text-caption tracking-widest uppercase text-ink-soft">
+        <p className="eyebrow text-ink-soft">
           Crépuscule — 19h42 <span className="text-ink-faint">(badge moment)</span>
         </p>
         <div className="rule" />
         <div className="flex items-center gap-3 py-2">
-          <div className="h-10 w-10 rounded-sm bg-paper-raised" />
+          <div className="size-10 rounded-sm bg-paper-raised" />
           <div className="flex-1">
             <p className="text-body">Titre de piste</p>
             <p className="text-caption text-ink-soft">Artiste</p>

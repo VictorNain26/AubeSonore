@@ -3,7 +3,7 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { AnimatePresence, motion } from 'motion/react';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { modal } from '@/components/Player/motion-presets';
+import { modal } from '@/lib/motion';
 import { IconButton } from './Button';
 
 export interface ModalShellProps {

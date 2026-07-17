@@ -22,7 +22,7 @@ export function AirPlayButton() {
       className={cn(isActive && 'text-accent hover:text-accent')}
       label={isActive ? 'Diffusion AirPlay active' : 'Diffuser via AirPlay'}
     >
-      <Airplay className="w-5 h-5" />
+      <Airplay className="size-5" />
     </IconButton>
   );
 }

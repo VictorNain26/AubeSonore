@@ -3,11 +3,8 @@ import { Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { IconButton } from '../ui/Button';
 
-// ─────────────────────────────────────────────
-// VOLUME CONTROL - Expert UX/UI Implementation
-// Pattern: Overlay slider (no layout shift)
-// Features: 44px touch target, mobile tap toggle, keyboard support, ARIA
-// ─────────────────────────────────────────────
+// Overlay slider (no layout shift): 44px touch target, mobile tap
+// toggle, keyboard support, ARIA.
 
 interface VolumeControlProps {
   volume: number;
@@ -178,11 +175,7 @@ export function VolumeControl({
       aria-label="Contrôle du volume"
     >
       {/* Volume Icon Button - Fixed position, never moves */}
-      <IconButton
-        onClick={handleIconClick}
-        className={cn('focus:outline-none focus-visible:ring-2 focus-visible:ring-accent')}
-        label={showMuted ? 'Rétablir le son' : 'Couper le son'}
-      >
+      <IconButton onClick={handleIconClick} label={showMuted ? 'Rétablir le son' : 'Couper le son'}>
         <VolumeIcon />
       </IconButton>
 
@@ -193,7 +186,7 @@ export function VolumeControl({
       <div
         className={cn(
           'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50',
-          'transition-all duration-200 ease-out',
+          'transition-[opacity,translate] duration-200 ease-(--ease-snappy)',
           isExpanded
             ? 'opacity-100 pointer-events-auto translate-y-0'
             : 'opacity-0 pointer-events-none translate-y-2'
@@ -241,7 +234,7 @@ export function VolumeControl({
               {/* Visible thumb */}
               <div
                 className={cn(
-                  'w-4 h-4 rounded-full bg-ink',
+                  'size-4 rounded-full bg-ink',
                   'transition-transform duration-150',
                   isDragging && 'scale-110'
                 )}

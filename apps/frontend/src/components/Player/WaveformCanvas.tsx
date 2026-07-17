@@ -63,6 +63,20 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Le canvas est dessiné en pixels physiques (taille CSS × dpr) pour que
+    // le trait reste net sur écran haute densité, quelle que soit la largeur.
+    let dpr = 1;
+    const resize = () => {
+      dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
+      canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+    };
+    resize();
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(canvas);
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
     let lastTime = performance.now();
     let paused = typeof document !== 'undefined' && document.hidden;
 
@@ -79,7 +93,9 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
       if (paused) return;
       const deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
-      timeRef.current += deltaTime;
+      // Mouvement réduit : les barres restent figées (le temps interne
+      // n'avance plus), seule la progression de lecture continue.
+      if (!reducedMotion.matches) timeRef.current += deltaTime;
 
       const time = timeRef.current;
       const width = canvas.width;
@@ -98,7 +114,7 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
       ctx.clearRect(0, 0, width, height);
 
       const barWidth = width / barsCount;
-      const gap = 3;
+      const gap = 3 * dpr;
       const progressX = (currentProgress / 100) * width;
 
       const momentKey = document.documentElement.dataset.moment;
@@ -116,7 +132,7 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
       const analyser = getAnalyser();
       let frequencyData: Uint8Array | null = null;
 
-      if (isPlaying && analyser) {
+      if (isPlaying && analyser && !reducedMotion.matches) {
         if (!frequencyDataRef.current) {
           frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount);
         }
@@ -169,7 +185,7 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
           if (fillWidth > 0) {
             ctx.fillStyle = playedFill;
             ctx.beginPath();
-            ctx.roundRect(barX, y, fillWidth, barHeight, 1);
+            ctx.roundRect(barX, y, fillWidth, barHeight, dpr);
             ctx.fill();
           }
         }
@@ -180,7 +196,7 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
           if (remainingWidth > 0) {
             ctx.fillStyle = unplayedFill;
             ctx.beginPath();
-            ctx.roundRect(startX, y, remainingWidth, barHeight, 1);
+            ctx.roundRect(startX, y, remainingWidth, barHeight, dpr);
             ctx.fill();
           }
         }
@@ -193,9 +209,10 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
 
     return () => {
       cancelAnimationFrame(animationRef.current);
+      resizeObserver.disconnect();
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
-  return <canvas ref={canvasRef} width={384} height={32} className="w-full max-w-full h-8" />;
+  return <canvas ref={canvasRef} className="w-full max-w-full h-8" />;
 }

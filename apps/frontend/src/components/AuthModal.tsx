@@ -153,18 +153,9 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     },
   }[mode];
 
-  const oauthButtonClass = cn(
-    'w-full flex items-center justify-center gap-3 py-2.5 rounded-md',
-    'border border-line text-ink hover:bg-paper-raised',
-    'text-body font-medium transition-colors cursor-pointer',
-    'disabled:opacity-50 disabled:cursor-not-allowed'
-  );
-
   const inputClass = cn(
     'w-full pl-11 pr-4 py-2 rounded-md border border-line bg-paper',
-    'text-body text-ink placeholder:text-ink-faint',
-    'focus:outline-none focus:border-accent focus-visible:ring-2 focus-visible:ring-accent',
-    'transition-colors'
+    'text-body text-ink placeholder:text-ink-faint transition-colors'
   );
 
   return (
@@ -197,30 +188,29 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
           {mode !== 'forgot' && mode !== 'reset-password' && (
             <>
               {/* OAuth */}
-              <div className="space-y-2">
-                <button
-                  type="button"
-                  onClick={() => void handleOAuth('google')}
-                  disabled={isLoading}
-                  className={oauthButtonClass}
-                >
-                  <GoogleLogo className="w-5 h-5" />
-                  Continuer avec Google
-                </button>
-              </div>
+              <Button
+                type="button"
+                variant="ink"
+                onClick={() => void handleOAuth('google')}
+                disabled={isLoading}
+                className="w-full gap-3 py-2.5 font-medium text-ink"
+              >
+                <GoogleLogo className="size-5" />
+                Continuer avec Google
+              </Button>
 
               {/* Divider */}
               <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 h-px bg-line" />
-                <span className="text-caption text-ink-faint uppercase tracking-wider">ou</span>
-                <div className="flex-1 h-px bg-line" />
+                <div className="flex-1 rule" />
+                <span className="eyebrow">ou</span>
+                <div className="flex-1 rule" />
               </div>
             </>
           )}
 
           {mode === 'signup' && (
             <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
               <input
                 type="text"
                 placeholder="Nom"
@@ -234,7 +224,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
           )}
 
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
             <input
               type="email"
               placeholder="Email"
@@ -248,7 +238,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
 
           {mode !== 'forgot' && (
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 placeholder={mode === 'reset-password' ? 'Nouveau mot de passe' : 'Mot de passe'}
@@ -262,19 +252,19 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
               <button
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-ink-faint hover:text-ink transition-colors cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-sm text-ink-faint hover:text-ink transition-colors cursor-pointer"
                 aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
                 aria-pressed={showPassword}
                 tabIndex={-1}
               >
-                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
             </div>
           )}
 
           {mode === 'reset-password' && (
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
               <input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Confirmez le mot de passe"
@@ -303,7 +293,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
           <Button type="submit" variant="accent" disabled={isLoading} className="w-full py-2.5">
             {isLoading ? (
               <>
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="size-5 animate-spin" />
                 Chargement...
               </>
             ) : mode === 'signin' ? (
@@ -351,8 +341,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
 function VerificationSentBody({ email, onClose }: { email: string; onClose: () => void }) {
   return (
     <div className="space-y-4 text-center">
-      <div className="mx-auto w-14 h-14 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center">
-        <MailCheck className="w-7 h-7 text-accent" />
+      <div className="mx-auto size-14 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center">
+        <MailCheck className="size-7 text-accent" />
       </div>
       <p className="text-body text-ink-soft">
         Un email a été envoyé à <span className="text-ink font-medium break-all">{email}</span>.

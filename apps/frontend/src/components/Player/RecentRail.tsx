@@ -138,9 +138,9 @@ export function RecentRail() {
       <section className="pt-4">
         <div className="rule mb-4" />
         <div className="flex gap-4">
-          <div className="skeleton h-[132px] w-[132px]" />
-          <div className="skeleton h-[132px] w-[132px]" />
-          <div className="skeleton h-[132px] w-[132px]" />
+          <div className="skeleton size-33" />
+          <div className="skeleton size-33" />
+          <div className="skeleton size-33" />
         </div>
       </section>
     );
@@ -149,9 +149,7 @@ export function RecentRail() {
   return (
     <section className="pt-4">
       <div className="rule mb-4" />
-      <h3 className="mb-3 text-caption tracking-widest uppercase text-ink-faint">
-        Vient de passer
-      </h3>
+      <h3 className="eyebrow mb-3">Vient de passer</h3>
       {error && (
         <p className="mb-2 text-caption text-ink-faint">
           Historique partiel — actualisation impossible pour le moment.

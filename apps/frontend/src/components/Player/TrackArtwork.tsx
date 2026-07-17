@@ -13,7 +13,7 @@ import { useLikeAction } from '../../hooks/player/useLikeAction';
 import { useMoment } from '../../hooks/useMoment';
 import { shareTrack } from '../../lib/shareTrack';
 import { MOMENT_SHARE_PHRASES } from '../../lib/moments';
-import { trackFlip, toggle as toggleTransition } from './motion-presets';
+import { trackFlip, toggle as toggleTransition, pressScale } from '../../lib/motion';
 
 // Album art + like + share, subscribing directly to the stores it needs.
 // No props: the component is self-sufficient.
@@ -72,14 +72,11 @@ export function TrackArtwork() {
   const isDefaultCover = !artUrl || artError || isDefaultArtwork(artUrl);
 
   return (
-    <div
-      key={artUrl}
-      className="relative w-full max-w-[min(26dvh,260px)] lg:max-w-[min(52dvh,560px)] mx-auto lg:mx-0"
-    >
+    <div key={artUrl} className="relative artwork-size mx-auto lg:mx-0">
       <div
         className={cn(
           'relative aspect-square w-full overflow-hidden rounded-lg bg-paper-raised',
-          'transition-transform duration-500',
+          'transition-transform duration-500 ease-(--ease-fluid)',
           isPlaying && 'scale-[1.01]'
         )}
       >
@@ -89,7 +86,7 @@ export function TrackArtwork() {
               key={artUrl}
               src={artUrl}
               alt={title}
-              className="w-full h-full object-cover"
+              className="size-full object-cover"
               referrerPolicy="no-referrer"
               decoding="async"
               fetchPriority="high"
@@ -100,8 +97,8 @@ export function TrackArtwork() {
               transition={trackFlip}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center bg-paper-raised">
-              <Music className="h-12 w-12 text-ink-faint" />
+            <div className="flex size-full items-center justify-center bg-paper-raised">
+              <Music className="size-12 text-ink-faint" />
             </div>
           )}
         </AnimatePresence>
@@ -110,26 +107,26 @@ export function TrackArtwork() {
           <div className="absolute inset-0 flex items-end justify-between p-2">
             <motion.button
               onClick={handleShare}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: pressScale }}
               transition={toggleTransition}
               className={cn(
-                'flex min-w-[40px] min-h-[40px] items-center justify-center rounded-full cursor-pointer',
-                'bg-paper/90 border border-line text-ink-faint hover:text-ink'
+                'flex size-10 items-center justify-center rounded-full cursor-pointer',
+                'bg-paper/90 border border-line text-ink-faint hover:text-ink transition-colors'
               )}
               title="Partager"
               aria-label="Partager ce morceau"
             >
-              <Share2 className="w-4 h-4" />
+              <Share2 className="size-4" />
             </motion.button>
 
             <motion.button
               onClick={handleToggleLike}
               disabled={isLiking}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: pressScale }}
               transition={toggleTransition}
               className={cn(
-                'flex min-w-[40px] min-h-[40px] items-center justify-center rounded-full cursor-pointer',
-                'bg-paper/90 border border-line',
+                'flex size-10 items-center justify-center rounded-full cursor-pointer',
+                'bg-paper/90 border border-line transition-colors',
                 isLiked ? 'text-danger' : 'text-ink-faint hover:text-ink',
                 isLiking && 'animate-pulse'
               )}
@@ -143,7 +140,7 @@ export function TrackArtwork() {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={toggleTransition}
               >
-                <Heart className={cn('w-4 h-4', isLiked && 'fill-current')} />
+                <Heart className={cn('size-4', isLiked && 'fill-current')} />
               </motion.span>
             </motion.button>
           </div>
@@ -152,7 +149,7 @@ export function TrackArtwork() {
 
       {isLive && (
         <div className="absolute -top-2 -right-2 flex items-center gap-1 rounded-full border border-line bg-paper px-2 py-1 text-caption font-medium text-danger">
-          <span className="h-1.5 w-1.5 rounded-full bg-danger animate-pulse" />
+          <span className="size-1.5 rounded-full bg-danger animate-pulse" />
           LIVE
         </div>
       )}
