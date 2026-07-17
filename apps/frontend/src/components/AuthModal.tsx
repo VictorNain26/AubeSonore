@@ -1,12 +1,11 @@
 import { useState } from 'react';
-import { Mail, Lock, User, Loader2, X, Eye, EyeOff, MailCheck, ArrowLeft } from 'lucide-react';
-import * as Dialog from '@radix-ui/react-dialog';
-import { motion, AnimatePresence } from 'motion/react';
+import { Mail, Lock, User, Loader2, Eye, EyeOff, MailCheck, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../lib/api';
 import { toast } from 'sonner';
-import { modal } from './Player/motion-presets';
+import { ModalShell } from './ui/ModalShell';
+import { Button, IconButton } from './ui/Button';
 
 // ─────────────────────────────────────────────
 // Types
@@ -169,248 +168,179 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
   );
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <AnimatePresence>
-        {isOpen && (
-          <Dialog.Portal forceMount>
-            <Dialog.Overlay asChild>
-              <motion.div
-                className="fixed inset-0 bg-ink/20 z-50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={modal}
+    <ModalShell
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={headerCopy.title}
+      description={headerCopy.desc}
+    >
+      {mode === 'forgot' && (
+        <IconButton
+          shape="round"
+          label="Retour à la connexion"
+          onClick={() => switchTo('signin')}
+          className="-mt-2 mb-2"
+        >
+          <ArrowLeft />
+        </IconButton>
+      )}
+
+      {mode === 'verification-sent' ? (
+        <VerificationSentBody email={pendingEmail} onClose={handleClose} />
+      ) : (
+        <form
+          onSubmit={(e) => {
+            void handleSubmit(e);
+          }}
+          className="space-y-4"
+        >
+          {mode !== 'forgot' && mode !== 'reset-password' && (
+            <>
+              {/* OAuth */}
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => void handleOAuth('google')}
+                  disabled={isLoading}
+                  className={oauthButtonClass}
+                >
+                  <GoogleLogo className="w-5 h-5" />
+                  Continuer avec Google
+                </button>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-3 py-1">
+                <div className="flex-1 h-px bg-line" />
+                <span className="text-caption text-ink-faint uppercase tracking-wider">ou</span>
+                <div className="flex-1 h-px bg-line" />
+              </div>
+            </>
+          )}
+
+          {mode === 'signup' && (
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+              <input
+                type="text"
+                placeholder="Nom"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                autoComplete="name"
+                className={inputClass}
               />
-            </Dialog.Overlay>
+            </div>
+          )}
 
-            <Dialog.Content asChild>
-              <motion.div
-                className="panel fixed inset-x-4 top-1/2 w-full max-w-md mx-auto p-6 z-50"
-                initial={{ opacity: 0, y: '-46%', scale: 0.97 }}
-                animate={{ opacity: 1, y: '-50%', scale: 1 }}
-                exit={{ opacity: 0, y: '-46%', scale: 0.97 }}
-                transition={modal}
+          <div className="relative">
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              className={inputClass}
+            />
+          </div>
+
+          {mode !== 'forgot' && (
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder={mode === 'reset-password' ? 'Nouveau mot de passe' : 'Mot de passe'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={6}
+                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                className={cn(inputClass, 'pr-11')}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-ink-faint hover:text-ink transition-colors cursor-pointer"
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                aria-pressed={showPassword}
+                tabIndex={-1}
               >
-                {/* Header */}
-                <div className="relative">
-                  <Dialog.Close
-                    className={cn(
-                      'absolute top-0 right-0 p-2 rounded-full cursor-pointer',
-                      'text-ink-faint hover:text-ink hover:bg-paper-raised',
-                      'transition-colors'
-                    )}
-                    aria-label="Fermer"
-                  >
-                    <X className="w-5 h-5" />
-                  </Dialog.Close>
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          )}
 
-                  {mode === 'forgot' && (
-                    <button
-                      type="button"
-                      onClick={() => switchTo('signin')}
-                      className={cn(
-                        'absolute top-0 left-0 p-2 rounded-full cursor-pointer',
-                        'text-ink-faint hover:text-ink hover:bg-paper-raised',
-                        'transition-colors'
-                      )}
-                      aria-label="Retour à la connexion"
-                    >
-                      <ArrowLeft className="w-5 h-5" />
-                    </button>
-                  )}
+          {mode === 'reset-password' && (
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
+              <input
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Confirmez le mot de passe"
+                value={passwordConfirm}
+                onChange={(e) => setPasswordConfirm(e.target.value)}
+                required
+                minLength={6}
+                autoComplete="new-password"
+                className={inputClass}
+              />
+            </div>
+          )}
 
-                  <div className="text-center pt-2 pb-4">
-                    <Dialog.Title className="font-display text-title text-ink mb-1">
-                      {headerCopy.title}
-                    </Dialog.Title>
-                    <Dialog.Description className="text-body text-ink-soft">
-                      {headerCopy.desc}
-                    </Dialog.Description>
-                  </div>
-                </div>
+          {mode === 'signin' && (
+            <div className="text-right -mt-2">
+              <button
+                type="button"
+                onClick={() => switchTo('forgot')}
+                className="text-caption text-accent hover:underline cursor-pointer"
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
+          )}
 
-                {/* Body */}
-                {mode === 'verification-sent' ? (
-                  <VerificationSentBody email={pendingEmail} onClose={handleClose} />
+          <Button type="submit" variant="accent" disabled={isLoading} className="w-full py-2.5">
+            {isLoading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Chargement...
+              </>
+            ) : mode === 'signin' ? (
+              'Se connecter'
+            ) : mode === 'signup' ? (
+              "S'inscrire"
+            ) : mode === 'forgot' ? (
+              'Envoyer le lien'
+            ) : (
+              'Réinitialiser'
+            )}
+          </Button>
+
+          {mode !== 'forgot' && mode !== 'reset-password' && (
+            <div className="text-center pt-2">
+              <button
+                type="button"
+                onClick={() => switchTo(mode === 'signin' ? 'signup' : 'signin')}
+                className="text-body text-ink-soft cursor-pointer"
+              >
+                {mode === 'signin' ? (
+                  <>
+                    Pas encore de compte ?{' '}
+                    <span className="text-accent hover:underline">S&apos;inscrire</span>
+                  </>
                 ) : (
-                  <form
-                    onSubmit={(e) => {
-                      void handleSubmit(e);
-                    }}
-                    className="space-y-4"
-                  >
-                    {mode !== 'forgot' && mode !== 'reset-password' && (
-                      <>
-                        {/* OAuth */}
-                        <div className="space-y-2">
-                          <button
-                            type="button"
-                            onClick={() => void handleOAuth('google')}
-                            disabled={isLoading}
-                            className={oauthButtonClass}
-                          >
-                            <GoogleLogo className="w-5 h-5" />
-                            Continuer avec Google
-                          </button>
-                        </div>
-
-                        {/* Divider */}
-                        <div className="flex items-center gap-3 py-1">
-                          <div className="flex-1 h-px bg-line" />
-                          <span className="text-caption text-ink-faint uppercase tracking-wider">
-                            ou
-                          </span>
-                          <div className="flex-1 h-px bg-line" />
-                        </div>
-                      </>
-                    )}
-
-                    {mode === 'signup' && (
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
-                        <input
-                          type="text"
-                          placeholder="Nom"
-                          value={name}
-                          onChange={(e) => setName(e.target.value)}
-                          required
-                          autoComplete="name"
-                          className={inputClass}
-                        />
-                      </div>
-                    )}
-
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
-                      <input
-                        type="email"
-                        placeholder="Email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                        autoComplete="email"
-                        className={inputClass}
-                      />
-                    </div>
-
-                    {mode !== 'forgot' && (
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder={
-                            mode === 'reset-password' ? 'Nouveau mot de passe' : 'Mot de passe'
-                          }
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          minLength={6}
-                          autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                          className={cn(inputClass, 'pr-11')}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((s) => !s)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded text-ink-faint hover:text-ink transition-colors cursor-pointer"
-                          aria-label={
-                            showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'
-                          }
-                          aria-pressed={showPassword}
-                          tabIndex={-1}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    )}
-
-                    {mode === 'reset-password' && (
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-ink-faint" />
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          placeholder="Confirmez le mot de passe"
-                          value={passwordConfirm}
-                          onChange={(e) => setPasswordConfirm(e.target.value)}
-                          required
-                          minLength={6}
-                          autoComplete="new-password"
-                          className={inputClass}
-                        />
-                      </div>
-                    )}
-
-                    {mode === 'signin' && (
-                      <div className="text-right -mt-2">
-                        <button
-                          type="button"
-                          onClick={() => switchTo('forgot')}
-                          className="text-caption text-accent hover:underline cursor-pointer"
-                        >
-                          Mot de passe oublié ?
-                        </button>
-                      </div>
-                    )}
-
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className={cn(
-                        'w-full py-2.5 rounded-md font-medium',
-                        'bg-accent text-on-accent hover:opacity-90',
-                        'transition-opacity cursor-pointer',
-                        'disabled:opacity-50 disabled:cursor-not-allowed',
-                        'flex items-center justify-center gap-2'
-                      )}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                          Chargement...
-                        </>
-                      ) : mode === 'signin' ? (
-                        'Se connecter'
-                      ) : mode === 'signup' ? (
-                        "S'inscrire"
-                      ) : mode === 'forgot' ? (
-                        'Envoyer le lien'
-                      ) : (
-                        'Réinitialiser'
-                      )}
-                    </button>
-
-                    {mode !== 'forgot' && mode !== 'reset-password' && (
-                      <div className="text-center pt-2">
-                        <button
-                          type="button"
-                          onClick={() => switchTo(mode === 'signin' ? 'signup' : 'signin')}
-                          className="text-body text-ink-soft cursor-pointer"
-                        >
-                          {mode === 'signin' ? (
-                            <>
-                              Pas encore de compte ?{' '}
-                              <span className="text-accent hover:underline">S&apos;inscrire</span>
-                            </>
-                          ) : (
-                            <>
-                              Déjà un compte ?{' '}
-                              <span className="text-accent hover:underline">Se connecter</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    )}
-                  </form>
+                  <>
+                    Déjà un compte ?{' '}
+                    <span className="text-accent hover:underline">Se connecter</span>
+                  </>
                 )}
-              </motion.div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        )}
-      </AnimatePresence>
-    </Dialog.Root>
+              </button>
+            </div>
+          )}
+        </form>
+      )}
+    </ModalShell>
   );
 }
 
@@ -431,17 +361,9 @@ function VerificationSentBody({ email, onClose }: { email: string; onClose: () =
       <p className="text-caption text-ink-faint">
         Pas reçu ? Vérifiez vos spams. Le lien expire dans 24 h.
       </p>
-      <button
-        type="button"
-        onClick={onClose}
-        className={cn(
-          'w-full py-2.5 rounded-md font-medium',
-          'border border-line text-ink hover:bg-paper-raised',
-          'transition-colors cursor-pointer'
-        )}
-      >
+      <Button variant="ink" onClick={onClose} className="w-full py-2.5">
         J&apos;ai compris
-      </button>
+      </Button>
     </div>
   );
 }

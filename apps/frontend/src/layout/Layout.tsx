@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Toaster, toast } from 'sonner';
 import { LogOut, LogIn, Info } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { cn } from '@/lib/utils';
+import { Button, IconButton } from '../components/ui/Button';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { useMoment } from '../hooks/useMoment';
@@ -80,7 +80,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [openAuthModal]);
 
   return (
-    <div className="min-h-dvh flex flex-col bg-paper text-ink">
+    <div className="h-dvh min-h-[600px] grid grid-rows-[auto_1fr] bg-paper text-ink overflow-hidden">
       {/* Skip-link for keyboard users */}
       <a href="#main" className="sr-only-focusable">
         Aller au contenu principal
@@ -99,20 +99,22 @@ export default function Layout({ children }: LayoutProps) {
         }}
       />
 
-      <header className="mx-auto w-full max-w-[640px] px-6 pt-8 pb-4 flex items-start justify-between">
+      <header className="mx-auto w-full max-w-[1200px] px-6 pt-6 pb-3 flex items-start justify-between">
         <div>
-          <p className="font-display text-lead tracking-tight">AubeSonore</p>
+          <p className="font-display text-lead tracking-tight">
+            <span
+              aria-hidden="true"
+              className="inline-block w-2.5 h-2.5 rounded-full bg-accent-dawn mr-2 align-baseline"
+            />
+            AubeSonore
+          </p>
           <MomentLine />
         </div>
 
         <div className="flex items-center gap-1">
-          <button
-            onClick={() => setIsAboutOpen(true)}
-            className="p-2 rounded-md text-ink-faint hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer"
-            title="À propos"
-          >
-            <Info className="w-4 h-4" />
-          </button>
+          <IconButton onClick={() => setIsAboutOpen(true)} label="À propos">
+            <Info />
+          </IconButton>
 
           {isLoading ? (
             <div className="w-8 h-8 rounded-full bg-paper-raised animate-pulse" />
@@ -145,31 +147,17 @@ export default function Layout({ children }: LayoutProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <button
-              onClick={() => openAuthModal()}
-              className={cn(
-                'flex items-center gap-2 rounded-md border border-line px-3 py-1.5',
-                'text-body text-ink-soft hover:text-ink hover:bg-paper-raised transition-colors cursor-pointer'
-              )}
-            >
+            <Button variant="ink" onClick={() => openAuthModal()}>
               <LogIn className="w-4 h-4" />
               <span className="hidden sm:inline">Connexion</span>
-            </button>
+            </Button>
           )}
         </div>
       </header>
 
-      {/* Main - scrollable content area */}
-      <main id="main" className="flex-1 flex flex-col">
+      <main id="main" className="min-h-0 overflow-hidden flex flex-col">
         {children}
       </main>
-
-      <footer className="mx-auto w-full max-w-[640px] px-6 py-6">
-        <div className="rule mb-4" />
-        <p className="text-caption text-ink-faint tracking-widest">
-          AubeSonore — Découverte musicale émergente
-        </p>
-      </footer>
 
       {isAboutOpen && (
         <Suspense fallback={null}>

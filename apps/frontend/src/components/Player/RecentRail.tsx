@@ -135,7 +135,7 @@ export function RecentRail() {
 
   if (isLoading && entries.length === 0) {
     return (
-      <section className="mt-10">
+      <section className="pt-4">
         <div className="rule mb-4" />
         <div className="flex gap-4">
           <div className="skeleton h-[132px] w-[132px]" />
@@ -145,10 +145,9 @@ export function RecentRail() {
       </section>
     );
   }
-  if (entries.length === 0) return null;
 
   return (
-    <section className="mt-10">
+    <section className="pt-4">
       <div className="rule mb-4" />
       <h3 className="mb-3 text-caption tracking-widest uppercase text-ink-faint">
         Vient de passer
@@ -158,33 +157,41 @@ export function RecentRail() {
           Historique partiel — actualisation impossible pour le moment.
         </p>
       )}
-      <div
-        ref={railRef}
-        role="list"
-        onClickCapture={handleClickCapture}
-        className={cn(
-          'rail-mask -mx-6 flex gap-4 overflow-x-auto px-6 pb-2',
-          isDragging
-            ? 'snap-none cursor-grabbing select-none'
-            : cn('snap-x snap-mandatory', !prefersReduced && 'cursor-grab')
-        )}
-      >
-        {entries.map((entry) => (
-          <motion.div
-            key={entry.sh_id}
-            role="presentation"
-            {...(prefersReduced ? {} : { style: { rotate: tilt } })}
-          >
-            <RailCard
-              entry={entry}
-              isLiked={isTrackLiked(tracks, entry.song.title, entry.song.artist)}
-              isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
-              onToggle={() => void toggleLike(entry.song.title, entry.song.artist, entry.song.art)}
-              onShare={() => handleShare(entry)}
-            />
-          </motion.div>
-        ))}
-      </div>
+      {entries.length === 0 ? (
+        <p className="text-caption text-ink-faint">
+          Le premier morceau de la journée s&apos;écrit en ce moment.
+        </p>
+      ) : (
+        <div
+          ref={railRef}
+          role="list"
+          onClickCapture={handleClickCapture}
+          className={cn(
+            'rail-mask -mx-6 flex gap-4 overflow-x-auto scroll-pl-6 px-6 pb-2',
+            isDragging
+              ? 'snap-none cursor-grabbing select-none'
+              : cn('snap-x snap-mandatory', !prefersReduced && 'cursor-grab')
+          )}
+        >
+          {entries.map((entry) => (
+            <motion.div
+              key={entry.sh_id}
+              role="presentation"
+              {...(prefersReduced ? {} : { style: { rotate: tilt } })}
+            >
+              <RailCard
+                entry={entry}
+                isLiked={isTrackLiked(tracks, entry.song.title, entry.song.artist)}
+                isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
+                onToggle={() =>
+                  void toggleLike(entry.song.title, entry.song.artist, entry.song.art)
+                }
+                onShare={() => handleShare(entry)}
+              />
+            </motion.div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -72,7 +72,10 @@ export function TrackArtwork() {
   const isDefaultCover = !artUrl || artError || isDefaultArtwork(artUrl);
 
   return (
-    <div key={artUrl} className="relative w-full max-w-[280px]">
+    <div
+      key={artUrl}
+      className="relative w-full max-w-[min(26dvh,260px)] lg:max-w-[min(52dvh,560px)] mx-auto lg:mx-0"
+    >
       <div
         className={cn(
           'relative aspect-square w-full overflow-hidden rounded-lg bg-paper-raised',

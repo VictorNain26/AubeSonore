@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { IconButton } from '../ui/Button';
 
 // ─────────────────────────────────────────────
 // VOLUME CONTROL - Expert UX/UI Implementation
@@ -177,18 +178,13 @@ export function VolumeControl({
       aria-label="Contrôle du volume"
     >
       {/* Volume Icon Button - Fixed position, never moves */}
-      <button
+      <IconButton
         onClick={handleIconClick}
-        className={cn(
-          'p-2 rounded-md transition-colors cursor-pointer',
-          'text-ink-faint hover:text-ink hover:bg-paper-raised',
-          'focus:outline-none focus-visible:ring-2 focus-visible:ring-accent'
-        )}
-        aria-label={showMuted ? 'Rétablir le son' : 'Couper le son'}
-        title={isMobile ? 'Volume' : showMuted ? 'Rétablir le son (M)' : 'Couper le son (M)'}
+        className={cn('focus:outline-none focus-visible:ring-2 focus-visible:ring-accent')}
+        label={showMuted ? 'Rétablir le son' : 'Couper le son'}
       >
-        <VolumeIcon className="w-5 h-5" />
-      </button>
+        <VolumeIcon />
+      </IconButton>
 
       {/* Slider - Absolute positioned overlay, opens UPWARD.
           role="presentation" because the focusable element is the inner

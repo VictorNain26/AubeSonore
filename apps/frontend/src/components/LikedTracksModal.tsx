@@ -1,34 +1,22 @@
 import { useState, useMemo, useCallback, memo } from 'react';
-import {
-  Library,
-  ExternalLink,
-  Music,
-  Trash2,
-  Search,
-  MoreHorizontal,
-  RefreshCw,
-  Download,
-  X,
-} from 'lucide-react';
-import * as Dialog from '@radix-ui/react-dialog';
-import { motion, AnimatePresence } from 'motion/react';
+import { ExternalLink, Music, Trash2, Search, RefreshCw, Download } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import { PLATFORMS } from '@aubesonore/shared-types/client';
 import type { LikedTrack, PreferredPlatform } from '../lib/api';
 import { trackApi } from '../lib/api';
-import { exportAsCSV, exportAsTuneMyMusic, exportAsSonglinkList } from '../lib/exportLibrary';
+import { exportAsCSV } from '../lib/exportLibrary';
 import { getPreferredLink } from '@aubesonore/core/share';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
 } from './ui/DropdownMenu';
 import { toast } from 'sonner';
-import { modal } from './Player/motion-presets';
+import { ModalShell } from './ui/ModalShell';
+import { Button, IconButton } from './ui/Button';
 
 // ─────────────────────────────────────────────
 // Types
@@ -110,21 +98,19 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           {isSearch ? <Search className="w-4 h-4" /> : <ExternalLink className="w-4 h-4" />}
         </a>
 
-        <button
+        <IconButton
+          shape="round"
           onClick={() => handleDelete()}
           disabled={isDeleting}
-          className={cn(
-            'p-2 rounded-full min-w-[40px] min-h-[40px] flex items-center justify-center',
-            'text-ink-faint hover:text-danger hover:bg-paper-raised',
-            'transition-colors',
-            'opacity-0 group-hover:opacity-100',
-            isDeleting ? 'cursor-not-allowed !opacity-100' : 'cursor-pointer'
-          )}
+          label="Retirer de ma bibliothèque"
           title="Retirer"
-          aria-label="Retirer de ma bibliothèque"
+          className={cn(
+            'min-w-[40px] min-h-[40px] hover:text-danger opacity-0 group-hover:opacity-100',
+            isDeleting && 'cursor-not-allowed !opacity-100'
+          )}
         >
           <Trash2 className="w-4 h-4" />
-        </button>
+        </IconButton>
       </div>
     </div>
   );
@@ -172,28 +158,23 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
 }
 
 // ─────────────────────────────────────────────
-// Composant EmptyState - Style Player
+// Composant EmptyState - état vide éditorial
 // ─────────────────────────────────────────────
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="w-16 h-16 rounded-lg bg-paper-raised flex items-center justify-center mb-4">
-        <Library className="w-8 h-8 text-ink-faint" />
-      </div>
-      <p className="text-body text-ink-soft mb-1">Aucune découverte sauvegardée</p>
-      <p className="text-caption text-ink-faint max-w-[200px]">
-        Appuyez sur ♥ sur une pochette pour sauvegarder un morceau
-      </p>
+    <div className="py-10 text-center space-y-1">
+      <p className="font-display text-lead text-ink">Rien ici pour l&apos;instant.</p>
+      <p className="text-body text-ink-soft">Aimez un morceau au passage — il vous attendra ici.</p>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────
-// Composant Principal - Modal style Player
+// Composant Principal
 // ─────────────────────────────────────────────
 
-function OverflowMenu({
+function LibraryActions({
   tracks,
   isRefreshing,
   onRefresh,
@@ -203,40 +184,16 @@ function OverflowMenu({
   onRefresh: () => void;
 }) {
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <button
-          className={cn(
-            'p-2 rounded-full cursor-pointer',
-            'text-ink-faint hover:text-ink hover:bg-paper-raised',
-            'transition-colors'
-          )}
-          aria-label="Plus d'options"
-          title="Plus d'options"
-        >
-          <MoreHorizontal className="w-4 h-4" />
-        </button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem disabled={isRefreshing} onSelect={() => onRefresh()}>
-          <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
-          Mettre à jour les liens
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
-        <DropdownMenuItem onSelect={() => void exportAsCSV(tracks)}>
-          <Download className="w-4 h-4" />
-          Exporter CSV
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void exportAsTuneMyMusic(tracks)}>
-          <Download className="w-4 h-4" />
-          Exporter TuneMyMusic
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => void exportAsSonglinkList(tracks)}>
-          <Download className="w-4 h-4" />
-          Exporter Liens Songlink
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
+    <div className="flex items-center gap-2">
+      <Button variant="ink" onClick={() => onRefresh()} disabled={isRefreshing}>
+        <RefreshCw className={cn('w-4 h-4', isRefreshing && 'animate-spin')} />
+        Mettre à jour les liens
+      </Button>
+      <Button variant="ink" onClick={() => exportAsCSV(tracks)}>
+        <Download className="w-4 h-4" />
+        Exporter (CSV)
+      </Button>
+    </div>
   );
 }
 
@@ -286,104 +243,45 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   );
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <AnimatePresence>
-        {isOpen && (
-          <Dialog.Portal forceMount>
-            <Dialog.Overlay asChild>
-              <motion.div
-                className="fixed inset-0 bg-ink/20 z-50"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={modal}
-              />
-            </Dialog.Overlay>
+    <ModalShell
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Ma bibliothèque"
+      description={`${tracks.length} ${tracks.length > 1 ? 'morceaux' : 'morceau'}`}
+      maxWidthClassName="max-w-lg"
+    >
+      {tracks.length > 0 && (
+        <div className="sticky top-0 z-10 bg-paper flex items-center justify-between pb-4 border-b border-line">
+          <LibraryActions
+            tracks={tracks}
+            isRefreshing={isRefreshing}
+            onRefresh={handleRefreshAll}
+          />
+          <div className="flex items-center gap-2">
+            <span className="text-caption text-ink-faint">Ouvrir avec</span>
+            <PlatformSelector selected={preferredPlatform} onChange={handleUpdatePlatform} />
+          </div>
+        </div>
+      )}
 
-            <Dialog.Content asChild>
-              <motion.div
-                className="panel fixed inset-x-4 top-1/2 w-full max-w-lg mx-auto p-6 z-50 max-h-[70vh] flex flex-col"
-                initial={{ opacity: 0, y: '-46%', scale: 0.97 }}
-                animate={{ opacity: 1, y: '-50%', scale: 1 }}
-                exit={{ opacity: 0, y: '-46%', scale: 0.97 }}
-                transition={modal}
-              >
-                {/* Header */}
-                <div className="shrink-0 pb-4 border-b border-line">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-md bg-paper-raised flex items-center justify-center">
-                        <Library className="w-5 h-5 text-ink-soft" />
-                      </div>
-                      <div>
-                        <Dialog.Title className="font-display text-title text-ink">
-                          Mes découvertes
-                        </Dialog.Title>
-                        <Dialog.Description className="text-caption text-ink-faint">
-                          {tracks.length} {tracks.length > 1 ? 'titres' : 'titre'}
-                        </Dialog.Description>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      {tracks.length > 0 && (
-                        <OverflowMenu
-                          tracks={tracks}
-                          isRefreshing={isRefreshing}
-                          onRefresh={handleRefreshAll}
-                        />
-                      )}
-                      <Dialog.Close
-                        className={cn(
-                          'p-2 rounded-full cursor-pointer',
-                          'text-ink-faint hover:text-ink hover:bg-paper-raised',
-                          'transition-colors'
-                        )}
-                        aria-label="Fermer"
-                      >
-                        <X className="w-5 h-5" />
-                      </Dialog.Close>
-                    </div>
-                  </div>
-
-                  {/* Platform selector */}
-                  {tracks.length > 0 && (
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-line">
-                      <span className="text-caption text-ink-faint">Ouvrir avec</span>
-                      <PlatformSelector
-                        selected={preferredPlatform}
-                        onChange={handleUpdatePlatform}
-                      />
-                    </div>
-                  )}
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 overflow-y-auto py-4 overscroll-contain">
-                  {isLoading ? (
-                    <div className="flex items-center justify-center py-12">
-                      <div className="w-8 h-8 rounded-full border-2 border-line border-t-ink-soft animate-spin" />
-                    </div>
-                  ) : tracks.length === 0 ? (
-                    <EmptyState />
-                  ) : (
-                    <div className="divide-y divide-line" role="list">
-                      {sortedTracks.map((track) => (
-                        <TrackItem
-                          key={track.id}
-                          track={track}
-                          preferredPlatform={preferredPlatform}
-                          onDelete={handleUnlikeTrack}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            </Dialog.Content>
-          </Dialog.Portal>
-        )}
-      </AnimatePresence>
-    </Dialog.Root>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-8 h-8 rounded-full border-2 border-line border-t-ink-soft animate-spin" />
+        </div>
+      ) : tracks.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="divide-y divide-line pt-4" role="list">
+          {sortedTracks.map((track) => (
+            <TrackItem
+              key={track.id}
+              track={track}
+              preferredPlatform={preferredPlatform}
+              onDelete={handleUnlikeTrack}
+            />
+          ))}
+        </div>
+      )}
+    </ModalShell>
   );
 }
