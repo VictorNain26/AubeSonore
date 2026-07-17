@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useShallow } from 'zustand/react/shallow';
 import { Users } from 'lucide-react';
 import { useNowPlayingStore } from '../../lib/azuracast';
-import { dataTick } from './motion-presets';
+import { dataTick } from '../../lib/motion';
 
 // Right-side LIVE + listeners count. The count crossfades vertically on
 // each value change for a soft swap instead of a hard substitution.
@@ -56,7 +56,7 @@ export function ListenersBadge() {
     >
       {isLive && (
         <span className="flex items-center gap-1 text-danger font-medium">
-          <span className="w-1.5 h-1.5 rounded-full bg-danger animate-pulse" />
+          <span className="size-1.5 rounded-full bg-danger animate-pulse" />
           LIVE
         </span>
       )}
@@ -66,20 +66,26 @@ export function ListenersBadge() {
           {elapsed && ` · depuis ${elapsed}`}
         </span>
       )}
-      <Users className="w-3.5 h-3.5" aria-hidden="true" />
-      <span className="sr-only">Auditeurs : </span>
-      <AnimatePresence mode="popLayout" initial={false}>
-        <motion.span
-          key={current}
-          initial={{ opacity: 0, y: -4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 4 }}
-          transition={dataTick}
-          className="tabular-nums"
-        >
-          {current}
-        </motion.span>
-      </AnimatePresence>
+      {current === 0 ? (
+        <span className="hidden sm:inline italic">l&apos;antenne vous attend</span>
+      ) : (
+        <>
+          <Users className="size-3.5" aria-hidden="true" />
+          <span className="sr-only">Auditeurs : </span>
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={current}
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 4 }}
+              transition={dataTick}
+              className="tabular-nums"
+            >
+              {current}
+            </motion.span>
+          </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }

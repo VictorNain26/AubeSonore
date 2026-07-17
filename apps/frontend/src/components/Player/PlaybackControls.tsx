@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Play, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePlayer } from '../../lib/player';
-import { toggle as toggleTransition } from './motion-presets';
+import { toggle as toggleTransition, pressScale } from '../../lib/motion';
 
 // Play / stop button, subscribing directly to usePlayer. The single flat
 // accent block of the scene — the central gesture, deliberately alone.
@@ -21,11 +21,11 @@ export function PlaybackControls() {
   return (
     <motion.button
       onClick={togglePlay}
-      whileTap={{ scale: 0.92 }}
+      whileTap={{ scale: pressScale }}
       whileHover={{ scale: 1.05 }}
       transition={toggleTransition}
       className={cn(
-        'h-14 w-14 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
+        'size-14 lg:size-16 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
         'bg-accent text-on-accent hover:opacity-90'
       )}
       aria-label={isPlaying ? 'Arrêter la lecture' : 'Lancer la lecture'}
@@ -40,7 +40,7 @@ export function PlaybackControls() {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={toggleTransition}
           >
-            <Square className="w-5 h-5" />
+            <Square className="size-5" />
           </motion.span>
         ) : (
           <motion.span
@@ -50,7 +50,7 @@ export function PlaybackControls() {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={toggleTransition}
           >
-            <Play className="w-6 h-6 ml-0.5" />
+            <Play className="size-6 ml-0.5" />
           </motion.span>
         )}
       </AnimatePresence>
