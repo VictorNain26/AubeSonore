@@ -84,15 +84,15 @@
   --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
 
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Fraunces Variable', Georgia, serif;
+  --font-text: 'Spectral', Georgia, serif;
+  --font-display: 'Young Serif', Georgia, serif;
 }
 
 @layer base {
   body {
     background-color: var(--color-paper);
     color: var(--color-ink);
-    font-family: var(--font-sans);
+    font-family: var(--font-text);
     font-size: var(--text-body);
     font-feature-settings:
       'rlig' 1,
