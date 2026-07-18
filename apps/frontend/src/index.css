@@ -16,11 +16,11 @@
 }
 
 [data-moment='dawn'] {
-  /* Aube — papier crème rosé, encre brune, accent corail doux */
-  --paper: hsl(28 60% 94%);
-  --ink: hsl(22 32% 11%);
-  --accent: hsl(12 62% 42%);
-  --on-accent: hsl(28 60% 96%);
+  /* Aube papier rose pâle, brun-rosé, rosée à accent framboise */
+  --paper: hsl(10 45% 93%);
+  --ink: hsl(350 25% 13%);
+  --accent: hsl(345 55% 45%);
+  --on-accent: hsl(10 45% 96%);
 }
 
 [data-moment='day'] {
@@ -32,11 +32,11 @@
 }
 
 [data-moment='dusk'] {
-  /* Crépuscule — ivoire ambré, encre chaude, accent terracotta */
-  --paper: hsl(36 48% 92%);
-  --ink: hsl(18 34% 11%);
-  --accent: hsl(16 70% 40%);
-  --on-accent: hsl(36 48% 96%);
+  /* Crépuscule papier lilas, encre lilas, accent ambre */
+  --paper: hsl(270 20% 93%);
+  --ink: hsl(270 20% 12%);
+  --accent: hsl(30 85% 33%);
+  --on-accent: hsl(270 20% 96%);
 }
 
 /* Dérivés — jamais redéfinis par moment, toujours calculés */
@@ -60,7 +60,7 @@
   --color-on-accent: var(--on-accent);
   --color-danger: hsl(0 62% 44%);
   --color-success: hsl(150 55% 32%);
-  --color-accent-dawn: hsl(12 62% 42%);
+  --color-accent-dawn: hsl(345 55% 45%);
 
   --text-*: initial;
   --text-caption: 0.75rem;
