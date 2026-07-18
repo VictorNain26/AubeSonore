@@ -1,25 +1,31 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
+  "extends": [
+    "config:best-practices",
+    ":dependencyDashboard",
+    ":semanticCommits",
+    ":separateMultipleMajorReleases"
+  ],
   "timezone": "Europe/Paris",
   "schedule": ["before 6am on monday"],
   "labels": ["dependencies"],
   "rangeStrategy": "bump",
   "prConcurrentLimit": 10,
   "platformAutomerge": true,
-  "minimumReleaseAge": "3 days",
+  "minimumReleaseAge": "14 days",
   "osvVulnerabilityAlerts": true,
   "dependencyDashboardOSVVulnerabilitySummary": "all",
-  "lockFileMaintenance": {
-    "enabled": true,
-    "schedule": ["before 6am on monday"]
-  },
   "vulnerabilityAlerts": {
     "labels": ["security"],
     "schedule": ["at any time"],
     "minimumReleaseAge": null
   },
   "packageRules": [
+    {
+      "description": "Auto-merge pinning and digest re-pins (no functional change)",
+      "matchUpdateTypes": ["pin", "pinDigest", "digest"],
+      "automerge": true
+    },
     {
       "description": "Auto-merge devDependencies (minor + patch) once CI is green",
       "matchDepTypes": ["devDependencies"],
@@ -51,8 +57,9 @@
       "automerge": false
     },
     {
-      "description": "Docker base images: manual review (runtime bumps can break builds)",
+      "description": "Docker base image tag bumps: manual review (digest re-pins auto-merge via the rule above)",
       "matchManagers": ["dockerfile", "docker-compose"],
+      "matchUpdateTypes": ["major", "minor", "patch"],
       "automerge": false
     }
   ]
