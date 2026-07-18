@@ -1,17 +1,18 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useShallow } from 'zustand/react/shallow';
 import { useNowPlayingStore } from '../../lib/azuracast';
-import { trackFlip, stagger } from '../../lib/motion';
+import { useInkFlip } from '../../lib/motion';
 
 // The masthead: track title as a large serif headline, artist as its
-// dek. On a track flip the cascade runs artwork → title → artist, one
-// stagger beat apart.
+// dek. On a track flip the block does a soft crossfade with a slight
+// blur — "mise au net" — no translation, no delay.
 
 interface TrackMetaProps {
   onArtistInfo?: (() => void) | undefined;
 }
 
 export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
+  const inkFlip = useInkFlip();
   const { shId, title, artist } = useNowPlayingStore(
     useShallow((s) => ({
       shId: s.data?.now_playing?.sh_id,
@@ -22,27 +23,19 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
 
   return (
     <div className="min-w-0">
-      {/* initial={false} : l'entrée au montage appartient à la cascade
-          Entry du Player ; ces animations ne jouent qu'aux flips. */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.h2
           key={shId ?? 'waiting'}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8, transition: { duration: 0.2, ease: 'easeIn' } }}
-          transition={{ ...trackFlip, delay: stagger }}
+          {...inkFlip}
           className="font-display text-title lg:text-display text-ink [text-wrap:balance]"
         >
-          {title || "L'antenne se prépare"}
+          {title || 'Chargement du direct'}
         </motion.h2>
       </AnimatePresence>
       <AnimatePresence mode="wait" initial={false}>
         <motion.p
           key={artist ?? 'waiting'}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, transition: { duration: 0.2, ease: 'easeIn' } }}
-          transition={{ ...trackFlip, delay: stagger * 2 }}
+          {...inkFlip}
           className="mt-1 lg:mt-2 text-lead text-ink-soft"
         >
           {onArtistInfo && artist ? (

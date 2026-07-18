@@ -42,7 +42,7 @@ function MomentLine() {
         {MOMENT_LABELS[moment]}{' '}
         <span className="text-ink-faint">— {timeFormatter.format(now)}</span>
       </p>
-      <p className="hidden sm:block font-display italic text-caption text-ink-faint">
+      <p className="hidden sm:block font-text italic text-caption text-ink-faint">
         {MOMENT_TAGLINES[moment]}
       </p>
     </>
@@ -58,7 +58,7 @@ function OnAirDot() {
       aria-hidden="true"
       className={cn(
         'inline-block size-2.5 rounded-full bg-accent-dawn mr-2 align-baseline',
-        isPlaying && 'animate-pulse'
+        isPlaying && 'animate-breathe'
       )}
     />
   );
@@ -103,7 +103,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [openAuthModal]);
 
   return (
-    <div className="h-dvh min-h-[600px] grid grid-rows-[auto_1fr] bg-paper text-ink overflow-hidden">
+    <div className="h-dvh min-h-[600px] grid grid-rows-[auto_1fr] text-ink overflow-hidden">
       {/* Skip-link for keyboard users */}
       <a href="#main" className="sr-only-focusable">
         Aller au contenu principal

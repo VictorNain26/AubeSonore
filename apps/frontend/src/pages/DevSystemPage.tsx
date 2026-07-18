@@ -3,11 +3,11 @@ import { Button, IconButton } from '../components/ui/Button';
 import { MOMENT_LABELS, MOMENT_ORDER, MOMENT_TAGLINES } from '../lib/moments';
 
 const TYPE_SCALE = [
-  { cls: 'text-display font-display', label: 'display / Fraunces' },
-  { cls: 'text-title font-display', label: 'title / Fraunces' },
-  { cls: 'text-lead', label: 'lead / Inter' },
-  { cls: 'text-body', label: 'body / Inter' },
-  { cls: 'text-caption', label: 'caption / Inter' },
+  { cls: 'text-display font-display', label: 'display / Young Serif' },
+  { cls: 'text-title font-display', label: 'title / Young Serif' },
+  { cls: 'text-lead', label: 'lead / Spectral' },
+  { cls: 'text-body', label: 'body / Spectral' },
+  { cls: 'text-caption', label: 'caption / Spectral' },
 ] as const;
 
 const SWATCHES = ['bg-paper', 'bg-paper-raised', 'bg-accent'] as const;
@@ -60,6 +60,15 @@ export default function DevSystemPage() {
               {cls} — Découverte musicale émergente
             </p>
           ))}
+        </div>
+        <div
+          className="h-16 w-full rounded-md border border-line"
+          style={{
+            backgroundImage: 'linear-gradient(to bottom, var(--sky), var(--color-paper) 40%)',
+            backgroundAttachment: 'fixed',
+          }}
+        >
+          <span className="text-caption text-ink-faint">--sky → --paper (fond de page)</span>
         </div>
       </section>
 

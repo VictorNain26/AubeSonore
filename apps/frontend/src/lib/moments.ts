@@ -24,7 +24,7 @@ export const MOMENT_SHARE_PHRASES: Record<Moment, string> = {
 export const MOMENT_ORDER: Moment[] = ['dawn', 'day', 'dusk', 'night'];
 
 export const MOMENT_TAGLINES: Record<Moment, string> = {
-  dawn: 'La lumière se lève sur ce qui était resté dans l’ombre.',
+  dawn: 'Le jour se lève sur ce qui restait dans l’ombre.',
   day: 'Plein jour sur les morceaux qui le méritent.',
   dusk: 'La lumière descend, l’écoute se resserre.',
   night: 'La nuit veille sur les découvertes de demain.',

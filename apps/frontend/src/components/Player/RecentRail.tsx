@@ -156,9 +156,7 @@ export function RecentRail() {
         </p>
       )}
       {entries.length === 0 ? (
-        <p className="text-caption text-ink-faint">
-          Le premier morceau de la journée s&apos;écrit en ce moment.
-        </p>
+        <p className="text-caption text-ink-faint">Aucun morceau pour l&apos;instant.</p>
       ) : (
         <div
           ref={railRef}

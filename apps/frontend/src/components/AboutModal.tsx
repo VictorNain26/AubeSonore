@@ -23,9 +23,8 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
     >
       <div className="space-y-5">
         <p className="text-body text-ink-soft leading-relaxed">
-          AubeSonore fait se lever le jour sur la musique restée dans l&apos;ombre : sons rares,
-          artistes émergents, classiques oubliés. L&apos;ambiance du site suit la lumière, de
-          l&apos;aube à la nuit.
+          AubeSonore diffuse des sons rares, des artistes émergents et des classiques oubliés. Les
+          couleurs du site suivent la lumière du jour, de l&apos;aube à la nuit.
         </p>
         <div>
           <p className="eyebrow mb-3">Nous retrouver</p>

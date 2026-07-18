@@ -13,14 +13,16 @@
   --ink: hsl(40 30% 92%);
   --accent: hsl(230 45% 74%);
   --on-accent: hsl(240 18% 10%);
+  --sky: hsl(238 22% 13%);
 }
 
 [data-moment='dawn'] {
-  /* Aube — papier crème rosé, encre brune, accent corail doux */
-  --paper: hsl(28 60% 94%);
-  --ink: hsl(22 32% 11%);
-  --accent: hsl(12 62% 42%);
-  --on-accent: hsl(28 60% 96%);
+  /* Aube papier rose pâle, brun-rosé, rosée à accent framboise */
+  --paper: hsl(10 45% 93%);
+  --ink: hsl(350 25% 12%);
+  --accent: hsl(345 55% 45%);
+  --on-accent: hsl(10 45% 96%);
+  --sky: hsl(8 55% 89%);
 }
 
 [data-moment='day'] {
@@ -29,21 +31,23 @@
   --ink: hsl(220 26% 12%);
   --accent: hsl(214 74% 38%);
   --on-accent: hsl(210 36% 97%);
+  --sky: hsl(210 45% 94%);
 }
 
 [data-moment='dusk'] {
-  /* Crépuscule — ivoire ambré, encre chaude, accent terracotta */
-  --paper: hsl(36 48% 92%);
-  --ink: hsl(18 34% 11%);
-  --accent: hsl(16 70% 40%);
-  --on-accent: hsl(36 48% 96%);
+  /* Crépuscule papier lilas, encre lilas, accent ambre */
+  --paper: hsl(270 20% 93%);
+  --ink: hsl(270 20% 12%);
+  --accent: hsl(30 85% 33%);
+  --on-accent: hsl(270 20% 96%);
+  --sky: hsl(268 28% 89%);
 }
 
 /* Dérivés — jamais redéfinis par moment, toujours calculés */
 :root,
 [data-moment] {
   --ink-soft: color-mix(in srgb, var(--ink) 75%, var(--paper));
-  --ink-faint: color-mix(in srgb, var(--ink) 63%, var(--paper));
+  --ink-faint: color-mix(in srgb, var(--ink) 66%, var(--paper));
   --line: color-mix(in srgb, var(--ink) 16%, transparent);
   --paper-raised: color-mix(in srgb, var(--ink) 4%, var(--paper));
 }
@@ -60,7 +64,7 @@
   --color-on-accent: var(--on-accent);
   --color-danger: hsl(0 62% 44%);
   --color-success: hsl(150 55% 32%);
-  --color-accent-dawn: hsl(12 62% 42%);
+  --color-accent-dawn: hsl(345 55% 45%);
 
   --text-*: initial;
   --text-caption: 0.75rem;
@@ -75,24 +79,29 @@
   --text-display--line-height: 1.04;
 
   --radius-*: initial;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 0.875rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.5rem;
 
   --container-page: 75rem;
 
   --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
   --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
 
-  --font-sans: 'Inter', system-ui, sans-serif;
-  --font-display: 'Fraunces Variable', Georgia, serif;
+  --font-text: 'Spectral', Georgia, serif;
+  --font-display: 'Young Serif', Georgia, serif;
+
+  --animate-breathe: breathe 4s ease-in-out infinite;
 }
 
 @layer base {
   body {
     background-color: var(--color-paper);
+    background-image: linear-gradient(to bottom, var(--sky), var(--color-paper) 40%);
+    background-attachment: fixed;
     color: var(--color-ink);
-    font-family: var(--font-sans);
+    font-family: var(--font-text);
+    font-variant-numeric: tabular-nums;
     font-size: var(--text-body);
     font-feature-settings:
       'rlig' 1,
@@ -200,6 +209,11 @@
     border-radius: var(--radius-md);
     z-index: 9999;
   }
+
+  /* Retour d'encre à l'appui — remplace tout scale au tap */
+  .press-ink:active {
+    background: color-mix(in srgb, var(--ink) 10%, var(--paper));
+  }
 }
 
 @keyframes pulse-soft {
@@ -209,6 +223,16 @@
   }
   50% {
     opacity: 0.5;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
   }
 }
 

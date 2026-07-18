@@ -66,26 +66,22 @@ export function ListenersBadge() {
           {elapsed && ` · depuis ${elapsed}`}
         </span>
       )}
-      {current === 0 ? (
-        <span className="hidden sm:inline italic">l&apos;antenne vous attend</span>
-      ) : (
-        <>
-          <Users className="size-3.5" aria-hidden="true" />
-          <span className="sr-only">Auditeurs : </span>
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.span
-              key={current}
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={dataTick}
-              className="tabular-nums"
-            >
-              {current}
-            </motion.span>
-          </AnimatePresence>
-        </>
-      )}
+      <>
+        <Users className="size-3.5" aria-hidden="true" />
+        <span className="sr-only">Auditeurs : </span>
+        <AnimatePresence mode="popLayout" initial={false}>
+          <motion.span
+            key={current}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={dataTick}
+            className="tabular-nums"
+          >
+            {current}
+          </motion.span>
+        </AnimatePresence>
+      </>
     </div>
   );
 }
