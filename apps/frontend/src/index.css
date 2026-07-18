@@ -18,7 +18,7 @@
 [data-moment='dawn'] {
   /* Aube papier rose pâle, brun-rosé, rosée à accent framboise */
   --paper: hsl(10 45% 93%);
-  --ink: hsl(350 25% 13%);
+  --ink: hsl(350 25% 12%);
   --accent: hsl(345 55% 45%);
   --on-accent: hsl(10 45% 96%);
 }

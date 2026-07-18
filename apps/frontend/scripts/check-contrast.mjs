@@ -33,7 +33,7 @@ const ratioMixed = (ink, paper, pct) => {
   return (l1 + 0.05) / (l2 + 0.05);
 };
 const MOMENTS = {
-  dawn: { paper: [10, 45, 93], ink: [350, 25, 13], accent: [345, 55, 45] },
+  dawn: { paper: [10, 45, 93], ink: [350, 25, 12], accent: [345, 55, 45] },
   day: { paper: [210, 36, 97], ink: [220, 26, 12], accent: [214, 74, 38] },
   dusk: { paper: [270, 20, 93], ink: [270, 20, 12], accent: [30, 85, 33] },
   night: { paper: [240, 18, 10], ink: [40, 30, 92], accent: [230, 45, 74] },
