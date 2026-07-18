@@ -8,6 +8,8 @@
   "prConcurrentLimit": 10,
   "platformAutomerge": true,
   "minimumReleaseAge": "3 days",
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "all",
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["before 6am on monday"]
