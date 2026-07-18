@@ -23,6 +23,7 @@ The README has setup details; this file is for Claude.
 ## Workflow rules
 
 - Run `pnpm typecheck && pnpm lint` before claiming work is done. `pnpm test` (frontend Vitest) and `pnpm --filter @aubesonore/backend test` (bun) for changes touching the relevant tested modules.
+- **`master` is branch-protected** — a PR merges only when the 4 required CI checks pass (`Quality (lint, typecheck, test, audit)`, `Backend tests (bun)`, `Build all`, `Mobile typecheck`); no human review is required. Dependency updates flow through Renovate with auto-merge — see _Dependency automation_.
 - **Don't bypass hooks** (`--no-verify`, `--no-gpg-sign`) — if a hook fails, fix the cause.
 - **Trust internal boundaries** — Valibot/TypeBox validate at the HTTP boundary; internal functions assume validated input.
 - **Stage explicitly** (`git add <file>`) — never `git add .`/`-A`.
@@ -92,6 +93,7 @@ packages/
 
 - Don't re-introduce unused deps (`axios`, `cheerio`, `@tanstack/react-query`, `react-router-dom`, `@elysiajs/cron`, `class-variance-authority`, `dayjs`, `react-intersection-observer`) — they were removed in the May 2026 audit. Use existing alternatives.
 - Don't write per-package `pnpm-lock.yaml` or `bun.lock` — the root pnpm-lock is authoritative.
+- Don't re-add `.github/dependabot.yml` version updates — Renovate owns dependency PRs now (Dependabot = security alerts only). See _Dependency automation_.
 - Don't disable `requireEmailVerification` unless a temporary migration window is needed (and roll back immediately).
 - Don't bypass `securityHeaders` plugin or the rate limits in Better Auth.
 - Don't store `artwork_base64` in API responses — it gates 40+ MB on a 100-track list.
@@ -108,6 +110,16 @@ These versions are what the audit aligned us to. Bumps are fine; majors should b
 - Bun 1.3.14, Elysia 1.4.28
 - Better Auth 1.6.11, Drizzle 0.45.2
 - Expo SDK 55 (RN 0.83), New Architecture enabled. Note: SDK 56 needs RN 0.85. Plan major mobile bumps separately.
+
+## Dependency automation (Renovate)
+
+Dependency PRs are managed by **Renovate** (runs as a GitHub App; config in `renovate.json`), not by Dependabot. Dependabot is kept for **security alerts only** — the hybrid pattern. `renovate.json` is the source of truth for the policy; change it there, not here.
+
+- **Auto-merged once CI is green**: `devDependencies` minor/patch, stable (`>=1.0`) runtime **patches**, and GitHub Actions minor/patch.
+- **Manual review always**: every **major**, the mobile stack (Expo / React Native, grouped), and Docker base images.
+- Updates are grouped, scheduled weekly (Monday), and held by `minimumReleaseAge: 3 days` (supply-chain guard). Security updates ignore the delay.
+- Renovate maintains a **Dependency Dashboard** issue listing everything pending — use it to trigger or rebase updates.
+- Auto-merge is safe only because of the branch protection on `master` (the 4 required checks above). Repo settings `allow_auto_merge` + `delete_branch_on_merge` are on, so merged branches self-delete.
 
 ## Scaling roadmap
 

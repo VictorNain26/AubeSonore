@@ -185,6 +185,10 @@ bun run db:generate    # Generer migrations
 bun run db:push        # Appliquer schema
 ```
 
+## Dependances
+
+Les mises a jour de dependances sont gerees par **Renovate** (`renovate.json`, source de verite de la policy). Les updates sures (patch/minor des devDependencies, patches runtime stables, GitHub Actions) sont **auto-mergees apres CI verte** ; les majors, la stack mobile (Expo / React Native) et les images Docker passent en **revue manuelle**. Les alertes de securite restent gerees par Dependabot. Le _Dependency Dashboard_ (issue GitHub ouverte par Renovate) liste tout ce qui est en attente.
+
 ## Deploiement
 
 ### Backend (Koyeb)
