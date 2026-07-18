@@ -103,7 +103,7 @@ export default function Layout({ children }: LayoutProps) {
   }, [openAuthModal]);
 
   return (
-    <div className="h-dvh min-h-[600px] grid grid-rows-[auto_1fr] bg-paper text-ink overflow-hidden">
+    <div className="h-dvh min-h-[600px] grid grid-rows-[auto_1fr] text-ink overflow-hidden">
       {/* Skip-link for keyboard users */}
       <a href="#main" className="sr-only-focusable">
         Aller au contenu principal
