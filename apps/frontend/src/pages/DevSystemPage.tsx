@@ -61,6 +61,13 @@ export default function DevSystemPage() {
             </p>
           ))}
         </div>
+        <div
+          className="h-24 w-full rounded-md border border-line"
+          style={{
+            backgroundImage: 'linear-gradient(to bottom, var(--sky), var(--color-paper) 40%)',
+            backgroundAttachment: 'fixed',
+          }}
+        />
       </section>
 
       <section className="space-y-4">

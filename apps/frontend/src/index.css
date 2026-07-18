@@ -13,6 +13,7 @@
   --ink: hsl(40 30% 92%);
   --accent: hsl(230 45% 74%);
   --on-accent: hsl(240 18% 10%);
+  --sky: hsl(238 22% 13%);
 }
 
 [data-moment='dawn'] {
@@ -21,6 +22,7 @@
   --ink: hsl(350 25% 12%);
   --accent: hsl(345 55% 45%);
   --on-accent: hsl(10 45% 96%);
+  --sky: hsl(8 55% 89%);
 }
 
 [data-moment='day'] {
@@ -29,6 +31,7 @@
   --ink: hsl(220 26% 12%);
   --accent: hsl(214 74% 38%);
   --on-accent: hsl(210 36% 97%);
+  --sky: hsl(210 45% 94%);
 }
 
 [data-moment='dusk'] {
@@ -37,6 +40,7 @@
   --ink: hsl(270 20% 12%);
   --accent: hsl(30 85% 33%);
   --on-accent: hsl(270 20% 96%);
+  --sky: hsl(268 28% 89%);
 }
 
 /* Dérivés — jamais redéfinis par moment, toujours calculés */
@@ -91,6 +95,8 @@
 @layer base {
   body {
     background-color: var(--color-paper);
+    background-image: linear-gradient(to bottom, var(--sky), var(--color-paper) 40%);
+    background-attachment: fixed;
     color: var(--color-ink);
     font-family: var(--font-text);
     font-variant-numeric: tabular-nums;
