@@ -93,6 +93,7 @@
     background-color: var(--color-paper);
     color: var(--color-ink);
     font-family: var(--font-text);
+    font-variant-numeric: tabular-nums;
     font-size: var(--text-body);
     font-feature-settings:
       'rlig' 1,
