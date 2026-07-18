@@ -1,0 +1,57 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommits"],
+  "timezone": "Europe/Paris",
+  "schedule": ["before 6am on monday"],
+  "labels": ["dependencies"],
+  "rangeStrategy": "bump",
+  "prConcurrentLimit": 10,
+  "platformAutomerge": true,
+  "minimumReleaseAge": "3 days",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
+  },
+  "packageRules": [
+    {
+      "description": "Auto-merge devDependencies (minor + patch) once CI is green",
+      "matchDepTypes": ["devDependencies"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "Auto-merge patch bumps of stable (>=1.0.0) runtime deps",
+      "matchDepTypes": ["dependencies"],
+      "matchUpdateTypes": ["patch"],
+      "matchCurrentVersion": "!/^0/",
+      "automerge": true
+    },
+    {
+      "description": "Auto-merge GitHub Actions (minor + patch)",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "Never auto-merge majors — always manual review",
+      "matchUpdateTypes": ["major"],
+      "automerge": false
+    },
+    {
+      "description": "Mobile stack: grouped, manual review (Expo SDK and React Native are tightly coupled)",
+      "matchPackageNames": ["expo", "/^expo-/", "@expo/**", "/^react-native/", "@react-native/**"],
+      "groupName": "mobile (expo / react-native)",
+      "automerge": false
+    },
+    {
+      "description": "Docker base images: manual review (runtime bumps can break builds)",
+      "matchManagers": ["dockerfile", "docker-compose"],
+      "automerge": false
+    }
+  ]
+}
