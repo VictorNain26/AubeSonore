@@ -62,12 +62,14 @@ export default function DevSystemPage() {
           ))}
         </div>
         <div
-          className="h-24 w-full rounded-md border border-line"
+          className="h-16 w-full rounded-md border border-line"
           style={{
             backgroundImage: 'linear-gradient(to bottom, var(--sky), var(--color-paper) 40%)',
             backgroundAttachment: 'fixed',
           }}
-        />
+        >
+          <span className="text-caption text-ink-faint">--sky → --paper (fond de page)</span>
+        </div>
       </section>
 
       <section className="space-y-4">
