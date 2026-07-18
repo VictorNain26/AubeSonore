@@ -79,9 +79,9 @@
   --text-display--line-height: 1.04;
 
   --radius-*: initial;
-  --radius-sm: 0.375rem;
-  --radius-md: 0.625rem;
-  --radius-lg: 0.875rem;
+  --radius-sm: 0.125rem;
+  --radius-md: 0.25rem;
+  --radius-lg: 0.5rem;
 
   --container-page: 75rem;
 
