@@ -32,20 +32,26 @@ const ratioMixed = (ink, paper, pct) => {
   const [l1, l2] = [lum(mix(ink, paper, pct)), lum(hsl2rgb(...paper))].sort((x, y) => y - x);
   return (l1 + 0.05) / (l2 + 0.05);
 };
+const ratioMixedVs = (ink, paper, bg, pct) => {
+  const [l1, l2] = [lum(mix(ink, paper, pct)), lum(hsl2rgb(...bg))].sort((x, y) => y - x);
+  return (l1 + 0.05) / (l2 + 0.05);
+};
+const INK_FAINT_MIX = 0.66;
 const MOMENTS = {
-  dawn: { paper: [10, 45, 93], ink: [350, 25, 12], accent: [345, 55, 45] },
-  day: { paper: [210, 36, 97], ink: [220, 26, 12], accent: [214, 74, 38] },
-  dusk: { paper: [270, 20, 93], ink: [270, 20, 12], accent: [30, 85, 33] },
-  night: { paper: [240, 18, 10], ink: [40, 30, 92], accent: [230, 45, 74] },
+  dawn: { paper: [10, 45, 93], ink: [350, 25, 12], accent: [345, 55, 45], sky: [8, 55, 89] },
+  day: { paper: [210, 36, 97], ink: [220, 26, 12], accent: [214, 74, 38], sky: [210, 45, 94] },
+  dusk: { paper: [270, 20, 93], ink: [270, 20, 12], accent: [30, 85, 33], sky: [268, 28, 89] },
+  night: { paper: [240, 18, 10], ink: [40, 30, 92], accent: [230, 45, 74], sky: [238, 22, 13] },
 };
 let fail = false;
 for (const [name, m] of Object.entries(MOMENTS)) {
   const accent = ratio(m.accent, m.paper);
-  const inkFaint = ratioMixed(m.ink, m.paper, 0.63);
-  const ok = accent >= 4.5 && inkFaint >= 4.5;
+  const inkFaintPaper = ratioMixed(m.ink, m.paper, INK_FAINT_MIX);
+  const inkFaintSky = ratioMixedVs(m.ink, m.paper, m.sky, INK_FAINT_MIX);
+  const ok = accent >= 4.5 && inkFaintPaper >= 4.5 && inkFaintSky >= 4.5;
   if (!ok) fail = true;
   console.log(
-    `${name}: accent/paper ${accent.toFixed(2)} inkFaint/paper ${inkFaint.toFixed(2)} ${ok ? 'OK' : 'FAIL'}`
+    `${name}: accent/paper ${accent.toFixed(2)} inkFaint/paper ${inkFaintPaper.toFixed(2)} inkFaint/sky ${inkFaintSky.toFixed(2)} ${ok ? 'OK' : 'FAIL'}`
   );
 }
 process.exit(fail ? 1 : 0);

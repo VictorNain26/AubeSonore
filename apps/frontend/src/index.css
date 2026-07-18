@@ -47,7 +47,7 @@
 :root,
 [data-moment] {
   --ink-soft: color-mix(in srgb, var(--ink) 75%, var(--paper));
-  --ink-faint: color-mix(in srgb, var(--ink) 63%, var(--paper));
+  --ink-faint: color-mix(in srgb, var(--ink) 66%, var(--paper));
   --line: color-mix(in srgb, var(--ink) 16%, transparent);
   --paper-raised: color-mix(in srgb, var(--ink) 4%, var(--paper));
 }

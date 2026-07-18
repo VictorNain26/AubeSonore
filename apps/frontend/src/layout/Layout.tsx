@@ -42,7 +42,7 @@ function MomentLine() {
         {MOMENT_LABELS[moment]}{' '}
         <span className="text-ink-faint">— {timeFormatter.format(now)}</span>
       </p>
-      <p className="hidden sm:block font-display italic text-caption text-ink-faint">
+      <p className="hidden sm:block font-text italic text-caption text-ink-faint">
         {MOMENT_TAGLINES[moment]}
       </p>
     </>
