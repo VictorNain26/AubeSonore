@@ -58,7 +58,7 @@ function OnAirDot() {
       aria-hidden="true"
       className={cn(
         'inline-block size-2.5 rounded-full bg-accent-dawn mr-2 align-baseline',
-        isPlaying && 'animate-pulse'
+        isPlaying && 'animate-breathe'
       )}
     />
   );

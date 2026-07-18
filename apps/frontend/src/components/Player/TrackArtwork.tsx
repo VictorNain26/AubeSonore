@@ -13,7 +13,7 @@ import { useLikeAction } from '../../hooks/player/useLikeAction';
 import { useMoment } from '../../hooks/useMoment';
 import { shareTrack } from '../../lib/shareTrack';
 import { MOMENT_SHARE_PHRASES } from '../../lib/moments';
-import { trackFlip, toggle as toggleTransition, pressScale } from '../../lib/motion';
+import { toggle as toggleTransition, useInkFlip } from '../../lib/motion';
 
 // Album art + like + share, subscribing directly to the stores it needs.
 // No props: the component is self-sufficient.
@@ -33,6 +33,7 @@ export function TrackArtwork() {
   const preferences = usePreferencesStore((s) => s.preferences);
   const { likingTrackId, toggleLike } = useLikeAction();
   const [artError, setArtError] = useState(false);
+  const inkFlip = useInkFlip();
 
   const isLiked = title && artist ? isTrackLiked(tracks, title, artist) : false;
   const isLiking = likingTrackId === `${title}-${artist}`;
@@ -80,7 +81,6 @@ export function TrackArtwork() {
           isPlaying && 'scale-[1.01]'
         )}
       >
-        {/* initial={false} : le montage est animé par la cascade Entry. */}
         <AnimatePresence mode="wait" initial={false}>
           {!isDefaultCover ? (
             <motion.img
@@ -92,10 +92,7 @@ export function TrackArtwork() {
               decoding="async"
               fetchPriority="high"
               onError={handleArtError}
-              initial={{ opacity: 0, scale: 1.04 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={trackFlip}
+              {...inkFlip}
             />
           ) : (
             <div className="flex size-full items-center justify-center bg-paper-raised">
@@ -106,28 +103,24 @@ export function TrackArtwork() {
 
         {title && (
           <div className="absolute inset-0 flex items-end justify-between p-2">
-            <motion.button
+            <button
               onClick={handleShare}
-              whileTap={{ scale: pressScale }}
-              transition={toggleTransition}
               className={cn(
                 'flex size-10 items-center justify-center rounded-full cursor-pointer',
-                'bg-paper/90 border border-line text-ink-faint hover:text-ink transition-colors'
+                'bg-paper/90 border border-line text-ink-faint hover:text-ink transition-colors press-ink'
               )}
               title="Partager"
               aria-label="Partager ce morceau"
             >
               <Share2 className="size-4" />
-            </motion.button>
+            </button>
 
-            <motion.button
+            <button
               onClick={handleToggleLike}
               disabled={isLiking}
-              whileTap={{ scale: pressScale }}
-              transition={toggleTransition}
               className={cn(
                 'flex size-10 items-center justify-center rounded-full cursor-pointer',
-                'bg-paper/90 border border-line transition-colors',
+                'bg-paper/90 border border-line transition-colors press-ink',
                 isLiked ? 'text-danger' : 'text-ink-faint hover:text-ink',
                 isLiking && 'animate-pulse'
               )}
@@ -143,7 +136,7 @@ export function TrackArtwork() {
               >
                 <Heart className={cn('size-4', isLiked && 'fill-current')} />
               </motion.span>
-            </motion.button>
+            </button>
           </div>
         )}
       </div>

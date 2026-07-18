@@ -90,6 +90,8 @@
 
   --font-text: 'Spectral', Georgia, serif;
   --font-display: 'Young Serif', Georgia, serif;
+
+  --animate-breathe: breathe 4s ease-in-out infinite;
 }
 
 @layer base {
@@ -207,6 +209,11 @@
     border-radius: var(--radius-md);
     z-index: 9999;
   }
+
+  /* Retour d'encre à l'appui — remplace tout scale au tap */
+  .press-ink:active {
+    background: color-mix(in srgb, var(--ink) 10%, var(--paper));
+  }
 }
 
 @keyframes pulse-soft {
@@ -216,6 +223,16 @@
   }
   50% {
     opacity: 0.5;
+  }
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
   }
 }
 
