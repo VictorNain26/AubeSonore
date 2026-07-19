@@ -3,7 +3,6 @@ import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
-import { useTrackChangeEvents } from '../../hooks/player/useTrackChangeEvents';
 import { useMediaSession } from '../../hooks/player/useMediaSession';
 
 // Invisible component that hosts player side-effects driven by external
@@ -13,9 +12,8 @@ import { useMediaSession } from '../../hooks/player/useMediaSession';
 // unmounted independently without losing the side-effect bookkeeping.
 
 export function PlayerSideEffects(): null {
-  const { shId, title, artist, album, art } = useNowPlayingStore(
+  const { title, artist, album, art } = useNowPlayingStore(
     useShallow((s) => ({
-      shId: s.data?.now_playing?.sh_id,
       title: s.data?.now_playing?.song.title,
       artist: s.data?.now_playing?.song.artist,
       album: s.data?.now_playing?.song.album,
@@ -26,7 +24,6 @@ export function PlayerSideEffects(): null {
   const playError = usePlayer((s) => s.playError);
   const clearPlayError = usePlayer((s) => s.clearPlayError);
 
-  useTrackChangeEvents(shId, artist, title);
   useMediaSession({ title, artist, album, artworkUrl: art }, isPlaying);
 
   useEffect(() => {

@@ -19,12 +19,11 @@ import { toggle as toggleTransition, useInkFlip } from '../../lib/motion';
 // No props: the component is self-sufficient.
 
 export function TrackArtwork() {
-  const { artUrl, title, artist, isLive } = useNowPlayingStore(
+  const { artUrl, title, artist } = useNowPlayingStore(
     useShallow((s) => ({
       artUrl: s.data?.now_playing?.song.art,
       title: s.data?.now_playing?.song.title,
       artist: s.data?.now_playing?.song.artist,
-      isLive: s.data?.live.is_live ?? false,
     }))
   );
   const isPlaying = usePlayer((s) => s.isPlaying);
@@ -140,13 +139,6 @@ export function TrackArtwork() {
           </div>
         )}
       </div>
-
-      {isLive && (
-        <div className="absolute -top-2 -right-2 flex items-center gap-1 rounded-full border border-line bg-paper px-2 py-1 text-caption font-medium text-danger">
-          <span className="size-1.5 rounded-full bg-danger animate-pulse" />
-          LIVE
-        </div>
-      )}
     </div>
   );
 }

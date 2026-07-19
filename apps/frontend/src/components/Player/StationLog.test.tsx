@@ -1,19 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import type * as MotionReact from 'motion/react';
-import { RecentRail } from './RecentRail';
+import { StationLog } from './StationLog';
 import type { SongEntry } from '../../lib/azuracast';
-
-const useReducedMotionMock = vi.fn(() => false);
-
-vi.mock('motion/react', async () => {
-  const actual = await vi.importActual<typeof MotionReact>('motion/react');
-  return {
-    ...actual,
-    useReducedMotion: () => useReducedMotionMock(),
-  };
-});
 
 const entries: SongEntry[] = [
   {
@@ -65,12 +54,11 @@ vi.mock('../../hooks/useRecentHistory', () => ({
 afterEach(() => {
   vi.restoreAllMocks();
   useRecentHistoryMock.mockReturnValue({ entries, isLoading: false, error: null });
-  useReducedMotionMock.mockReturnValue(false);
 });
 
-describe('RecentRail', () => {
-  it('renders the rail heading, listitems and track info from useRecentHistory', () => {
-    render(<RecentRail />);
+describe('StationLog', () => {
+  it('renders the log heading, one row per entry and track info from useRecentHistory', () => {
+    render(<StationLog />);
 
     expect(screen.getByText('Vient de passer')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(2);
@@ -80,20 +68,12 @@ describe('RecentRail', () => {
     expect(screen.getByText('Artist Two')).toBeInTheDocument();
   });
 
-  it('does not attach custom wheel/pointer listeners or rotate style when reduced motion is preferred', () => {
-    const addEventListenerSpy = vi.spyOn(HTMLElement.prototype, 'addEventListener');
-    useReducedMotionMock.mockReturnValue(true);
+  it('shows the empty state when there is no history', () => {
+    useRecentHistoryMock.mockReturnValue({ entries: [], isLoading: false, error: null });
 
-    render(<RecentRail />);
+    render(<StationLog />);
 
-    const railElement = screen.getByRole('list');
-    const customListenerTypesOnRail = addEventListenerSpy.mock.calls
-      .filter((_, i) => addEventListenerSpy.mock.contexts[i] === railElement)
-      .map(([type]) => type)
-      .filter((type) => ['wheel', 'pointerdown', 'pointermove', 'pointerup'].includes(type));
-    expect(customListenerTypesOnRail).toHaveLength(0);
-
-    const [firstItem] = screen.getAllByRole('listitem');
-    expect(firstItem?.parentElement?.style.rotate).toBeFalsy();
+    expect(screen.getByText(/Aucun morceau/)).toBeInTheDocument();
+    expect(screen.queryAllByRole('listitem')).toHaveLength(0);
   });
 });

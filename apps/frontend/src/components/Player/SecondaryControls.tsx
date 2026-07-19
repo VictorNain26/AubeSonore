@@ -1,12 +1,11 @@
 import { useState, useCallback } from 'react';
 import { usePlayer } from '../../lib/player';
-import { AirPlayButton } from './AirPlayButton';
 import { VolumeControl } from './VolumeControl';
-import { SleepTimer } from './SleepTimer';
+import { AirPlayButton } from './AirPlayButton';
 
-// Left-side cluster of secondary controls (airplay / volume / sleep timer).
-// Volume mute-toggle bookkeeping lives here because it is a local concern
-// (rememberlast-volume-before-mute), not global player state.
+// Volume + output routing, the satellites of the play gesture. Mute-toggle
+// bookkeeping (remember-last-volume-before-mute) lives here because it is a
+// local concern, not global player state.
 
 export function SecondaryControls() {
   const volume = usePlayer((s) => s.volume);
@@ -35,15 +34,14 @@ export function SecondaryControls() {
   );
 
   return (
-    <div className="flex-1 flex justify-start items-center gap-1">
-      <AirPlayButton />
+    <div className="flex items-center gap-1">
       <VolumeControl
         volume={volume}
         isMuted={isMuted}
         onVolumeChange={handleVolumeChange}
         onToggleMute={toggleMute}
       />
-      <SleepTimer />
+      <AirPlayButton />
     </div>
   );
 }

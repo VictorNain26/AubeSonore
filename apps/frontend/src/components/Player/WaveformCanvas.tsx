@@ -2,29 +2,27 @@ import { useEffect, useLayoutEffect, useRef } from 'react';
 import { getAnalyser } from '../../lib/player';
 
 // ─────────────────────────────────────────────
-// Audio-reactive waveform with internal rAF.
+// Antenna trace — an audio-reactive waveform with internal rAF.
 // ─────────────────────────────────────────────
-// Receives `playedAt` / `duration` / `isPlaying` as primitive props.
-// Live progress is derived from `played_at` (immutable per track) inside
-// the rAF loop — the React tree is never re-rendered on a frame tick,
-// which is the whole point of moving the loop down into the canvas.
+// This is NOT a progress bar. A live broadcast can't be scrubbed and you
+// can't rewind it, so there is no elapsed/remaining and no played/unplayed
+// split — every bar is drawn the same way. It signals one thing: the
+// antenna is on air, and this is the shape of its sound.
 //
-// Per AzuraCast docs on the static now-playing JSON: the server-reported
-// `elapsed` is frozen at file-write time, so clients must compute live
-// time from `played_at` against the current UNIX timestamp.
+// The rAF loop lives inside the canvas so the React tree is never
+// re-rendered on a frame tick. `isPlaying`/`songId` are read from refs so
+// prop changes don't tear the loop down.
 //
-// Rendering is a fine ink stroke: played bars in flat `--color-accent`
-// (alpha 0.9), unplayed bars in `--color-ink` at low alpha. No gradients,
-// no shadow/glow — the waveform reads as a thin trace, not a light show.
+// Rendering is a fine ink stroke: live bars in flat `--color-accent`
+// (~alpha 0.82), a quiet resting trace in `--color-ink` at low alpha when
+// stopped. No gradients, no glow — a thin trace, not a light show.
 
 interface WaveformCanvasProps {
-  playedAt: number | undefined;
-  duration: number;
   isPlaying: boolean;
   songId: number | undefined;
 }
 
-export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: WaveformCanvasProps) {
+export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const timeRef = useRef<number>(0);
@@ -35,15 +33,11 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
   const colorMomentKeyRef = useRef<string | undefined>(undefined);
 
   // Read latest props from refs inside the rAF callback so changes to
-  // `playedAt`/`duration`/`isPlaying`/`songId` don't tear down the loop.
-  const playedAtRef = useRef(playedAt);
-  const durationRef = useRef(duration);
+  // `isPlaying`/`songId` don't tear down the loop.
   const isPlayingRef = useRef(isPlaying);
   const songIdRef = useRef(songId);
 
   useLayoutEffect(() => {
-    playedAtRef.current = playedAt;
-    durationRef.current = duration;
     isPlayingRef.current = isPlaying;
     songIdRef.current = songId;
   });
@@ -94,28 +88,19 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
       const deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
       // Mouvement réduit : les barres restent figées (le temps interne
-      // n'avance plus), seule la progression de lecture continue.
+      // n'avance plus).
       if (!reducedMotion.matches) timeRef.current += deltaTime;
 
       const time = timeRef.current;
       const width = canvas.width;
       const height = canvas.height;
-      const playedAt = playedAtRef.current;
-      const duration = durationRef.current;
       const isPlaying = isPlayingRef.current;
       const songId = songIdRef.current;
-
-      const elapsedSec =
-        playedAt !== undefined && duration > 0
-          ? Math.max(0, Math.min(duration, Date.now() / 1000 - playedAt))
-          : 0;
-      const currentProgress = duration > 0 ? (elapsedSec / duration) * 100 : 0;
 
       ctx.clearRect(0, 0, width, height);
 
       const barWidth = width / barsCount;
       const gap = 3 * dpr;
-      const progressX = (currentProgress / 100) * width;
 
       const momentKey = document.documentElement.dataset.moment;
       if (momentKey !== colorMomentKeyRef.current || !accentColorRef.current) {
@@ -126,8 +111,9 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
       }
       const accentColor = accentColorRef.current;
       const inkColor = inkColorRef.current;
-      const playedFill = `color-mix(in srgb, ${accentColor} 90%, transparent)`;
-      const unplayedFill = `color-mix(in srgb, ${inkColor} 25%, transparent)`;
+      const liveFill = `color-mix(in srgb, ${accentColor} 82%, transparent)`;
+      const idleFill = `color-mix(in srgb, ${inkColor} 22%, transparent)`;
+      const fill = isPlaying ? liveFill : idleFill;
 
       const analyser = getAnalyser();
       let frequencyData: Uint8Array | null = null;
@@ -139,6 +125,8 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
         analyser.getByteFrequencyData(frequencyDataRef.current as Uint8Array<ArrayBuffer>);
         frequencyData = frequencyDataRef.current;
       }
+
+      ctx.fillStyle = fill;
 
       for (let i = 0; i < barsCount; i++) {
         const x = i * barWidth;
@@ -180,26 +168,9 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
         const barX = x + gap / 2;
         const barW = barWidth - gap;
 
-        if (x < progressX) {
-          const fillWidth = Math.min(barW, progressX - barX);
-          if (fillWidth > 0) {
-            ctx.fillStyle = playedFill;
-            ctx.beginPath();
-            ctx.roundRect(barX, y, fillWidth, barHeight, dpr);
-            ctx.fill();
-          }
-        }
-
-        if (x + barW > progressX) {
-          const startX = Math.max(barX, progressX);
-          const remainingWidth = barX + barW - startX;
-          if (remainingWidth > 0) {
-            ctx.fillStyle = unplayedFill;
-            ctx.beginPath();
-            ctx.roundRect(startX, y, remainingWidth, barHeight, dpr);
-            ctx.fill();
-          }
-        }
+        ctx.beginPath();
+        ctx.roundRect(barX, y, barW, barHeight, dpr);
+        ctx.fill();
       }
 
       animationRef.current = requestAnimationFrame(draw);
@@ -214,5 +185,5 @@ export function WaveformCanvas({ playedAt, duration, isPlaying, songId }: Wavefo
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="w-full max-w-full h-8" />;
+  return <canvas ref={canvasRef} className="w-full max-w-full h-8" aria-hidden="true" />;
 }
