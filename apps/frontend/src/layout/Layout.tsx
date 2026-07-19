@@ -3,6 +3,7 @@ import { Toaster, toast } from 'sonner';
 import { LogOut, LogIn, Info } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button, IconButton } from '../components/ui/Button';
+import { LibraryButton } from '../components/Player/LibraryButton';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
@@ -25,23 +26,12 @@ interface LayoutProps {
   children: ReactNode;
 }
 
-const timeFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
-
 function MomentLine() {
   const moment = useMoment();
-  const [now, setNow] = useState(() => new Date());
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(new Date()), 30_000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <>
-      <p className="eyebrow text-ink-soft">
-        {MOMENT_LABELS[moment]}{' '}
-        <span className="text-ink-faint">— {timeFormatter.format(now)}</span>
-      </p>
+      <p className="eyebrow text-ink-soft">{MOMENT_LABELS[moment]}</p>
       <p className="hidden sm:block font-text italic text-caption text-ink-faint">
         {MOMENT_TAGLINES[moment]}
       </p>
@@ -109,19 +99,6 @@ export default function Layout({ children }: LayoutProps) {
         Aller au contenu principal
       </a>
 
-      <Toaster
-        position="bottom-center"
-        duration={3000}
-        toastOptions={{
-          classNames: {
-            toast: 'panel !text-ink !text-body',
-            description: '!text-ink-soft',
-            success: '!border-l-2 !border-l-[var(--color-success)]',
-            error: '!border-l-2 !border-l-[var(--color-danger)]',
-          },
-        }}
-      />
-
       <header className="mx-auto w-full max-w-page px-6 pt-6 pb-3 flex items-start justify-between">
         <div>
           <p className="font-display text-lead tracking-tight">
@@ -135,6 +112,7 @@ export default function Layout({ children }: LayoutProps) {
           <IconButton onClick={() => setIsAboutOpen(true)} label="À propos">
             <Info />
           </IconButton>
+          <LibraryButton />
 
           {isLoading ? (
             <div className="size-8 skeleton rounded-full" />
@@ -172,7 +150,7 @@ export default function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <main id="main" className="min-h-0 overflow-hidden flex flex-col">
+      <main id="main" className="min-h-0 overflow-y-auto lg:overflow-hidden flex flex-col">
         {children}
       </main>
 
@@ -181,6 +159,20 @@ export default function Layout({ children }: LayoutProps) {
           <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
         </Suspense>
       )}
+
+      {/* Fixed-position overlay: kept last so it never occupies a grid row */}
+      <Toaster
+        position="bottom-center"
+        duration={3000}
+        toastOptions={{
+          classNames: {
+            toast: 'panel !text-ink !text-body',
+            description: '!text-ink-soft',
+            success: '!border-l-2 !border-l-[var(--color-success)]',
+            error: '!border-l-2 !border-l-[var(--color-danger)]',
+          },
+        }}
+      />
     </div>
   );
 }

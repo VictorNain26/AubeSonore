@@ -178,11 +178,6 @@
     }
   }
 
-  /* Fondu des bords du rail horizontal */
-  .rail-mask {
-    mask-image: linear-gradient(to right, black, black calc(100% - 2rem), transparent);
-  }
-
   .sr-only-focusable {
     position: absolute;
     width: 1px;
