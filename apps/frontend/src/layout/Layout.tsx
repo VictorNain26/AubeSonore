@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
-import { Toaster, toast } from 'sonner';
+import { Toaster } from 'sonner';
 import { LogOut, LogIn, Info } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
 import { Button, IconButton } from '../components/ui/Button';
@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { usePlayer } from '../lib/player';
+import { toastError } from '../lib/appToast';
 import { useMoment } from '../hooks/useMoment';
 import { MOMENT_LABELS, MOMENT_TAGLINES } from '../lib/moments';
 import {
@@ -81,7 +82,7 @@ export default function Layout({ children }: LayoutProps) {
 
     const error = new URLSearchParams(window.location.search).get('error');
     if (error === 'INVALID_TOKEN') {
-      toast.error('Ce lien est invalide ou a expiré. Demandez un nouveau lien.');
+      toastError('Ce lien est invalide ou a expiré. Demandez un nouveau lien.');
     }
 
     const token = readResetTokenFromUrl();
@@ -168,8 +169,8 @@ export default function Layout({ children }: LayoutProps) {
           classNames: {
             toast: 'panel !text-ink !text-body',
             description: '!text-ink-soft',
-            success: '!border-l-2 !border-l-[var(--color-success)]',
-            error: '!border-l-2 !border-l-[var(--color-danger)]',
+            success: 'toast-success',
+            error: 'toast-danger',
           },
         }}
       />

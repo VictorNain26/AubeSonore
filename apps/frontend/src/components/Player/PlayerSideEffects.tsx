@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
-import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
+import { toastError } from '../../lib/appToast';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
 import { useMediaSession } from '../../hooks/player/useMediaSession';
@@ -28,7 +28,7 @@ export function PlayerSideEffects(): null {
 
   useEffect(() => {
     if (playError) {
-      toast.error(`Lecture impossible : ${playError.message}`);
+      toastError(`Lecture impossible : ${playError.message}`);
       clearPlayError();
     }
   }, [playError, clearPlayError]);

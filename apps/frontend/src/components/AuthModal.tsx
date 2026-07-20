@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../lib/api';
 import { toast } from 'sonner';
+import { toastError } from '../lib/appToast';
 import { ModalShell } from './ui/ModalShell';
 import { Button, IconButton } from './ui/Button';
 
@@ -211,7 +212,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
         setMode('signin');
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Une erreur est survenue');
+      toastError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setIsLoading(false);
     }
@@ -223,7 +224,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
       await authApi.signInWithProvider(provider);
       // On success the browser navigates to the provider; keep loading state.
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Connexion impossible');
+      toastError(err instanceof Error ? err.message : 'Connexion impossible');
       setIsLoading(false);
     }
   };

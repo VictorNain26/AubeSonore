@@ -15,6 +15,7 @@ import {
   DropdownMenuItem,
 } from './ui/DropdownMenu';
 import { toast } from 'sonner';
+import { toastError } from '../lib/appToast';
 import { ModalShell } from './ui/ModalShell';
 import { Button, IconButton } from './ui/Button';
 
@@ -217,7 +218,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
         await trackApi.refreshAllLinks();
         toast.success('Liens mis à jour');
       } catch {
-        toast.error('Erreur lors du rafraîchissement');
+        toastError('Erreur lors du rafraîchissement');
       } finally {
         setIsRefreshing(false);
       }
