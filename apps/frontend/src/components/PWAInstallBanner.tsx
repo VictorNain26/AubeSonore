@@ -54,7 +54,7 @@ export function PWAInstallBanner() {
           <div className="panel flex items-center gap-3 px-4 py-3 max-w-sm w-full">
             <Download className="size-5 text-ink-faint shrink-0" />
             <p className="text-body text-ink flex-1">Installer AubeSonore</p>
-            <Button variant="accent" onClick={handleInstall}>
+            <Button variant="accent" className="h-11" onClick={handleInstall}>
               Installer
             </Button>
             <IconButton shape="round" onClick={handleDismiss} label="Fermer">
