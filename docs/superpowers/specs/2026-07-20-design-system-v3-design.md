@@ -30,7 +30,7 @@ Décision (révision du 2026-07-20 soir) : le concept « papier vivant » (teint
 Un seul fichier source `src/design/tokens.css`, deux couches :
 
 - **Couche primitive** (jamais consommée par les composants) : palette OKLCH des 2 thèmes, échelle typo, échelle d'espacement base 8, rayons (2-3 max), durées/courbes de motion (150/250 ms, `ease-out`).
-- **Couche sémantique** — l'unique API des composants : `surface`, `surface-raised`, `text`, `text-muted`, `text-faint`, `border`, `accent`, `on-accent`, `live`. Branchée sur Tailwind 4 `@theme` → utilities générées (`bg-surface`, `text-text-muted`, …). Zéro valeur hex/hsl/oklch dans les composants.
+- **Couche sémantique** — l'unique API des composants : `surface`, `surface-raised`, `text`, `text-muted`, `text-faint`, `border`, `accent`, `on-accent`. Branchée sur Tailwind 4 `@theme` → utilities générées (`bg-surface`, `text-text-muted`, …). Zéro valeur hex/hsl/oklch dans les composants.
 
 Mécanique :
 
