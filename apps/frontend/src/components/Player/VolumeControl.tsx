@@ -156,7 +156,8 @@ export function VolumeControl({
   };
 
   const displayVolume = effectiveVolume;
-  const isExpanded = isOpen || isDragging || (!isMobile && isHovering);
+  const [isFocused, setIsFocused] = useState(false);
+  const isExpanded = isOpen || isDragging || isFocused || (!isMobile && isHovering);
   const showMuted = isMuted || displayVolume === 0;
   const VolumeIcon = showMuted ? VolumeX : Volume2;
 
@@ -171,11 +172,18 @@ export function VolumeControl({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       onKeyDown={handleKeyDown}
+      onFocus={() => setIsFocused(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setIsFocused(false);
+      }}
       role="group"
       aria-label="Contrôle du volume"
     >
       {/* Volume Icon Button - Fixed position, never moves */}
-      <IconButton onClick={handleIconClick} label={showMuted ? 'Rétablir le son' : 'Couper le son'}>
+      <IconButton
+        onClick={handleIconClick}
+        label={showMuted ? 'Volume — rétablir le son' : 'Volume — couper le son'}
+      >
         <VolumeIcon />
       </IconButton>
 

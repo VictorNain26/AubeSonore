@@ -158,6 +158,14 @@
     border-radius: var(--radius-md);
   }
 
+  .toast-success {
+    border-left: 2px solid var(--color-success);
+  }
+
+  .toast-danger {
+    border-left: 2px solid var(--color-danger);
+  }
+
   /* Surtitre éditorial — la seule voix en capitales du système */
   .eyebrow {
     font-size: var(--text-caption);
