@@ -203,6 +203,12 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const updatePlatform = usePreferencesStore((s) => s.updatePlatform);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [visibleCount, setVisibleCount] = useState(50);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) setVisibleCount(50);
+  }
 
   const handleRefreshAll = useCallback(() => {
     setIsRefreshing(true);
@@ -239,6 +245,8 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
                   title: track.title,
                   artist: track.artist,
                   ...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {}),
+                  ...(track.album ? { album: track.album } : {}),
+                  ...(track.isrc ? { isrc: track.isrc } : {}),
                   youtubeUrl: track.youtubeUrl,
                 });
               },
