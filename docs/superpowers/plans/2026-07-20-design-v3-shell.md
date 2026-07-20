@@ -43,11 +43,9 @@ it('synchronise la meta theme-color sur --surface au changement de thème', () =
   meta.setAttribute('name', 'theme-color');
   meta.setAttribute('content', '#000000');
   document.head.appendChild(meta);
-  const spy = vi
-    .spyOn(window, 'getComputedStyle')
-    .mockReturnValue({
-      getPropertyValue: () => ' oklch(0.19 0.025 265) ',
-    } as unknown as CSSStyleDeclaration);
+  const spy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+    getPropertyValue: () => ' oklch(0.19 0.025 265) ',
+  } as unknown as CSSStyleDeclaration);
 
   applyTheme('dark');
 
