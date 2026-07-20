@@ -5,6 +5,7 @@ import reactHooksPlugin from 'eslint-plugin-react-hooks';
 import importPlugin from 'eslint-plugin-import';
 import prettierConfig from 'eslint-config-prettier';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
+import storybook from 'eslint-plugin-storybook';
 import vitest from '@vitest/eslint-plugin';
 import testingLibrary from 'eslint-plugin-testing-library';
 
@@ -17,6 +18,7 @@ export default tseslint.config(
       '**/.turbo/**',
       '**/.next/**',
       '**/coverage/**',
+      '**/storybook-static/**',
       '**/.claude/**',
       '**/*.config.js',
       '**/*.config.ts',
@@ -144,6 +146,8 @@ export default tseslint.config(
       '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
     },
   },
+
+  ...storybook.configs['flat/recommended'],
 
   prettierConfig
 );
