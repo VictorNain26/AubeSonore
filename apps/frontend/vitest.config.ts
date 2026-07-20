@@ -4,7 +4,7 @@ import path from 'path';
 export default defineConfig({
   test: {
     globals: true,
-    environment: 'jsdom',
+    environment: 'node',
     setupFiles: ['./src/mocks/setup.ts'],
     env: {
       VITE_API_URL: 'http://localhost:3000',

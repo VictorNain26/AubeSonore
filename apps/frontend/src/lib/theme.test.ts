@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, expect, it, beforeEach, vi } from 'vitest';
 import { THEME_STORAGE_KEY, applyTheme, initTheme, resolveTheme, setTheme } from './theme';
 
