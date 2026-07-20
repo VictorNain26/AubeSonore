@@ -54,6 +54,36 @@ describe('initTheme', () => {
   });
 });
 
+describe('applyTheme meta theme-color sync', () => {
+  it('synchronise la meta theme-color sur --surface au changement de thème', () => {
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    meta.setAttribute('content', '#000000');
+    document.head.appendChild(meta);
+    const spy = vi.spyOn(window, 'getComputedStyle').mockReturnValue({
+      getPropertyValue: () => ' oklch(0.19 0.025 265) ',
+    } as unknown as CSSStyleDeclaration);
+
+    applyTheme('dark');
+
+    expect(meta.getAttribute('content')).toBe('oklch(0.19 0.025 265)');
+    spy.mockRestore();
+    meta.remove();
+  });
+
+  it('laisse la meta theme-color intacte quand --surface est vide (jsdom sans CSS)', () => {
+    const meta = document.createElement('meta');
+    meta.setAttribute('name', 'theme-color');
+    meta.setAttribute('content', '#000000');
+    document.head.appendChild(meta);
+
+    applyTheme('light');
+
+    expect(meta.getAttribute('content')).toBe('#000000');
+    meta.remove();
+  });
+});
+
 describe('setTheme', () => {
   it('persists and applies', () => {
     mockMatchMedia(false);
