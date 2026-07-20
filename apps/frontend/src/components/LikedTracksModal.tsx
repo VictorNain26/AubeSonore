@@ -291,7 +291,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
       ) : tracks.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="divide-y divide-line pt-4 scroll-pt-16" role="list">
+        <div className="divide-y divide-line pt-4" role="list">
           {visibleTracks.map((track) => (
             <TrackItem
               key={track.id}

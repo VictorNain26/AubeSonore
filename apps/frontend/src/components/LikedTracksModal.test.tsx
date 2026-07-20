@@ -77,11 +77,11 @@ describe('LikedTracksModal', () => {
     expect(deleteButton.className).toContain('pointer-coarse:opacity-100');
   });
 
-  it('applies scroll-pt-16 to the list container so a focused row clears the sticky header', () => {
+  it('applies scroll-pt-16 to the modal scroll container so a focused row clears the sticky header', () => {
     useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
     renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    expect(screen.getByRole('list').className).toContain('scroll-pt-16');
+    expect(screen.getByTestId('modal-scroll-container').className).toContain('scroll-pt-16');
   });
 
   it('shows an undo toast after a successful delete and re-adds the track on undo', async () => {
