@@ -10,6 +10,12 @@ export function Antenna() {
   const shId = useNowPlayingStore((s) => s.data?.now_playing?.sh_id);
   const isPlaying = usePlayer((s) => s.isPlaying);
 
+  if (!isPlaying) {
+    return (
+      <p className="text-caption text-ink-soft">Appuyez sur lecture pour écouter le direct.</p>
+    );
+  }
+
   return (
     <div className="w-full min-w-0">
       <WaveformCanvas isPlaying={isPlaying} songId={shId} />
