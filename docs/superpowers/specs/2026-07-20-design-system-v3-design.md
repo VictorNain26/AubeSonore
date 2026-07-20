@@ -1,4 +1,4 @@
-# Design system v3 — « papier vivant » minimal chaleureux
+# Design system v3 — minimal chaleureux, l'onde comme matière
 
 Date : 2026-07-20 · Statut : validé section par section avec Victor · Remplace le cadrage « minimal radical » du même jour (7 cartes Claude Design et branche `fix/foundation-ink-contrast` obsolètes).
 
@@ -14,26 +14,26 @@ Le design « papier journal » (mergé PR #101-#109) a été rejeté visuellemen
 
 La hiérarchie produit reste la référence de tout arbitrage UI : 1. écouter le direct, 2. découvrir, 3. partager, 4. réécouter. Rien hors de ces 4 usages (pas de compteur d'auditeurs).
 
-## 1. Direction visuelle — le papier vivant, à contraste verrouillé
+## 1. Direction visuelle — minimal chaleureux, l'onde comme matière
 
-- **Deux modes seulement** : clair le jour, sombre la nuit, déclenchés par l'heure locale, avec un toggle discret persisté en secours. Le mode garantit la lisibilité.
-- **Teinte continue** : à l'intérieur de chaque mode, la teinte du papier et de l'accent évolue avec l'heure (rosé à l'aube → neutre chaud à midi → ambré au crépuscule → bleuté la nuit). Couleurs définies en **OKLCH à luminosité (L) et chroma (C) fixes ; seule la teinte (H) interpole**. OKLCH étant perceptuellement uniforme, un contraste AA vérifié à L fixe reste AA pour toute teinte : la lisibilité est garantie par construction et prouvée par script (§5).
-- Mise à jour de la teinte chaque minute (imperceptible). Les transitions visibles (bascule jour/nuit, toggle) respectent `prefers-reduced-motion`.
-- **Accent « aube »** : signature de la marque, utilisé avec parcimonie (live, action primaire, focus). Sa teinte de référence est le rosé/ambré de l'aube ; elle glisse légèrement avec l'heure autour de cette référence, à L/C fixes comme le reste.
-- Chaleur : papier blanc cassé chaud en clair, nuit bleu-encre profonde (jamais de noir pur) en sombre.
+Décision (révision du 2026-07-20 soir) : le concept « papier vivant » (teinte évoluant avec l'heure) est **abandonné** — il ne porte pas les codes webradio et coûtait cher à prouver. L'originalité vit ailleurs :
+
+- **Deux thèmes fixes** : clair chaleureux (papier blanc cassé chaud) / sombre bleu-encre profond (jamais de noir pur). Sélection par `prefers-color-scheme` + toggle discret **persisté**. Couleurs définies en OKLCH ; contraste AA vérifié sur les 2 palettes fixes (§5).
+- **Signature : l'onde comme matière.** Le son est rendu visible — le flux audio réel est analysé en temps réel (WebAudio `AnalyserNode`, `WaveformCanvas` existant refondé) et dessiné en une ligne d'encre fine, organique, sur le papier. **C'est elle l'indicateur de direct** : la ligne ondule = la radio vit ; en pause/arrêt elle s'aplatit en filet. Aucun badge « LIVE » rouge. Déclinable : micro-onde dans le player réduit. Sous `prefers-reduced-motion: reduce`, l'onde devient un filet statique + mention textuelle du direct (l'information reste accessible).
+- **Structure : la manchette.** Le morceau en cours composé en très grand (statique), hiérarchie éditoriale nette — le direct est le contenu principal de la page (usage n°1).
+- **Accent « aube »** (rosé/ambré, fixe) : signature de marque, parcimonieux — action primaire, focus, points chauds. Pas d'accent rouge dédié au live : l'onde s'en charge.
 - **Typographie** : une seule famille sans-serif variable humaniste ; 2 candidates (dont Inter) comparées dans Storybook au checkpoint fondations. Échelle 5 niveaux (display, title, lead, body, caption) en `clamp()`, chiffres tabulaires pour les horaires, `line-height` sans unité, longueur de ligne ≤ ~66ch.
 
 ## 2. Architecture des tokens
 
 Un seul fichier source `src/design/tokens.css`, deux couches :
 
-- **Couche primitive** (jamais consommée par les composants) : teintes horaires (`--hue-*`), luminosités/chromas fixes par mode, échelle typo, échelle d'espacement base 8, rayons (2-3 max), durées/courbes de motion (150/250 ms, `ease-out`).
+- **Couche primitive** (jamais consommée par les composants) : palette OKLCH des 2 thèmes, échelle typo, échelle d'espacement base 8, rayons (2-3 max), durées/courbes de motion (150/250 ms, `ease-out`).
 - **Couche sémantique** — l'unique API des composants : `surface`, `surface-raised`, `text`, `text-muted`, `text-faint`, `border`, `accent`, `on-accent`, `live`. Branchée sur Tailwind 4 `@theme` → utilities générées (`bg-surface`, `text-text-muted`, …). Zéro valeur hex/hsl/oklch dans les composants.
 
 Mécanique :
 
-- Mode sur `<html data-theme="day|night">`, posé par l'heure, surchargé par le toggle persisté (localStorage).
-- Teinte continue dans une custom property mise à jour chaque minute par `lib/theme.ts` (remplace `lib/moments.ts`).
+- Thème sur `<html data-theme="light|dark">`, suivant `prefers-color-scheme`, surchargé par le toggle persisté (localStorage) — logique dans `lib/theme.ts` (remplace `lib/moments.ts`, plus aucune logique horaire).
 - `color-scheme: light dark` + `<meta name="color-scheme">` contre le flash blanc.
 - La typo devient aussi des tokens `@theme` (`font-*`, `text-*`) consommés en utilities — les classes `.ds-*` de Storybook disparaissent, un seul système.
 - La syntaxe `@theme` exacte est validée contre la doc Tailwind 4.3 à l'implémentation (doc-first).
@@ -50,7 +50,7 @@ Mécanique :
 
 ## 4. Plan de migration (main-first, PRs courtes)
 
-1. **PR 1 — Fondations** : `tokens.css` v3, `lib/theme.ts`, conventions agent CLAUDE.md, stories Fondations (palette 2 modes × échantillons horaires, typo avec les 2 candidates, espacement). Remplace les stories `.ds-*`. **Checkpoint : validation Victor dans Storybook.**
+1. **PR 1 — Fondations** : `tokens.css` v3, `lib/theme.ts`, conventions agent CLAUDE.md, stories Fondations (palette 2 thèmes, typo avec les 2 candidates, espacement, étude de l'onde — ligne d'encre statique + variantes d'épaisseur/amplitude). Remplace les stories `.ds-*`. **Checkpoint : validation Victor dans Storybook.**
 2. **PR 2 — Primitives** : dépendance Base UI + `Button`, `Input`, `Modal`, `Menu`, `Slider` + stories tous états × 2 modes. **Checkpoint Storybook.**
 3. **PRs 3..n — Écrans, un par PR** : shell/header → Player (artwork, contrôles, volume, waveform) → modals (Auth, LikedTracks, About) → StationLog/historique → bannière PWA. Chaque PR migre l'écran complet et supprime ses styles ad hoc — jamais deux systèmes durablement dans un même écran.
 4. **PR finale — Démolition** : `index.css` réduit à l'essentiel, fonts Spectral/Young Serif retirées, `lib/moments.ts` + `data-moment` supprimés, knip/lint confirment zéro code mort.
@@ -59,7 +59,7 @@ Chaque PR passe : `check-contrast` + typecheck + lint zéro warning + tests + sc
 
 ## 5. Vérification et qualité
 
-- **Contraste prouvé** : `scripts/check-contrast.mjs` étendu — paires sémantiques (`text`/`surface`, `text-muted`/`surface`, `on-accent`/`accent`, focus) × 24 positions horaires × 2 modes ; échec sous AA (4.5:1, 3:1 grands textes/composants UI). Branché au job Quality de la CI.
+- **Contraste prouvé** : `scripts/check-contrast.mjs` — paires sémantiques (`text`/`surface`, `text-muted`/`surface`, `on-accent`/`accent`, focus) × 2 thèmes ; échec sous AA (4.5:1, 3:1 grands textes/composants UI). Branché au job Quality de la CI.
 - **A11y Storybook** : addon a11y (axe) sur chaque story, violations bloquantes.
 - **Tests** : Vitest suit la migration (comportement, pas les classes) ; tout bug corrigé reçoit un test de non-régression.
 - **Boucle visuelle** : screenshots headless du dev server (jour + nuit, mobile + desktop) présentés avant chaque merge d'écran.
