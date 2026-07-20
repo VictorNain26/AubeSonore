@@ -91,6 +91,15 @@ describe('player store', () => {
     usePlayer.getState().setVolume(-0.5);
     expect(usePlayer.getState().volume).toBe(0);
   });
+
+  it('toggleMute restores the pre-mute volume', async () => {
+    const { usePlayer } = await import('./player');
+    usePlayer.getState().setVolume(0.4);
+    usePlayer.getState().toggleMute();
+    expect(usePlayer.getState().volume).toBe(0);
+    usePlayer.getState().toggleMute();
+    expect(usePlayer.getState().volume).toBe(0.4);
+  });
 });
 
 describe('player resilience (stream auto-recovery)', () => {

@@ -48,7 +48,7 @@ export function IconButton({
     <button
       className={cn(
         BASE_CLASSES,
-        'p-2 [&_svg]:w-5 [&_svg]:h-5',
+        'size-11 [&_svg]:w-5 [&_svg]:h-5',
         shape === 'round' ? 'rounded-full' : 'rounded-md',
         VARIANT_CLASSES[variant],
         className

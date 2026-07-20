@@ -17,6 +17,7 @@ export interface PlayError {
 interface PlayerState {
   isPlaying: boolean;
   volume: number;
+  isMuted: boolean;
   playError: PlayError | null;
 }
 
@@ -24,6 +25,7 @@ interface PlayerActions {
   play: () => Promise<void>;
   stop: () => void;
   setVolume: (value: number) => void;
+  toggleMute: () => void;
   clearPlayError: () => void;
 }
 
@@ -117,9 +119,12 @@ function reconnect(): void {
   }, delay);
 }
 
-export const usePlayer = create<PlayerStore>((set) => ({
+let prevVolume = 0.5;
+
+export const usePlayer = create<PlayerStore>((set, get) => ({
   isPlaying: false,
   volume: getStoredVolume(),
+  isMuted: false,
   playError: null,
 
   play: async () => {
@@ -164,7 +169,18 @@ export const usePlayer = create<PlayerStore>((set) => ({
     } catch {
       // localStorage unavailable (private mode) — keep in-memory state only
     }
-    set({ volume: clamped });
+    if (clamped > 0) prevVolume = clamped;
+    set({ volume: clamped, isMuted: clamped === 0 });
+  },
+
+  toggleMute: () => {
+    const { isMuted, volume, setVolume } = get();
+    if (isMuted) {
+      setVolume(prevVolume || 0.5);
+    } else {
+      prevVolume = volume;
+      setVolume(0);
+    }
   },
 
   clearPlayError: () => set({ playError: null }),
