@@ -1,7 +1,13 @@
 import type { Preview } from '@storybook/react-vite';
 import { useEffect } from 'react';
 import '@fontsource-variable/inter';
-import '../src/design/tokens.css';
+import '@fontsource-variable/instrument-sans';
+import '../src/design/storybook.css';
+
+const FONT_STACKS: Record<string, string> = {
+  inter: "'Inter Variable', system-ui, sans-serif",
+  instrument: "'Instrument Sans Variable', system-ui, sans-serif",
+};
 
 const preview: Preview = {
   parameters: {
@@ -14,33 +20,50 @@ const preview: Preview = {
     },
   },
   globalTypes: {
-    moment: {
-      description: 'Moment de la journée (le papier suit l’heure)',
+    theme: {
+      description: 'Thème',
       toolbar: {
-        title: 'Moment',
+        title: 'Thème',
         icon: 'sun',
         items: [
-          { value: 'dawn', title: 'Aube' },
-          { value: 'day', title: 'Jour' },
-          { value: 'dusk', title: 'Crépuscule' },
-          { value: 'night', title: 'Nuit' },
+          { value: 'light', title: 'Clair' },
+          { value: 'dark', title: 'Sombre' },
+        ],
+        dynamicTitle: true,
+      },
+    },
+    fonte: {
+      description: 'Candidate typographique',
+      toolbar: {
+        title: 'Fonte',
+        icon: 'paragraph',
+        items: [
+          { value: 'inter', title: 'Inter' },
+          { value: 'instrument', title: 'Instrument Sans' },
         ],
         dynamicTitle: true,
       },
     },
   },
   initialGlobals: {
-    moment: 'night',
+    theme: 'light',
+    fonte: 'inter',
   },
   decorators: [
     (Story, context) => {
-      const moment = context.globals.moment as string;
+      const theme = context.globals.theme as string;
+      const fonte = context.globals.fonte as string;
       useEffect(() => {
-        document.documentElement.setAttribute('data-moment', moment);
-        document.body.style.background = 'var(--paper)';
-      }, [moment]);
+        if (theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+
+        document.documentElement.style.setProperty('--p-font-stack', FONT_STACKS[fonte]);
+      }, [theme, fonte]);
       return (
-        <div className="ds" style={{ minHeight: '100vh', padding: '2rem' }}>
+        <div className="min-h-screen bg-surface p-8 font-sans text-text">
           <Story />
         </div>
       );

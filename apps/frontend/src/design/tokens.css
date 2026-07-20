@@ -1,97 +1,87 @@
 /*
-  AubeSonore — design system « minimal radical » (refonte 2026-07).
-  Nouvelles fondations, construites dans Storybook avant adoption par l'app.
-  Le papier suit l'heure (4 moments), la mise en page ne change jamais.
-  Valeurs AA vérifiées par scripts/check-contrast.mjs.
+  AubeSonore — design system v3. Source unique des tokens.
+  Couche primitive (--p-*) : jamais consommée par les composants.
+  Couche sémantique : la seule API, exposée à Tailwind via @theme inline.
+  AA prouvé par scripts/check-contrast.mjs sur les 2 thèmes.
 */
 
-:root,
-[data-moment='night'] {
-  --paper: hsl(240 18% 10%);
-  --ink: hsl(40 30% 92%);
-  --accent: hsl(230 45% 74%);
-}
-
-[data-moment='dawn'] {
-  --paper: hsl(10 45% 93%);
-  --ink: hsl(350 25% 12%);
-  --accent: hsl(345 55% 45%);
-}
-
-[data-moment='day'] {
-  --paper: hsl(210 36% 97%);
-  --ink: hsl(220 26% 12%);
-  --accent: hsl(214 74% 38%);
-}
-
-[data-moment='dusk'] {
-  --paper: hsl(292 24% 90%);
-  --ink: hsl(288 24% 6%);
-  --accent: hsl(30 85% 29%);
-}
-
 :root {
-  --ink-soft: color-mix(in srgb, var(--ink) 75%, var(--paper));
-  --ink-faint: color-mix(in srgb, var(--ink) 66%, var(--paper));
-  --line: color-mix(in srgb, var(--ink) 14%, transparent);
-  --live: hsl(0 62% 55%);
+  color-scheme: light;
 
-  --font-sans: 'Inter Variable', system-ui, sans-serif;
+  --p-font-stack: 'Inter Variable', system-ui, sans-serif;
 
-  --text-display: clamp(2.5rem, 5vw, 4rem);
-  --text-title: 1.75rem;
+  --surface: oklch(0.975 0.008 80);
+  --surface-raised: oklch(0.94 0.012 80);
+  --text: oklch(0.24 0.02 60);
+  --text-muted: oklch(0.4 0.02 60);
+  --text-faint: oklch(0.47 0.015 60);
+  --border: oklch(0.86 0.012 80);
+  --accent: oklch(0.47 0.12 25);
+  --on-accent: oklch(0.98 0.008 80);
+  --dawn-tint: oklch(0.88 0.05 25);
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  --surface: oklch(0.19 0.025 265);
+  --surface-raised: oklch(0.235 0.025 265);
+  --text: oklch(0.93 0.012 80);
+  --text-muted: oklch(0.72 0.015 80);
+  --text-faint: oklch(0.63 0.012 80);
+  --border: oklch(0.32 0.02 265);
+  --accent: oklch(0.76 0.1 25);
+  --on-accent: oklch(0.18 0.03 265);
+  --dawn-tint: oklch(0.35 0.06 25);
+}
+
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+@theme inline {
+  --color-*: initial;
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-faint: var(--text-faint);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+
+  --font-*: initial;
+  --font-sans: var(--p-font-stack);
+
+  --text-*: initial;
+  --text-display: clamp(2.25rem, 1.2rem + 4.5vw, 4rem);
+  --text-display--line-height: 1.05;
+  --text-display--font-weight: 640;
+  --text-display--letter-spacing: -0.015em;
+  --text-title: clamp(1.35rem, 1.1rem + 1vw, 1.75rem);
+  --text-title--line-height: 1.15;
+  --text-title--font-weight: 600;
+  --text-lead: 1.125rem;
+  --text-lead--line-height: 1.5;
+  --text-lead--font-weight: 450;
   --text-body: 1rem;
-  --text-caption: 0.75rem;
+  --text-body--line-height: 1.55;
+  --text-body--font-weight: 400;
+  --text-caption: 0.8125rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--font-weight: 500;
+  --text-caption--letter-spacing: 0.01em;
 
-  --weight-display: 650;
-  --weight-title: 600;
-  --weight-body: 400;
-  --weight-caption: 500;
+  --radius-*: initial;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-full: 9999px;
 
-  --tracking-display: -0.03em;
-  --tracking-title: -0.01em;
-  --tracking-caps: 0.25em;
-
-  --space: 0.5rem;
-
-  --radius-hair: 2px;
-  --radius-full: 999px;
+  --ease-out-quart: cubic-bezier(0.2, 0, 0, 1);
 }
 
-.ds {
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--font-sans);
-  font-size: var(--text-body);
-  font-weight: var(--weight-body);
-  line-height: 1.5;
-  font-variant-numeric: tabular-nums;
-}
-
-.ds-display {
-  font-size: var(--text-display);
-  font-weight: var(--weight-display);
-  letter-spacing: var(--tracking-display);
-  line-height: 1.05;
-}
-
-.ds-title {
-  font-size: var(--text-title);
-  font-weight: var(--weight-title);
-  letter-spacing: var(--tracking-title);
-}
-
-.ds-caption {
-  font-size: var(--text-caption);
-  font-weight: var(--weight-caption);
-  letter-spacing: var(--tracking-caps);
-  text-transform: uppercase;
-}
-
-.ds-muted {
-  color: var(--ink-soft);
-}
-
-.ds-faint {
-  color: var(--ink-faint);
+@utility dawn-glow {
+  background-image: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--dawn-tint) 30%, var(--surface)),
+    var(--surface) 14rem
+  );
 }
