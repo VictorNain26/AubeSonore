@@ -21,3 +21,22 @@ export const Actions: StoryObj = {
     />
   ),
 };
+
+export const WithHeader: StoryObj = {
+  render: () => (
+    <Menu
+      header={
+        <div>
+          <p className="font-medium">Victor</p>
+          <p className="text-caption text-text-muted">victor@example.com</p>
+        </div>
+      }
+      trigger={
+        <Button variant="icon" aria-label="Options">
+          ⋯
+        </Button>
+      }
+      items={[{ label: 'Déconnexion', onSelect: () => {} }]}
+    />
+  ),
+};

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { userEvent } from '@testing-library/user-event';
 import { Button } from './Button';
 import { Menu } from './Menu';
 
@@ -41,5 +42,17 @@ describe('Menu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Options' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Supprimer' }));
     expect(onDelete).not.toHaveBeenCalled();
+  });
+
+  it('affiche le header non interactif au-dessus des items', async () => {
+    render(
+      <Menu
+        trigger={<button type="button">Ouvrir</button>}
+        header={<p>victor@example.com</p>}
+        items={[{ label: 'Déconnexion', onSelect: () => {} }]}
+      />
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Ouvrir' }));
+    expect(await screen.findByText('victor@example.com')).toBeInTheDocument();
   });
 });
