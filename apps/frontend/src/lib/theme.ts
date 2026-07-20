@@ -20,20 +20,14 @@ export function setTheme(theme: Theme): void {
   applyTheme(theme);
 }
 
-let mediaListener: ((e: MediaQueryListEvent | { matches: boolean }) => void) | null = null;
-
 export function initTheme(): Theme {
   const media = window.matchMedia('(prefers-color-scheme: dark)');
   const theme = resolveTheme(localStorage.getItem(THEME_STORAGE_KEY), media.matches);
   applyTheme(theme);
-
-  if (!localStorage.getItem(THEME_STORAGE_KEY)) {
-    mediaListener = (e) => {
-      const newTheme = resolveTheme(localStorage.getItem(THEME_STORAGE_KEY), e.matches);
-      applyTheme(newTheme);
-    };
-    media.addEventListener('change', mediaListener);
-  }
-
+  media.addEventListener('change', (event) => {
+    if (localStorage.getItem(THEME_STORAGE_KEY) === null) {
+      applyTheme(event.matches ? 'dark' : 'light');
+    }
+  });
   return theme;
 }
