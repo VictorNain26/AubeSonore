@@ -68,3 +68,6 @@ MIGRATION.md
 .turbo
 .vercel
 certs/
+
+*storybook.log
+storybook-static

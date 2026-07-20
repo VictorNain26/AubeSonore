@@ -12,11 +12,14 @@
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "test": "vitest",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@aubesonore/core": "workspace:*",
     "@aubesonore/shared-types": "workspace:*",
+    "@fontsource-variable/inter": "^5.3.0",
     "@fontsource/spectral": "^5.2.8",
     "@fontsource/young-serif": "^5.2.7",
     "@radix-ui/react-dialog": "^1.1.14",
@@ -36,6 +39,9 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@storybook/addon-a11y": "^10.5.2",
+    "@storybook/addon-docs": "^10.5.2",
+    "@storybook/react-vite": "^10.5.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
@@ -47,6 +53,7 @@
     "jsdom": "^29.1.1",
     "msw": "^2.14.6",
     "rollup-plugin-visualizer": "^7.0.1",
+    "storybook": "^10.5.2",
     "tailwindcss": "^4.3.0",
     "typescript": "^5.8.3",
     "vite": "^8.0.13",
