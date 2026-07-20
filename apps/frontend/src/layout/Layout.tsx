@@ -143,7 +143,7 @@ export default function Layout({ children }: LayoutProps) {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="ink" onClick={() => openAuthModal()}>
+            <Button variant="ink" aria-label="Connexion" onClick={() => openAuthModal()}>
               <LogIn className="size-4" />
               <span className="hidden sm:inline">Connexion</span>
             </Button>
