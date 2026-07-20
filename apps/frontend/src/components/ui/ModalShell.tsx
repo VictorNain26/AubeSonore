@@ -67,7 +67,12 @@ export function ModalShell({
                     </IconButton>
                   </Dialog.Close>
                 </div>
-                <div className="max-h-[70dvh] overflow-y-auto pt-5">{children}</div>
+                <div
+                  data-testid="modal-scroll-container"
+                  className="max-h-[70dvh] overflow-y-auto scroll-pt-16 pt-5"
+                >
+                  {children}
+                </div>
               </motion.div>
             </Dialog.Content>
           </Dialog.Portal>

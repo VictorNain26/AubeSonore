@@ -105,6 +105,7 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           title="Retirer"
           className={cn(
             'size-10 hover:text-danger opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+            'pointer-coarse:opacity-100',
             isDeleting && 'animate-pulse'
           )}
         >
@@ -138,7 +139,7 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
           {selectedPlatform?.name}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="end" className="w-44 max-h-[280px] overflow-y-auto">
+      <DropdownMenuContent side="top" align="end" className="w-44 max-h-72 overflow-y-auto">
         {PLATFORMS.map((platform) => (
           <DropdownMenuItem
             key={platform.id}
@@ -197,9 +198,17 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const tracks = useLikedTracksStore((s) => s.tracks);
   const isLoading = useLikedTracksStore((s) => s.isLoading);
   const unlikeTrack = useLikedTracksStore((s) => s.unlikeTrack);
+  const likeTrack = useLikedTracksStore((s) => s.likeTrack);
   const preferences = usePreferencesStore((s) => s.preferences);
   const updatePlatform = usePreferencesStore((s) => s.updatePlatform);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(50);
+  const [wasOpen, setWasOpen] = useState(isOpen);
+
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) setVisibleCount(50);
+  }
 
   const handleRefreshAll = useCallback(() => {
     setIsRefreshing(true);
@@ -224,9 +233,29 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
   const handleUnlikeTrack = useCallback(
     (id: string) => {
-      void unlikeTrack(id);
+      void (async () => {
+        const track = tracks.find((t) => t.id === id);
+        const removed = await unlikeTrack(id);
+        if (removed && track) {
+          toast('Morceau retiré', {
+            action: {
+              label: 'Annuler',
+              onClick: () => {
+                void likeTrack({
+                  title: track.title,
+                  artist: track.artist,
+                  ...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {}),
+                  ...(track.album ? { album: track.album } : {}),
+                  ...(track.isrc ? { isrc: track.isrc } : {}),
+                  youtubeUrl: track.youtubeUrl,
+                });
+              },
+            },
+          });
+        }
+      })();
     },
-    [unlikeTrack]
+    [tracks, unlikeTrack, likeTrack]
   );
 
   const preferredPlatform = preferences?.preferredPlatform || 'spotify';
@@ -237,6 +266,9 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
       [...tracks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [tracks]
   );
+
+  const visibleTracks = sortedTracks.slice(0, visibleCount);
+  const hiddenCount = sortedTracks.length - visibleTracks.length;
 
   return (
     <ModalShell
@@ -268,7 +300,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
         <EmptyState />
       ) : (
         <div className="divide-y divide-line pt-4" role="list">
-          {sortedTracks.map((track) => (
+          {visibleTracks.map((track) => (
             <TrackItem
               key={track.id}
               track={track}
@@ -276,6 +308,14 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
               onDelete={handleUnlikeTrack}
             />
           ))}
+        </div>
+      )}
+
+      {hiddenCount > 0 && (
+        <div className="pt-4 flex justify-center">
+          <Button variant="ghost" onClick={() => setVisibleCount(sortedTracks.length)}>
+            Afficher les {hiddenCount} autres
+          </Button>
         </div>
       )}
     </ModalShell>
