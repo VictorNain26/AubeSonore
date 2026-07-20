@@ -23,9 +23,9 @@ describe('AuthModal', () => {
     const switchBtn = screen.getByRole('button', { name: /pas encore de compte/i });
     await userEvent.click(switchBtn);
 
-    // In signup mode the title changes and a "Nom" input appears
+    // In signup mode the title changes and a "Nom" field appears
     await waitFor(() => {
-      expect(screen.getByPlaceholderText('Nom')).toBeInTheDocument();
+      expect(screen.getByLabelText('Nom')).toBeInTheDocument();
     });
   });
 
@@ -33,8 +33,8 @@ describe('AuthModal', () => {
     const onClose = vi.fn();
     renderWithProviders(<AuthModal isOpen={true} onClose={onClose} defaultMode="signin" />);
 
-    const emailInput = screen.getByPlaceholderText('Email');
-    const passwordInput = screen.getByPlaceholderText('Mot de passe');
+    const emailInput = screen.getByLabelText('Email');
+    const passwordInput = screen.getByLabelText('Mot de passe');
 
     await userEvent.type(emailInput, 'a@b.c');
     await userEvent.type(passwordInput, 'password123');
@@ -43,5 +43,26 @@ describe('AuthModal', () => {
     await userEvent.click(submitBtn);
 
     await waitFor(() => expect(onClose).toHaveBeenCalled(), { timeout: 3000 });
+  });
+
+  it('associates a visible label with the email field', () => {
+    renderWithProviders(<AuthModal isOpen={true} onClose={vi.fn()} />);
+    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+  });
+
+  it('flags mismatched passwords on the confirmation field, not via toast', async () => {
+    renderWithProviders(<AuthModal isOpen={true} onClose={vi.fn()} resetToken="some-token" />);
+
+    const passwordInput = screen
+      .getAllByLabelText('Nouveau mot de passe')
+      .find((el) => el.tagName === 'INPUT') as HTMLInputElement;
+    const confirmInput = screen.getByLabelText('Confirmer le mot de passe');
+
+    await userEvent.type(passwordInput, 'password123');
+    await userEvent.type(confirmInput, 'different123');
+    await userEvent.tab();
+
+    expect(screen.getByText('Les mots de passe ne correspondent pas.')).toBeInTheDocument();
+    expect(confirmInput).toHaveAttribute('aria-invalid', 'true');
   });
 });
