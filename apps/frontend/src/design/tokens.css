@@ -10,33 +10,29 @@
   --paper: hsl(240 18% 10%);
   --ink: hsl(40 30% 92%);
   --accent: hsl(230 45% 74%);
-  --sky: hsl(238 22% 13%);
 }
 
 [data-moment='dawn'] {
   --paper: hsl(10 45% 93%);
   --ink: hsl(350 25% 12%);
   --accent: hsl(345 55% 45%);
-  --sky: hsl(8 55% 89%);
 }
 
 [data-moment='day'] {
   --paper: hsl(210 36% 97%);
   --ink: hsl(220 26% 12%);
   --accent: hsl(214 74% 38%);
-  --sky: hsl(210 45% 94%);
 }
 
 [data-moment='dusk'] {
   --paper: hsl(292 24% 90%);
   --ink: hsl(288 24% 6%);
   --accent: hsl(30 85% 29%);
-  --sky: hsl(318 34% 84%);
 }
 
 :root {
-  --ink-soft: color-mix(in srgb, var(--ink) 50%, var(--paper));
-  --ink-faint: color-mix(in srgb, var(--ink) 35%, var(--paper));
+  --ink-soft: color-mix(in srgb, var(--ink) 75%, var(--paper));
+  --ink-faint: color-mix(in srgb, var(--ink) 66%, var(--paper));
   --line: color-mix(in srgb, var(--ink) 14%, transparent);
   --live: hsl(0 62% 55%);
 
