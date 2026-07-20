@@ -10,7 +10,11 @@ function getAbsolutePath(value: string) {
 }
 const config: StorybookConfig = {
   stories: ['../src/**/*.mdx', '../src/**/*.stories.@(js|jsx|mjs|ts|tsx)'],
-  addons: [getAbsolutePath('@storybook/addon-a11y'), getAbsolutePath('@storybook/addon-docs')],
+  addons: [
+    getAbsolutePath('@storybook/addon-a11y'),
+    getAbsolutePath('@storybook/addon-docs'),
+    getAbsolutePath('@storybook/addon-mcp'),
+  ],
   framework: getAbsolutePath('@storybook/react-vite'),
   viteFinal: (viteConfig) => {
     // The app's vite.config registers vite-plugin-pwa, whose service-worker
