@@ -1,7 +1,11 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useShallow } from 'zustand/react/shallow';
+import { Heart, Share2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useInkFlip } from '../../lib/motion';
+import { useTrackActions } from '../../hooks/player/useTrackActions';
+import { IconButton } from '../ui/Button';
 
 // The masthead: track title as a large serif headline, artist as its
 // dek. On a track flip the block does a soft crossfade with a slight
@@ -20,6 +24,7 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
       artist: s.data?.now_playing?.song.artist,
     }))
   );
+  const { isLiked, isLiking, handleToggleLike, handleShare } = useTrackActions();
 
   return (
     <div className="min-w-0">
@@ -50,6 +55,21 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
           )}
         </motion.p>
       </AnimatePresence>
+      <div className="mt-2 flex items-center gap-1">
+        <IconButton label="Partager ce morceau" onClick={handleShare} shape="round">
+          <Share2 className="size-4" />
+        </IconButton>
+        <IconButton
+          label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
+          onClick={handleToggleLike}
+          shape="round"
+          aria-pressed={isLiked}
+          disabled={isLiking}
+          className={cn(isLiked ? 'text-danger' : undefined, isLiking && 'animate-pulse')}
+        >
+          <Heart className={cn('size-4', isLiked && 'fill-current')} />
+        </IconButton>
+      </div>
     </div>
   );
 }

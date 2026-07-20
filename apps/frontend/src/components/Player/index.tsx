@@ -11,6 +11,7 @@ import { Antenna } from './Antenna';
 import { PlaybackControls } from './PlaybackControls';
 import { SecondaryControls } from './SecondaryControls';
 import { ArtistContext } from './ArtistContext';
+import { ArtistBio } from './ArtistBio';
 import { StationLog } from './StationLog';
 
 // Player is a composition root: it arranges sub-components only. Every
@@ -22,21 +23,9 @@ import { StationLog } from './StationLog';
 // (StationLog, what just aired). On narrow screens the two stack and the
 // page scrolls naturally.
 
-// Transport: the play gesture, alone and first, with volume/output as its
-// satellites. Nothing else lives here — library and listeners moved out.
-function ControlsRow({ className }: { className: string }) {
-  return (
-    <div className={className}>
-      <PlaybackControls />
-      <SecondaryControls />
-    </div>
-  );
-}
-
-const SCENE = 'flex flex-col gap-6 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_20rem]';
-const DIRECT = 'min-w-0 flex flex-col lg:min-h-0 lg:overflow-y-auto lg:pr-6';
-const NOW =
-  'flex flex-col gap-4 lg:my-auto lg:grid lg:grid-cols-[minmax(0,42%)_1fr] lg:items-center lg:gap-10';
+const SCENE = 'flex flex-col gap-6 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_17rem]';
+const DIRECT = 'min-w-0 flex flex-col gap-5 lg:min-h-0 lg:overflow-y-auto lg:pr-6 lg:pt-2';
+const NOW = 'flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,42%)_1fr] lg:items-end lg:gap-10';
 const META = 'min-w-0 flex flex-col gap-3 lg:gap-4';
 
 export default function Player() {
@@ -55,23 +44,21 @@ export default function Player() {
     return (
       <div className={SCENE}>
         <div className={DIRECT}>
+          <div className="rule pt-2">
+            <div className="h-4 w-32 skeleton" />
+          </div>
           <div className={NOW}>
-            <div className="artwork-size mx-auto lg:mx-0 aspect-square rounded-lg skeleton" />
+            <div className="relative artwork-size mx-auto lg:mx-0">
+              <div className="aspect-square rounded-lg skeleton" />
+              <div className="absolute -bottom-3 -right-3 size-14 rounded-full skeleton" />
+            </div>
             <div className={META}>
               <div className="flex flex-col gap-2">
                 <div className="h-9 w-3/4 skeleton" />
                 <div className="h-5 w-1/3 skeleton" />
-              </div>
-              <div className="h-8 w-full skeleton" />
-              <div className="hidden lg:flex items-center gap-4 pt-1">
-                <div className="size-16 rounded-full skeleton" />
-                <div className="size-10 rounded-md skeleton" />
+                <div className="h-4 w-1/2 skeleton" />
               </div>
             </div>
-          </div>
-          <div className="pt-5 flex items-center justify-center gap-4 lg:hidden">
-            <div className="size-14 rounded-full skeleton" />
-            <div className="size-10 rounded-md skeleton" />
           </div>
         </div>
         <StationLog />
@@ -87,16 +74,23 @@ export default function Player() {
       transition={pageEntry}
     >
       <div className={DIRECT}>
+        <div className="rule pt-2">
+          <AntennaStatus />
+        </div>
         <div className={NOW}>
-          <TrackArtwork />
+          <div className="relative artwork-size mx-auto lg:mx-0">
+            <TrackArtwork />
+            <div className="absolute -bottom-3 -right-3">
+              <PlaybackControls />
+            </div>
+          </div>
           <div className={META}>
             <TrackMeta onArtistInfo={data?.bio ? () => setArtistPanelOpen(true) : undefined} />
-            <AntennaStatus />
             <Antenna />
-            <ControlsRow className="hidden lg:flex items-center gap-4" />
+            <SecondaryControls />
           </div>
         </div>
-        <ControlsRow className="pt-5 lg:hidden flex items-center justify-center gap-4" />
+        <ArtistBio onOpenPanel={() => setArtistPanelOpen(true)} />
       </div>
 
       <StationLog />

@@ -1,14 +1,10 @@
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
 import { useShallow } from 'zustand/react/shallow';
-import { Users } from 'lucide-react';
 import { useNowPlayingStore } from '../../lib/azuracast';
-import { dataTick } from '../../lib/motion';
 
-// One quiet status line for the broadcast: who is on air (a live DJ, when
-// there is one) and how many are listening. This is the scene's single LIVE
-// signal — the artwork no longer carries its own badge. The listener count
-// is hidden at zero, because "0 listeners" is social proof in reverse.
+// One quiet status line for the broadcast: always "on air", with the DJ
+// name and elapsed time surfacing when a live host is on. Listener count
+// is deliberately never shown here.
 
 function formatElapsed(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -37,9 +33,8 @@ function useBroadcastElapsed(broadcastStart: number | null): string | null {
 }
 
 export function AntennaStatus() {
-  const { current, isLive, streamerName, broadcastStart } = useNowPlayingStore(
+  const { isLive, streamerName, broadcastStart } = useNowPlayingStore(
     useShallow((s) => ({
-      current: s.data?.listeners?.current,
       isLive: s.data?.live?.is_live ?? false,
       streamerName: s.data?.live?.streamer_name ?? '',
       broadcastStart: s.data?.live?.broadcast_start ?? null,
@@ -47,9 +42,6 @@ export function AntennaStatus() {
   );
 
   const elapsed = useBroadcastElapsed(isLive && streamerName ? broadcastStart : null);
-  const showCount = typeof current === 'number' && current > 0;
-
-  if (!isLive && !showCount) return null;
 
   return (
     <div
@@ -57,36 +49,12 @@ export function AntennaStatus() {
       aria-live="polite"
       aria-atomic="true"
     >
-      {isLive && (
-        <span className="flex items-center gap-1.5">
-          <span className="flex items-center gap-1.5 font-medium text-danger">
-            <span className="size-1.5 rounded-full bg-danger animate-pulse" />
-            En direct
-          </span>
-          {streamerName && <span className="text-ink-soft">· {streamerName}</span>}
-          {elapsed && <span>· depuis {elapsed}</span>}
-        </span>
-      )}
-      {isLive && showCount && <span aria-hidden="true">·</span>}
-      {showCount && (
-        <span className="flex items-center gap-1">
-          <Users className="size-3.5" aria-hidden="true" />
-          <span className="sr-only">Auditeurs : </span>
-          <AnimatePresence mode="popLayout" initial={false}>
-            <motion.span
-              key={current}
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={dataTick}
-              className="tabular-nums"
-            >
-              {current}
-            </motion.span>
-          </AnimatePresence>
-          <span>à l&apos;écoute</span>
-        </span>
-      )}
+      <span className="flex items-center gap-1.5 font-medium text-danger">
+        <span className="size-1.5 rounded-full bg-danger animate-pulse" />
+        En direct
+      </span>
+      {isLive && streamerName && <span className="text-ink-soft">· {streamerName}</span>}
+      {isLive && elapsed && <span>· depuis {elapsed}</span>}
     </div>
   );
 }
