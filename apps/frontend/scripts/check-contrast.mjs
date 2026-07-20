@@ -1,42 +1,75 @@
-const moments = {
-  night: { paper: [240, 18, 10], ink: [40, 30, 92], accent: [230, 45, 74], sky: [238, 22, 13] },
-  dawn: { paper: [10, 45, 93], ink: [350, 25, 12], accent: [345, 55, 45], sky: [8, 55, 89] },
-  day: { paper: [210, 36, 97], ink: [220, 26, 12], accent: [214, 74, 38], sky: [210, 45, 94] },
-  dusk: { paper: [292, 24, 90], ink: [288, 24, 6], accent: [30, 85, 29], sky: [318, 34, 84] },
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const css = readFileSync(
+  join(dirname(fileURLToPath(import.meta.url)), '../src/design/tokens.css'),
+  'utf8'
+);
+
+const block = (selector) => {
+  const start = css.indexOf(selector);
+  if (start === -1) throw new Error(`selector not found: ${selector}`);
+  const open = css.indexOf('{', start);
+  const close = css.indexOf('}', open);
+  return css.slice(open + 1, close);
 };
-const hslToRgb = ([h, s, l]) => {
-  s /= 100;
-  l /= 100;
-  const k = (n) => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  return [0, 8, 4].map((n) => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1))));
+
+const parseVars = (text) => {
+  const vars = {};
+  for (const m of text.matchAll(/--([\w-]+):\s*oklch\(([\d.]+)\s+([\d.]+)\s+([\d.]+)\)/g)) {
+    vars[m[1]] = [Number(m[2]), Number(m[3]), Number(m[4])];
+  }
+  return vars;
+};
+
+const oklchToLinearSrgb = ([L, C, H]) => {
+  const h = (H * Math.PI) / 180;
+  const [a, b] = [C * Math.cos(h), C * Math.sin(h)];
+  const l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+  const m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+  const s_ = L - 0.0894841775 * a - 1.291485548 * b;
+  const [l, m, s] = [l_ ** 3, m_ ** 3, s_ ** 3];
+  return [
+    4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+  ].map((c) => Math.min(1, Math.max(0, c)));
+};
+
+const luminance = (rgb) => rgb.reduce((acc, c, i) => acc + c * [0.2126, 0.7152, 0.0722][i], 0);
+const ratio = (fg, bg) => {
+  const [hi, lo] = [luminance(fg), luminance(bg)].sort((x, y) => y - x);
+  return (hi + 0.05) / (lo + 0.05);
 };
 const mix = (a, b, w) => a.map((v, i) => v * w + b[i] * (1 - w));
-const lum = (rgb) =>
-  rgb
-    .map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4))
-    .reduce((acc, v, i) => acc + v * [0.2126, 0.7152, 0.0722][i], 0);
-const ratio = (f, b) => {
-  const [l1, l2] = [lum(f), lum(b)].sort((x, y) => y - x);
-  return (l1 + 0.05) / (l2 + 0.05);
+
+const themes = {
+  light: parseVars(block(':root')),
+  dark: parseVars(block("[data-theme='dark']")),
 };
+
 let fail = false;
-for (const [name, m] of Object.entries(moments)) {
-  const paper = hslToRgb(m.paper),
-    ink = hslToRgb(m.ink),
-    sky = hslToRgb(m.sky);
-  const pairs = {
-    'ink/paper': [ink, paper],
-    'ink-soft/paper': [mix(ink, paper, 0.75), paper],
-    'ink-faint/paper': [mix(ink, paper, 0.66), paper],
-    'ink-faint/sky': [mix(ink, paper, 0.66), sky],
-    'accent/paper': [hslToRgb(m.accent), paper],
+for (const [name, vars] of Object.entries(themes)) {
+  const c = (key) => {
+    if (!vars[key]) throw new Error(`missing --${key} in ${name}`);
+    return oklchToLinearSrgb(vars[key]);
   };
-  for (const [pair, [f, b]] of Object.entries(pairs)) {
-    const r = ratio(f, b);
-    const ok = r >= 4.5;
+  const glow = mix(c('dawn-tint'), c('surface'), 0.3);
+  const pairs = [
+    ['text/surface', c('text'), c('surface'), 4.5],
+    ['text-muted/surface', c('text-muted'), c('surface'), 4.5],
+    ['text-faint/surface', c('text-faint'), c('surface'), 4.5],
+    ['text/surface-raised', c('text'), c('surface-raised'), 4.5],
+    ['accent/surface', c('accent'), c('surface'), 3.0],
+    ['on-accent/accent', c('on-accent'), c('accent'), 4.5],
+    ['text/dawn-glow', c('text'), glow, 4.5],
+  ];
+  for (const [label, fg, bg, floor] of pairs) {
+    const r = ratio(fg, bg);
+    const ok = r >= floor;
     if (!ok) fail = true;
-    console.log(`${ok ? 'PASS' : 'FAIL'} ${name} ${pair} ${r.toFixed(2)}`);
+    console.log(`${ok ? 'PASS' : 'FAIL'} ${name} ${label} ${r.toFixed(2)} (min ${floor})`);
   }
 }
 process.exit(fail ? 1 : 0);
