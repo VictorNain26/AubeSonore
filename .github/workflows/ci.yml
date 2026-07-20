@@ -70,6 +70,9 @@ jobs:
       - name: Typecheck
         run: pnpm turbo typecheck
 
+      - name: Contrast proof (design tokens)
+        run: pnpm --filter=@aubesonore/frontend check:contrast
+
       - name: Frontend tests with coverage
         run: pnpm --filter=@aubesonore/frontend test --run --coverage
 

@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
+    "check:contrast": "node scripts/check-contrast.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "clean": "rm -rf dist",
