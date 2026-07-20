@@ -35,12 +35,12 @@
 }
 
 [data-moment='dusk'] {
-  /* Crépuscule papier lilas, encre lilas, accent ambre */
-  --paper: hsl(270 20% 93%);
-  --ink: hsl(270 20% 12%);
-  --accent: hsl(30 85% 33%);
-  --on-accent: hsl(270 20% 96%);
-  --sky: hsl(268 28% 89%);
+  /* Crépuscule — papier mauve rosé réchauffé, encre prune, accent ambre */
+  --paper: hsl(292 24% 90%);
+  --ink: hsl(288 24% 6%);
+  --accent: hsl(30 85% 29%);
+  --on-accent: hsl(292 24% 95%);
+  --sky: hsl(318 34% 84%);
 }
 
 /* Dérivés — jamais redéfinis par moment, toujours calculés */
