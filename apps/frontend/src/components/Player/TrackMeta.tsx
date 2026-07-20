@@ -55,21 +55,23 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
           )}
         </motion.p>
       </AnimatePresence>
-      <div className="mt-2 flex items-center gap-1">
-        <IconButton label="Partager ce morceau" onClick={handleShare} shape="round">
-          <Share2 className="size-4" />
-        </IconButton>
-        <IconButton
-          label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
-          onClick={handleToggleLike}
-          shape="round"
-          aria-pressed={isLiked}
-          disabled={isLiking}
-          className={cn(isLiked ? 'text-danger' : undefined, isLiking && 'animate-pulse')}
-        >
-          <Heart className={cn('size-4', isLiked && 'fill-current')} />
-        </IconButton>
-      </div>
+      {title && (
+        <div className="mt-2 flex items-center gap-1">
+          <IconButton label="Partager ce morceau" onClick={handleShare} shape="round">
+            <Share2 className="size-4" />
+          </IconButton>
+          <IconButton
+            label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
+            onClick={handleToggleLike}
+            shape="round"
+            aria-pressed={isLiked}
+            disabled={isLiking}
+            className={cn(isLiked ? 'text-danger' : undefined, isLiking && 'animate-pulse')}
+          >
+            <Heart className={cn('size-4', isLiked && 'fill-current')} />
+          </IconButton>
+        </div>
+      )}
     </div>
   );
 }

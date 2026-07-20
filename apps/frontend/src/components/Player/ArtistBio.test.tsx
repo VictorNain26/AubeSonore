@@ -28,6 +28,7 @@ describe('ArtistBio', () => {
     mockedUseArtistInfo.mockReturnValue({ data: null, isLoading: true });
     render(<ArtistBio onOpenPanel={vi.fn()} />);
     expect(screen.queryByText(/Some Artist/)).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('artist-bio-skeleton')).toHaveLength(3);
   });
 
   it('renders nothing when there is no bio', () => {

@@ -14,9 +14,9 @@ export function ArtistBio({ onOpenPanel }: ArtistBioProps) {
   if (isLoading) {
     return (
       <div className="flex max-w-prose flex-col gap-2" aria-hidden="true">
-        <div className="h-4 w-full skeleton" />
-        <div className="h-4 w-5/6 skeleton" />
-        <div className="h-4 w-2/3 skeleton" />
+        <div data-testid="artist-bio-skeleton" className="h-4 w-full skeleton" />
+        <div data-testid="artist-bio-skeleton" className="h-4 w-5/6 skeleton" />
+        <div data-testid="artist-bio-skeleton" className="h-4 w-2/3 skeleton" />
       </div>
     );
   }
