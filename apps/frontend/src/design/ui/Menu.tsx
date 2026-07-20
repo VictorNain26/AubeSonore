@@ -20,7 +20,11 @@ export function Menu({ trigger, header, items }: MenuProps) {
       <BaseMenu.Portal>
         <BaseMenu.Positioner sideOffset={4}>
           <BaseMenu.Popup className="min-w-44 rounded-md border border-border bg-surface-raised py-1 text-body text-text focus:outline-none">
-            {header ? <div className="border-b border-border px-4 py-2">{header}</div> : null}
+            {header ? (
+              <BaseMenu.Group className="border-b border-border px-4 py-2">
+                <BaseMenu.GroupLabel>{header}</BaseMenu.GroupLabel>
+              </BaseMenu.Group>
+            ) : null}
             {items.map((item) => (
               <BaseMenu.Item
                 key={item.label}

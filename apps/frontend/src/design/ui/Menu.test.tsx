@@ -54,5 +54,6 @@ describe('Menu', () => {
     );
     await userEvent.click(screen.getByRole('button', { name: 'Ouvrir' }));
     expect(await screen.findByText('victor@example.com')).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /victor@example.com/ })).toBeNull();
   });
 });
