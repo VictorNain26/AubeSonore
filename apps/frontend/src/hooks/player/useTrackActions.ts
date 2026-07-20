@@ -6,9 +6,7 @@ import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore
 import { usePreferencesStore } from '../../stores/preferencesStore';
 import { getTrackShareUrl } from '@aubesonore/core/share';
 import { useLikeAction } from './useLikeAction';
-import { useMoment } from '../useMoment';
 import { shareTrack } from '../../lib/shareTrack';
-import { MOMENT_SHARE_PHRASES } from '../../lib/moments';
 
 interface UseTrackActions {
   title: string | undefined;
@@ -27,7 +25,6 @@ export function useTrackActions(): UseTrackActions {
       artist: s.data?.now_playing?.song.artist,
     }))
   );
-  const moment = useMoment();
   const tracks = useLikedTracksStore((s) => s.tracks);
   const preferences = usePreferencesStore((s) => s.preferences);
   const { likingTrackId, toggleLike } = useLikeAction();
@@ -57,7 +54,6 @@ export function useTrackActions(): UseTrackActions {
       title,
       artist,
       url: trackUrl,
-      momentLabel: MOMENT_SHARE_PHRASES[moment],
     })
       .then((result) => {
         if (result === 'copied') toast('Lien copié');
@@ -65,7 +61,7 @@ export function useTrackActions(): UseTrackActions {
       .catch(() => {
         toast('Partage impossible');
       });
-  }, [title, artist, trackUrl, moment]);
+  }, [title, artist, trackUrl]);
 
   return { title, artist, isLiked, isLiking, handleToggleLike, handleShare };
 }

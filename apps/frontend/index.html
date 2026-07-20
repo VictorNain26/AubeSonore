@@ -78,6 +78,16 @@
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
+
+    <script>
+      try {
+        var stored = localStorage.getItem('aubesonore-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme =
+          stored === 'light' || stored === 'dark' ? stored : prefersDark ? 'dark' : 'light';
+        if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+      } catch (_) {}
+    </script>
   </head>
 
   <body>

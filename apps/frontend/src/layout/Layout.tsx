@@ -1,23 +1,14 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { Toaster } from 'sonner';
-import { LogOut, LogIn, Info } from 'lucide-react';
+import { LogIn, Info } from 'lucide-react';
 import { useShallow } from 'zustand/react/shallow';
-import { Button, IconButton } from '../components/ui/Button';
+import { Button } from '../design/ui/Button';
+import { Menu } from '../design/ui/Menu';
 import { LibraryButton } from '../components/Player/LibraryButton';
-import { cn } from '@/lib/utils';
+import { ThemeToggle } from './ThemeToggle';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
-import { usePlayer } from '../lib/player';
 import { toastError } from '../lib/appToast';
-import { useMoment } from '../hooks/useMoment';
-import { MOMENT_LABELS, MOMENT_TAGLINES } from '../lib/moments';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from '../components/ui/DropdownMenu';
 
 const AboutModal = lazy(() =>
   import('../components/AboutModal').then((m) => ({ default: m.AboutModal }))
@@ -25,34 +16,6 @@ const AboutModal = lazy(() =>
 
 interface LayoutProps {
   children: ReactNode;
-}
-
-function MomentLine() {
-  const moment = useMoment();
-
-  return (
-    <>
-      <p className="eyebrow text-ink-soft">{MOMENT_LABELS[moment]}</p>
-      <p className="hidden sm:block font-text italic text-caption text-ink-faint">
-        {MOMENT_TAGLINES[moment]}
-      </p>
-    </>
-  );
-}
-
-// Le point de la marque devient témoin d'antenne : il respire quand
-// le flux joue.
-function OnAirDot() {
-  const isPlaying = usePlayer((s) => s.isPlaying);
-  return (
-    <span
-      aria-hidden="true"
-      className={cn(
-        'inline-block size-2.5 rounded-full bg-accent-dawn mr-2 align-baseline',
-        isPlaying && 'animate-breathe'
-      )}
-    />
-  );
 }
 
 function readResetTokenFromUrl(): string | null {
@@ -94,56 +57,42 @@ export default function Layout({ children }: LayoutProps) {
   }, [openAuthModal]);
 
   return (
-    <div className="h-dvh min-h-[600px] grid grid-rows-[auto_1fr] text-ink overflow-hidden">
-      {/* Skip-link for keyboard users */}
-      <a href="#main" className="sr-only-focusable">
+    <div className="h-dvh min-h-[600px] grid grid-rows-[auto_1fr] overflow-hidden dawn-glow text-text">
+      <a href="#main" className="skip-link">
         Aller au contenu principal
       </a>
 
-      <header className="mx-auto w-full max-w-page px-6 pt-6 pb-3 flex items-start justify-between">
-        <div>
-          <p className="font-display text-lead tracking-tight">
-            <OnAirDot />
-            AubeSonore
-          </p>
-          <MomentLine />
-        </div>
+      <header className="mx-auto flex w-full max-w-page items-center justify-between px-6 pt-6 pb-3 font-sans">
+        <p className="text-title tracking-tight">AubeSonore</p>
 
         <div className="flex items-center gap-1">
-          <IconButton onClick={() => setIsAboutOpen(true)} label="À propos">
-            <Info />
-          </IconButton>
+          <ThemeToggle />
+          <Button variant="icon" aria-label="À propos" onClick={() => setIsAboutOpen(true)}>
+            <Info className="size-5" />
+          </Button>
           <LibraryButton />
 
           {isLoading ? (
-            <div className="size-8 skeleton rounded-full" />
+            <div className="size-11 animate-pulse rounded-full bg-surface-raised" />
           ) : isAuthenticated && user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <IconButton label="Menu utilisateur">
-                  <div className="size-7 rounded-full bg-paper-raised flex items-center justify-center">
-                    <span className="text-caption font-medium text-ink">
-                      {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                </IconButton>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <div className="px-3 py-2">
-                  <p className="text-body font-medium text-ink truncate">
-                    {user.name || 'Utilisateur'}
-                  </p>
-                  <p className="text-caption text-ink-soft truncate">{user.email}</p>
+            <Menu
+              header={
+                <div className="font-sans">
+                  <p className="truncate text-body font-medium">{user.name || 'Utilisateur'}</p>
+                  <p className="truncate text-caption text-text-muted">{user.email}</p>
                 </div>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem intent="danger" onSelect={() => void signOut()}>
-                  <LogOut className="size-4" />
-                  <span>Déconnexion</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+              }
+              trigger={
+                <Button variant="icon" aria-label="Menu utilisateur">
+                  <span className="flex size-7 items-center justify-center rounded-full bg-surface-raised text-caption font-medium">
+                    {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                  </span>
+                </Button>
+              }
+              items={[{ label: 'Déconnexion', onSelect: () => void signOut() }]}
+            />
           ) : (
-            <Button variant="ink" aria-label="Connexion" onClick={() => openAuthModal()}>
+            <Button variant="ghost" aria-label="Connexion" onClick={() => openAuthModal()}>
               <LogIn className="size-4" />
               <span className="hidden sm:inline">Connexion</span>
             </Button>
@@ -161,14 +110,13 @@ export default function Layout({ children }: LayoutProps) {
         </Suspense>
       )}
 
-      {/* Fixed-position overlay: kept last so it never occupies a grid row */}
       <Toaster
         position="bottom-center"
         duration={3000}
         toastOptions={{
           classNames: {
-            toast: 'panel !text-ink !text-body',
-            description: '!text-ink-soft',
+            toast: 'font-sans !bg-surface-raised !border-border !text-text !text-body',
+            description: '!text-text-muted',
             success: 'toast-success',
             error: 'toast-danger',
           },

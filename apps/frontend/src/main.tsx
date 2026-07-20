@@ -6,13 +6,17 @@ import '@fontsource/spectral/400.css';
 import '@fontsource/spectral/400-italic.css';
 import '@fontsource/spectral/500.css';
 import '@fontsource/spectral/600.css';
+import '@fontsource-variable/inter';
 import './index.css';
+import { initTheme } from './lib/theme';
 
 const root = document.getElementById('root');
 
 if (!root) {
   throw new Error('Root element not found');
 }
+
+initTheme();
 
 createRoot(root).render(
   <StrictMode>

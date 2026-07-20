@@ -5,7 +5,6 @@ import { usePreferencesStore } from '../../stores/preferencesStore';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
 import { getTrackShareUrl } from '@aubesonore/core/share';
 import { shareTrack } from '../../lib/shareTrack';
-import { getMoment, MOMENT_SHARE_PHRASES } from '../../lib/moments';
 import { StationLogRow } from './StationLogRow';
 import type { SongEntry } from '../../lib/azuracast';
 
@@ -29,12 +28,10 @@ export function StationLog() {
       likedTrack ?? { title: entry.song.title, artist: entry.song.artist },
       preferences?.preferredPlatform
     );
-    const moment = getMoment(new Date(entry.played_at * 1000));
     void shareTrack({
       title: entry.song.title,
       artist: entry.song.artist,
       url,
-      momentLabel: MOMENT_SHARE_PHRASES[moment],
     })
       .then((result) => {
         if (result === 'copied') toast('Lien copié');

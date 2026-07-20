@@ -1,86 +1,31 @@
 @import 'tailwindcss';
+@import './design/tokens.css';
 
 /* =============================================================================
-   LE PAPIER DU MOMENT — le site est imprimé sur un papier qui prend la
-   couleur de la lumière. Encre foncée, un seul accent, filets fins.
-   Bornes horaires : lib/moments.ts.
+   Couche legacy — les écrans non migrés (Player, modals, StationLog, bannière
+   PWA) consomment encore paper/ink/line. Ces vars sont des ALIAS des tokens v3
+   pour que tout suive le thème clair/sombre. Supprimée par la PR démolition.
    ============================================================================= */
 
-:root,
-[data-moment='night'] {
-  /* Nuit — le seul moment sombre : papier encre profonde, texte ivoire, accent lunaire */
-  --paper: hsl(240 18% 10%);
-  --ink: hsl(40 30% 92%);
-  --accent: hsl(230 45% 74%);
-  --on-accent: hsl(240 18% 10%);
-  --sky: hsl(238 22% 13%);
+:root {
+  --paper: var(--surface);
+  --paper-raised: var(--surface-raised);
+  --ink: var(--text);
+  --ink-soft: var(--text-muted);
+  --ink-faint: var(--text-faint);
+  --line: var(--border);
 }
 
-[data-moment='dawn'] {
-  /* Aube papier rose pâle, brun-rosé, rosée à accent framboise */
-  --paper: hsl(10 45% 93%);
-  --ink: hsl(350 25% 12%);
-  --accent: hsl(345 55% 45%);
-  --on-accent: hsl(10 45% 96%);
-  --sky: hsl(8 55% 89%);
-}
-
-[data-moment='day'] {
-  /* Jour — blanc légèrement bleuté, encre presque noire, accent bleu profond */
-  --paper: hsl(210 36% 97%);
-  --ink: hsl(220 26% 12%);
-  --accent: hsl(214 74% 38%);
-  --on-accent: hsl(210 36% 97%);
-  --sky: hsl(210 45% 94%);
-}
-
-[data-moment='dusk'] {
-  /* Crépuscule — papier mauve rosé réchauffé, encre prune, accent ambre */
-  --paper: hsl(292 24% 90%);
-  --ink: hsl(288 24% 6%);
-  --accent: hsl(30 85% 29%);
-  --on-accent: hsl(292 24% 95%);
-  --sky: hsl(318 34% 84%);
-}
-
-/* Dérivés — jamais redéfinis par moment, toujours calculés */
-:root,
-[data-moment] {
-  --ink-soft: color-mix(in srgb, var(--ink) 75%, var(--paper));
-  --ink-faint: color-mix(in srgb, var(--ink) 66%, var(--paper));
-  --line: color-mix(in srgb, var(--ink) 16%, transparent);
-  --paper-raised: color-mix(in srgb, var(--ink) 4%, var(--paper));
-}
-
-@theme {
-  --color-*: initial;
+@theme inline {
   --color-paper: var(--paper);
   --color-paper-raised: var(--paper-raised);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
   --color-ink-faint: var(--ink-faint);
   --color-line: var(--line);
-  --color-accent: var(--accent);
-  --color-on-accent: var(--on-accent);
   --color-danger: hsl(0 62% 44%);
   --color-success: hsl(150 55% 32%);
-  --color-accent-dawn: hsl(345 55% 45%);
 
-  --text-*: initial;
-  --text-caption: 0.75rem;
-  --text-caption--line-height: 1.4;
-  --text-body: 0.9375rem;
-  --text-body--line-height: 1.55;
-  --text-lead: 1.1875rem;
-  --text-lead--line-height: 1.45;
-  --text-title: 1.75rem;
-  --text-title--line-height: 1.2;
-  --text-display: clamp(2.25rem, 5.5vw, 4.25rem);
-  --text-display--line-height: 1.04;
-
-  --radius-*: initial;
-  --radius-sm: 0.125rem;
-  --radius-md: 0.25rem;
   --radius-lg: 0.5rem;
 
   --container-page: 75rem;
@@ -90,16 +35,12 @@
 
   --font-text: 'Spectral', Georgia, serif;
   --font-display: 'Young Serif', Georgia, serif;
-
-  --animate-breathe: breathe 4s ease-in-out infinite;
 }
 
 @layer base {
   body {
-    background-color: var(--color-paper);
-    background-image: linear-gradient(to bottom, var(--sky), var(--color-paper) 40%);
-    background-attachment: fixed;
-    color: var(--color-ink);
+    background-color: var(--color-surface);
+    color: var(--color-text);
     font-family: var(--font-text);
     font-variant-numeric: tabular-nums;
     font-size: var(--text-body);
@@ -107,12 +48,6 @@
       'rlig' 1,
       'calt' 1;
     -webkit-font-smoothing: antialiased;
-  }
-
-  html[data-moment-ready='true'] body {
-    transition:
-      background-color 1200ms var(--ease-fluid),
-      color 1200ms var(--ease-fluid);
   }
 
   ::selection {
@@ -128,7 +63,7 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--ink) 30%, transparent);
+    background: color-mix(in srgb, var(--text) 30%, transparent);
     border-radius: 9999px;
   }
 
@@ -139,12 +74,10 @@
 }
 
 @layer utilities {
-  /* Filet éditorial — la séparation se fait à l'encre, pas par des cartes */
   .rule {
     border-top: 1px solid var(--color-line);
   }
 
-  /* Panneau papier — modales, dropdowns : papier levé + filet, AUCUN blur */
   .panel {
     background: var(--color-paper);
     border: 1px solid var(--color-line);
@@ -166,7 +99,6 @@
     border-left: 2px solid var(--color-danger);
   }
 
-  /* Surtitre éditorial — la seule voix en capitales du système */
   .eyebrow {
     font-size: var(--text-caption);
     line-height: var(--text-caption--line-height);
@@ -175,7 +107,6 @@
     color: var(--color-ink-faint);
   }
 
-  /* Cadre de la pochette — partagé entre l'artwork réel et son squelette */
   .artwork-size {
     width: 100%;
     max-width: min(26dvh, 260px);
@@ -186,34 +117,6 @@
     }
   }
 
-  .sr-only-focusable {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-  .sr-only-focusable:focus-visible {
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    width: auto;
-    height: auto;
-    padding: 0.5rem 1rem;
-    margin: 0;
-    overflow: visible;
-    clip: auto;
-    background: var(--color-paper-raised);
-    color: var(--color-ink);
-    border-radius: var(--radius-md);
-    z-index: 9999;
-  }
-
-  /* Retour d'encre à l'appui — remplace tout scale au tap */
   .press-ink:active {
     background: color-mix(in srgb, var(--ink) 10%, var(--paper));
   }
@@ -229,16 +132,6 @@
   }
 }
 
-@keyframes breathe {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -250,7 +143,6 @@
   }
 }
 
-/* Range slider — trait d'encre, poignée encre */
 input[type='range'] {
   -webkit-appearance: none;
   appearance: none;

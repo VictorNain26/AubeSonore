@@ -13,6 +13,12 @@ export function applyTheme(theme: Theme): void {
   } else {
     document.documentElement.removeAttribute('data-theme');
   }
+
+  const meta = document.querySelector('meta[name="theme-color"]');
+  const surface = getComputedStyle(document.documentElement).getPropertyValue('--surface').trim();
+  if (meta && surface) {
+    meta.setAttribute('content', surface);
+  }
 }
 
 export function setTheme(theme: Theme): void {

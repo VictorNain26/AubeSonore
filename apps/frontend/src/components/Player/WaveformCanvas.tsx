@@ -30,7 +30,7 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
   const smoothedDataRef = useRef<number[]>([]);
   const accentColorRef = useRef<string>('');
   const inkColorRef = useRef<string>('');
-  const colorMomentKeyRef = useRef<string | undefined>(undefined);
+  const colorThemeKeyRef = useRef<string | undefined>(undefined);
 
   // Read latest props from refs inside the rAF callback so changes to
   // `isPlaying`/`songId` don't tear down the loop.
@@ -102,12 +102,12 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
       const barWidth = width / barsCount;
       const gap = 3 * dpr;
 
-      const momentKey = document.documentElement.dataset.moment;
-      if (momentKey !== colorMomentKeyRef.current || !accentColorRef.current) {
+      const themeKey = document.documentElement.dataset.theme;
+      if (themeKey !== colorThemeKeyRef.current || !accentColorRef.current) {
         const style = getComputedStyle(document.documentElement);
         accentColorRef.current = style.getPropertyValue('--color-accent').trim();
         inkColorRef.current = style.getPropertyValue('--color-ink').trim();
-        colorMomentKeyRef.current = momentKey;
+        colorThemeKeyRef.current = themeKey;
       }
       const accentColor = accentColorRef.current;
       const inkColor = inkColorRef.current;

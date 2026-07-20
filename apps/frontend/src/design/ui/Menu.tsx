@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { Menu as BaseMenu } from '@base-ui/react/menu';
 
 interface MenuAction {
@@ -9,16 +9,22 @@ interface MenuAction {
 
 export interface MenuProps {
   trigger: ReactElement;
+  header?: ReactNode;
   items: MenuAction[];
 }
 
-export function Menu({ trigger, items }: MenuProps) {
+export function Menu({ trigger, header, items }: MenuProps) {
   return (
     <BaseMenu.Root>
       <BaseMenu.Trigger render={trigger} />
       <BaseMenu.Portal>
         <BaseMenu.Positioner sideOffset={4}>
           <BaseMenu.Popup className="min-w-44 rounded-md border border-border bg-surface-raised py-1 text-body text-text focus:outline-none">
+            {header ? (
+              <BaseMenu.Group className="border-b border-border px-4 py-2">
+                <BaseMenu.GroupLabel>{header}</BaseMenu.GroupLabel>
+              </BaseMenu.Group>
+            ) : null}
             {items.map((item) => (
               <BaseMenu.Item
                 key={item.label}

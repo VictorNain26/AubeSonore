@@ -5,7 +5,6 @@ const input = {
   title: 'Balance Act',
   artist: 'Psychic Lines',
   url: 'https://aubesonore.fr',
-  momentLabel: "à l'aube",
 };
 
 afterEach(() => vi.unstubAllGlobals());
@@ -17,7 +16,7 @@ describe('shareTrack', () => {
     await expect(shareTrack(input)).resolves.toBe('shared');
     expect(share).toHaveBeenCalledWith({
       title: 'AubeSonore',
-      text: "« Balance Act — Psychic Lines », découvert à l'aube sur AubeSonore",
+      text: '« Balance Act — Psychic Lines », découvert sur AubeSonore',
       url: 'https://aubesonore.fr',
     });
   });
@@ -27,7 +26,7 @@ describe('shareTrack', () => {
     vi.stubGlobal('navigator', { clipboard: { writeText } });
     await expect(shareTrack(input)).resolves.toBe('copied');
     expect(writeText).toHaveBeenCalledWith(
-      "« Balance Act — Psychic Lines », découvert à l'aube sur AubeSonore https://aubesonore.fr"
+      '« Balance Act — Psychic Lines », découvert sur AubeSonore https://aubesonore.fr'
     );
   });
 
