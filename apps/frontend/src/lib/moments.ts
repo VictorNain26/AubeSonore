@@ -1,12 +1,5 @@
 export type Moment = 'dawn' | 'day' | 'dusk' | 'night';
 
-export const MOMENT_BOUNDS: Record<Moment, { start: number; end: number }> = {
-  dawn: { start: 5, end: 9 },
-  day: { start: 9, end: 17 },
-  dusk: { start: 17, end: 22 },
-  night: { start: 22, end: 5 },
-};
-
 export const MOMENT_LABELS: Record<Moment, string> = {
   dawn: 'Aube',
   day: 'Jour',

@@ -5,7 +5,7 @@ import { create } from 'zustand';
 // reset-password handler) go through this store so a single
 // <AuthModalHost /> at the app root owns the actual mount.
 
-export type AuthMode = 'signin' | 'signup';
+type AuthMode = 'signin' | 'signup';
 
 interface AuthModalState {
   isOpen: boolean;

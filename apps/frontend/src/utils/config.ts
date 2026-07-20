@@ -4,9 +4,9 @@ import { buildAzuracastUrls } from '@aubesonore/core/azuracast';
 export const API_BASE_URL: string = import.meta.env.VITE_API_URL || '';
 
 // AzuraCast Configuration
-export const AZURACAST_URL: string =
+const AZURACAST_URL: string =
   import.meta.env.VITE_AZURACAST_BASE_URL || 'https://radio.aubesonore.fr';
-export const STATION_SHORTCODE: string = import.meta.env.VITE_STATION_SHORTCODE || 'aubesonore';
+const STATION_SHORTCODE: string = import.meta.env.VITE_STATION_SHORTCODE || 'aubesonore';
 
 // Derived URLs — single source of truth shared with backend + mobile.
 const azuracastUrls = buildAzuracastUrls(AZURACAST_URL, STATION_SHORTCODE);
