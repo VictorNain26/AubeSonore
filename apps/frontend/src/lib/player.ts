@@ -170,18 +170,16 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
       // localStorage unavailable (private mode) — keep in-memory state only
     }
     if (clamped > 0) prevVolume = clamped;
-    set({ volume: clamped });
+    set({ volume: clamped, isMuted: clamped === 0 });
   },
 
   toggleMute: () => {
     const { isMuted, volume, setVolume } = get();
     if (isMuted) {
       setVolume(prevVolume || 0.5);
-      set({ isMuted: false });
     } else {
       prevVolume = volume;
       setVolume(0);
-      set({ isMuted: true });
     }
   },
 

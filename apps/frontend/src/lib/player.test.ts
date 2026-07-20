@@ -104,10 +104,19 @@ describe('player store', () => {
   it('toggleMute falls back to 0.5 when the pre-mute volume was 0', async () => {
     const { usePlayer } = await import('./player');
     usePlayer.getState().setVolume(0);
-    usePlayer.getState().toggleMute();
+    expect(usePlayer.getState().isMuted).toBe(true);
     usePlayer.getState().toggleMute();
     expect(usePlayer.getState().volume).toBe(0.5);
     expect(usePlayer.getState().isMuted).toBe(false);
+  });
+
+  it('dragging the slider up after a mute clears isMuted', async () => {
+    const { usePlayer } = await import('./player');
+    usePlayer.getState().setVolume(0.8);
+    usePlayer.getState().toggleMute();
+    usePlayer.getState().setVolume(0.5);
+    expect(usePlayer.getState().isMuted).toBe(false);
+    expect(usePlayer.getState().volume).toBe(0.5);
   });
 });
 
