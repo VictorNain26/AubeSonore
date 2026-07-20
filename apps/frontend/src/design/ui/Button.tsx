@@ -25,7 +25,7 @@ export function Button({
 }: ButtonProps) {
   return (
     <button
-      disabled={disabled ?? loading}
+      disabled={disabled === true || loading}
       aria-busy={loading || undefined}
       className={cn(
         'inline-flex h-11 items-center gap-2 rounded-full text-body font-medium transition-opacity duration-150 ease-out-quart',

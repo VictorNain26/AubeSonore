@@ -23,6 +23,14 @@ describe('Button', () => {
     fireEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
   });
+  it('stays disabled while loading even with disabled={false}', () => {
+    render(
+      <Button loading disabled={false}>
+        Envoi
+      </Button>
+    );
+    expect(screen.getByRole('button', { name: 'Envoi' })).toBeDisabled();
+  });
   it('keeps the accessible name on icon variant via aria-label', () => {
     render(<Button variant="icon" aria-label="Partager" />);
     expect(screen.getByRole('button', { name: 'Partager' })).toBeInTheDocument();
