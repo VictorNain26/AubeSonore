@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { Menu as BaseMenu } from '@base-ui/react/menu';
 
-export interface MenuAction {
+interface MenuAction {
   label: string;
   onSelect: () => void;
   disabled?: boolean;
