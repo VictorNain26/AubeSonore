@@ -1,0 +1,45 @@
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { Button } from './Button';
+import { Menu } from './Menu';
+
+function renderMenu(onShare = vi.fn(), onDelete = vi.fn()) {
+  render(
+    <Menu
+      trigger={
+        <Button variant="icon" aria-label="Options">
+          ⋯
+        </Button>
+      }
+      items={[
+        { label: 'Partager', onSelect: onShare },
+        { label: 'Supprimer', onSelect: onDelete, disabled: true },
+      ]}
+    />
+  );
+  return { onShare, onDelete };
+}
+
+describe('Menu', () => {
+  it('opens from the trigger', () => {
+    renderMenu();
+    expect(screen.queryByRole('menuitem')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Options' }));
+    expect(screen.getAllByRole('menuitem')).toHaveLength(2);
+  });
+
+  it('fires onSelect when an enabled item is clicked', () => {
+    const { onShare } = renderMenu();
+    fireEvent.click(screen.getByRole('button', { name: 'Options' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Partager' }));
+    expect(onShare).toHaveBeenCalledOnce();
+  });
+
+  it('does not fire onSelect for a disabled item', () => {
+    const { onDelete } = renderMenu();
+    fireEvent.click(screen.getByRole('button', { name: 'Options' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Supprimer' }));
+    expect(onDelete).not.toHaveBeenCalled();
+  });
+});
