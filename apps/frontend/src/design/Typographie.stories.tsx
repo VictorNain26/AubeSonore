@@ -45,7 +45,7 @@ export const Echelle: Story = {
       <Row label="title · 28 · 600 — titres de sections">
         <span className="ds-title">Vient de passer</span>
       </Row>
-      <Row label="body · 16 · 400 — texte courant, + variantes encre 50 % / 35 %">
+      <Row label="body · 16 · 400 — texte courant, + variantes encre 75 % / 66 %">
         <p style={{ maxWidth: '52ch' }}>
           AubeSonore diffuse des sons rares, des artistes émergents et des classiques oubliés.
         </p>
@@ -65,7 +65,7 @@ export const Echelle: Story = {
               background: 'var(--live)',
             }}
           />
-          En direct · Nuit
+          En direct
         </span>
       </Row>
     </div>
