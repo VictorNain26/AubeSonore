@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { Mail, Lock, User, Loader2, Eye, EyeOff, MailCheck, ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '../stores/authStore';
@@ -21,6 +22,53 @@ interface AuthModalProps {
   // a token. Layout extracts it and passes it down to switch the modal into
   // the reset flow on mount.
   resetToken?: string;
+}
+
+// ─────────────────────────────────────────────
+// Field wrapper — visible label + inline error, blur-driven
+// ─────────────────────────────────────────────
+
+function Field({
+  id,
+  label,
+  error,
+  children,
+}: {
+  id: string;
+  label: string;
+  error?: string | undefined;
+  children: ReactNode;
+}): ReactElement {
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="text-caption text-ink-soft">
+        {label}
+      </label>
+      {children}
+      {error && (
+        <p id={`${id}-error`} className="text-caption text-danger" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function validateEmailFormat(value: string): string | undefined {
+  if (!value) return undefined;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+    ? undefined
+    : 'Adresse email invalide — vérifiez le format (vous@exemple.fr).';
+}
+
+function validatePasswordLength(value: string): string | undefined {
+  if (!value) return undefined;
+  return value.length >= 6 ? undefined : 'Le mot de passe doit contenir au moins 6 caractères.';
+}
+
+function validatePasswordMatch(password: string, confirm: string): string | undefined {
+  if (!confirm) return undefined;
+  return confirm === password ? undefined : 'Les mots de passe ne correspondent pas.';
 }
 
 // ─────────────────────────────────────────────
@@ -63,8 +111,25 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [pendingEmail, setPendingEmail] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const signIn = useAuthStore((s) => s.signIn);
   const signUp = useAuthStore((s) => s.signUp);
+
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const passwordConfirmRef = useRef<HTMLInputElement>(null);
+
+  const setFieldError = (field: string, message: string | undefined) => {
+    setErrors((prev) => {
+      const next = { ...prev };
+      if (message) {
+        next[field] = message;
+      } else {
+        delete next[field];
+      }
+      return next;
+    });
+  };
 
   const resetForm = () => {
     setEmail('');
@@ -72,6 +137,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     setPasswordConfirm('');
     setName('');
     setShowPassword(false);
+    setErrors({});
   };
 
   const handleClose = () => {
@@ -80,8 +146,45 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     setMode(defaultMode);
   };
 
+  const validate = (): boolean => {
+    const nextErrors: Record<string, string> = {};
+    let firstInvalidRef: React.RefObject<HTMLInputElement | null> | null = null;
+
+    if (mode !== 'reset-password') {
+      const emailError = validateEmailFormat(email);
+      if (emailError) {
+        nextErrors.email = emailError;
+        firstInvalidRef ??= emailRef;
+      }
+    }
+
+    if (mode !== 'forgot') {
+      const passwordError = validatePasswordLength(password);
+      if (passwordError) {
+        nextErrors.password = passwordError;
+        firstInvalidRef ??= passwordRef;
+      }
+    }
+
+    if (mode === 'reset-password') {
+      const confirmError = validatePasswordMatch(password, passwordConfirm);
+      if (confirmError) {
+        nextErrors.passwordConfirm = confirmError;
+        firstInvalidRef ??= passwordConfirmRef;
+      }
+    }
+
+    setErrors(nextErrors);
+    if (firstInvalidRef) {
+      firstInvalidRef.current?.focus();
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setIsLoading(true);
 
     try {
@@ -102,11 +205,6 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
         toast.success('Si un compte existe, un email vient d’être envoyé.');
         setMode('signin');
       } else if (mode === 'reset-password' && resetToken) {
-        if (password !== passwordConfirm) {
-          toast.error('Les mots de passe ne correspondent pas');
-          setIsLoading(false);
-          return;
-        }
         await authApi.resetPassword(resetToken, password);
         toast.success('Mot de passe mis à jour. Connectez-vous.');
         resetForm();
@@ -165,7 +263,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
       title={headerCopy.title}
       description={headerCopy.desc}
     >
-      {mode === 'forgot' && (
+      {(mode === 'forgot' || mode === 'reset-password') && (
         <IconButton
           shape="round"
           label="Retour à la connexion"
@@ -209,73 +307,131 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
           )}
 
           {mode === 'signup' && (
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
-              <input
-                type="text"
-                placeholder="Nom"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                autoComplete="name"
-                className={inputClass}
-              />
-            </div>
+            <Field id="name" label="Nom">
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
+                <input
+                  id="name"
+                  type="text"
+                  placeholder="Jeanne Dupont"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  autoComplete="name"
+                  className={inputClass}
+                />
+              </div>
+            </Field>
           )}
 
-          <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className={inputClass}
-            />
-          </div>
+          {mode !== 'reset-password' && (
+            <Field id="email" label="Email" error={errors.email}>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
+                <input
+                  id="email"
+                  ref={emailRef}
+                  type="email"
+                  placeholder="vous@exemple.fr"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (errors.email) setFieldError('email', validateEmailFormat(e.target.value));
+                  }}
+                  onBlur={() => setFieldError('email', validateEmailFormat(email))}
+                  required
+                  autoComplete="email"
+                  aria-invalid={Boolean(errors.email)}
+                  aria-describedby={errors.email ? 'email-error' : undefined}
+                  className={inputClass}
+                />
+              </div>
+            </Field>
+          )}
 
           {mode !== 'forgot' && (
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder={mode === 'reset-password' ? 'Nouveau mot de passe' : 'Mot de passe'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                className={cn(inputClass, 'pr-11')}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-sm text-ink-faint hover:text-ink transition-colors cursor-pointer"
-                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                aria-pressed={showPassword}
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-              </button>
-            </div>
+            <Field
+              id="password"
+              label={mode === 'reset-password' ? 'Nouveau mot de passe' : 'Mot de passe'}
+              error={errors.password}
+            >
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
+                <input
+                  id="password"
+                  ref={passwordRef}
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (errors.password) {
+                      setFieldError('password', validatePasswordLength(e.target.value));
+                    }
+                    if (errors.passwordConfirm) {
+                      setFieldError(
+                        'passwordConfirm',
+                        validatePasswordMatch(e.target.value, passwordConfirm)
+                      );
+                    }
+                  }}
+                  onBlur={() => setFieldError('password', validatePasswordLength(password))}
+                  required
+                  minLength={6}
+                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  aria-invalid={Boolean(errors.password)}
+                  aria-describedby={errors.password ? 'password-error' : undefined}
+                  className={cn(inputClass, 'pr-11')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 size-11 flex items-center justify-center rounded-sm text-ink-faint hover:text-ink transition-colors cursor-pointer"
+                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  aria-pressed={showPassword}
+                >
+                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                </button>
+              </div>
+            </Field>
           )}
 
           {mode === 'reset-password' && (
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
-              <input
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Confirmez le mot de passe"
-                value={passwordConfirm}
-                onChange={(e) => setPasswordConfirm(e.target.value)}
-                required
-                minLength={6}
-                autoComplete="new-password"
-                className={inputClass}
-              />
-            </div>
+            <Field
+              id="password-confirm"
+              label="Confirmer le mot de passe"
+              error={errors.passwordConfirm}
+            >
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
+                <input
+                  id="password-confirm"
+                  ref={passwordConfirmRef}
+                  type={showPassword ? 'text' : 'password'}
+                  value={passwordConfirm}
+                  onChange={(e) => {
+                    setPasswordConfirm(e.target.value);
+                    if (errors.passwordConfirm) {
+                      setFieldError(
+                        'passwordConfirm',
+                        validatePasswordMatch(password, e.target.value)
+                      );
+                    }
+                  }}
+                  onBlur={() =>
+                    setFieldError(
+                      'passwordConfirm',
+                      validatePasswordMatch(password, passwordConfirm)
+                    )
+                  }
+                  required
+                  minLength={6}
+                  autoComplete="new-password"
+                  aria-invalid={Boolean(errors.passwordConfirm)}
+                  aria-describedby={errors.passwordConfirm ? 'password-confirm-error' : undefined}
+                  className={inputClass}
+                />
+              </div>
+            </Field>
           )}
 
           {mode === 'signin' && (
