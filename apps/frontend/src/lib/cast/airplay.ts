@@ -23,18 +23,9 @@ export function isAirPlaySupported(): boolean {
 }
 
 /**
- * Enable AirPlay on an audio/video element
- * Should be called when creating the media element
- */
-export function enableAirPlay(element: HTMLMediaElement): void {
-  element.setAttribute('x-webkit-airplay', 'allow');
-  element.setAttribute('airplay', 'allow');
-}
-
-/**
  * Check if currently playing to a wireless AirPlay device
  */
-export function isAirPlayActive(element: HTMLMediaElement): boolean {
+function isAirPlayActive(element: HTMLMediaElement): boolean {
   return (
     (element as HTMLMediaElement & { webkitCurrentPlaybackTargetIsWireless?: boolean })
       .webkitCurrentPlaybackTargetIsWireless ?? false

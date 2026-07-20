@@ -10,18 +10,6 @@ export const pageEntry: Transition = {
   ease: 'easeOut',
 };
 
-// Track flip (sh_id change): "mise au net" — ink drying into focus.
-export const trackFlip: Transition = {
-  duration: 0.25,
-  ease: 'easeOut',
-};
-
-// Data tick (listeners count, etc.).
-export const dataTick: Transition = {
-  duration: 0.25,
-  ease: 'easeOut',
-};
-
 // Toggle (like, play/stop): gentle spring with low overshoot.
 export const toggle: Transition = {
   type: 'spring',
@@ -51,6 +39,6 @@ export function useInkFlip() {
     initial: { opacity: 0, filter: 'blur(3px)' },
     animate: { opacity: 1, filter: 'blur(0px)' },
     exit: { opacity: 0, filter: 'blur(3px)' },
-    transition: trackFlip,
+    transition: { duration: 0.25, ease: 'easeOut' } satisfies Transition,
   };
 }
