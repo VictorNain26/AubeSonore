@@ -21,10 +21,10 @@ const preview: Preview = {
   },
   globalTypes: {
     theme: {
-      description: 'Thème clair ou sombre',
+      description: 'Thème',
       toolbar: {
         title: 'Thème',
-        icon: 'circlehollow',
+        icon: 'sun',
         items: [
           { value: 'light', title: 'Clair' },
           { value: 'dark', title: 'Sombre' },
