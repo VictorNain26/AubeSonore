@@ -28,7 +28,7 @@ export const StationLogRow = memo(function StationLogRow({
 
   return (
     <div role="listitem" className="group flex items-center gap-3 py-2.5">
-      <div className="relative size-11 shrink-0 overflow-hidden rounded-md bg-paper-raised">
+      <div className="relative size-9 shrink-0 overflow-hidden rounded-md bg-paper-raised">
         {entry.song.art && !imgError ? (
           <img
             src={entry.song.art}
@@ -45,7 +45,7 @@ export const StationLogRow = memo(function StationLogRow({
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-body text-ink">{entry.song.title}</p>
+        <p className="truncate text-body text-ink-soft">{entry.song.title}</p>
         <p className="truncate text-caption text-ink-soft">{entry.song.artist}</p>
       </div>
 
