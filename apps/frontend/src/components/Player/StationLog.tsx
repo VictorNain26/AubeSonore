@@ -55,7 +55,7 @@ export function StationLog() {
       )}
       {isLoading && entries.length === 0 ? (
         <div className="flex flex-col divide-y divide-line">
-          {Array.from({ length: 5 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 py-2.5">
               <div className="size-9 shrink-0 rounded-md skeleton" />
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
