@@ -55,6 +55,38 @@ Le crepuscule doit etre lisible comme un moment distinct sans casser l'harmonie 
 - L'accent ambre est bon ; c'est le papier/ciel qui ne raconte rien.
 - Critere d'acceptation : en screenshots cote a cote, les 4 moments sont identifiables en < 2 s par une personne exterieure ; tous les couples texte/fond restent AA (4.5:1), verifies token par token (zone fragile : `--ink-faint` sur `--sky`).
 
+## Composants secondaires — corrections (revue du 2026-07-20, code + captures interactives)
+
+**AuthModal** — fonctionnel (5 modes, OAuth Google, toasts) mais formulaires sous le standard :
+
+- Ajouter de vrais `<label>` associes (le placeholder seul disparait a la saisie) — champs nom/email/mot de passe/confirmation.
+- Validation inline au blur + message d'erreur sous le champ concerne (`aria-invalid`, bordure danger) au lieu du toast generique ; la non-correspondance des mots de passe se signale sur le champ.
+- Toggle voir/masquer : retirer `tabIndex={-1}` (le rendre atteignable clavier), cible >= 44 px.
+- Bouton retour aussi en mode reset-password (aujourd'hui seulement en forgot).
+
+**LikedTracksModal** (usage n° 4 : reecouter sur sa plateforme) — le par-morceau est bon (8 plateformes, preference persistee) :
+
+- Bouton supprimer visible en permanence sur tactile (aujourd'hui `opacity-0` hors hover) + un undo via toast (action destructive sans filet aujourd'hui).
+- Focus des lignes non masque par le header sticky (WCAG 2.4.11) : `scroll-padding-top`.
+- Virtualisation ou pagination de la liste (rend actuellement tous les items).
+- `max-h-[280px]` en dur → token.
+
+**ArtistContext** — critique car la bio entre dans la manchette : gerer `isLoading` (skeleton) et l'absence de bio (masquer proprement la zone, jamais un clic sans feedback). Les artistes similaires en `text-accent` non cliquables = fausse affordance → soit cliquables, soit couleur d'encre normale.
+
+**VolumeControl** — slider entierement cache jusqu'au hover (`opacity-0 pointer-events-none`) : affordance faible, inaccessible au clavier tant que non deploye, et introuvable par automation (aucun bouton nomme « volume »). Le rendre focusable/deployable au focus clavier, et nommer le bouton avec « volume ».
+
+**SecondaryControls** — etat mute/prevVolume local desynchronise du store player (demuter peut sauter a 100 %) → deplacer dans le store.
+
+**AirPlayButton** — etat actif signale par la couleur seule (WCAG 1.4.1) → ajouter un indicateur non chromatique (point, soulignement).
+
+**AboutModal** — liens Instagram/Spotify/Discord en `href="#"` (morts) : les remplir ou les retirer ; icones generiques (Globe pour Instagram) a remplacer par des pictos fideles.
+
+**PWAInstallBanner** — bouton « Installer » passe sur `Button variant="accent"` ; `env(safe-area-inset-bottom)` ; garde SSR sur `localStorage`.
+
+**ErrorFallback (ModalErrorFallback)** — overlay bloquant sans focus trap ni Escape ni `aria-modal` ; microcopie generique. Rebasculer sur `ModalShell` (Radix) et nommer le probleme + l'action.
+
+**Toaster** — `duration 3000` uniforme : trop court pour les erreurs → duree par severite (erreurs persistantes ou >= 6 s) ; sortir les classes `!border-l-[var(...)]` vers des utilitaires ; coordonner la zone basse avec la PWA banner (`bottom-center` peut entrer en collision).
+
 ## Corrections transverses
 
 - Toutes les cibles tactiles interactives >= 44 px (volume, boutons d'entete, actions journal) — minimum legal 24 px WCAG 2.2, cible 44 px tactile.
@@ -69,6 +101,7 @@ Le crepuscule doit etre lisible comme un moment distinct sans casser l'harmonie 
 - Pas de dark-mode toggle ni de persistance du moment.
 - Pas de Figma ni de maquettes : le design s'itere en code.
 - Mobile app Expo hors scope.
+- Export playlist direct vers Spotify/Deezer (creation de playlist via API) : hors scope de ce chantier design — l'ouverture par morceau sur 8 plateformes + export CSV couvrent l'usage n° 4 ; a evaluer plus tard comme feature produit.
 
 ## Workflow de verification (agents IA, mi-2026)
 
@@ -76,9 +109,11 @@ Chaque lot d'implementation suit la boucle : implementer → lancer le dev serve
 
 ## Decoupage previsionnel (pour le plan d'implementation)
 
-1. Manchette desktop + filet live + deplacement like/share + etat idle de la trace.
+1. Manchette desktop + filet live + suppression du compteur d'auditeurs + deplacement like/share + etat idle de la trace + etats ArtistContext (la bio entre dans la manchette).
 2. Journal en colonne de marge.
 3. Tokens crepuscule + verification AA des 4 moments.
-4. Corrections transverses (cibles 44 px, color-scheme, nettoyage).
+4. Formulaires AuthModal (labels, validation au blur, toggle clavier).
+5. LikedTracksModal (suppression visible + undo, focus/sticky, virtualisation).
+6. Corrections transverses (cibles 44 px partout — IconButton ~36 px aujourd'hui —, volume au clavier, mute dans le store, AirPlay non chromatique, liens AboutModal, PWA banner, ErrorFallback sur ModalShell, durees Toaster, color-scheme, nettoyage).
 
 Chaque lot = une PR courte, mergee des que verte (cadence main-first).
