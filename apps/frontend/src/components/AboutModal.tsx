@@ -2,10 +2,15 @@ import { Mail } from 'lucide-react';
 import { Modal } from '../design/organisms/Modal';
 
 interface AboutModalProps {
+  /** Whether the modal is currently shown. */
   isOpen: boolean;
+  /** Called when the modal requests to close (backdrop, escape, close button). */
   onClose: () => void;
 }
 
+/**
+ * Static "about" modal presenting AubeSonore and a contact email.
+ */
 export function AboutModal({ isOpen, onClose }: AboutModalProps) {
   return (
     <Modal title="AubeSonore" open={isOpen} onOpenChange={(o) => !o && onClose()}>
