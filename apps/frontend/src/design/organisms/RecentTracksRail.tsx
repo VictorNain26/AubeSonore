@@ -6,7 +6,6 @@ export interface RailEntry {
   title: string;
   artist: string;
   art?: string;
-  time: string;
   isLiked: boolean;
   isLiking: boolean;
 }
@@ -42,7 +41,7 @@ export function RecentTracksRail({
               <div
                 key={i}
                 data-testid="recent-tracks-skeleton"
-                className="flex w-64 shrink-0 items-center gap-3 py-3"
+                className="flex w-72 shrink-0 items-center gap-3 py-3"
               >
                 <div className="size-12 rounded-sm animate-pulse bg-surface-raised" />
                 <div className="flex flex-1 flex-col gap-1.5">
@@ -63,7 +62,6 @@ export function RecentTracksRail({
                   title={entry.title}
                   artist={entry.artist}
                   {...(entry.art !== undefined ? { art: entry.art } : {})}
-                  time={entry.time}
                   isLiked={entry.isLiked}
                   isLiking={entry.isLiking}
                   onToggle={() => onToggle(entry.id)}

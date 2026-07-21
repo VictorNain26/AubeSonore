@@ -16,7 +16,6 @@ export const Etats: StoryObj = {
         title="Titre du morceau"
         artist="Artiste"
         art="https://picsum.photos/seed/aube1/96"
-        time="06:12"
         isLiked={false}
         isLiking={false}
         onToggle={noop}
@@ -25,7 +24,6 @@ export const Etats: StoryObj = {
       <TrackRailItem
         title="Morceau aimé"
         artist="Autre artiste"
-        time="05:58"
         isLiked
         isLiking={false}
         onToggle={noop}
@@ -34,7 +32,6 @@ export const Etats: StoryObj = {
       <TrackRailItem
         title="Un titre particulièrement long qui doit être tronqué proprement"
         artist="Artiste au nom également très long"
-        time="05:41"
         isLiked={false}
         isLiking
         onToggle={noop}

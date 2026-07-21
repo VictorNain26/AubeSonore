@@ -10,54 +10,12 @@ export default meta;
 const noop = () => {};
 
 const entries: RailEntry[] = [
-  {
-    id: 9,
-    title: 'Song Nine',
-    artist: 'Artist Nine',
-    time: '06:12',
-    isLiked: true,
-    isLiking: false,
-  },
-  {
-    id: 8,
-    title: 'Song Eight',
-    artist: 'Artist Eight',
-    time: '05:58',
-    isLiked: false,
-    isLiking: false,
-  },
-  {
-    id: 7,
-    title: 'Song Seven',
-    artist: 'Artist Seven',
-    time: '05:41',
-    isLiked: false,
-    isLiking: true,
-  },
-  {
-    id: 6,
-    title: 'Song Six',
-    artist: 'Artist Six',
-    time: '05:20',
-    isLiked: false,
-    isLiking: false,
-  },
-  {
-    id: 5,
-    title: 'Song Five',
-    artist: 'Artist Five',
-    time: '05:02',
-    isLiked: false,
-    isLiking: false,
-  },
-  {
-    id: 4,
-    title: 'Song Four',
-    artist: 'Artist Four',
-    time: '04:48',
-    isLiked: false,
-    isLiking: false,
-  },
+  { id: 9, title: 'Song Nine', artist: 'Artist Nine', isLiked: true, isLiking: false },
+  { id: 8, title: 'Song Eight', artist: 'Artist Eight', isLiked: false, isLiking: false },
+  { id: 7, title: 'Song Seven', artist: 'Artist Seven', isLiked: false, isLiking: true },
+  { id: 6, title: 'Song Six', artist: 'Artist Six', isLiked: false, isLiking: false },
+  { id: 5, title: 'Song Five', artist: 'Artist Five', isLiked: false, isLiking: false },
+  { id: 4, title: 'Song Four', artist: 'Artist Four', isLiked: false, isLiking: false },
 ];
 
 export const Peuple: StoryObj = {
