@@ -8,6 +8,36 @@ import { useBannerSlot } from '../stores/bannerSlotStore';
 const PWA_DISMISS_KEY = 'aubesonore_pwa_dismiss';
 const SLOT_PRIORITY = 10;
 
+interface PWAInstallBannerViewProps {
+  /** Triggers the native install prompt. */
+  onInstall: () => void;
+  /** Dismisses the banner and persists the dismissal. */
+  onDismiss: () => void;
+}
+
+/**
+ * Presentational card for the PWA install prompt. Pure props-in, no store
+ * or side effects — the `PWAInstallBanner` container owns those.
+ */
+export function PWAInstallBannerView({ onInstall, onDismiss }: PWAInstallBannerViewProps) {
+  return (
+    <div className="rounded-md border border-border bg-surface-raised flex items-center gap-3 px-4 py-3 max-w-sm w-full">
+      <Download className="size-5 text-text-faint shrink-0" />
+      <p className="text-body text-text flex-1">Installer AubeSonore</p>
+      <Button variant="primary" onClick={onInstall}>
+        Installer
+      </Button>
+      <Button variant="icon" aria-label="Fermer" onClick={onDismiss}>
+        <X />
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Container listening for the `beforeinstallprompt` event and gating the
+ * banner through `useBannerSlot`. Renders `PWAInstallBannerView` once shown.
+ */
 export function PWAInstallBanner() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isDismissed, setIsDismissed] = useState(() => {
@@ -51,16 +81,7 @@ export function PWAInstallBanner() {
           transition={modal}
           className="fixed bottom-4 inset-x-4 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]"
         >
-          <div className="rounded-md border border-border bg-surface-raised flex items-center gap-3 px-4 py-3 max-w-sm w-full">
-            <Download className="size-5 text-text-faint shrink-0" />
-            <p className="text-body text-text flex-1">Installer AubeSonore</p>
-            <Button variant="primary" onClick={handleInstall}>
-              Installer
-            </Button>
-            <Button variant="icon" aria-label="Fermer" onClick={handleDismiss}>
-              <X />
-            </Button>
-          </div>
+          <PWAInstallBannerView onInstall={handleInstall} onDismiss={handleDismiss} />
         </motion.div>
       )}
     </AnimatePresence>

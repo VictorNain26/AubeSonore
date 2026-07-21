@@ -3,6 +3,10 @@ import type { FallbackProps } from 'react-error-boundary';
 import { Button } from '../design/atoms/Button';
 import { Modal } from '../design/organisms/Modal';
 
+/**
+ * Error boundary fallback shown when the player crashes. Offers a single
+ * retry action wired to the boundary's `resetErrorBoundary`.
+ */
 export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
   return (
     <div role="alert" className="border-t border-border w-full max-w-lg mx-auto pt-6 text-center">
@@ -16,9 +20,14 @@ export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
 }
 
 interface ModalErrorFallbackProps extends FallbackProps {
+  /** Called after the fallback modal is dismissed, on top of closing itself. */
   onClose: () => void;
 }
 
+/**
+ * Error boundary fallback for content shown in a modal. Self-manages its
+ * `open` state so it can close before notifying the parent via `onClose`.
+ */
 export function ModalErrorFallback({ onClose }: ModalErrorFallbackProps) {
   const [isOpen, setIsOpen] = useState(true);
   const handleClose = () => {
