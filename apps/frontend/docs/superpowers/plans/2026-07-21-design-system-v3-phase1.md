@@ -166,7 +166,7 @@ export default preview;
 Dans la section « Token vocabulary », après la ligne des couleurs, ajouter :
 
 ```markdown
-- Typography families: default body = Inter (`font-sans`, implicite via `<body>`); headings = `font-display` (Instrument Sans) sur `text-display`/`text-title`.
+- Typography families: default body = Inter (`font-sans`, implicite via `<body>`); headings & section kickers = `font-display` (Instrument Sans), appliqué sur `text-display`, `text-title`, et le libellé de section (kicker uppercase, ex. « Vient de passer »).
 ```
 
 - [ ] **Step 7: Vérifier**
