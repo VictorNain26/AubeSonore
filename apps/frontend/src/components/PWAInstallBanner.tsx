@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Download } from 'lucide-react';
 import { modal } from '@/lib/motion';
-import { Button, IconButton } from './ui/Button';
+import { Button } from '../design/ui/Button';
 import { useBannerSlot } from '../stores/bannerSlotStore';
 
 const PWA_DISMISS_KEY = 'aubesonore_pwa_dismiss';
@@ -51,15 +51,15 @@ export function PWAInstallBanner() {
           transition={modal}
           className="fixed bottom-4 inset-x-4 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]"
         >
-          <div className="panel flex items-center gap-3 px-4 py-3 max-w-sm w-full">
-            <Download className="size-5 text-ink-faint shrink-0" />
-            <p className="text-body text-ink flex-1">Installer AubeSonore</p>
-            <Button variant="accent" className="h-11" onClick={handleInstall}>
+          <div className="rounded-md border border-border bg-surface-raised flex items-center gap-3 px-4 py-3 max-w-sm w-full">
+            <Download className="size-5 text-text-faint shrink-0" />
+            <p className="text-body text-text flex-1">Installer AubeSonore</p>
+            <Button variant="primary" onClick={handleInstall}>
               Installer
             </Button>
-            <IconButton shape="round" onClick={handleDismiss} label="Fermer">
+            <Button variant="icon" aria-label="Fermer" onClick={handleDismiss}>
               <X />
-            </IconButton>
+            </Button>
           </div>
         </motion.div>
       )}
