@@ -112,7 +112,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     return true;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!validate()) return;
     setIsLoading(true);
