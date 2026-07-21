@@ -17,7 +17,7 @@ function WaveformCanvasStoryHarness() {
 }
 
 const meta = {
-  title: 'Features/WaveformCanvas',
+  title: 'Organisms/WaveformCanvas',
   component: WaveformCanvasStoryHarness,
   parameters: {
     docs: {

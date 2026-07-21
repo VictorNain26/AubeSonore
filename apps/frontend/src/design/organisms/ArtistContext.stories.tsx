@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ArtistContextView } from './ArtistContext';
 
 const meta = {
-  title: 'Features/ArtistContext',
+  title: 'Organisms/ArtistContext',
   component: ArtistContextView,
   parameters: {
     docs: {

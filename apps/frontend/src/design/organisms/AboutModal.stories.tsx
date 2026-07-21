@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AboutModal } from './AboutModal';
 
 const meta = {
-  title: 'Features/AboutModal',
+  title: 'Organisms/AboutModal',
   component: AboutModal,
   parameters: {
     docs: {

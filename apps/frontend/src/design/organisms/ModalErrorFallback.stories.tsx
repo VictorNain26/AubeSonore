@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ModalErrorFallback } from './ErrorFallback';
 
 const meta = {
-  title: 'Features/ErrorFallback/Modal',
+  title: 'Organisms/ErrorFallback/Modal',
   component: ModalErrorFallback,
   parameters: {
     docs: {

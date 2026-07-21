@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { SecondaryControlsView } from './SecondaryControls';
 
 const meta = {
-  title: 'Molecules/SecondaryControls',
+  title: 'Organisms/SecondaryControls',
   component: SecondaryControlsView,
   parameters: {
     docs: {

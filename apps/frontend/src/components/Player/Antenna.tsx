@@ -1,6 +1,6 @@
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
-import { AntennaView } from '../../design/molecules/Antenna';
+import { AntennaView } from '../../design/organisms/Antenna';
 
 export function Antenna() {
   const shId = useNowPlayingStore((s) => s.data?.now_playing?.sh_id);

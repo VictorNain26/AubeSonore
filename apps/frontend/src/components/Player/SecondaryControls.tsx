@@ -1,5 +1,5 @@
 import { usePlayer } from '../../lib/player';
-import { SecondaryControlsView } from '../../design/molecules/SecondaryControls';
+import { SecondaryControlsView } from '../../design/organisms/SecondaryControls';
 
 export function SecondaryControls() {
   const volume = usePlayer((s) => s.volume);
