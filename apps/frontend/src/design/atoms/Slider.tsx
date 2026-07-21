@@ -1,16 +1,28 @@
 import { Slider as BaseSlider } from '@base-ui/react/slider';
 
 export interface SliderProps {
+  /** Libellé accessible du curseur (`aria-label`). */
   label: string;
+  /** Valeur courante. */
   value: number;
+  /** Appelé avec la nouvelle valeur lors du déplacement du curseur. */
   onValueChange: (value: number) => void;
+  /** Valeur minimale. */
   min?: number;
+  /** Valeur maximale. */
   max?: number;
+  /** Pas d'incrémentation. */
   step?: number;
+  /** Désactive l'interaction. */
   disabled?: boolean;
+  /** Sens du curseur. */
   orientation?: 'horizontal' | 'vertical';
 }
 
+/**
+ * Curseur de valeur continue (ex. volume) basé sur `Slider` de Base UI,
+ * disponible en orientation horizontale ou verticale.
+ */
 export function Slider({
   label,
   value,

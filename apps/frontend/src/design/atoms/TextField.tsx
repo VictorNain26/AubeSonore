@@ -3,11 +3,18 @@ import { Field } from '@base-ui/react/field';
 import { cn } from '@/lib/utils';
 
 export interface TextFieldProps extends ComponentProps<typeof Field.Control> {
+  /** Libellé affiché au-dessus du champ. */
   label: string;
+  /** Message d'erreur ; sa présence bascule le champ en état invalide. */
   error?: string | undefined;
+  /** Contenu affiché en overlay à droite du champ (icône, bouton…). */
   trailing?: ReactNode;
 }
 
+/**
+ * Champ de texte avec libellé, état d'erreur et zone `trailing` optionnelle,
+ * construit sur `Field` de Base UI.
+ */
 export function TextField({ label, error, trailing, className, ...props }: TextFieldProps) {
   return (
     <Field.Root invalid={error !== undefined} className="flex w-full flex-col gap-1.5">
