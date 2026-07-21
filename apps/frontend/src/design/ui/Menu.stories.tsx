@@ -22,6 +22,19 @@ export const Actions: StoryObj = {
   ),
 };
 
+export const WithSelection: StoryObj = {
+  render: () => (
+    <Menu
+      trigger={<Button variant="ghost">Spotify</Button>}
+      items={[
+        { label: 'Spotify', onSelect: () => {}, selected: true },
+        { label: 'Apple Music', onSelect: () => {} },
+        { label: 'Deezer', onSelect: () => {} },
+      ]}
+    />
+  ),
+};
+
 export const WithHeader: StoryObj = {
   render: () => (
     <Menu

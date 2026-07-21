@@ -44,6 +44,24 @@ describe('Menu', () => {
     expect(onDelete).not.toHaveBeenCalled();
   });
 
+  it('marks the selected item with aria-current', () => {
+    render(
+      <Menu
+        trigger={<button type="button">Plateforme</button>}
+        items={[
+          { label: 'Spotify', onSelect: () => {}, selected: true },
+          { label: 'Deezer', onSelect: () => {} },
+        ]}
+      />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Plateforme' }));
+    expect(screen.getByRole('menuitem', { name: 'Spotify' })).toHaveAttribute(
+      'aria-current',
+      'true'
+    );
+    expect(screen.getByRole('menuitem', { name: 'Deezer' })).not.toHaveAttribute('aria-current');
+  });
+
   it('affiche le header non interactif au-dessus des items', async () => {
     render(
       <Menu
