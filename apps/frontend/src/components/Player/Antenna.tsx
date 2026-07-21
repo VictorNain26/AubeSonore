@@ -12,7 +12,7 @@ export function Antenna() {
 
   if (!isPlaying) {
     return (
-      <p className="text-caption text-ink-soft">Appuyez sur lecture pour écouter le direct.</p>
+      <p className="text-caption text-text-muted">Appuyez sur lecture pour écouter le direct.</p>
     );
   }
 

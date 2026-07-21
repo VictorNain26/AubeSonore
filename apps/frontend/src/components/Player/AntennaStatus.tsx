@@ -45,15 +45,12 @@ export function AntennaStatus() {
 
   return (
     <div
-      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-ink-faint"
+      className="flex flex-wrap items-center gap-x-2 gap-y-1 text-caption text-text-faint"
       aria-live="polite"
       aria-atomic="true"
     >
-      <span className="flex items-center gap-1.5 font-medium text-danger">
-        <span className="size-1.5 rounded-full bg-danger animate-pulse" />
-        En direct
-      </span>
-      {isLive && streamerName && <span className="text-ink-soft">· {streamerName}</span>}
+      <span className="font-medium text-text-muted">En direct</span>
+      {isLive && streamerName && <span className="text-text-muted">· {streamerName}</span>}
       {isLive && elapsed && <span>· depuis {elapsed}</span>}
     </div>
   );

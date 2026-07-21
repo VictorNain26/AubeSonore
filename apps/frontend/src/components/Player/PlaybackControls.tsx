@@ -24,7 +24,7 @@ export function PlaybackControls() {
       transition={toggleTransition}
       className={cn(
         'size-14 lg:size-16 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
-        'bg-accent text-on-accent hover:opacity-90 active:brightness-90'
+        'bg-accent text-on-accent hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-80'
       )}
       aria-label={isPlaying ? 'Arrêter la lecture' : 'Lancer la lecture'}
       aria-pressed={isPlaying}

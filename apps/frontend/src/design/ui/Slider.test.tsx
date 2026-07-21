@@ -49,4 +49,22 @@ describe('Slider', () => {
     expect(thumb).not.toHaveFocus();
     expect(onValueChange).not.toHaveBeenCalled();
   });
+
+  it('supports a vertical orientation', () => {
+    render(
+      <Slider
+        label="Volume"
+        orientation="vertical"
+        value={0.5}
+        onValueChange={vi.fn()}
+        min={0}
+        max={1}
+        step={0.05}
+      />
+    );
+    expect(screen.getByRole('slider', { name: 'Volume' })).toHaveAttribute(
+      'aria-orientation',
+      'vertical'
+    );
+  });
 });

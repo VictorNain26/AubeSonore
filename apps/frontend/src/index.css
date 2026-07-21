@@ -107,16 +107,6 @@
     color: var(--color-ink-faint);
   }
 
-  .artwork-size {
-    width: 100%;
-    max-width: min(26dvh, 260px);
-  }
-  @media (min-width: 64rem) {
-    .artwork-size {
-      max-width: min(52dvh, 560px);
-    }
-  }
-
   .press-ink:active {
     background: color-mix(in srgb, var(--ink) 10%, var(--paper));
   }

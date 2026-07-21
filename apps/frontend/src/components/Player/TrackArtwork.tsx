@@ -29,8 +29,8 @@ export function TrackArtwork() {
     <div key={artUrl} className="w-full">
       <div
         className={cn(
-          'relative aspect-square w-full overflow-hidden rounded-lg bg-paper-raised',
-          'transition-transform duration-500 ease-(--ease-fluid)',
+          'relative aspect-square w-full overflow-hidden rounded-md bg-surface-raised',
+          'transition-transform duration-250 ease-out-quart',
           isPlaying && 'scale-[1.01]'
         )}
       >
@@ -48,8 +48,8 @@ export function TrackArtwork() {
               {...inkFlip}
             />
           ) : (
-            <div className="flex size-full items-center justify-center bg-paper-raised">
-              <Music className="size-12 text-ink-faint" />
+            <div className="flex size-full items-center justify-center bg-surface-raised">
+              <Music className="size-12 text-text-faint" />
             </div>
           )}
         </AnimatePresence>

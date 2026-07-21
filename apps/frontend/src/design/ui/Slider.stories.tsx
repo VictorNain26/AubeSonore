@@ -18,3 +18,25 @@ export const Volume: StoryObj = {
     </div>
   ),
 };
+
+const VerticalDemo = ({ disabled = false }: { disabled?: boolean }) => {
+  const [volume, setVolume] = useState(0.6);
+  return (
+    <Slider
+      label="Volume"
+      orientation="vertical"
+      value={volume}
+      onValueChange={setVolume}
+      disabled={disabled}
+    />
+  );
+};
+
+export const Vertical: StoryObj = {
+  render: () => (
+    <div className="flex gap-8">
+      <VerticalDemo />
+      <VerticalDemo disabled />
+    </div>
+  ),
+};

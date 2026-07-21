@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Airplay } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { IconButton } from '../ui/Button';
+import { Button } from '../../design/ui/Button';
 import { useAirPlayStore } from '../../stores/airplayStore';
 
 export function AirPlayButton() {
@@ -17,15 +17,16 @@ export function AirPlayButton() {
   if (!available) return null;
 
   return (
-    <IconButton
+    <Button
+      variant="icon"
       onClick={openPicker}
       className={cn(isActive && 'text-accent hover:text-accent')}
-      label={isActive ? 'Diffusion AirPlay active' : 'Diffuser via AirPlay'}
+      aria-label={isActive ? 'Diffusion AirPlay active' : 'Diffuser via AirPlay'}
     >
       <span className="flex flex-col items-center gap-0.5">
         <Airplay className="size-5" />
         {isActive && <span className="size-1 rounded-full bg-accent" />}
       </span>
-    </IconButton>
+    </Button>
   );
 }

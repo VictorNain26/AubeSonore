@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useInkFlip } from '../../lib/motion';
 import { useTrackActions } from '../../hooks/player/useTrackActions';
-import { IconButton } from '../ui/Button';
+import { Button } from '../../design/ui/Button';
 
 // The masthead: track title as a large serif headline, artist as its
 // dek. On a track flip the block does a soft crossfade with a slight
@@ -32,7 +32,7 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
         <motion.h2
           key={shId ?? 'waiting'}
           {...inkFlip}
-          className="font-display text-title lg:text-display text-ink [text-wrap:balance]"
+          className="text-title lg:text-display font-medium text-text [text-wrap:balance]"
         >
           {title || 'Chargement du direct'}
         </motion.h2>
@@ -41,12 +41,12 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
         <motion.p
           key={artist ?? 'waiting'}
           {...inkFlip}
-          className="mt-1 lg:mt-2 text-lead text-ink-soft"
+          className="mt-1 lg:mt-2 text-lead text-text-muted"
         >
           {onArtistInfo && artist ? (
             <button
               onClick={onArtistInfo}
-              className="cursor-pointer underline decoration-line underline-offset-4 hover:decoration-ink transition-colors"
+              className="cursor-pointer underline decoration-border underline-offset-4 hover:decoration-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent rounded-sm transition-colors"
             >
               {artist}
             </button>
@@ -57,19 +57,19 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
       </AnimatePresence>
       {title && (
         <div className="mt-2 flex items-center gap-1">
-          <IconButton label="Partager ce morceau" onClick={handleShare} shape="round">
+          <Button variant="icon" aria-label="Partager ce morceau" onClick={handleShare}>
             <Share2 className="size-4" />
-          </IconButton>
-          <IconButton
-            label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
+          </Button>
+          <Button
+            variant="icon"
+            aria-label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
             onClick={handleToggleLike}
-            shape="round"
             aria-pressed={isLiked}
             disabled={isLiking}
-            className={cn(isLiked ? 'text-danger' : undefined, isLiking && 'animate-pulse')}
+            className={cn(isLiked ? 'text-accent' : undefined, isLiking && 'animate-pulse')}
           >
             <Heart className={cn('size-4', isLiked && 'fill-current')} />
-          </IconButton>
+          </Button>
         </div>
       )}
     </div>
