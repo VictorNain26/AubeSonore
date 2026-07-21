@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { Button } from './Button';
 import { TextField } from './TextField';
 
 const meta: Meta<typeof TextField> = { title: 'Primitives/TextField', component: TextField };
@@ -20,6 +21,16 @@ export const Etats: StoryObj = {
         error="Adresse invalide — vérifie le format."
       />
       <TextField label="Pseudo" disabled defaultValue="aube.sonore" />
+      <TextField
+        label="Mot de passe"
+        type="password"
+        autoComplete="current-password"
+        trailing={
+          <Button type="button" variant="icon" aria-label="Afficher le mot de passe">
+            👁
+          </Button>
+        }
+      />
     </div>
   ),
 };

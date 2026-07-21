@@ -16,4 +16,18 @@ describe('TextField', () => {
     render(<TextField label="Adresse e-mail" />);
     expect(screen.queryByText(/invalide/)).not.toBeInTheDocument();
   });
+  it('renders the trailing action next to the input', () => {
+    render(
+      <TextField
+        label="Mot de passe"
+        type="password"
+        trailing={
+          <button type="button" aria-label="Afficher le mot de passe">
+            o
+          </button>
+        }
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Afficher le mot de passe' })).toBeInTheDocument();
+  });
 });
