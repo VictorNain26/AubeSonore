@@ -5,7 +5,7 @@ import { AuthModalView } from './AuthModalView';
 const noop = () => {};
 
 const meta = {
-  title: 'Features/Auth/Modal',
+  title: 'Organisms/AuthModal',
   component: AuthModalView,
   parameters: {
     docs: {

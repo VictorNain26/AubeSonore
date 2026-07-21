@@ -6,6 +6,11 @@ import '../src/design/storybook.css';
 
 const preview: Preview = {
   parameters: {
+    options: {
+      storySort: {
+        order: ['Fondations', 'Atoms', 'Molecules', 'Organisms', 'Templates', 'Pages', '*'],
+      },
+    },
     backgrounds: { disable: true },
     controls: {
       matchers: {
