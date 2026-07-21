@@ -6,7 +6,6 @@ import { TrackRailItem } from './TrackRailItem';
 const base = {
   title: 'Titre',
   artist: 'Artiste',
-  time: '06:12',
   isLiked: false,
   isLiking: false,
   onToggle: () => {},
@@ -14,11 +13,10 @@ const base = {
 };
 
 describe('TrackRailItem', () => {
-  it('renders title, artist and time', () => {
+  it('renders title and artist', () => {
     render(<TrackRailItem {...base} />);
     expect(screen.getByText('Titre')).toBeInTheDocument();
     expect(screen.getByText('Artiste')).toBeInTheDocument();
-    expect(screen.getByText('06:12')).toBeInTheDocument();
   });
 
   it('calls onToggle and onShare on the action buttons', () => {
