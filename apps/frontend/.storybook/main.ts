@@ -16,6 +16,12 @@ const config: StorybookConfig = {
     getAbsolutePath('@storybook/addon-mcp'),
   ],
   framework: getAbsolutePath('@storybook/react-vite'),
+  typescript: {
+    reactDocgen: 'react-docgen-typescript',
+    reactDocgenTypescriptOptions: {
+      propFilter: (prop) => (prop.parent ? !/node_modules/.test(prop.parent.fileName) : true),
+    },
+  },
   viteFinal: (viteConfig) => {
     // The app's vite.config registers vite-plugin-pwa, whose service-worker
     // precache chokes on Storybook's runtime bundles — irrelevant here anyway.

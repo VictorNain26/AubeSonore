@@ -27,3 +27,13 @@ Spec: `docs/superpowers/specs/2026-07-20-design-system-v3-design.md`.
 - Decorative motion only under `prefers-reduced-motion: no-preference`; 150–250ms; `ease-out-quart`.
 - Storybook story colocated for every `atoms/`, `molecules/`, `organisms/` component, all states × both themes; addon-a11y must be clean.
 - Design system layer is organized atomically: `src/design/{atoms,molecules,organisms,foundations}`.
+
+## Storybook documentation standard
+
+Storybook is the source of truth for the UI — every visual component is documented there. Store-coupled components ship a **presentational unit** (props-in, the Storybook truth) + a thin store container.
+
+- **Global config** (already wired): `react-docgen-typescript` (`.storybook/main.ts`) generates prop tables from TS types + JSDoc; autodocs is on for all stories (`export const tags = ['autodocs']` in `.storybook/preview.tsx`). Don't re-disable either.
+- **CSF3, args-based.** `const meta = { component, ... } satisfies Meta<typeof X>`; `type Story = StoryObj<typeof meta>`. One named story per state (`Default`, `Disabled`, `Loading`, …) driven by `args` so Controls are interactive; add a `Showcase` render story for the side-by-side overview.
+- **Component doc** via `meta.parameters.docs.description.component` (markdown); per-story notes via `parameters.docs.description.story`.
+- **Prop docs:** JSDoc on the design-system component's prop interface is the documented exception to "no comments" — it is API documentation and feeds react-docgen-typescript. Keep implementation bodies comment-free.
+- Cover every state; verify both themes via the **Thème** toolbar; addon-a11y clean.
