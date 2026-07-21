@@ -68,28 +68,31 @@ Aucun impact contraste (la police ne change pas les couleurs).
 
 ## Partie B — Rail « Vient de passer » via Embla Carousel
 
-Lib retenue : **`embla-carousel-react` v8.6.0** + **`embla-carousel-a11y`** (plugin Accessibility officiel).
+Lib retenue : **`embla-carousel-react` v8.6.0** (seule dépendance ajoutée).
 Justification : les libs drag-scroll dédiées (`react-use-draggable-scroll`, `react-indiana-drag-scroll`)
 sont abandonnées (~4 ans, mouse-events). Embla est la référence maintenue (headless, pointer events,
 socle du composant Carousel de shadcn/ui), dependency-free elle-même.
 
+**Décision a11y (écart assumé au 1er jet du spec)** : **pas** de plugin `embla-carousel-a11y`.
+Ce plugin cible les carrousels paginés (annonces « slide X of Y », nav aux flèches). Notre rail est
+sémantiquement une **liste** (`role="list"`/`role="listitem"`) dont les enfants (like/partage) sont déjà
+focusables ; le `focus: true` natif d'Embla ramène l'élément focus dans la vue, et `IconButton` révèle
+ses actions au `group-focus-within`/`focus-visible`. On garde donc des sémantiques de liste correctes
+plutôt qu'un modèle carrousel plaqué.
+
 Configuration du rail (défilement libre, pas de pagination) :
 
 ```
-useEmblaCarousel(
-  { dragFree: true, align: 'start', containScroll: 'trimSnaps', dragThreshold: 10 },
-  [Accessibility({ keyboardNavigation: true })]
-)
+useEmblaCarousel({ dragFree: true, align: 'start', containScroll: 'trimSnaps' })
 ```
 
 - `dragFree: true` → défilement libre au drag (comportement « strip », pas slide-par-slide).
-- `dragThreshold: 10` → distingue nativement un drag d'un clic ⇒ pas de like/partage parasite
-  pendant un glissement.
-- Plugin Accessibility → navigation clavier (flèches), ARIA live region, gestion du focus.
+- `dragThreshold` laissé au défaut Embla (**10**) → distingue nativement un drag d'un clic ⇒ pas de
+  like/partage parasite pendant un glissement.
 - Scrollbar masquée par construction (Embla utilise des transforms, pas de scroll natif).
 
-Aération : cartes en `rounded-md bg-surface-raised`, padding vertical généreux (fini `py-1`),
-pochette agrandie, `gap` entre cartes via tokens d'espacement. Curseur `grab`/`grabbing` sur le rail.
+Aération : cartes largeur fixe `w-64`, padding vertical généreux (`py-3`, fini `py-1`),
+pochette agrandie (`size-12`), `gap-4` entre cartes. Curseur `grab`/`grabbing` sur le rail.
 États hover/focus-visible/active/disabled des actions conservés (cibles ≥ 44px).
 
 Réduction de mouvement : Embla anime le défilement au drag (interaction directe, pas décoratif).
@@ -126,7 +129,7 @@ Nouveaux composants Phase 1 :
 - `IconButton` — bouton action 44px (aujourd'hui dupliqué via `actionClassName` / `revealClassName`).
   Props : `icon`, `label` (aria), `onClick`, `disabled?`, `active?`, `reveal?` (opacity-0 → group-hover/focus-within).
 - `Rail` — wrapper headless Embla. Props : `children`, `ariaLabel`. Encapsule `useEmblaCarousel`
-  - plugin Accessibility, rend viewport/container, applique curseur `grab`.
+  (dragFree), rend viewport + conteneur `role="list"`, applique curseur `grab`.
 
 **Molecule (`src/design/molecules/`)**
 
@@ -189,5 +192,5 @@ Storybook s'étend aux molecules/organisms.
   à jour. Mécanique ; garde-fou `pnpm typecheck`.
 - **Reveal-on-hover × focus clavier** : vérifier que le focus clavier révèle les actions
   (`group-focus-within`) une fois dans le rail Embla.
-- **Nouvelle dépendance** : `embla-carousel-react` + `embla-carousel-a11y` passent par Renovate ;
-  ajout justifié (remplace du code maison non maintenable).
+- **Nouvelle dépendance** : `embla-carousel-react` (seule) passe par Renovate ;
+  ajout justifié (remplace du code maison non maintenable). Pas de plugin a11y (cf. décision ci-dessus).
