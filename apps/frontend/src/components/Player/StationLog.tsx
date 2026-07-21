@@ -42,32 +42,34 @@ export function StationLog() {
   };
 
   return (
-    <section className="flex min-h-0 flex-col pt-4 lg:pt-0 lg:border-l lg:border-line lg:pl-6">
-      <div className="rule mb-4 lg:hidden" />
-      <h3 className="eyebrow mb-2 shrink-0">Vient de passer</h3>
+    <section className="flex min-h-0 flex-col pt-4 lg:pt-0 lg:border-l lg:border-border lg:pl-6">
+      <div className="border-t border-border mb-4 lg:hidden" />
+      <h3 className="text-caption text-text-faint uppercase tracking-widest mb-2 shrink-0">
+        Vient de passer
+      </h3>
       {error && (
-        <p className="mb-2 text-caption text-ink-faint">
+        <p className="mb-2 text-caption text-text-faint">
           Historique partiel — actualisation impossible pour le moment.
         </p>
       )}
       {isLoading && entries.length === 0 ? (
-        <div className="flex flex-col divide-y divide-line">
+        <div className="flex flex-col divide-y divide-border">
           {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex items-center gap-3 py-2.5">
-              <div className="size-9 shrink-0 rounded-md skeleton" />
+              <div className="size-9 shrink-0 rounded-sm animate-pulse bg-surface-raised" />
               <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                <div className="h-3.5 w-2/3 skeleton" />
-                <div className="h-3 w-1/3 skeleton" />
+                <div className="h-3.5 w-2/3 rounded-sm animate-pulse bg-surface-raised" />
+                <div className="h-3 w-1/3 rounded-sm animate-pulse bg-surface-raised" />
               </div>
             </div>
           ))}
         </div>
       ) : entries.length === 0 ? (
-        <p className="text-caption text-ink-faint">Aucun morceau pour l&apos;instant.</p>
+        <p className="text-caption text-text-faint">Aucun morceau pour l&apos;instant.</p>
       ) : (
         <div
           role="list"
-          className="-mt-1 flex min-h-0 flex-col divide-y divide-line lg:overflow-y-auto"
+          className="-mt-1 flex min-h-0 flex-col divide-y divide-border lg:overflow-y-auto"
         >
           {entries.slice(0, 6).map((entry) => (
             <StationLogRow

@@ -28,7 +28,7 @@ export const StationLogRow = memo(function StationLogRow({
 
   return (
     <div role="listitem" className="group flex items-center gap-3 py-2.5">
-      <div className="relative size-9 shrink-0 overflow-hidden rounded-md bg-paper-raised">
+      <div className="relative size-9 shrink-0 overflow-hidden rounded-md bg-surface-raised">
         {entry.song.art && !imgError ? (
           <img
             src={entry.song.art}
@@ -40,16 +40,16 @@ export const StationLogRow = memo(function StationLogRow({
             onError={() => setImgError(true)}
           />
         ) : (
-          <Music className="absolute inset-0 m-auto size-4 text-ink-faint" />
+          <Music className="absolute inset-0 m-auto size-4 text-text-faint" />
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-body text-ink-soft">{entry.song.title}</p>
-        <p className="truncate text-caption text-ink-soft">{entry.song.artist}</p>
+        <p className="truncate text-body text-text-muted">{entry.song.title}</p>
+        <p className="truncate text-caption text-text-muted">{entry.song.artist}</p>
       </div>
 
-      <time className="shrink-0 text-caption text-ink-faint tabular-nums">
+      <time className="shrink-0 text-caption text-text-faint tabular-nums">
         {timeFormatter.format(new Date(entry.played_at * 1000))}
       </time>
 
@@ -64,7 +64,7 @@ export const StationLogRow = memo(function StationLogRow({
           aria-label="Partager"
           className={cn(
             'flex size-8 items-center justify-center rounded-full cursor-pointer',
-            'text-ink-faint hover:text-ink transition-colors'
+            'text-text-faint hover:text-text transition-colors'
           )}
         >
           <Share2 className="size-3.5" />
@@ -76,7 +76,7 @@ export const StationLogRow = memo(function StationLogRow({
           aria-label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
           className={cn(
             'flex size-8 items-center justify-center rounded-full cursor-pointer transition-colors',
-            isLiked ? 'text-danger' : 'text-ink-faint hover:text-ink',
+            isLiked ? 'text-accent' : 'text-text-faint hover:text-text',
             isLiking && 'animate-pulse pointer-events-none'
           )}
         >
