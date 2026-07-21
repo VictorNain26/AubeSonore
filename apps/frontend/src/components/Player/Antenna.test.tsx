@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePlayer } from '../../lib/player';
+import { useNowPlayingStore } from '../../lib/azuracast';
 import { Antenna } from './Antenna';
 
 vi.mock('./WaveformCanvas', () => ({
@@ -9,15 +10,28 @@ vi.mock('./WaveformCanvas', () => ({
 }));
 
 describe('Antenna', () => {
-  it('renders nothing when not playing', () => {
+  beforeEach(() => {
+    useNowPlayingStore.setState({ data: null });
+  });
+
+  it('renders the resting wave without any prompt when not playing', () => {
     usePlayer.setState({ isPlaying: false });
     render(<Antenna />);
-    expect(screen.queryByTestId('wave')).not.toBeInTheDocument();
+    expect(screen.getByTestId('wave')).toBeInTheDocument();
+    expect(screen.queryByText(/Appuyez sur lecture/)).not.toBeInTheDocument();
   });
 
   it('shows the waveform when playing', () => {
     usePlayer.setState({ isPlaying: true });
     render(<Antenna />);
     expect(screen.getByTestId('wave')).toBeInTheDocument();
+  });
+
+  it('replaces the wave with the off-air message when the stream is offline', () => {
+    useNowPlayingStore.setState({ data: { is_online: false } as never });
+    usePlayer.setState({ isPlaying: false });
+    render(<Antenna />);
+    expect(screen.queryByTestId('wave')).not.toBeInTheDocument();
+    expect(screen.getByText(/Hors antenne/)).toBeInTheDocument();
   });
 });
