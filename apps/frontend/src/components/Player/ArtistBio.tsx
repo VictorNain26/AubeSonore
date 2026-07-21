@@ -25,10 +25,10 @@ export function ArtistBio({ onOpenPanel }: ArtistBioProps) {
 
   return (
     <div className="max-w-prose">
-      <p className="text-body text-ink-soft leading-relaxed line-clamp-3">{data.bio}</p>
+      <p className="text-body text-text-muted leading-relaxed line-clamp-3">{data.bio}</p>
       <button
         onClick={onOpenPanel}
-        className="mt-1 cursor-pointer text-caption text-ink-faint underline decoration-line underline-offset-4 hover:decoration-ink transition-colors"
+        className="mt-1 cursor-pointer text-caption text-text-faint underline decoration-border underline-offset-4 hover:decoration-text transition-colors"
       >
         En savoir plus sur {artistName}
       </button>
