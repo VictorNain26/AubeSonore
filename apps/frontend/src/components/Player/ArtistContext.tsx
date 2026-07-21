@@ -18,9 +18,9 @@ export function ArtistContext({ isOpen, onClose }: ArtistContextProps) {
       <div className="space-y-4">
         {isLoading ? (
           <div className="flex flex-col gap-2" aria-hidden="true">
-            <div className="h-4 w-full skeleton" />
-            <div className="h-4 w-5/6 skeleton" />
-            <div className="h-4 w-2/3 skeleton" />
+            <div className="h-4 w-full animate-pulse rounded-sm bg-surface-raised" />
+            <div className="h-4 w-5/6 animate-pulse rounded-sm bg-surface-raised" />
+            <div className="h-4 w-2/3 animate-pulse rounded-sm bg-surface-raised" />
           </div>
         ) : data?.bio ? (
           <p className="text-body text-text-muted leading-relaxed">{data.bio}</p>

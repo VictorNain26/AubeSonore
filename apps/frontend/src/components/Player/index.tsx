@@ -44,19 +44,19 @@ export default function Player() {
     return (
       <div className={SCENE}>
         <div className={DIRECT}>
-          <div className="rule pt-2">
-            <div className="h-4 w-32 skeleton" />
+          <div className="border-t border-border pt-2">
+            <div className="h-4 w-32 animate-pulse rounded-sm bg-surface-raised" />
           </div>
           <div className={NOW}>
             <div className="relative artwork-size mx-auto lg:mx-0">
-              <div className="aspect-square rounded-lg skeleton" />
-              <div className="absolute -bottom-3 -right-3 size-14 rounded-full skeleton" />
+              <div className="aspect-square rounded-md animate-pulse bg-surface-raised" />
+              <div className="absolute -bottom-3 -right-3 size-14 rounded-full animate-pulse bg-surface-raised" />
             </div>
             <div className={META}>
               <div className="flex flex-col gap-2">
-                <div className="h-9 w-3/4 skeleton" />
-                <div className="h-5 w-1/3 skeleton" />
-                <div className="h-4 w-1/2 skeleton" />
+                <div className="h-9 w-3/4 animate-pulse rounded-sm bg-surface-raised" />
+                <div className="h-5 w-1/3 animate-pulse rounded-sm bg-surface-raised" />
+                <div className="h-4 w-1/2 animate-pulse rounded-sm bg-surface-raised" />
               </div>
             </div>
           </div>
@@ -77,7 +77,7 @@ export default function Player() {
         <div className="font-sans text-caption text-text-muted uppercase tracking-widest mb-2">
           DIRECT
         </div>
-        <div className="rule pt-2">
+        <div className="border-t border-border pt-2">
           <AntennaStatus />
         </div>
         <div className={NOW}>

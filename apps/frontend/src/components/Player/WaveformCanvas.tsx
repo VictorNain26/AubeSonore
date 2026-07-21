@@ -6,16 +6,16 @@ import { getAnalyser } from '../../lib/player';
 // ─────────────────────────────────────────────
 // This is NOT a progress bar. A live broadcast can't be scrubbed and you
 // can't rewind it, so there is no elapsed/remaining and no played/unplayed
-// split — every bar is drawn the same way. It signals one thing: the
+// split — every point is drawn the same way. It signals one thing: the
 // antenna is on air, and this is the shape of its sound.
 //
 // The rAF loop lives inside the canvas so the React tree is never
 // re-rendered on a frame tick. `isPlaying`/`songId` are read from refs so
 // prop changes don't tear the loop down.
 //
-// Rendering is a fine ink stroke: live bars in flat `--color-accent`
-// (~alpha 0.82), a quiet resting trace in `--color-ink` at low alpha when
-// stopped. No gradients, no glow — a thin trace, not a light show.
+// Rendering is a single continuous ink line in `--color-text`: 78% alpha
+// while live, a quiet 30% flat line when stopped. No gradients, no glow —
+// a thin trace, not a light show.
 
 interface WaveformCanvasProps {
   isPlaying: boolean;
@@ -41,12 +41,11 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
     songIdRef.current = songId;
   });
 
-  const barsCount = 48;
+  const pointsCount = 48;
 
-  // Initialize smoothed bar heights once
   useEffect(() => {
-    if (smoothedDataRef.current.length !== barsCount) {
-      smoothedDataRef.current = new Array(barsCount).fill(0.3) as number[];
+    if (smoothedDataRef.current.length !== pointsCount) {
+      smoothedDataRef.current = new Array(pointsCount).fill(0.3) as number[];
     }
   }, []);
 
@@ -86,7 +85,7 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
       if (paused) return;
       const deltaTime = (currentTime - lastTime) / 1000;
       lastTime = currentTime;
-      // Mouvement réduit : les barres restent figées (le temps interne
+      // Mouvement réduit : la ligne reste figée (le temps interne
       // n'avance plus).
       if (!reducedMotion.matches) timeRef.current += deltaTime;
 
@@ -116,7 +115,6 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
         frequencyData = frequencyDataRef.current;
       }
 
-      const POINTS = 48;
       const mid = height / 2;
       const values: number[] = smoothedDataRef.current;
       ctx.beginPath();
@@ -126,15 +124,15 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
       ctx.strokeStyle = isPlaying
         ? `color-mix(in srgb, ${textColor} 78%, transparent)`
         : `color-mix(in srgb, ${textColor} 30%, transparent)`;
-      const stepX = width / (POINTS - 1);
+      const stepX = width / (pointsCount - 1);
       const amplitude = height * 0.42;
 
-      for (let i = 0; i < POINTS; i++) {
+      for (let i = 0; i < pointsCount; i++) {
         if (frequencyData) {
           const startBin = 2;
           const endBin = 35;
           const usableBins = endBin - startBin;
-          const center = barsCount / 2;
+          const center = pointsCount / 2;
           const distFromCenter = Math.abs(i - center) / center;
           const logDist = Math.pow(distFromCenter, 0.6);
           const binOffset = Math.floor(logDist * usableBins);
