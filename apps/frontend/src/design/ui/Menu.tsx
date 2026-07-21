@@ -15,7 +15,12 @@ export interface MenuProps {
   items: MenuAction[];
 }
 
+const itemClassName =
+  'flex h-11 cursor-default items-center px-4 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-surface';
+
 export function Menu({ trigger, header, items }: MenuProps) {
+  const isRadio = items.some((item) => item.selected !== undefined);
+  const selectedValue = items.find((item) => item.selected === true)?.label;
   return (
     <BaseMenu.Root>
       <BaseMenu.Trigger render={trigger} />
@@ -27,20 +32,40 @@ export function Menu({ trigger, header, items }: MenuProps) {
                 <BaseMenu.GroupLabel>{header}</BaseMenu.GroupLabel>
               </BaseMenu.Group>
             ) : null}
-            {items.map((item) => (
-              <BaseMenu.Item
-                key={item.label}
-                disabled={item.disabled}
-                onClick={item.onSelect}
-                aria-current={item.selected === true ? 'true' : undefined}
-                className={cn(
-                  'flex h-11 cursor-default items-center px-4 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-surface',
-                  item.selected === true && 'bg-surface font-medium'
-                )}
+            {isRadio ? (
+              <BaseMenu.RadioGroup
+                value={selectedValue}
+                onValueChange={(value) => {
+                  items.find((item) => item.label === value)?.onSelect();
+                }}
               >
-                {item.label}
-              </BaseMenu.Item>
-            ))}
+                {items.map((item) => (
+                  <BaseMenu.RadioItem
+                    key={item.label}
+                    value={item.label}
+                    disabled={item.disabled}
+                    closeOnClick
+                    className={cn(
+                      itemClassName,
+                      'data-[checked]:bg-surface data-[checked]:font-medium'
+                    )}
+                  >
+                    {item.label}
+                  </BaseMenu.RadioItem>
+                ))}
+              </BaseMenu.RadioGroup>
+            ) : (
+              items.map((item) => (
+                <BaseMenu.Item
+                  key={item.label}
+                  disabled={item.disabled}
+                  onClick={item.onSelect}
+                  className={itemClassName}
+                >
+                  {item.label}
+                </BaseMenu.Item>
+              ))
+            )}
           </BaseMenu.Popup>
         </BaseMenu.Positioner>
       </BaseMenu.Portal>

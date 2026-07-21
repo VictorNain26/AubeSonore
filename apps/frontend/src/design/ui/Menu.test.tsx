@@ -44,22 +44,26 @@ describe('Menu', () => {
     expect(onDelete).not.toHaveBeenCalled();
   });
 
-  it('marks the selected item with aria-current', () => {
+  it('exposes selected items as checked radio items', () => {
+    const onSelectDeezer = vi.fn();
     render(
       <Menu
         trigger={<button type="button">Plateforme</button>}
         items={[
           { label: 'Spotify', onSelect: () => {}, selected: true },
-          { label: 'Deezer', onSelect: () => {} },
+          { label: 'Deezer', onSelect: onSelectDeezer, selected: false },
         ]}
       />
     );
     fireEvent.click(screen.getByRole('button', { name: 'Plateforme' }));
-    expect(screen.getByRole('menuitem', { name: 'Spotify' })).toHaveAttribute(
-      'aria-current',
+    expect(screen.getByRole('menuitemradio', { name: 'Spotify' })).toHaveAttribute(
+      'aria-checked',
       'true'
     );
-    expect(screen.getByRole('menuitem', { name: 'Deezer' })).not.toHaveAttribute('aria-current');
+    const deezer = screen.getByRole('menuitemradio', { name: 'Deezer' });
+    expect(deezer).toHaveAttribute('aria-checked', 'false');
+    fireEvent.click(deezer);
+    expect(onSelectDeezer).toHaveBeenCalledOnce();
   });
 
   it('affiche le header non interactif au-dessus des items', async () => {

@@ -263,7 +263,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
       <div
         data-testid="modal-scroll-container"
-        className="max-h-[60dvh] overflow-y-auto scroll-pt-16"
+        className="max-h-[70dvh] overflow-y-auto scroll-pt-16"
       >
         {tracks.length > 0 && (
           <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-raised pb-4">
