@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useInkFlip } from '../../lib/motion';
 import { useTrackActions } from '../../hooks/player/useTrackActions';
-import { Button } from '../../design/ui/Button';
+import { Button } from '../../design/atoms/Button';
 
 // The masthead: track title as a large serif headline, artist as its
 // dek. On a track flip the block does a soft crossfade with a slight

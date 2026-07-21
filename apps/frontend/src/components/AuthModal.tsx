@@ -4,9 +4,9 @@ import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../lib/api';
 import { toast } from 'sonner';
 import { toastError } from '../lib/appToast';
-import { Modal } from '../design/ui/Modal';
-import { Button } from '../design/ui/Button';
-import { TextField } from '../design/ui/TextField';
+import { Modal } from '../design/organisms/Modal';
+import { Button } from '../design/atoms/Button';
+import { TextField } from '../design/atoms/TextField';
 
 type AuthMode = 'signin' | 'signup' | 'forgot' | 'verification-sent' | 'reset-password';
 

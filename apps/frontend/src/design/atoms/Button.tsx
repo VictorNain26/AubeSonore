@@ -1,5 +1,5 @@
 import type { ButtonHTMLAttributes, Ref } from 'react';
-import { cn } from './cn';
+import { cn } from '@/lib/utils';
 
 type ButtonVariantValue = 'primary' | 'ghost' | 'icon';
 

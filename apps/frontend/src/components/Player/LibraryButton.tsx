@@ -2,7 +2,7 @@ import { lazy, Suspense, useState, useCallback } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '../../design/ui/Button';
+import { Button } from '../../design/atoms/Button';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';

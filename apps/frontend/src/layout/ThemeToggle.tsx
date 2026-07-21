@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
-import { Button } from '../design/ui/Button';
+import { Button } from '../design/atoms/Button';
 import { setTheme, type Theme } from '../lib/theme';
 
 function currentTheme(): Theme {

@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { Button } from './Button';
+import { Button } from '../atoms/Button';
 import { Menu } from './Menu';
 
-const meta: Meta<typeof Menu> = { title: 'Primitives/Menu', component: Menu };
+const meta: Meta<typeof Menu> = { title: 'Molecules/Menu', component: Menu };
 export default meta;
 
 export const Actions: StoryObj = {

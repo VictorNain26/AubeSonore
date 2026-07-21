@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { Button } from './Button';
+import { Button } from '../atoms/Button';
 import { Modal } from './Modal';
 
 describe('Modal', () => {

@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { Airplay } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '../../design/ui/Button';
+import { Button } from '../../design/atoms/Button';
 import { useAirPlayStore } from '../../stores/airplayStore';
 
 export function AirPlayButton() {

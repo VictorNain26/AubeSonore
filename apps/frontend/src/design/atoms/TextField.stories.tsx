@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Button } from './Button';
 import { TextField } from './TextField';
 
-const meta: Meta<typeof TextField> = { title: 'Primitives/TextField', component: TextField };
+const meta: Meta<typeof TextField> = { title: 'Atoms/TextField', component: TextField };
 export default meta;
 
 export const Etats: StoryObj = {

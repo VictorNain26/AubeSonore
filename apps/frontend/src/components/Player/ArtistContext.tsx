@@ -1,6 +1,6 @@
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useArtistInfo } from '../../hooks/useArtistInfo';
-import { Modal } from '../../design/ui/Modal';
+import { Modal } from '../../design/organisms/Modal';
 
 interface ArtistContextProps {
   isOpen: boolean;

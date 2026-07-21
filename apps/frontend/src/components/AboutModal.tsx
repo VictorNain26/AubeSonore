@@ -1,5 +1,5 @@
 import { Mail } from 'lucide-react';
-import { Modal } from '../design/ui/Modal';
+import { Modal } from '../design/organisms/Modal';
 
 interface AboutModalProps {
   isOpen: boolean;

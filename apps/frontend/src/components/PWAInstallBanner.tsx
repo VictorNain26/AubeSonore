@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Download } from 'lucide-react';
 import { modal } from '@/lib/motion';
-import { Button } from '../design/ui/Button';
+import { Button } from '../design/atoms/Button';
 import { useBannerSlot } from '../stores/bannerSlotStore';
 
 const PWA_DISMISS_KEY = 'aubesonore_pwa_dismiss';

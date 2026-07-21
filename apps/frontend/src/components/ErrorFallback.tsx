@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
-import { Button } from '../design/ui/Button';
-import { Modal } from '../design/ui/Modal';
+import { Button } from '../design/atoms/Button';
+import { Modal } from '../design/organisms/Modal';
 
 export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
   return (

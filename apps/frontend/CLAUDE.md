@@ -25,4 +25,5 @@ Spec: `docs/superpowers/specs/2026-07-20-design-system-v3-design.md`.
 - `node scripts/check-contrast.mjs` passes (wired in CI Quality).
 - Every interactive element: hover, focus-visible, active, disabled states; touch target ≥ 44px.
 - Decorative motion only under `prefers-reduced-motion: no-preference`; 150–250ms; `ease-out-quart`.
-- Storybook story colocated for every `ui/` primitive, all states × both themes; addon-a11y must be clean.
+- Storybook story colocated for every `atoms/`, `molecules/`, `organisms/` component, all states × both themes; addon-a11y must be clean.
+- Design system layer is organized atomically: `src/design/{atoms,molecules,organisms,foundations}`.

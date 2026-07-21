@@ -10,9 +10,9 @@ import { exportAsCSV } from '../lib/exportLibrary';
 import { getPreferredLink } from '@aubesonore/core/share';
 import { toast } from 'sonner';
 import { toastError } from '../lib/appToast';
-import { Modal } from '../design/ui/Modal';
-import { Menu } from '../design/ui/Menu';
-import { Button } from '../design/ui/Button';
+import { Modal } from '../design/organisms/Modal';
+import { Menu } from '../design/molecules/Menu';
+import { Button } from '../design/atoms/Button';
 
 interface LikedTracksModalProps {
   isOpen: boolean;

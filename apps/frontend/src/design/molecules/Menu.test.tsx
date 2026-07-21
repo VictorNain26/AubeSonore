@@ -2,7 +2,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { Button } from './Button';
+import { Button } from '../atoms/Button';
 import { Menu } from './Menu';
 
 function renderMenu(onShare = vi.fn(), onDelete = vi.fn()) {

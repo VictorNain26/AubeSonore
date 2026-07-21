@@ -1,6 +1,6 @@
 import type { ReactElement, ReactNode } from 'react';
 import { Menu as BaseMenu } from '@base-ui/react/menu';
-import { cn } from './cn';
+import { cn } from '@/lib/utils';
 
 interface MenuAction {
   label: string;
