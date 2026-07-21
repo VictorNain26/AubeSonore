@@ -57,11 +57,11 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
       </AnimatePresence>
       {title && (
         <div className="mt-2 flex items-center gap-1">
-          <Button variant={'icon' as const} aria-label="Partager ce morceau" onClick={handleShare}>
+          <Button variant="icon" aria-label="Partager ce morceau" onClick={handleShare}>
             <Share2 className="size-4" />
           </Button>
           <Button
-            variant={'icon' as const}
+            variant="icon"
             aria-label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
             onClick={handleToggleLike}
             aria-pressed={isLiked}

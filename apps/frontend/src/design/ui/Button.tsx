@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes, Ref } from 'react';
 import { cn } from './cn';
 
-export type ButtonVariantValue = 'primary' | 'ghost' | 'icon';
+type ButtonVariantValue = 'primary' | 'ghost' | 'icon';
 
 const VARIANT_CLASSES: Record<ButtonVariantValue, string> = {
   primary: 'bg-accent text-on-accent hover:opacity-90 px-6',

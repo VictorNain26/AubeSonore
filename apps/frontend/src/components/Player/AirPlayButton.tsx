@@ -18,7 +18,7 @@ export function AirPlayButton() {
 
   return (
     <Button
-      variant={'icon' as const}
+      variant="icon"
       onClick={openPicker}
       className={cn(isActive && 'text-accent hover:text-accent')}
       aria-label={isActive ? 'Diffusion AirPlay active' : 'Diffuser via AirPlay'}
