@@ -28,8 +28,7 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
   const timeRef = useRef<number>(0);
   const frequencyDataRef = useRef<Uint8Array | null>(null);
   const smoothedDataRef = useRef<number[]>([]);
-  const accentColorRef = useRef<string>('');
-  const inkColorRef = useRef<string>('');
+  const textColorRef = useRef<string>('');
   const colorThemeKeyRef = useRef<string | undefined>(undefined);
 
   // Read latest props from refs inside the rAF callback so changes to
@@ -95,25 +94,16 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
       const width = canvas.width;
       const height = canvas.height;
       const isPlaying = isPlayingRef.current;
-      const songId = songIdRef.current;
 
       ctx.clearRect(0, 0, width, height);
 
-      const barWidth = width / barsCount;
-      const gap = 3 * dpr;
-
       const themeKey = document.documentElement.dataset.theme;
-      if (themeKey !== colorThemeKeyRef.current || !accentColorRef.current) {
+      if (themeKey !== colorThemeKeyRef.current || !textColorRef.current) {
         const style = getComputedStyle(document.documentElement);
-        accentColorRef.current = style.getPropertyValue('--color-accent').trim();
-        inkColorRef.current = style.getPropertyValue('--color-ink').trim();
+        textColorRef.current = style.getPropertyValue('--color-text').trim();
         colorThemeKeyRef.current = themeKey;
       }
-      const accentColor = accentColorRef.current;
-      const inkColor = inkColorRef.current;
-      const liveFill = `color-mix(in srgb, ${accentColor} 82%, transparent)`;
-      const idleFill = `color-mix(in srgb, ${inkColor} 22%, transparent)`;
-      const fill = isPlaying ? liveFill : idleFill;
+      const textColor = textColorRef.current;
 
       const analyser = getAnalyser();
       let frequencyData: Uint8Array | null = null;
@@ -126,12 +116,20 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
         frequencyData = frequencyDataRef.current;
       }
 
-      ctx.fillStyle = fill;
+      const POINTS = 48;
+      const mid = height / 2;
+      const values: number[] = smoothedDataRef.current;
+      ctx.beginPath();
+      ctx.lineWidth = (isPlaying ? 1.6 : 1) * dpr;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = isPlaying
+        ? `color-mix(in srgb, ${textColor} 78%, transparent)`
+        : `color-mix(in srgb, ${textColor} 30%, transparent)`;
+      const stepX = width / (POINTS - 1);
+      const amplitude = height * 0.42;
 
-      for (let i = 0; i < barsCount; i++) {
-        const x = i * barWidth;
-        let barHeight: number;
-
+      for (let i = 0; i < POINTS; i++) {
         if (frequencyData) {
           const startBin = 2;
           const endBin = 35;
@@ -144,34 +142,27 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
           const value = frequencyData[binIndex] ?? 0;
           const normalized = 0.15 + (value / 255) * 0.8;
           const smoothingFactor = 0.35;
-          const prevValue = smoothedDataRef.current[i] ?? 0.3;
+          const prevValue = values[i] || 0.3;
           const newValue = prevValue * (1 - smoothingFactor) + normalized * smoothingFactor;
-          smoothedDataRef.current[i] = newValue;
-          barHeight = newValue * height * 0.9;
-        } else {
-          const position = i / barsCount;
-          const seed = songId ?? 1;
-          if (isPlaying) {
-            const wave1 = Math.sin(time * 3 + i * 0.15 + seed * 0.01) * 0.15;
-            const wave2 = Math.sin(time * 5 + i * 0.25 + seed * 0.02) * 0.1;
-            const wave3 = Math.sin(time * 2 + position * Math.PI * 2) * 0.12;
-            const base = 0.45 + wave1 + wave2 + wave3;
-            barHeight = Math.max(0.2, Math.min(0.9, base)) * height * 0.85;
-          } else {
-            const breath = Math.sin(time * 0.8 + i * 0.1) * 0.08;
-            const baseWave = Math.sin(position * Math.PI * 2 + seed * 0.01) * 0.15;
-            barHeight = (0.35 + baseWave + breath) * height * 0.7;
-          }
+          values[i] = newValue;
         }
 
-        const y = (height - barHeight) / 2;
-        const barX = x + gap / 2;
-        const barW = barWidth - gap;
-
-        ctx.beginPath();
-        ctx.roundRect(barX, y, barW, barHeight, dpr);
-        ctx.fill();
+        const currentValue = values[i] || 0.3;
+        const signed = isPlaying ? (currentValue - 0.15) * Math.sin(i * 0.85 + time * 2.2) : 0;
+        const y = mid + signed * amplitude;
+        const x = i * stepX;
+        if (i === 0) ctx.moveTo(x, y);
+        else {
+          const prevX = (i - 1) * stepX;
+          const prevValue = values[i - 1] || 0.3;
+          const prevSigned = isPlaying
+            ? (prevValue - 0.15) * Math.sin((i - 1) * 0.85 + time * 2.2)
+            : 0;
+          const prevY = mid + prevSigned * amplitude;
+          ctx.quadraticCurveTo(prevX + stepX / 2, (prevY + y) / 2, x, y);
+        }
       }
+      ctx.stroke();
 
       animationRef.current = requestAnimationFrame(draw);
     };
