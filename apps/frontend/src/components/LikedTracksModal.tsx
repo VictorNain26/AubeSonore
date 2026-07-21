@@ -8,29 +8,16 @@ import type { LikedTrack, PreferredPlatform } from '../lib/api';
 import { trackApi } from '../lib/api';
 import { exportAsCSV } from '../lib/exportLibrary';
 import { getPreferredLink } from '@aubesonore/core/share';
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from './ui/DropdownMenu';
 import { toast } from 'sonner';
 import { toastError } from '../lib/appToast';
-import { ModalShell } from './ui/ModalShell';
-import { Button, IconButton } from './ui/Button';
-
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
+import { Modal } from '../design/ui/Modal';
+import { Menu } from '../design/ui/Menu';
+import { Button } from '../design/ui/Button';
 
 interface LikedTracksModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
-
-// ─────────────────────────────────────────────
-// Composant TrackItem - Style Player
-// ─────────────────────────────────────────────
 
 interface TrackItemProps {
   track: LikedTrack;
@@ -56,8 +43,7 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
       role="listitem"
       className={cn('group flex items-center gap-3 py-2', isDeleting && 'opacity-50')}
     >
-      {/* Artwork */}
-      <div className="size-10 rounded-sm overflow-hidden shrink-0 bg-paper-raised flex items-center justify-center">
+      <div className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-surface">
         {artwork ? (
           <img
             src={artwork}
@@ -69,25 +55,24 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
             onError={() => setImgError(true)}
           />
         ) : (
-          <Music className="size-5 text-ink-faint" />
+          <Music className="size-5 text-text-faint" />
         )}
       </div>
 
-      {/* Track info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-body text-ink truncate">{track.title}</p>
-        <p className="text-caption text-ink-soft truncate">{track.artist}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-body text-text">{track.title}</p>
+        <p className="truncate text-caption text-text-muted">{track.artist}</p>
       </div>
 
-      {/* Actions - always visible */}
       <div className="flex items-center gap-1">
         <a
           href={link}
           target="_blank"
           rel="noopener noreferrer"
           className={cn(
-            'size-10 rounded-full flex items-center justify-center cursor-pointer',
-            'text-ink-faint hover:text-ink hover:bg-paper-raised transition-colors'
+            'flex size-11 cursor-pointer items-center justify-center rounded-full',
+            'text-text-faint transition-colors duration-150 ease-out-quart hover:bg-surface hover:text-text',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-80'
           )}
           title={
             isSearch
@@ -98,28 +83,24 @@ const TrackItem = memo(function TrackItem({ track, preferredPlatform, onDelete }
           {isSearch ? <Search className="size-4" /> : <ExternalLink className="size-4" />}
         </a>
 
-        <IconButton
-          shape="round"
+        <Button
+          variant="icon"
           onClick={() => handleDelete()}
           disabled={isDeleting}
-          label="Retirer de ma bibliothèque"
+          aria-label="Retirer de ma bibliothèque"
           title="Retirer"
           className={cn(
-            'size-10 hover:text-danger opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
-            'pointer-coarse:opacity-100',
+            'text-text-faint opacity-0 hover:bg-surface hover:text-accent',
+            'group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100',
             isDeleting && 'animate-pulse'
           )}
         >
           <Trash2 className="size-4" />
-        </IconButton>
+        </Button>
       </div>
     </div>
   );
 });
-
-// ─────────────────────────────────────────────
-// Composant PlatformSelector - Style Player
-// ─────────────────────────────────────────────
 
 interface PlatformSelectorProps {
   selected: PreferredPlatform;
@@ -130,47 +111,35 @@ function PlatformSelector({ selected, onChange }: PlatformSelectorProps) {
   const selectedPlatform = PLATFORMS.find((p) => p.id === selected);
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+    <Menu
+      trigger={
         <Button
-          variant="ink"
-          className="rounded-full text-caption"
+          variant="ghost"
+          className="border border-border text-caption"
           aria-label="Sélectionner la plateforme préférée"
         >
           {selectedPlatform?.name}
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent side="top" align="end" className="w-44 max-h-72 overflow-y-auto">
-        {PLATFORMS.map((platform) => (
-          <DropdownMenuItem
-            key={platform.id}
-            onSelect={() => onChange(platform.id)}
-            className={cn(selected === platform.id && 'bg-paper-raised')}
-          >
-            {platform.name}
-          </DropdownMenuItem>
-        ))}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      }
+      items={PLATFORMS.map((platform) => ({
+        label: platform.name,
+        onSelect: () => onChange(platform.id),
+        selected: platform.id === selected,
+      }))}
+    />
   );
 }
-
-// ─────────────────────────────────────────────
-// Composant EmptyState - état vide éditorial
-// ─────────────────────────────────────────────
 
 function EmptyState() {
   return (
-    <div className="py-10 text-center space-y-1">
-      <p className="font-display text-lead text-ink">Rien ici pour l&apos;instant.</p>
-      <p className="text-body text-ink-soft">Aimez un morceau au passage — il vous attendra ici.</p>
+    <div className="space-y-1 py-10 text-center">
+      <p className="text-lead text-text">Rien ici pour l&apos;instant.</p>
+      <p className="text-body text-text-muted">
+        Aimez un morceau au passage — il vous attendra ici.
+      </p>
     </div>
   );
 }
-
-// ─────────────────────────────────────────────
-// Composant Principal
-// ─────────────────────────────────────────────
 
 function LibraryActions({
   tracks,
@@ -183,11 +152,20 @@ function LibraryActions({
 }) {
   return (
     <div className="flex items-center gap-2">
-      <Button variant="ink" onClick={() => onRefresh()} disabled={isRefreshing}>
+      <Button
+        variant="ghost"
+        onClick={() => onRefresh()}
+        disabled={isRefreshing}
+        className="border border-border text-caption"
+      >
         <RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} />
         Mettre à jour les liens
       </Button>
-      <Button variant="ink" onClick={() => exportAsCSV(tracks)}>
+      <Button
+        variant="ghost"
+        onClick={() => exportAsCSV(tracks)}
+        className="border border-border text-caption"
+      >
         <Download className="size-4" />
         Exporter (CSV)
       </Button>
@@ -272,53 +250,62 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const hiddenCount = sortedTracks.length - visibleTracks.length;
 
   return (
-    <ModalShell
-      isOpen={isOpen}
-      onClose={onClose}
+    <Modal
       title="Ma bibliothèque"
-      description={`${tracks.length} ${tracks.length > 1 ? 'morceaux' : 'morceau'}`}
-      maxWidthClassName="max-w-lg"
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-      {tracks.length > 0 && (
-        <div className="sticky top-0 z-10 bg-paper flex items-center justify-between pb-4 border-b border-line">
-          <LibraryActions
-            tracks={tracks}
-            isRefreshing={isRefreshing}
-            onRefresh={handleRefreshAll}
-          />
-          <div className="flex items-center gap-2">
-            <span className="text-caption text-ink-faint">Ouvrir avec</span>
-            <PlatformSelector selected={preferredPlatform} onChange={handleUpdatePlatform} />
-          </div>
-        </div>
-      )}
+      <p className="-mt-3 text-caption text-text-faint">
+        {tracks.length} {tracks.length > 1 ? 'morceaux' : 'morceau'}
+      </p>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="size-8 animate-spin text-ink-faint" aria-label="Chargement" />
-        </div>
-      ) : tracks.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="divide-y divide-line pt-4" role="list">
-          {visibleTracks.map((track) => (
-            <TrackItem
-              key={track.id}
-              track={track}
-              preferredPlatform={preferredPlatform}
-              onDelete={handleUnlikeTrack}
+      <div
+        data-testid="modal-scroll-container"
+        className="max-h-[70dvh] overflow-y-auto scroll-pt-16"
+      >
+        {tracks.length > 0 && (
+          <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-raised pb-4">
+            <LibraryActions
+              tracks={tracks}
+              isRefreshing={isRefreshing}
+              onRefresh={handleRefreshAll}
             />
-          ))}
-        </div>
-      )}
+            <div className="flex items-center gap-2">
+              <span className="text-caption text-text-faint">Ouvrir avec</span>
+              <PlatformSelector selected={preferredPlatform} onChange={handleUpdatePlatform} />
+            </div>
+          </div>
+        )}
 
-      {hiddenCount > 0 && (
-        <div className="pt-4 flex justify-center">
-          <Button variant="ghost" onClick={() => setVisibleCount(sortedTracks.length)}>
-            Afficher les {hiddenCount} autres
-          </Button>
-        </div>
-      )}
-    </ModalShell>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="size-8 animate-spin text-text-faint" aria-label="Chargement" />
+          </div>
+        ) : tracks.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="divide-y divide-border pt-4" role="list">
+            {visibleTracks.map((track) => (
+              <TrackItem
+                key={track.id}
+                track={track}
+                preferredPlatform={preferredPlatform}
+                onDelete={handleUnlikeTrack}
+              />
+            ))}
+          </div>
+        )}
+
+        {hiddenCount > 0 && (
+          <div className="flex justify-center pt-4">
+            <Button variant="ghost" onClick={() => setVisibleCount(sortedTracks.length)}>
+              Afficher les {hiddenCount} autres
+            </Button>
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
