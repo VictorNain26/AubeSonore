@@ -9,10 +9,9 @@ vi.mock('./WaveformCanvas', () => ({
 }));
 
 describe('Antenna', () => {
-  it('shows the idle invitation and no canvas when not playing', () => {
+  it('renders nothing when not playing', () => {
     usePlayer.setState({ isPlaying: false });
     render(<Antenna />);
-    expect(screen.getByText('Appuyez sur lecture pour écouter le direct.')).toBeInTheDocument();
     expect(screen.queryByTestId('wave')).not.toBeInTheDocument();
   });
 

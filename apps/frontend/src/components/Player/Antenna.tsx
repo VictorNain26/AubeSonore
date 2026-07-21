@@ -11,9 +11,7 @@ export function Antenna() {
   const isPlaying = usePlayer((s) => s.isPlaying);
 
   if (!isPlaying) {
-    return (
-      <p className="text-caption text-text-muted">Appuyez sur lecture pour écouter le direct.</p>
-    );
+    return null;
   }
 
   return (

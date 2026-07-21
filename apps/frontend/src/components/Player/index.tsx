@@ -6,25 +6,22 @@ import { pageEntry } from '../../lib/motion';
 
 import { TrackArtwork } from './TrackArtwork';
 import { TrackMeta } from './TrackMeta';
-import { AntennaStatus } from './AntennaStatus';
 import { Antenna } from './Antenna';
 import { PlaybackControls } from './PlaybackControls';
 import { SecondaryControls } from './SecondaryControls';
 import { ArtistContext } from './ArtistContext';
 import { ArtistBio } from './ArtistBio';
-import { StationLog } from './StationLog';
+import { RecentTracks } from './RecentTracks';
 
 // Player is a composition root: it arranges sub-components only. Every
 // leaf subscribes directly to the store it cares about; side effects
 // (toasts, stats, media-session) live in <PlayerSideEffects />. The
 // AuthModal is hosted at App level, not here.
 //
-// Two columns on wide screens — le direct (now playing) beside le journal
-// (StationLog, what just aired). On narrow screens the two stack and the
-// page scrolls naturally.
+// Scene: single-viewport layout with centered player (row 1) and recent
+// tracks rail (row 2). Antenna may render a waveform or null; the scene
+// grid absorbs layout changes gracefully.
 
-const SCENE = 'flex flex-col gap-6 lg:grid lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_17rem]';
-const DIRECT = 'min-w-0 flex flex-col gap-5 lg:min-h-0 lg:overflow-y-auto lg:pr-6 lg:pt-2';
 const NOW = 'flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,42%)_1fr] lg:items-end lg:gap-10';
 const META = 'min-w-0 flex flex-col gap-3 lg:gap-4';
 
@@ -42,17 +39,14 @@ export default function Player() {
 
   if (!hasData) {
     return (
-      <div className={SCENE}>
-        <div className={DIRECT}>
-          <div className="border-t border-border pt-2">
-            <div className="h-4 w-32 animate-pulse rounded-sm bg-surface-raised" />
-          </div>
-          <div className={NOW}>
+      <div className="grid h-full grid-rows-[1fr_auto] overflow-hidden">
+        <div className="flex flex-col items-center justify-center">
+          <div className="flex flex-col gap-4 lg:grid lg:grid-cols-[minmax(0,42%)_1fr] lg:items-end lg:gap-10">
             <div className="relative artwork-size mx-auto lg:mx-0">
               <div className="aspect-square rounded-md animate-pulse bg-surface-raised" />
               <div className="absolute -bottom-3 -right-3 size-14 rounded-full animate-pulse bg-surface-raised" />
             </div>
-            <div className={META}>
+            <div className="min-w-0 flex flex-col gap-3 lg:gap-4">
               <div className="flex flex-col gap-2">
                 <div className="h-9 w-3/4 animate-pulse rounded-sm bg-surface-raised" />
                 <div className="h-5 w-1/3 animate-pulse rounded-sm bg-surface-raised" />
@@ -61,25 +55,19 @@ export default function Player() {
             </div>
           </div>
         </div>
-        <StationLog />
+        <RecentTracks />
       </div>
     );
   }
 
   return (
     <motion.div
-      className={SCENE}
+      className="grid h-full grid-rows-[1fr_auto] overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={pageEntry}
     >
-      <div className={DIRECT}>
-        <div className="font-sans text-caption text-text-muted uppercase tracking-widest mb-2">
-          DIRECT
-        </div>
-        <div className="border-t border-border pt-2">
-          <AntennaStatus />
-        </div>
+      <div className="flex flex-col items-center justify-center px-6 py-4">
         <div className={NOW}>
           <div className="relative artwork-size mx-auto lg:mx-0">
             <TrackArtwork />
@@ -96,7 +84,7 @@ export default function Player() {
         <ArtistBio onOpenPanel={() => setArtistPanelOpen(true)} />
       </div>
 
-      <StationLog />
+      <RecentTracks />
 
       <ArtistContext isOpen={artistPanelOpen} onClose={() => setArtistPanelOpen(false)} />
     </motion.div>
