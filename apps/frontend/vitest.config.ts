@@ -23,6 +23,7 @@ export default defineConfig({
       exclude: [
         'src/**/*.test.{ts,tsx}',
         'src/**/*.spec.{ts,tsx}',
+        'src/**/*.stories.{ts,tsx}',
         'src/mocks/**',
         'src/test-utils.tsx',
         // Visual-only / heavily DOM-coupled — covered by manual QA, not unit tests
