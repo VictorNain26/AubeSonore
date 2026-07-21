@@ -16,6 +16,26 @@ const LikedTracksModal = lazy(() =>
 // otherwise opens the shared auth modal via the store. Hosts the
 // LikedTracks modal lazily so the bundle splits at this leaf.
 
+export interface LibraryButtonViewProps {
+  /** La bibliothèque contient au moins un titre aimé (met en accent le bouton). */
+  hasLikedTracks: boolean;
+  /** Appelé au clic pour ouvrir la bibliothèque (ou la modale d'auth si non connecté). */
+  onOpen: () => void;
+}
+
+export function LibraryButtonView({ hasLikedTracks, onOpen }: LibraryButtonViewProps) {
+  return (
+    <Button
+      variant="icon"
+      aria-label="Ouvrir ma bibliothèque"
+      onClick={onOpen}
+      className={cn(hasLikedTracks && 'text-accent hover:text-accent')}
+    >
+      <Library className="size-5" />
+    </Button>
+  );
+}
+
 export function LibraryButton() {
   const tracks = useLikedTracksStore((s) => s.tracks);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -34,14 +54,10 @@ export function LibraryButton() {
 
   return (
     <>
-      <Button
-        variant="icon"
-        aria-label="Ouvrir ma bibliothèque"
-        onClick={handleOpen}
-        className={cn(isAuthenticated && tracks.length > 0 && 'text-accent hover:text-accent')}
-      >
-        <Library className="size-5" />
-      </Button>
+      <LibraryButtonView
+        hasLikedTracks={isAuthenticated && tracks.length > 0}
+        onOpen={handleOpen}
+      />
 
       {isModalOpen && (
         <Suspense fallback={null}>
