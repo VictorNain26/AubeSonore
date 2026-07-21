@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useAuthModalStore } from '../stores/authModalStore';
-import { ModalErrorFallback } from './ErrorFallback';
+import { ModalErrorFallback } from '../design/organisms/ErrorFallback';
 
 const AuthModal = lazy(() => import('./AuthModal').then((m) => ({ default: m.AuthModal })));
 

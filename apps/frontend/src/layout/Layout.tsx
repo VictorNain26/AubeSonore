@@ -11,7 +11,7 @@ import { useAuthModalStore } from '../stores/authModalStore';
 import { toastError } from '../lib/appToast';
 
 const AboutModal = lazy(() =>
-  import('../components/AboutModal').then((m) => ({ default: m.AboutModal }))
+  import('../design/organisms/AboutModal').then((m) => ({ default: m.AboutModal }))
 );
 
 interface LayoutProps {

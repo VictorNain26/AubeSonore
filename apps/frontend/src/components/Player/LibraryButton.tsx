@@ -3,7 +3,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
-import { ModalErrorFallback } from '../ErrorFallback';
+import { ModalErrorFallback } from '../../design/organisms/ErrorFallback';
 import { LibraryButtonView } from '../../design/molecules/LibraryButton';
 
 const LikedTracksModal = lazy(() =>

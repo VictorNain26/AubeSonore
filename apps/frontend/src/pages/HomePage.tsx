@@ -1,7 +1,7 @@
 import { ErrorBoundary } from 'react-error-boundary';
 import Player from '../components/Player';
 import { PlayerSideEffects } from '../components/Player/PlayerSideEffects';
-import { PlayerErrorFallback } from '../components/ErrorFallback';
+import { PlayerErrorFallback } from '../design/organisms/ErrorFallback';
 
 export default function HomePage() {
   return (
