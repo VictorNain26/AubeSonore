@@ -45,29 +45,39 @@ export function RecentTracks() {
 
   return (
     <section aria-label="Vient de passer" className="border-t border-border">
-      <div className="mx-auto w-full">
-        <h2 className="text-caption px-6 pt-3 pb-2">Vient de passer</h2>
-        {error && entries.length > 0 ? (
-          <p className="text-caption text-text-faint px-6 pb-3">Historique partiel.</p>
-        ) : null}
+      <div className="mx-auto w-full px-6 py-3">
+        <div className="flex items-baseline gap-3">
+          <h2 className="text-caption tracking-widest uppercase text-text-faint">
+            Vient de passer
+          </h2>
+          {error && entries.length > 0 ? (
+            <p className="text-caption text-text-faint">Historique partiel.</p>
+          ) : null}
+        </div>
         {isLoading && entries.length === 0 ? (
-          <ul className="flex flex-col divide-y divide-border">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <li key={i} className="flex items-center gap-3 px-6 py-3">
-                <div className="size-10 shrink-0 rounded-sm animate-pulse bg-surface-raised" />
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                  <div className="h-3.5 w-2/3 rounded-sm animate-pulse bg-surface-raised" />
-                  <div className="h-3 w-1/3 rounded-sm animate-pulse bg-surface-raised" />
+          <div className="flex gap-4 overflow-hidden pt-1.5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div
+                key={i}
+                data-testid="recent-tracks-skeleton"
+                className="flex shrink-0 items-center gap-3 py-1"
+              >
+                <div className="size-10 rounded-sm animate-pulse bg-surface-raised" />
+                <div className="flex flex-col gap-1.5">
+                  <div className="h-3.5 w-28 rounded-sm animate-pulse bg-surface-raised" />
+                  <div className="h-3 w-16 rounded-sm animate-pulse bg-surface-raised" />
                 </div>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         ) : entries.length === 0 ? (
-          <p className="text-caption text-text-faint px-6 pb-3">
-            Aucun morceau pour l&apos;instant.
-          </p>
+          <p className="text-caption text-text-faint pt-1.5">Aucun morceau pour l&apos;instant.</p>
         ) : (
-          <ul className="flex flex-col divide-y divide-border">
+          <div
+            role="list"
+            aria-label="Vient de passer"
+            className="flex snap-x snap-proximity gap-4 overflow-x-auto pt-1.5 pb-1"
+          >
             {entries.map((entry) => (
               <RecentTrackCard
                 key={entry.sh_id}
@@ -80,7 +90,7 @@ export function RecentTracks() {
                 onShare={() => handleShare(entry)}
               />
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </section>

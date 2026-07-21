@@ -101,7 +101,7 @@ describe('RecentTracks', () => {
 
     render(<RecentTracks />);
 
-    const skeletons = screen.getAllByRole('listitem');
-    expect(skeletons.length).toBeGreaterThanOrEqual(6);
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('recent-tracks-skeleton')).toHaveLength(4);
   });
 });
