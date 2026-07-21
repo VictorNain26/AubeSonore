@@ -3,15 +3,26 @@ import { Thumbnail } from '../atoms/Thumbnail';
 import { IconButton } from '../atoms/IconButton';
 
 export interface TrackRailItemProps {
+  /** Titre du morceau. */
   title: string;
+  /** Nom de l'artiste. */
   artist: string;
+  /** URL de la pochette ; miniature de repli si absente. */
   art?: string;
+  /** Le morceau est-il déjà dans les favoris. */
   isLiked: boolean;
+  /** Requête like/unlike en cours (désactive le bouton). */
   isLiking: boolean;
+  /** Appelé au clic sur le bouton favori. */
   onToggle: () => void;
+  /** Appelé au clic sur le bouton partager. */
   onShare: () => void;
 }
 
+/**
+ * Ligne d'une piste de morceaux récents : miniature, titre/artiste tronqués,
+ * actions favori et partage révélées au survol/focus.
+ */
 export function TrackRailItem({
   title,
   artist,

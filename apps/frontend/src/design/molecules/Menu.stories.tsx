@@ -2,10 +2,26 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Button } from '../atoms/Button';
 import { Menu } from './Menu';
 
-const meta: Meta<typeof Menu> = { title: 'Molecules/Menu', component: Menu };
+const meta: Meta<typeof Menu> = {
+  title: 'Molecules/Menu',
+  component: Menu,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Menu contextuel (Base UI). Devient un groupe radio dès qu’une entrée porte `selected`. Composite : `trigger`/`items` passés en props d’un `render`, pas de story par état d’args.',
+      },
+    },
+  },
+};
 export default meta;
 
-export const Actions: StoryObj = {
+type Story = StoryObj<typeof Menu>;
+
+export const Actions: Story = {
+  parameters: {
+    docs: { description: { story: 'Liste d’actions simples, une entrée désactivée.' } },
+  },
   render: () => (
     <Menu
       trigger={
@@ -22,7 +38,10 @@ export const Actions: StoryObj = {
   ),
 };
 
-export const WithSelection: StoryObj = {
+export const WithSelection: Story = {
+  parameters: {
+    docs: { description: { story: 'Une entrée `selected` : le menu bascule en groupe radio.' } },
+  },
   render: () => (
     <Menu
       trigger={<Button variant="ghost">Spotify</Button>}
@@ -35,7 +54,10 @@ export const WithSelection: StoryObj = {
   ),
 };
 
-export const WithHeader: StoryObj = {
+export const WithHeader: Story = {
+  parameters: {
+    docs: { description: { story: 'Avec un en-tête (infos utilisateur) au-dessus des actions.' } },
+  },
   render: () => (
     <Menu
       header={

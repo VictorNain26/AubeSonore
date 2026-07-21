@@ -2,13 +2,22 @@ import type { ReactElement, ReactNode } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 
 export interface ModalProps {
+  /** Titre affiché dans l'en-tête de la fenêtre. */
   title: string;
+  /** Élément déclencheur ; omis pour un contrôle entièrement piloté par `open`. */
   trigger?: ReactElement;
+  /** Contenu de la fenêtre. */
   children: ReactNode;
+  /** État ouvert/fermé contrôlé (utiliser avec `onOpenChange`, sans `trigger`). */
   open?: boolean;
+  /** Appelé quand l'état ouvert/fermé change. */
   onOpenChange?: (open: boolean) => void;
 }
 
+/**
+ * Fenêtre modale basée sur Base UI Dialog. Utilisable en mode non contrôlé (avec `trigger`)
+ * ou contrôlé (`open`/`onOpenChange`, trigger externe).
+ */
 export function Modal({ title, trigger, children, open, onOpenChange }: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>

@@ -4,10 +4,29 @@ import { Button } from '../atoms/Button';
 import { Modal } from './Modal';
 import { TextField } from '../atoms/TextField';
 
-const meta: Meta<typeof Modal> = { title: 'Organisms/Modal', component: Modal };
+const meta: Meta<typeof Modal> = {
+  title: 'Organisms/Modal',
+  component: Modal,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Fenêtre modale (Base UI Dialog), non contrôlée (`trigger`) ou contrôlée (`open`/`onOpenChange`). Composite : le contenu est du `children` libre, pas de story par état d’args.',
+      },
+    },
+  },
+  argTypes: {
+    title: { control: 'text' },
+  },
+};
 export default meta;
 
-export const Connexion: StoryObj = {
+type Story = StoryObj<typeof Modal>;
+
+export const Connexion: Story = {
+  parameters: {
+    docs: { description: { story: 'Usage non contrôlé : le trigger interne gère l’ouverture.' } },
+  },
   render: () => (
     <Modal title="Se connecter" trigger={<Button variant="ghost">Compte</Button>}>
       <div className="flex flex-col gap-4">
@@ -18,7 +37,14 @@ export const Connexion: StoryObj = {
   ),
 };
 
-export const Controlee: StoryObj = {
+export const Controlee: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: 'Usage contrôlé : l’état ouvert/fermé est piloté par un composant parent.',
+      },
+    },
+  },
   render: () => {
     function ControlledModal() {
       const [isOpen, setIsOpen] = useState(false);
