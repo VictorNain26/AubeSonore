@@ -8,11 +8,14 @@ import { WaveformCanvas } from './WaveformCanvas';
 
 export function Antenna() {
   const shId = useNowPlayingStore((s) => s.data?.now_playing?.sh_id);
+  const isOnline = useNowPlayingStore((s) => s.data?.is_online ?? true);
   const isPlaying = usePlayer((s) => s.isPlaying);
 
-  if (!isPlaying) {
+  if (!isOnline) {
     return (
-      <p className="text-caption text-text-muted">Appuyez sur lecture pour écouter le direct.</p>
+      <p className="text-caption text-text-muted" aria-live="polite">
+        Hors antenne — revenez un peu plus tard.
+      </p>
     );
   }
 

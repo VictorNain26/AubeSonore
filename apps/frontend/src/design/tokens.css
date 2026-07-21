@@ -87,11 +87,10 @@
 }
 
 @utility artwork-size {
-  width: 100%;
-  max-width: min(26dvh, 260px);
+  width: min(100%, 20rem, 38dvh);
 
-  @media (min-width: 64rem) {
-    max-width: min(52dvh, 560px);
+  @media (width >= 64rem) {
+    width: min(24rem, 42dvh);
   }
 }
 
