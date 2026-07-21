@@ -1,13 +1,14 @@
+import { useState } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
-import { Button } from './ui/Button';
-import { ModalShell } from './ui/ModalShell';
+import { Button } from '../design/ui/Button';
+import { Modal } from '../design/ui/Modal';
 
 export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
   return (
-    <div role="alert" className="rule w-full max-w-lg mx-auto pt-6 text-center">
-      <p className="font-display text-title text-ink">{"La lecture s'est interrompue"}</p>
-      <p className="mt-2 text-body text-ink-soft">Rechargez ou réessayez dans un instant.</p>
-      <Button variant="ink" onClick={resetErrorBoundary} className="mt-4 px-4 py-2">
+    <div role="alert" className="border-t border-border w-full max-w-lg mx-auto pt-6 text-center">
+      <p className="text-title text-text">{"La lecture s'est interrompue"}</p>
+      <p className="mt-2 text-body text-text-muted">Rechargez ou réessayez dans un instant.</p>
+      <Button variant="primary" onClick={resetErrorBoundary} className="mt-4">
         Réessayer
       </Button>
     </div>
@@ -19,17 +20,22 @@ interface ModalErrorFallbackProps extends FallbackProps {
 }
 
 export function ModalErrorFallback({ onClose }: ModalErrorFallbackProps) {
+  const [isOpen, setIsOpen] = useState(true);
+  const handleClose = () => {
+    setIsOpen(false);
+    onClose();
+  };
   return (
-    <ModalShell isOpen onClose={onClose} title="Une erreur est survenue">
+    <Modal title="Une erreur est survenue" open={isOpen} onOpenChange={(o) => !o && handleClose()}>
       <div role="alert" className="text-center">
-        <p className="text-body text-ink-soft">
+        <p className="text-body text-text-muted">
           La fenêtre a rencontré un problème. Fermez-la puis rouvrez-la ; si l&apos;erreur persiste,
           rechargez la page.
         </p>
-        <Button variant="ink" onClick={onClose} className="mt-4 px-4 py-2">
+        <Button variant="primary" onClick={handleClose} className="mt-4">
           Fermer
         </Button>
       </div>
-    </ModalShell>
+    </Modal>
   );
 }
