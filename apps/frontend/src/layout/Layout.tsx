@@ -117,8 +117,8 @@ export default function Layout({ children }: LayoutProps) {
           classNames: {
             toast: 'font-sans !bg-surface-raised !border-border !text-text !text-body',
             description: '!text-text-muted',
-            success: 'toast-success',
-            error: 'toast-danger',
+            success: 'border-l-2 border-border',
+            error: 'border-l-2 border-accent',
           },
         }}
       />
