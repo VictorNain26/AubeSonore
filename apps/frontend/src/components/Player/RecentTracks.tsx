@@ -44,8 +44,8 @@ export function RecentTracks() {
   const entries = (history ?? []).filter((e) => e.sh_id !== nowPlayingId).slice(0, 6);
 
   return (
-    <section aria-label="Vient de passer" className="border-t border-border">
-      <div className="mx-auto w-full px-6 py-3">
+    <section aria-label="Vient de passer" className="min-w-0 border-t border-border">
+      <div className="mx-auto w-full min-w-0 px-6 py-3">
         <div className="flex items-baseline gap-3">
           <h2 className="text-caption tracking-widest uppercase text-text-faint">
             Vient de passer
