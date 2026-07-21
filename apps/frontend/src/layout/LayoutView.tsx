@@ -19,8 +19,11 @@ export interface LayoutViewProps {
   isAuthenticated: boolean;
   /** Session en cours de résolution (affiche un squelette à la place du menu/CTA). */
   isLoading: boolean;
+  /** Sign the current user out and clear the session. */
   onSignOut: () => void;
+  /** Open the authentication modal (sign in / sign up). */
   onOpenAuthModal: () => void;
+  /** Open the "À propos" modal. */
   onOpenAbout: () => void;
   /** Modale « À propos », montée par le conteneur (import différé). */
   aboutModal: ReactNode;
