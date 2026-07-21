@@ -1,40 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Thumbnail } from './Thumbnail';
 
-const meta: Meta<typeof Thumbnail> = {
-  component: Thumbnail,
-  tags: ['autodocs'],
-};
-
+const meta: Meta<typeof Thumbnail> = { title: 'Atoms/Thumbnail', component: Thumbnail };
 export default meta;
-type Story = StoryObj<typeof meta>;
 
-export const WithImage: Story = {
-  args: {
-    src: 'https://images.unsplash.com/photo-1511379938547-c1f69b13d835?w=200&h=200&fit=crop',
-    alt: 'Album artwork',
-    size: 'md',
-  },
-};
-
-export const Small: Story = {
-  args: {
-    src: 'https://images.unsplash.com/photo-1511379938547-c1f69b13d835?w=48&h=48&fit=crop',
-    alt: 'Small album artwork',
-    size: 'sm',
-  },
-};
-
-export const NoImage: Story = {
-  args: {
-    size: 'md',
-  },
-};
-
-export const Fallback: Story = {
-  args: {
-    src: 'https://invalid-url-that-will-fail.test/image.jpg',
-    alt: 'Broken image',
-    size: 'md',
-  },
+export const Etats: StoryObj = {
+  render: () => (
+    <div className="flex items-end gap-6">
+      <Thumbnail size="md" src="https://picsum.photos/seed/aube/96" alt="Pochette exemple" />
+      <Thumbnail size="md" alt="" />
+      <Thumbnail size="sm" alt="" />
+      <p className="text-caption text-text-muted">Image · fallback (md) · fallback (sm)</p>
+    </div>
+  ),
 };

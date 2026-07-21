@@ -2,6 +2,11 @@ import { useState } from 'react';
 import { Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+const SIZE: Record<'sm' | 'md', string> = {
+  sm: 'size-10',
+  md: 'size-12',
+};
+
 export interface ThumbnailProps {
   src?: string;
   alt?: string;
@@ -9,32 +14,27 @@ export interface ThumbnailProps {
   className?: string;
 }
 
-const sizeClass = {
-  sm: 'size-12',
-  md: 'size-20',
-};
-
-export function Thumbnail({ src, alt, size = 'md', className }: ThumbnailProps) {
-  const [hasError, setHasError] = useState(false);
-  const shouldShowImage = src && !hasError;
+export function Thumbnail({ src, alt = '', size = 'sm', className }: ThumbnailProps) {
+  const [imgError, setImgError] = useState(false);
+  const showImage = Boolean(src) && !imgError;
 
   return (
     <div
       className={cn(
-        'relative flex items-center justify-center overflow-hidden rounded-sm bg-surface-raised',
-        sizeClass[size],
+        'relative shrink-0 overflow-hidden rounded-sm bg-surface-raised',
+        SIZE[size],
         className
       )}
     >
-      {shouldShowImage ? (
+      {showImage ? (
         <img
           src={src}
           alt={alt}
-          className="size-full object-cover"
-          onError={() => setHasError(true)}
           referrerPolicy="no-referrer"
           loading="lazy"
           decoding="async"
+          className="size-full object-cover"
+          onError={() => setImgError(true)}
         />
       ) : (
         <Music className="absolute inset-0 m-auto size-4 text-text-faint" />
