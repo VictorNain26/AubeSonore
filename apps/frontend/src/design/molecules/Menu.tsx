@@ -10,14 +10,21 @@ interface MenuAction {
 }
 
 export interface MenuProps {
+  /** Élément déclencheur (ex. `Button`) auquel le menu se rattache. */
   trigger: ReactElement;
+  /** Contenu optionnel affiché en tête du menu (ex. infos utilisateur). */
   header?: ReactNode;
+  /** Actions listées ; si une entrée a `selected` défini, le menu devient un groupe radio. */
   items: MenuAction[];
 }
 
 const itemClassName =
   'flex h-11 cursor-default items-center px-4 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-surface';
 
+/**
+ * Menu contextuel basé sur Base UI. Bascule automatiquement en groupe radio dès qu'une
+ * entrée porte `selected`, sinon reste une liste d'actions simples.
+ */
 export function Menu({ trigger, header, items }: MenuProps) {
   const isRadio = items.some((item) => item.selected !== undefined);
   const selectedValue = items.find((item) => item.selected === true)?.label;

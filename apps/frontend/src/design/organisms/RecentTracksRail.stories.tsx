@@ -4,8 +4,22 @@ import { RecentTracksRail, type RailEntry } from './RecentTracksRail';
 const meta: Meta<typeof RecentTracksRail> = {
   title: 'Organisms/RecentTracksRail',
   component: RecentTracksRail,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Section « Vient de passer » : piste horizontale des morceaux récents, avec chargement (squelettes), historique partiel et état vide. Composite : `entries` est un tableau de données, pas de story par état d’args.',
+      },
+    },
+  },
+  argTypes: {
+    isLoading: { control: 'boolean' },
+    partial: { control: 'boolean' },
+  },
 };
 export default meta;
+
+type Story = StoryObj<typeof RecentTracksRail>;
 
 const noop = () => {};
 
@@ -18,7 +32,10 @@ const entries: RailEntry[] = [
   { id: 4, title: 'Song Four', artist: 'Artist Four', isLiked: false, isLiking: false },
 ];
 
-export const Peuple: StoryObj = {
+export const Peuple: Story = {
+  parameters: {
+    docs: { description: { story: 'Historique complet, plusieurs morceaux avec états variés.' } },
+  },
   render: () => (
     <RecentTracksRail
       entries={entries}
@@ -30,19 +47,32 @@ export const Peuple: StoryObj = {
   ),
 };
 
-export const HistoriquePartiel: StoryObj = {
+export const HistoriquePartiel: Story = {
+  parameters: {
+    docs: {
+      description: { story: 'Historique incomplet : une mention explicative est affichée.' },
+    },
+  },
   render: () => (
     <RecentTracksRail entries={entries} isLoading={false} partial onToggle={noop} onShare={noop} />
   ),
 };
 
-export const Chargement: StoryObj = {
+export const Chargement: Story = {
+  parameters: {
+    docs: {
+      description: { story: 'Chargement initial : squelettes tant qu’il n’y a aucune entrée.' },
+    },
+  },
   render: () => (
     <RecentTracksRail entries={[]} isLoading partial={false} onToggle={noop} onShare={noop} />
   ),
 };
 
-export const Vide: StoryObj = {
+export const Vide: Story = {
+  parameters: {
+    docs: { description: { story: 'Aucun morceau récent à afficher.' } },
+  },
   render: () => (
     <RecentTracksRail
       entries={[]}

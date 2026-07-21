@@ -4,12 +4,35 @@ import { TrackRailItem } from './TrackRailItem';
 const meta: Meta<typeof TrackRailItem> = {
   title: 'Molecules/TrackRailItem',
   component: TrackRailItem,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Ligne d’un morceau récent : miniature, titre/artiste, actions favori/partage révélées au survol/focus. Composite : les états sont montrés côte à côte plutôt qu’en une story par variante.',
+      },
+    },
+  },
+  argTypes: {
+    title: { control: 'text' },
+    artist: { control: 'text' },
+    isLiked: { control: 'boolean' },
+    isLiking: { control: 'boolean' },
+  },
 };
 export default meta;
 
+type Story = StoryObj<typeof TrackRailItem>;
+
 const noop = () => {};
 
-export const Etats: StoryObj = {
+export const Etats: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story: 'Trois états : neutre, aimé, requête like en cours + titre/artiste longs.',
+      },
+    },
+  },
   render: () => (
     <div role="list" className="flex flex-col divide-y divide-border">
       <TrackRailItem

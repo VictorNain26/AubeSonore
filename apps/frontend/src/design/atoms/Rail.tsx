@@ -2,10 +2,15 @@ import type { ReactNode } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 
 export interface RailProps {
+  /** Nom accessible de la liste défilante (`role="list"`). */
   ariaLabel: string;
+  /** Entrées de la piste, chacune portant `role="listitem"`. */
   children: ReactNode;
 }
 
+/**
+ * Piste horizontale défilable au doigt/à la souris (Embla), sans flèches ni scrollbar visible.
+ */
 export function Rail({ ariaLabel, children }: RailProps) {
   const [emblaRef] = useEmblaCarousel({
     dragFree: true,

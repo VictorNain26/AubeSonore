@@ -2,41 +2,89 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Slider } from './Slider';
 
-const meta: Meta<typeof Slider> = { title: 'Atoms/Slider', component: Slider };
+const meta = {
+  title: 'Atoms/Slider',
+  component: Slider,
+  parameters: {
+    docs: {
+      description: {
+        component:
+          'Curseur de valeur continue (ex. volume) basé sur `Slider` de Base UI, disponible en orientation horizontale ou verticale.',
+      },
+    },
+  },
+  argTypes: {
+    orientation: {
+      control: 'inline-radio',
+      options: ['horizontal', 'vertical'],
+    },
+    value: { control: { type: 'range', min: 0, max: 1, step: 0.01 } },
+    disabled: { control: 'boolean' },
+  },
+  args: {
+    label: 'Volume',
+    value: 0.6,
+    onValueChange: () => {},
+    disabled: false,
+    orientation: 'horizontal',
+  },
+} satisfies Meta<typeof Slider>;
 export default meta;
 
-const Demo = ({ disabled = false }: { disabled?: boolean }) => {
-  const [volume, setVolume] = useState(0.6);
-  return <Slider label="Volume" value={volume} onValueChange={setVolume} disabled={disabled} />;
-};
+type Story = StoryObj<typeof meta>;
 
-export const Volume: StoryObj = {
-  render: () => (
-    <div className="flex max-w-xs flex-col gap-8">
-      <Demo />
-      <Demo disabled />
+function ControlledSlider(args: React.ComponentProps<typeof Slider>) {
+  const [value, setValue] = useState(args.value);
+  return <Slider {...args} value={value} onValueChange={setValue} />;
+}
+
+export const Default: Story = {
+  render: (args) => (
+    <div className="max-w-xs">
+      <ControlledSlider {...args} />
     </div>
   ),
 };
 
-const VerticalDemo = ({ disabled = false }: { disabled?: boolean }) => {
-  const [volume, setVolume] = useState(0.6);
-  return (
-    <Slider
-      label="Volume"
-      orientation="vertical"
-      value={volume}
-      onValueChange={setVolume}
-      disabled={disabled}
-    />
-  );
+export const Disabled: Story = {
+  args: { disabled: true },
+  render: (args) => (
+    <div className="max-w-xs">
+      <ControlledSlider {...args} />
+    </div>
+  ),
 };
 
-export const Vertical: StoryObj = {
+export const Vertical: Story = {
+  args: { orientation: 'vertical' },
+  render: (args) => <ControlledSlider {...args} />,
+};
+
+export const Showcase: Story = {
+  parameters: {
+    docs: { description: { story: 'Horizontal et vertical, actif et désactivé.' } },
+  },
   render: () => (
-    <div className="flex gap-8">
-      <VerticalDemo />
-      <VerticalDemo disabled />
+    <div className="flex flex-col gap-8">
+      <div className="flex max-w-xs flex-col gap-8">
+        <ControlledSlider label="Volume" value={0.6} onValueChange={() => {}} />
+        <ControlledSlider label="Volume" value={0.6} onValueChange={() => {}} disabled />
+      </div>
+      <div className="flex gap-8">
+        <ControlledSlider
+          label="Volume"
+          orientation="vertical"
+          value={0.6}
+          onValueChange={() => {}}
+        />
+        <ControlledSlider
+          label="Volume"
+          orientation="vertical"
+          value={0.6}
+          onValueChange={() => {}}
+          disabled
+        />
+      </div>
     </div>
   ),
 };

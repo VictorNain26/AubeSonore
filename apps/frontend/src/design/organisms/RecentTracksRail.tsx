@@ -11,13 +11,22 @@ export interface RailEntry {
 }
 
 export interface RecentTracksRailProps {
+  /** Morceaux récemment diffusés à afficher. */
   entries: RailEntry[];
+  /** Chargement initial en cours (affiche des squelettes tant qu'il n'y a aucune entrée). */
   isLoading: boolean;
+  /** L'historique renvoyé est partiel (affiche une mention explicative). */
   partial: boolean;
+  /** Appelé avec l'id du morceau au clic favori. */
   onToggle: (id: number) => void;
+  /** Appelé avec l'id du morceau au clic partager. */
   onShare: (id: number) => void;
 }
 
+/**
+ * Section « Vient de passer » : piste horizontale des morceaux récents, avec états
+ * chargement (squelettes), historique partiel et vide.
+ */
 export function RecentTracksRail({
   entries,
   isLoading,
