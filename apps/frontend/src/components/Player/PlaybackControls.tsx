@@ -8,19 +8,18 @@ import { toggle as toggleTransition } from '../../lib/motion';
 // Play / stop button, subscribing directly to usePlayer. The single flat
 // accent block of the scene — the central gesture, deliberately alone.
 
-export function PlaybackControls() {
-  const isPlaying = usePlayer((s) => s.isPlaying);
-  const play = usePlayer((s) => s.play);
-  const stop = usePlayer((s) => s.stop);
+/** Presentational props for the central play/stop control. */
+export interface PlaybackControlsViewProps {
+  /** Whether the stream is currently playing. */
+  isPlaying: boolean;
+  /** Toggles play/stop. */
+  onTogglePlay: () => void;
+}
 
-  const togglePlay = useCallback(() => {
-    if (isPlaying) stop();
-    else void play();
-  }, [isPlaying, play, stop]);
-
+export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackControlsViewProps) {
   return (
     <motion.button
-      onClick={togglePlay}
+      onClick={onTogglePlay}
       transition={toggleTransition}
       className={cn(
         'size-14 lg:size-16 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
@@ -54,4 +53,17 @@ export function PlaybackControls() {
       </AnimatePresence>
     </motion.button>
   );
+}
+
+export function PlaybackControls() {
+  const isPlaying = usePlayer((s) => s.isPlaying);
+  const play = usePlayer((s) => s.play);
+  const stop = usePlayer((s) => s.stop);
+
+  const togglePlay = useCallback(() => {
+    if (isPlaying) stop();
+    else void play();
+  }, [isPlaying, play, stop]);
+
+  return <PlaybackControlsView isPlaying={isPlaying} onTogglePlay={togglePlay} />;
 }
