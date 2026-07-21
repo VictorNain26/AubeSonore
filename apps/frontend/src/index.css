@@ -1,47 +1,17 @@
 @import 'tailwindcss';
 @import './design/tokens.css';
 
-/* =============================================================================
-   Couche legacy — les écrans non migrés (Player, modals, StationLog, bannière
-   PWA) consomment encore paper/ink/line. Ces vars sont des ALIAS des tokens v3
-   pour que tout suive le thème clair/sombre. Supprimée par la PR démolition.
-   ============================================================================= */
-
-:root {
-  --paper: var(--surface);
-  --paper-raised: var(--surface-raised);
-  --ink: var(--text);
-  --ink-soft: var(--text-muted);
-  --ink-faint: var(--text-faint);
-  --line: var(--border);
-}
-
 @theme inline {
-  --color-paper: var(--paper);
-  --color-paper-raised: var(--paper-raised);
-  --color-ink: var(--ink);
-  --color-ink-soft: var(--ink-soft);
-  --color-ink-faint: var(--ink-faint);
-  --color-line: var(--line);
-  --color-danger: hsl(0 62% 44%);
-  --color-success: hsl(150 55% 32%);
-
   --radius-lg: 0.5rem;
 
   --container-page: 75rem;
-
-  --ease-fluid: cubic-bezier(0.3, 0, 0, 1);
-  --ease-snappy: cubic-bezier(0.2, 0, 0, 1);
-
-  --font-text: 'Spectral', Georgia, serif;
-  --font-display: 'Young Serif', Georgia, serif;
 }
 
 @layer base {
   body {
     background-color: var(--color-surface);
     color: var(--color-text);
-    font-family: var(--font-text);
+    font-family: var(--font-sans);
     font-variant-numeric: tabular-nums;
     font-size: var(--text-body);
     font-feature-settings:
@@ -74,52 +44,6 @@
 }
 
 @layer utilities {
-  .rule {
-    border-top: 1px solid var(--color-line);
-  }
-
-  .panel {
-    background: var(--color-paper);
-    border: 1px solid var(--color-line);
-    border-radius: var(--radius-lg);
-    box-shadow: 0 12px 32px -12px color-mix(in srgb, var(--ink) 25%, transparent);
-  }
-
-  .skeleton {
-    background: color-mix(in srgb, var(--ink) 7%, var(--paper));
-    animation: pulse-soft 2s ease-in-out infinite;
-    border-radius: var(--radius-md);
-  }
-
-  .toast-success {
-    border-left: 2px solid var(--color-success);
-  }
-
-  .toast-danger {
-    border-left: 2px solid var(--color-danger);
-  }
-
-  .eyebrow {
-    font-size: var(--text-caption);
-    line-height: var(--text-caption--line-height);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-ink-faint);
-  }
-
-  .press-ink:active {
-    background: color-mix(in srgb, var(--ink) 10%, var(--paper));
-  }
-}
-
-@keyframes pulse-soft {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -140,7 +64,7 @@ input[type='range'] {
   cursor: pointer;
 }
 input[type='range']::-webkit-slider-track {
-  background: var(--color-line);
+  background: var(--border);
   height: 3px;
   border-radius: 9999px;
 }
@@ -150,7 +74,7 @@ input[type='range']::-webkit-slider-thumb {
   height: 14px;
   width: 14px;
   border-radius: 9999px;
-  background: var(--color-ink);
+  background: var(--text);
   border: none;
   margin-top: -5.5px;
   transition: transform 150ms ease;
@@ -159,7 +83,7 @@ input[type='range']::-webkit-slider-thumb:hover {
   transform: scale(1.15);
 }
 input[type='range']::-moz-range-track {
-  background: var(--color-line);
+  background: var(--border);
   height: 3px;
   border-radius: 9999px;
   border: 0;
@@ -168,6 +92,6 @@ input[type='range']::-moz-range-thumb {
   height: 14px;
   width: 14px;
   border-radius: 9999px;
-  background: var(--color-ink);
+  background: var(--text);
   border: none;
 }
