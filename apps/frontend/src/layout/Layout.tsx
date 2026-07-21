@@ -63,7 +63,7 @@ export default function Layout({ children }: LayoutProps) {
       </a>
 
       <header className="mx-auto flex w-full max-w-page items-center justify-between px-6 pt-6 pb-3 font-sans">
-        <p className="text-title tracking-tight">AubeSonore</p>
+        <p className="font-display text-title tracking-tight">AubeSonore</p>
 
         <div className="flex items-center gap-1">
           <ThemeToggle />

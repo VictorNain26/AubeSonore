@@ -15,6 +15,7 @@ Spec: `docs/superpowers/specs/2026-07-20-design-system-v3-design.md`.
 
 - Never write hex/hsl/oklch values outside `src/design/tokens.css`.
 - Never use arbitrary values for color, spacing, typography (`bg-[#fff]`, `p-[13px]`, `text-[17px]`).
+- Typography families: default body = Inter (`font-sans`, implicite via `<body>`); headings & section kickers = `font-display` (Instrument Sans), appliqué sur `text-display`, `text-title`, et le libellé de section (kicker uppercase, ex. « Vient de passer »).
 - Typography: `text-display`, `text-title`, `text-lead`, `text-body`, `text-caption` — nothing else.
 - Radii: `rounded-sm`, `rounded-md`, `rounded-full` — nothing else.
 - New token needed? Add it to both theme blocks in `tokens.css`, add its pair to `scripts/check-contrast.mjs`, run the script.

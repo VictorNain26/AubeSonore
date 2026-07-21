@@ -32,7 +32,7 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
         <motion.h2
           key={shId ?? 'waiting'}
           {...inkFlip}
-          className="text-title lg:text-display font-medium text-text [text-wrap:balance]"
+          className="font-display text-title lg:text-display font-medium text-text [text-wrap:balance]"
         >
           {title || 'Chargement du direct'}
         </motion.h2>

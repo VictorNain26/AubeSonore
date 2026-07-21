@@ -9,6 +9,7 @@
   color-scheme: light;
 
   --p-font-stack: 'Inter Variable', system-ui, sans-serif;
+  --p-font-display: 'Instrument Sans Variable', 'Inter Variable', system-ui, sans-serif;
 
   --surface: oklch(0.975 0.008 80);
   --surface-raised: oklch(0.94 0.012 80);
@@ -50,6 +51,7 @@
 
   --font-*: initial;
   --font-sans: var(--p-font-stack);
+  --font-display: var(--p-font-display);
 
   --text-*: initial;
   --text-display: clamp(2.25rem, 1.2rem + 4.5vw, 4rem);
