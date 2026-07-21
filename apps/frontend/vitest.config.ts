@@ -59,8 +59,6 @@ export default defineConfig({
         // Player-domain hooks — pure logic extracted from src/components/Player/index.tsx
         // (which is itself excluded above). Covered by manual QA on the Player.
         'src/hooks/player/**',
-        // UI primitives — thin wrappers over Radix; behavior validated visually.
-        'src/components/ui/**',
         // External SDK wrappers — covered by browser, not unit tests
         'src/lib/cast/**',
         'src/lib/exportLibrary.ts',
