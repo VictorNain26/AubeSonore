@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { LibraryButtonView } from './LibraryButton';
 
 const meta = {
-  title: 'Features/LibraryButton',
+  title: 'Molecules/LibraryButton',
   component: LibraryButtonView,
   parameters: {
     docs: {

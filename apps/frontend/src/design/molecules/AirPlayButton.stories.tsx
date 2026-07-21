@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AirPlayButtonView } from './AirPlayButton';
 
 const meta = {
-  title: 'Features/AirPlayButton',
+  title: 'Molecules/AirPlayButton',
   component: AirPlayButtonView,
   parameters: {
     docs: {

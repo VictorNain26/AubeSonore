@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { AntennaView } from './Antenna';
 
 const meta = {
-  title: 'Features/Antenna',
+  title: 'Molecules/Antenna',
   component: AntennaView,
   parameters: {
     docs: {
