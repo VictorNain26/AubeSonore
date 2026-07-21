@@ -74,6 +74,9 @@ export default function Player() {
       transition={pageEntry}
     >
       <div className={DIRECT}>
+        <div className="font-sans text-caption text-text-muted uppercase tracking-widest mb-2">
+          DIRECT
+        </div>
         <div className="rule pt-2">
           <AntennaStatus />
         </div>
