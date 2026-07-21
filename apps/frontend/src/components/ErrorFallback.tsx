@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
-import { Button } from '../design/ui/Button';
-import { Modal } from '../design/ui/Modal';
+import { Button } from '../design/atoms/Button';
+import { Modal } from '../design/organisms/Modal';
 
 export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
   return (
     <div role="alert" className="border-t border-border w-full max-w-lg mx-auto pt-6 text-center">
-      <p className="text-title text-text">{"La lecture s'est interrompue"}</p>
+      <p className="font-display text-title text-text">{"La lecture s'est interrompue"}</p>
       <p className="mt-2 text-body text-text-muted">Rechargez ou réessayez dans un instant.</p>
       <Button variant="primary" onClick={resetErrorBoundary} className="mt-4">
         Réessayer

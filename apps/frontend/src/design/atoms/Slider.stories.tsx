@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { Slider } from './Slider';
 
-const meta: Meta<typeof Slider> = { title: 'Primitives/Slider', component: Slider };
+const meta: Meta<typeof Slider> = { title: 'Atoms/Slider', component: Slider };
 export default meta;
 
 const Demo = ({ disabled = false }: { disabled?: boolean }) => {

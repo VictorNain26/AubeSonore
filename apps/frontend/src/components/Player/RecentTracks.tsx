@@ -5,8 +5,10 @@ import { usePreferencesStore } from '../../stores/preferencesStore';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
 import { getTrackShareUrl } from '@aubesonore/core/share';
 import { shareTrack } from '../../lib/shareTrack';
-import { RecentTrackCard } from './RecentTrackCard';
+import { RecentTracksRail, type RailEntry } from '../../design/organisms/RecentTracksRail';
 import type { SongEntry } from '../../lib/azuracast';
+
+const timeFormatter = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
 export function RecentTracks() {
   const history = useNowPlayingStore((s) => s.data?.song_history);
@@ -17,6 +19,19 @@ export function RecentTracks() {
   const tracks = useLikedTracksStore((s) => s.tracks);
   const preferences = usePreferencesStore((s) => s.preferences);
   const { likingTrackId, toggleLike } = useLikeAction();
+
+  const entries = (history ?? []).filter((e) => e.sh_id !== nowPlayingId).slice(0, 6);
+  const byId = new Map<number, SongEntry>(entries.map((e) => [e.sh_id, e]));
+
+  const railEntries: RailEntry[] = entries.map((e) => ({
+    id: e.sh_id,
+    title: e.song.title,
+    artist: e.song.artist,
+    time: timeFormatter.format(new Date(e.played_at * 1000)),
+    isLiked: isTrackLiked(tracks, e.song.title, e.song.artist),
+    isLiking: likingTrackId === `${e.song.title}-${e.song.artist}`,
+    ...(e.song.art ? { art: e.song.art } : {}),
+  }));
 
   const handleShare = (entry: SongEntry) => {
     const likedTrack = tracks.find(
@@ -41,58 +56,19 @@ export function RecentTracks() {
       });
   };
 
-  const entries = (history ?? []).filter((e) => e.sh_id !== nowPlayingId).slice(0, 6);
-
   return (
-    <section aria-label="Vient de passer" className="min-w-0 border-t border-border">
-      <div className="mx-auto w-full min-w-0 px-6 py-3">
-        <div className="flex items-baseline gap-3">
-          <h2 className="text-caption tracking-widest uppercase text-text-faint">
-            Vient de passer
-          </h2>
-          {error && entries.length > 0 ? (
-            <p className="text-caption text-text-faint">Historique partiel.</p>
-          ) : null}
-        </div>
-        {isLoading && entries.length === 0 ? (
-          <div className="flex gap-4 overflow-hidden pt-1.5">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                data-testid="recent-tracks-skeleton"
-                className="flex shrink-0 items-center gap-3 py-1"
-              >
-                <div className="size-10 rounded-sm animate-pulse bg-surface-raised" />
-                <div className="flex flex-col gap-1.5">
-                  <div className="h-3.5 w-28 rounded-sm animate-pulse bg-surface-raised" />
-                  <div className="h-3 w-16 rounded-sm animate-pulse bg-surface-raised" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : entries.length === 0 ? (
-          <p className="text-caption text-text-faint pt-1.5">Aucun morceau pour l&apos;instant.</p>
-        ) : (
-          <div
-            role="list"
-            aria-label="Vient de passer"
-            className="flex snap-x snap-proximity gap-4 overflow-x-auto pt-1.5 pb-1"
-          >
-            {entries.map((entry) => (
-              <RecentTrackCard
-                key={entry.sh_id}
-                entry={entry}
-                isLiked={isTrackLiked(tracks, entry.song.title, entry.song.artist)}
-                isLiking={likingTrackId === `${entry.song.title}-${entry.song.artist}`}
-                onToggle={() =>
-                  void toggleLike(entry.song.title, entry.song.artist, entry.song.art)
-                }
-                onShare={() => handleShare(entry)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-    </section>
+    <RecentTracksRail
+      entries={railEntries}
+      isLoading={isLoading}
+      partial={Boolean(error) && entries.length > 0}
+      onToggle={(id) => {
+        const entry = byId.get(id);
+        if (entry) void toggleLike(entry.song.title, entry.song.artist, entry.song.art);
+      }}
+      onShare={(id) => {
+        const entry = byId.get(id);
+        if (entry) handleShare(entry);
+      }}
+    />
   );
 }

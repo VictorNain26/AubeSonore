@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
-import { Button } from './Button';
+import { Button } from '../atoms/Button';
 import { Modal } from './Modal';
-import { TextField } from './TextField';
+import { TextField } from '../atoms/TextField';
 
-const meta: Meta<typeof Modal> = { title: 'Primitives/Modal', component: Modal };
+const meta: Meta<typeof Modal> = { title: 'Organisms/Modal', component: Modal };
 export default meta;
 
 export const Connexion: StoryObj = {

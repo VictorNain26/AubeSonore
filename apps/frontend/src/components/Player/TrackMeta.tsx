@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useInkFlip } from '../../lib/motion';
 import { useTrackActions } from '../../hooks/player/useTrackActions';
-import { Button } from '../../design/ui/Button';
+import { Button } from '../../design/atoms/Button';
 
 // The masthead: track title as a large serif headline, artist as its
 // dek. On a track flip the block does a soft crossfade with a slight
@@ -32,7 +32,7 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
         <motion.h2
           key={shId ?? 'waiting'}
           {...inkFlip}
-          className="text-title lg:text-display font-medium text-text [text-wrap:balance]"
+          className="font-display text-title lg:text-display font-medium text-text [text-wrap:balance]"
         >
           {title || 'Chargement du direct'}
         </motion.h2>
