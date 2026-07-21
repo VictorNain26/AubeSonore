@@ -1,16 +1,16 @@
 import type { ButtonHTMLAttributes, Ref } from 'react';
 import { cn } from './cn';
 
-type ButtonVariant = 'primary' | 'ghost' | 'icon';
+export type ButtonVariantValue = 'primary' | 'ghost' | 'icon';
 
-const VARIANT_CLASSES: Record<ButtonVariant, string> = {
+const VARIANT_CLASSES: Record<ButtonVariantValue, string> = {
   primary: 'bg-accent text-on-accent hover:opacity-90 px-6',
   ghost: 'text-text hover:bg-surface-raised px-4',
   icon: 'size-11 justify-center p-0 text-text hover:bg-surface-raised',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
+  variant?: ButtonVariantValue;
   loading?: boolean;
   ref?: Ref<HTMLButtonElement>;
 }
