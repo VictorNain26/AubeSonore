@@ -46,7 +46,7 @@ export default function Player() {
           <div className={NOW}>
             <div className="relative artwork-size shrink-0">
               <div className="aspect-square rounded-md animate-pulse bg-surface-raised" />
-              <div className="absolute -bottom-3 -right-3 size-14 rounded-full animate-pulse bg-surface-raised" />
+              <div className="absolute -bottom-3 -right-3 size-14 lg:size-16 rounded-full animate-pulse bg-surface-raised" />
             </div>
             <div className={META}>
               <div className="h-9 w-3/4 animate-pulse rounded-sm bg-surface-raised" />

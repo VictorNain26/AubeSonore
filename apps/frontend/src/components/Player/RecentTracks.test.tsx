@@ -104,4 +104,17 @@ describe('RecentTracks', () => {
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('recent-tracks-skeleton')).toHaveLength(4);
   });
+
+  it('shows the empty message when history has no past tracks', () => {
+    useNowPlayingStore.setState({
+      data: { ...makeTestNowPlaying(), song_history: [] },
+      isConnected: true,
+      error: null,
+    });
+
+    render(<RecentTracks />);
+
+    expect(screen.getByText("Aucun morceau pour l'instant.")).toBeInTheDocument();
+    expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
+  });
 });
