@@ -10,11 +10,18 @@ const VARIANT_CLASSES: Record<ButtonVariantValue, string> = {
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  /** Visual style. `icon` is a 44px square, icon-only button. */
   variant?: ButtonVariantValue;
+  /** Show a spinner and disable interaction while an action is in flight. */
   loading?: boolean;
   ref?: Ref<HTMLButtonElement>;
 }
 
+/**
+ * Primary action button. Three variants (`primary`, `ghost`, `icon`) sharing one
+ * base: 44px-min target, focus-visible ring, `active`/`disabled` states, and a
+ * built-in `loading` spinner that also disables the button.
+ */
 export function Button({
   variant = 'primary',
   loading = false,
