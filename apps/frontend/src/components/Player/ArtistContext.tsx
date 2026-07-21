@@ -1,18 +1,34 @@
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useArtistInfo } from '../../hooks/useArtistInfo';
 import { Modal } from '../../design/organisms/Modal';
+import type { ArtistInfo } from '../../hooks/useArtistInfo';
 
 interface ArtistContextProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function ArtistContext({ isOpen, onClose }: ArtistContextProps) {
-  const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
-  const { data, isLoading } = useArtistInfo(artistName);
+/** Presentational props for the artist bio modal. */
+export interface ArtistContextViewProps {
+  /** Artist name, used as the modal title. */
+  artistName: string;
+  /** Whether the modal is open. */
+  isOpen: boolean;
+  /** Called when the modal requests to close (backdrop, escape, close button). */
+  onClose: () => void;
+  /** Whether the artist info is still loading. */
+  isLoading: boolean;
+  /** Artist info payload, once loaded. */
+  data: ArtistInfo | null;
+}
 
-  if (!artistName) return null;
-
+export function ArtistContextView({
+  artistName,
+  isOpen,
+  onClose,
+  isLoading,
+  data,
+}: ArtistContextViewProps) {
   return (
     <Modal title={artistName} open={isOpen} onOpenChange={(o) => !o && onClose()}>
       <div className="space-y-4">
@@ -56,5 +72,22 @@ export function ArtistContext({ isOpen, onClose }: ArtistContextProps) {
         )}
       </div>
     </Modal>
+  );
+}
+
+export function ArtistContext({ isOpen, onClose }: ArtistContextProps) {
+  const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
+  const { data, isLoading } = useArtistInfo(artistName);
+
+  if (!artistName) return null;
+
+  return (
+    <ArtistContextView
+      artistName={artistName}
+      isOpen={isOpen}
+      onClose={onClose}
+      isLoading={isLoading}
+      data={data}
+    />
   );
 }

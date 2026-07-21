@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
+import type { RefObject } from 'react';
 import { getAnalyser } from '../../lib/player';
 
 // ─────────────────────────────────────────────
@@ -20,6 +21,16 @@ import { getAnalyser } from '../../lib/player';
 interface WaveformCanvasProps {
   isPlaying: boolean;
   songId: number | undefined;
+}
+
+/** Presentational props for the antenna trace canvas. */
+export interface WaveformCanvasViewProps {
+  /** Ref attached to the drawing surface; the container owns the rAF loop. */
+  canvasRef: RefObject<HTMLCanvasElement | null>;
+}
+
+export function WaveformCanvasView({ canvasRef }: WaveformCanvasViewProps) {
+  return <canvas ref={canvasRef} className="w-full max-w-full h-8" aria-hidden="true" />;
 }
 
 export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
@@ -174,5 +185,5 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
     };
   }, []);
 
-  return <canvas ref={canvasRef} className="w-full max-w-full h-8" aria-hidden="true" />;
+  return <WaveformCanvasView canvasRef={canvasRef} />;
 }
