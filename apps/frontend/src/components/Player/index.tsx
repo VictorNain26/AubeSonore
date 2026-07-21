@@ -13,14 +13,17 @@ import { ArtistContext } from './ArtistContext';
 import { ArtistBio } from './ArtistBio';
 import { RecentTracks } from './RecentTracks';
 
-// Player is a composition root: it arranges sub-components only. Every
-// leaf subscribes directly to the store it cares about; side effects
-// (toasts, stats, media-session) live in <PlayerSideEffects />. The
-// AuthModal is hosted at App level, not here.
-//
-// Scene: single-viewport layout with centered player (row 1) and recent
-// tracks rail (row 2). Antenna may render a waveform or null; the scene
-// grid absorbs layout changes gracefully.
+/**
+ * Composition root of the now-playing scene: single-viewport layout with the
+ * centered player (row 1) and the recent-tracks rail (row 2). Arranges
+ * sub-components only — every leaf (`TrackArtwork`, `TrackMeta`, `Antenna`,
+ * `PlaybackControls`, `RecentTracks`, …) subscribes directly to the store it
+ * cares about, and each already ships its own Storybook story. Side effects
+ * (toasts, stats, media-session) live in `<PlayerSideEffects />`; the
+ * `AuthModal` is hosted at App level, not here. Not storied on its own: a
+ * presentational split would require re-mocking every child's store just to
+ * reproduce compositions already documented individually.
+ */
 
 const NOW =
   'flex w-full max-w-3xl flex-col items-center gap-6 lg:flex-row lg:items-center lg:gap-10';
