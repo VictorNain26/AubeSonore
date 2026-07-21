@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { LayoutView } from './LayoutView';
 
 const meta = {
-  title: 'Features/Layout/Shell',
+  title: 'Templates/Layout',
   component: LayoutView,
   parameters: {
     layout: 'fullscreen',

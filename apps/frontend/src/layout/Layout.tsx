@@ -1,6 +1,6 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { LayoutView } from './LayoutView';
+import { LayoutView } from '../design/templates/LayoutView';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { toastError } from '../lib/appToast';
