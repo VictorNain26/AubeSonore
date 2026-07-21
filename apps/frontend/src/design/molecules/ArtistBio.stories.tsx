@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ArtistBioView } from './ArtistBio';
 
 const meta = {
-  title: 'Features/ArtistBio',
+  title: 'Molecules/ArtistBio',
   component: ArtistBioView,
   parameters: {
     docs: {

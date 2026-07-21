@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { ThemeToggleView } from './ThemeToggle';
 
 const meta = {
-  title: 'Features/ThemeToggle',
+  title: 'Molecules/ThemeToggle',
   component: ThemeToggleView,
   parameters: {
     docs: {

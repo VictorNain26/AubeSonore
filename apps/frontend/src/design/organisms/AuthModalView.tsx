@@ -29,7 +29,7 @@ export interface AuthModalViewProps {
   /** Fermeture (croix, overlay, bouton « J'ai compris »). */
   onClose: () => void;
   /** Soumission du formulaire (le conteneur gère `preventDefault`). */
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   /** Connexion OAuth Google. */
   onOAuthGoogle: () => void;
   onToggleShowPassword: () => void;

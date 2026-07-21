@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { LikedTrackRowView } from './LikedTrackRow';
 
 const meta = {
-  title: 'Features/LikedTracks/Row',
+  title: 'Molecules/LikedTrackRow',
   component: LikedTrackRowView,
   parameters: {
     docs: {

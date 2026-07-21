@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { PlayerErrorFallback } from './ErrorFallback';
 
 const meta = {
-  title: 'Features/ErrorFallback/Player',
+  title: 'Organisms/ErrorFallback/Player',
   component: PlayerErrorFallback,
   parameters: {
     docs: {

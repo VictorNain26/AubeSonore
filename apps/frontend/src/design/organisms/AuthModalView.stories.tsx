@@ -5,7 +5,7 @@ import { AuthModalView } from './AuthModalView';
 const noop = () => {};
 
 const meta = {
-  title: 'Features/Auth/Modal',
+  title: 'Organisms/AuthModal',
   component: AuthModalView,
   parameters: {
     docs: {
@@ -82,6 +82,18 @@ export const Erreur: Story = {
       password: 'Le mot de passe doit contenir au moins 6 caractères.',
     },
   },
+};
+
+export const ReinitialisationMotDePasse: Story = {
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Écran de définition d’un nouveau mot de passe après clic sur le lien reçu par email : champ de confirmation, flèche de retour et bouton « Réinitialiser ».',
+      },
+    },
+  },
+  args: { mode: 'reset-password', password: 'password123', passwordConfirm: 'password123' },
 };
 
 export const EmailEnvoye: Story = {

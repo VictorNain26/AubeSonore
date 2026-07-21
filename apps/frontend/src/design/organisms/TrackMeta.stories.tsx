@@ -9,7 +9,7 @@ const inkFlip = {
 };
 
 const meta = {
-  title: 'Features/TrackMeta',
+  title: 'Organisms/TrackMeta',
   component: TrackMetaView,
   parameters: {
     docs: {

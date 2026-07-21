@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { PlaybackControlsView } from './PlaybackControls';
 
 const meta = {
-  title: 'Features/PlaybackControls',
+  title: 'Molecules/PlaybackControls',
   component: PlaybackControlsView,
   parameters: {
     docs: {

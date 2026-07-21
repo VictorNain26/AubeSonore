@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { VolumeControlView } from './VolumeControl';
 
 const meta = {
-  title: 'Features/VolumeControl',
+  title: 'Molecules/VolumeControl',
   component: VolumeControlView,
   parameters: {
     docs: {

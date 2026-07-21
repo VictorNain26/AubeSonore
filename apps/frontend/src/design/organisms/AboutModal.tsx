@@ -1,5 +1,5 @@
 import { Mail } from 'lucide-react';
-import { Modal } from '../design/organisms/Modal';
+import { Modal } from './Modal';
 
 interface AboutModalProps {
   /** Whether the modal is currently shown. */

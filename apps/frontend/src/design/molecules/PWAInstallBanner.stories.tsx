@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { PWAInstallBannerView } from './PWAInstallBanner';
 
 const meta = {
-  title: 'Features/PWAInstallBanner',
+  title: 'Molecules/PWAInstallBanner',
   component: PWAInstallBannerView,
   parameters: {
     docs: {

@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { LogIn, Info } from 'lucide-react';
-import { Button } from '../design/atoms/Button';
-import { Menu } from '../design/molecules/Menu';
-import { LibraryButton } from '../components/Player/LibraryButton';
-import { ThemeToggle } from './ThemeToggle';
+import { Button } from '../atoms/Button';
+import { Menu } from '../molecules/Menu';
+import { LibraryButton } from '../../components/Player/LibraryButton';
+import { ThemeToggle } from '../../layout/ThemeToggle';
 
 export interface LayoutUser {
   name: string | null;

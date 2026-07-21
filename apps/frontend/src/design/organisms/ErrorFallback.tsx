@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
-import { Button } from '../design/atoms/Button';
-import { Modal } from '../design/organisms/Modal';
+import { Button } from '../atoms/Button';
+import { Modal } from './Modal';
 
 /**
  * Error boundary fallback shown when the player crashes. Offers a single

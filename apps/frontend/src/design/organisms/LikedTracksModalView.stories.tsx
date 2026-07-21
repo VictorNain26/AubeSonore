@@ -37,7 +37,7 @@ const tracks: LikedTrackViewModel[] = [
 ];
 
 const meta = {
-  title: 'Features/LikedTracks/Modal',
+  title: 'Organisms/LikedTracksModal',
   component: LikedTracksModalView,
   parameters: {
     docs: {
