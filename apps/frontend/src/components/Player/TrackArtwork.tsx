@@ -8,23 +8,32 @@ import { usePlayer } from '../../lib/player';
 import { useInkFlip } from '../../lib/motion';
 
 // Album art only, subscribing directly to the store it needs. No props:
-// the component is self-sufficient.
+// the container is self-sufficient.
 
-export function TrackArtwork() {
-  const { artUrl, title } = useNowPlayingStore(
-    useShallow((s) => ({
-      artUrl: s.data?.now_playing?.song.art,
-      title: s.data?.now_playing?.song.title,
-    }))
-  );
-  const isPlaying = usePlayer((s) => s.isPlaying);
-  const [artError, setArtError] = useState(false);
-  const inkFlip = useInkFlip();
+/** Presentational props for the now-playing album art. */
+export interface TrackArtworkViewProps {
+  /** Cover image URL, or `undefined` while waiting for the first now-playing payload. */
+  artUrl: string | undefined;
+  /** Track title, used as the image's alt text. */
+  title: string | undefined;
+  /** Whether to render the placeholder music icon instead of the image. */
+  isDefaultCover: boolean;
+  /** Whether the antenna is currently playing (drives the subtle scale). */
+  isPlaying: boolean;
+  /** Called when the cover image fails to load. */
+  onArtError: () => void;
+  /** Motion props (initial/animate/exit/transition) applied to the crossfading cover. */
+  inkFlip: ReturnType<typeof useInkFlip>;
+}
 
-  const handleArtError = () => setArtError(true);
-
-  const isDefaultCover = !artUrl || artError || isDefaultArtwork(artUrl);
-
+export function TrackArtworkView({
+  artUrl,
+  title,
+  isDefaultCover,
+  isPlaying,
+  onArtError,
+  inkFlip,
+}: TrackArtworkViewProps) {
   return (
     <div key={artUrl} className="w-full">
       <div
@@ -44,7 +53,7 @@ export function TrackArtwork() {
               referrerPolicy="no-referrer"
               decoding="async"
               fetchPriority="high"
-              onError={handleArtError}
+              onError={onArtError}
               {...inkFlip}
             />
           ) : (
@@ -55,5 +64,32 @@ export function TrackArtwork() {
         </AnimatePresence>
       </div>
     </div>
+  );
+}
+
+export function TrackArtwork() {
+  const { artUrl, title } = useNowPlayingStore(
+    useShallow((s) => ({
+      artUrl: s.data?.now_playing?.song.art,
+      title: s.data?.now_playing?.song.title,
+    }))
+  );
+  const isPlaying = usePlayer((s) => s.isPlaying);
+  const [artError, setArtError] = useState(false);
+  const inkFlip = useInkFlip();
+
+  const handleArtError = () => setArtError(true);
+
+  const isDefaultCover = !artUrl || artError || isDefaultArtwork(artUrl);
+
+  return (
+    <TrackArtworkView
+      artUrl={artUrl}
+      title={title}
+      isDefaultCover={isDefaultCover}
+      isPlaying={isPlaying}
+      onArtError={handleArtError}
+      inkFlip={inkFlip}
+    />
   );
 }

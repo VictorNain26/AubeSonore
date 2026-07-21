@@ -5,13 +5,13 @@ interface ArtistBioProps {
   onOpenPanel: () => void;
 }
 
-export function ArtistBio({ onOpenPanel }: ArtistBioProps) {
-  const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
-  const { data, isLoading } = useArtistInfo(artistName);
+/** Presentational props for the inline artist bio teaser. */
+export type ArtistBioViewProps =
+  | { variant: 'loading' }
+  | { variant: 'bio'; bio: string; artistName: string; onOpenPanel: () => void };
 
-  if (!artistName) return null;
-
-  if (isLoading) {
+export function ArtistBioView(props: ArtistBioViewProps) {
+  if (props.variant === 'loading') {
     return (
       <div className="flex max-w-prose flex-col gap-2" aria-hidden="true">
         <div
@@ -30,17 +30,32 @@ export function ArtistBio({ onOpenPanel }: ArtistBioProps) {
     );
   }
 
+  return (
+    <div className="max-w-prose">
+      <p className="text-body text-text-muted leading-relaxed line-clamp-3">{props.bio}</p>
+      <button
+        onClick={props.onOpenPanel}
+        className="mt-1 cursor-pointer text-caption text-text-faint underline decoration-border underline-offset-4 hover:decoration-text transition-colors"
+      >
+        En savoir plus sur {props.artistName}
+      </button>
+    </div>
+  );
+}
+
+export function ArtistBio({ onOpenPanel }: ArtistBioProps) {
+  const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
+  const { data, isLoading } = useArtistInfo(artistName);
+
+  if (!artistName) return null;
+
+  if (isLoading) {
+    return <ArtistBioView variant="loading" />;
+  }
+
   if (!data?.bio) return null;
 
   return (
-    <div className="max-w-prose">
-      <p className="text-body text-text-muted leading-relaxed line-clamp-3">{data.bio}</p>
-      <button
-        onClick={onOpenPanel}
-        className="mt-1 cursor-pointer text-caption text-text-faint underline decoration-border underline-offset-4 hover:decoration-text transition-colors"
-      >
-        En savoir plus sur {artistName}
-      </button>
-    </div>
+    <ArtistBioView variant="bio" bio={data.bio} artistName={artistName} onOpenPanel={onOpenPanel} />
   );
 }
