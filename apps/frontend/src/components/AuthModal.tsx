@@ -1,17 +1,12 @@
 import { useState, useRef } from 'react';
-import type { ReactElement, ReactNode } from 'react';
-import { Mail, Lock, User, Loader2, Eye, EyeOff, MailCheck, ArrowLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Eye, EyeOff, MailCheck, ArrowLeft } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../lib/api';
 import { toast } from 'sonner';
 import { toastError } from '../lib/appToast';
-import { ModalShell } from './ui/ModalShell';
-import { Button, IconButton } from './ui/Button';
-
-// ─────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────
+import { Modal } from '../design/ui/Modal';
+import { Button } from '../design/ui/Button';
+import { TextField } from '../design/ui/TextField';
 
 type AuthMode = 'signin' | 'signup' | 'forgot' | 'verification-sent' | 'reset-password';
 
@@ -23,36 +18,6 @@ interface AuthModalProps {
   // a token. Layout extracts it and passes it down to switch the modal into
   // the reset flow on mount.
   resetToken?: string;
-}
-
-// ─────────────────────────────────────────────
-// Field wrapper — visible label + inline error, blur-driven
-// ─────────────────────────────────────────────
-
-function Field({
-  id,
-  label,
-  error,
-  children,
-}: {
-  id: string;
-  label: string;
-  error?: string | undefined;
-  children: ReactNode;
-}): ReactElement {
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-caption text-ink-soft">
-        {label}
-      </label>
-      {children}
-      {error && (
-        <p id={`${id}-error`} className="text-caption text-danger" role="alert">
-          {error}
-        </p>
-      )}
-    </div>
-  );
 }
 
 function validateEmailFormat(value: string): string | undefined {
@@ -99,9 +64,8 @@ function GoogleLogo({ className }: { className?: string }) {
   );
 }
 
-// ─────────────────────────────────────────────
-// Main component
-// ─────────────────────────────────────────────
+const TEXT_LINK_CLASSES =
+  'inline-flex min-h-11 cursor-pointer items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-80';
 
 export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken }: AuthModalProps) {
   const [mode, setMode] = useState<AuthMode>(resetToken ? 'reset-password' : defaultMode);
@@ -234,7 +198,6 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     resetForm();
   };
 
-  // ── Title + description per mode ────────────────────────────────────────
   const headerCopy = {
     signin: { title: 'Bon retour', desc: 'Connectez-vous pour retrouver vos découvertes' },
     signup: {
@@ -252,27 +215,38 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     },
   }[mode];
 
-  const inputClass = cn(
-    'w-full pl-11 pr-4 py-2 rounded-md border border-line bg-paper',
-    'text-body text-ink placeholder:text-ink-faint transition-colors'
+  const passwordToggle = (
+    <Button
+      type="button"
+      variant="icon"
+      onClick={() => setShowPassword((s) => !s)}
+      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+      aria-pressed={showPassword}
+    >
+      {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+    </Button>
   );
 
   return (
-    <ModalShell
-      isOpen={isOpen}
-      onClose={handleClose}
+    <Modal
       title={headerCopy.title}
-      description={headerCopy.desc}
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) handleClose();
+      }}
     >
+      <p className="-mt-3 text-caption text-text-faint">{headerCopy.desc}</p>
+
       {(mode === 'forgot' || mode === 'reset-password') && (
-        <IconButton
-          shape="round"
-          label="Retour à la connexion"
+        <Button
+          type="button"
+          variant="icon"
+          aria-label="Retour à la connexion"
           onClick={() => switchTo('signin')}
-          className="-mt-2 mb-2"
+          className="-mt-2"
         >
-          <ArrowLeft />
-        </IconButton>
+          <ArrowLeft className="size-5" />
+        </Button>
       )}
 
       {mode === 'verification-sent' ? (
@@ -286,190 +260,138 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
         >
           {mode !== 'forgot' && mode !== 'reset-password' && (
             <>
-              {/* OAuth */}
               <Button
                 type="button"
-                variant="ink"
+                variant="ghost"
                 onClick={() => void handleOAuth('google')}
                 disabled={isLoading}
-                className="w-full gap-3 py-2.5 font-medium text-ink"
+                className="w-full justify-center gap-3 border border-border"
               >
                 <GoogleLogo className="size-5" />
                 Continuer avec Google
               </Button>
 
-              {/* Divider */}
               <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 rule" />
-                <span className="eyebrow">ou</span>
-                <div className="flex-1 rule" />
+                <div className="flex-1 border-t border-border" />
+                <span className="text-caption text-text-faint uppercase">ou</span>
+                <div className="flex-1 border-t border-border" />
               </div>
             </>
           )}
 
           {mode === 'signup' && (
-            <Field id="name" label="Nom">
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
-                <input
-                  id="name"
-                  type="text"
-                  placeholder="Jeanne Dupont"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                  autoComplete="name"
-                  className={inputClass}
-                />
-              </div>
-            </Field>
+            <TextField
+              id="name"
+              label="Nom"
+              type="text"
+              placeholder="Jeanne Dupont"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              autoComplete="name"
+            />
           )}
 
           {mode !== 'reset-password' && (
-            <Field id="email" label="Email" error={errors.email}>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
-                <input
-                  id="email"
-                  ref={emailRef}
-                  type="email"
-                  placeholder="vous@exemple.fr"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    if (errors.email) setFieldError('email', validateEmailFormat(e.target.value));
-                  }}
-                  onBlur={() => setFieldError('email', validateEmailFormat(email))}
-                  required
-                  autoComplete="email"
-                  aria-invalid={Boolean(errors.email)}
-                  aria-describedby={errors.email ? 'email-error' : undefined}
-                  className={inputClass}
-                />
-              </div>
-            </Field>
+            <TextField
+              id="email"
+              ref={emailRef}
+              label="Email"
+              type="email"
+              placeholder="vous@exemple.fr"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setFieldError('email', validateEmailFormat(e.target.value));
+              }}
+              onBlur={() => setFieldError('email', validateEmailFormat(email))}
+              required
+              autoComplete="email"
+              error={errors.email}
+            />
           )}
 
           {mode !== 'forgot' && (
-            <Field
+            <TextField
               id="password"
+              ref={passwordRef}
               label={mode === 'reset-password' ? 'Nouveau mot de passe' : 'Mot de passe'}
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) {
+                  setFieldError('password', validatePasswordLength(e.target.value));
+                }
+                if (errors.passwordConfirm) {
+                  setFieldError(
+                    'passwordConfirm',
+                    validatePasswordMatch(e.target.value, passwordConfirm)
+                  );
+                }
+              }}
+              onBlur={() => setFieldError('password', validatePasswordLength(password))}
+              required
+              minLength={6}
+              autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
               error={errors.password}
-            >
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
-                <input
-                  id="password"
-                  ref={passwordRef}
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) {
-                      setFieldError('password', validatePasswordLength(e.target.value));
-                    }
-                    if (errors.passwordConfirm) {
-                      setFieldError(
-                        'passwordConfirm',
-                        validatePasswordMatch(e.target.value, passwordConfirm)
-                      );
-                    }
-                  }}
-                  onBlur={() => setFieldError('password', validatePasswordLength(password))}
-                  required
-                  minLength={6}
-                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                  aria-invalid={Boolean(errors.password)}
-                  aria-describedby={errors.password ? 'password-error' : undefined}
-                  className={cn(inputClass, 'pr-11')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((s) => !s)}
-                  className="absolute right-1.5 top-1/2 -translate-y-1/2 size-11 flex items-center justify-center rounded-sm text-ink-faint hover:text-ink transition-colors cursor-pointer"
-                  aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
-                  aria-pressed={showPassword}
-                >
-                  {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                </button>
-              </div>
-            </Field>
+              trailing={passwordToggle}
+            />
           )}
 
           {mode === 'reset-password' && (
-            <Field
+            <TextField
               id="password-confirm"
+              ref={passwordConfirmRef}
               label="Confirmer le mot de passe"
+              type={showPassword ? 'text' : 'password'}
+              value={passwordConfirm}
+              onChange={(e) => {
+                setPasswordConfirm(e.target.value);
+                if (errors.passwordConfirm) {
+                  setFieldError('passwordConfirm', validatePasswordMatch(password, e.target.value));
+                }
+              }}
+              onBlur={() =>
+                setFieldError('passwordConfirm', validatePasswordMatch(password, passwordConfirm))
+              }
+              required
+              minLength={6}
+              autoComplete="new-password"
               error={errors.passwordConfirm}
-            >
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-5 text-ink-faint" />
-                <input
-                  id="password-confirm"
-                  ref={passwordConfirmRef}
-                  type={showPassword ? 'text' : 'password'}
-                  value={passwordConfirm}
-                  onChange={(e) => {
-                    setPasswordConfirm(e.target.value);
-                    if (errors.passwordConfirm) {
-                      setFieldError(
-                        'passwordConfirm',
-                        validatePasswordMatch(password, e.target.value)
-                      );
-                    }
-                  }}
-                  onBlur={() =>
-                    setFieldError(
-                      'passwordConfirm',
-                      validatePasswordMatch(password, passwordConfirm)
-                    )
-                  }
-                  required
-                  minLength={6}
-                  autoComplete="new-password"
-                  aria-invalid={Boolean(errors.passwordConfirm)}
-                  aria-describedby={errors.passwordConfirm ? 'password-confirm-error' : undefined}
-                  className={inputClass}
-                />
-              </div>
-            </Field>
+            />
           )}
 
           {mode === 'signin' && (
-            <div className="text-right -mt-2">
+            <div className="-mt-2 text-right">
               <button
                 type="button"
                 onClick={() => switchTo('forgot')}
-                className="text-caption text-accent hover:underline cursor-pointer"
+                className={`${TEXT_LINK_CLASSES} text-caption text-accent hover:underline`}
               >
                 Mot de passe oublié ?
               </button>
             </div>
           )}
 
-          <Button type="submit" variant="accent" disabled={isLoading} className="w-full py-2.5">
-            {isLoading ? (
-              <>
-                <Loader2 className="size-5 animate-spin" />
-                Chargement...
-              </>
-            ) : mode === 'signin' ? (
-              'Se connecter'
-            ) : mode === 'signup' ? (
-              "S'inscrire"
-            ) : mode === 'forgot' ? (
-              'Envoyer le lien'
-            ) : (
-              'Réinitialiser'
-            )}
+          <Button type="submit" loading={isLoading} className="w-full justify-center">
+            {isLoading
+              ? 'Chargement...'
+              : mode === 'signin'
+                ? 'Se connecter'
+                : mode === 'signup'
+                  ? "S'inscrire"
+                  : mode === 'forgot'
+                    ? 'Envoyer le lien'
+                    : 'Réinitialiser'}
           </Button>
 
           {mode !== 'forgot' && mode !== 'reset-password' && (
-            <div className="text-center pt-2">
+            <div className="pt-2 text-center">
               <button
                 type="button"
                 onClick={() => switchTo(mode === 'signin' ? 'signup' : 'signin')}
-                className="text-body text-ink-soft cursor-pointer"
+                className={`${TEXT_LINK_CLASSES} text-body text-text-muted`}
               >
                 {mode === 'signin' ? (
                   <>
@@ -487,28 +409,28 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
           )}
         </form>
       )}
-    </ModalShell>
+    </Modal>
   );
 }
-
-// ─────────────────────────────────────────────
-// Sub-component: post-signup body
-// ─────────────────────────────────────────────
 
 function VerificationSentBody({ email, onClose }: { email: string; onClose: () => void }) {
   return (
     <div className="space-y-4 text-center">
-      <div className="mx-auto size-14 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center">
+      <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-accent/20 bg-accent/10">
         <MailCheck className="size-7 text-accent" />
       </div>
-      <p className="text-body text-ink-soft">
-        Un email a été envoyé à <span className="text-ink font-medium break-all">{email}</span>.
+      <p className="text-body text-text-muted">
+        Un email a été envoyé à <span className="font-medium break-all text-text">{email}</span>.
         Cliquez sur le lien pour activer votre compte.
       </p>
-      <p className="text-caption text-ink-faint">
+      <p className="text-caption text-text-faint">
         Pas reçu ? Vérifiez vos spams. Le lien expire dans 24 h.
       </p>
-      <Button variant="ink" onClick={onClose} className="w-full py-2.5">
+      <Button
+        variant="ghost"
+        onClick={onClose}
+        className="w-full justify-center border border-border"
+      >
         J&apos;ai compris
       </Button>
     </div>
