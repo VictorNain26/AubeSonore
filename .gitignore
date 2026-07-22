@@ -74,3 +74,6 @@ storybook-static
 
 # Bundle analyzer output (ANALYZE=true build)
 apps/frontend/stats.html
+
+# Subagent-driven-development scratch (progress ledger, task briefs/reports)
+.superpowers/
