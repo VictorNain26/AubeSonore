@@ -100,6 +100,9 @@ importers:
 
   apps/backend:
     dependencies:
+      '@aubesonore/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@aubesonore/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
