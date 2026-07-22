@@ -21,7 +21,7 @@ aubesonore/
 
 - **Écoute** : flux AzuraCast avec « en train de jouer » en temps réel.
 - **Like & liens multi-plateformes** : likez un morceau, ses liens Spotify / Apple Music / Deezer / YouTube Music / Tidal / Amazon / SoundCloud sont résolus automatiquement via Songlink/Odesli.
-- **Pochettes durables** : au like, la pochette est figée dans un stockage objet (Cloudflare R2) et servie via une URL stable — elle ne casse plus si le fichier disparaît d'AzuraCast.
+- **Pochettes** : à l'enrichissement, la pochette iTunes est retenue quand l'artiste correspond ; à défaut, un visuel « onde » déterministe est généré côté client.
 - **Identité jour/nuit** : l'ambiance visuelle suit le moment (aube, jour, crépuscule, nuit).
 - **Fil-journée** : historique d'écoute regroupé par moment de la journée.
 - **Notifications push** (Web Push / VAPID) et **statistiques d'écoute**.
@@ -36,7 +36,7 @@ aubesonore/
 | Mobile    | Expo SDK 55, React Native 0.83, Reanimated, nativewind      |
 | Outillage | pnpm 10, Turbo, ESLint 9 (flat), Vitest + bun test          |
 
-Auth : Better Auth (email vérifié + OAuth Google/Spotify). Liens multi-plateformes : Songlink/Odesli. Stockage pochettes : Cloudflare R2.
+Auth : Better Auth (email vérifié + OAuth Google/Spotify). Liens multi-plateformes : Songlink/Odesli. Pochettes : iTunes vérifiée (artiste) ou visuel « onde » généré côté client.
 
 ## Démarrage
 

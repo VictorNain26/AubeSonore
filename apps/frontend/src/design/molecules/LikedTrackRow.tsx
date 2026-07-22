@@ -38,7 +38,12 @@ export function LikedTrackRowView({
       role="listitem"
       className={cn('group flex items-center gap-3 py-2', isDeleting && 'opacity-50')}
     >
-      <Thumbnail {...(artworkUrl ? { src: artworkUrl } : {})} alt={title} className="bg-surface" />
+      <Thumbnail
+        {...(artworkUrl ? { src: artworkUrl } : {})}
+        alt={title}
+        seed={`${artist}|${title}`}
+        className="bg-surface"
+      />
 
       <div className="min-w-0 flex-1">
         <p className="truncate text-body text-text">{title}</p>

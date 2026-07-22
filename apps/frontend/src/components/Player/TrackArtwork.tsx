@@ -9,10 +9,11 @@ import { TrackArtworkView } from '../../design/organisms/TrackArtwork';
 // the container is self-sufficient.
 
 export function TrackArtwork() {
-  const { artUrl, title } = useNowPlayingStore(
+  const { artUrl, title, artist } = useNowPlayingStore(
     useShallow((s) => ({
       artUrl: s.data?.now_playing?.song.art,
       title: s.data?.now_playing?.song.title,
+      artist: s.data?.now_playing?.song.artist,
     }))
   );
   const isPlaying = usePlayer((s) => s.isPlaying);
@@ -27,6 +28,7 @@ export function TrackArtwork() {
     <TrackArtworkView
       artUrl={artUrl}
       title={title}
+      seed={`${artist ?? ''}|${title ?? ''}`}
       isDefaultCover={isDefaultCover}
       isPlaying={isPlaying}
       onArtError={handleArtError}

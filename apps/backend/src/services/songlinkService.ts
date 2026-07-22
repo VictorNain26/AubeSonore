@@ -1,6 +1,7 @@
 import type { PlatformLinks } from '../db/schema';
 import { TtlCache } from '../lib/cache/ttlCache';
 import { logger } from '../lib/logger';
+import { similarity, artistMatch, songMatch } from '../lib/text/matchScore';
 
 // ─────────────────────────────────────────────
 // Songlink/Odesli API Service
@@ -48,7 +49,7 @@ interface SonglinkResponse {
 }
 
 export interface SonglinkResult {
-  pageUrl: string;
+  pageUrl?: string;
   platformLinks: PlatformLinks;
   /** Best artwork URL found: Songlink entity thumbnail (~1400px) or iTunes fallback (600px). */
   artworkUrl?: string;
@@ -163,10 +164,17 @@ interface ItunesSearchResponse {
 interface ItunesResult {
   trackViewUrl: string;
   artworkUrl: string | null;
+  /** Whether the picked candidate also matches the queried song title (not just the artist). */
+  exactSong: boolean;
 }
 
 /**
  * Recherche un morceau sur iTunes Search API.
+ *
+ * L'artiste est le seul critère de rejet (une pochette d'un autre morceau du
+ * même artiste reste acceptable). Le titre ne sert qu'à départager les
+ * candidats artiste-valides et à décider si les liens multi-plateformes
+ * (qui doivent pointer vers le morceau exact) peuvent être attachés.
  *
  * Même convention que `getSonglinkData` : succès et "0 results" cachés ;
  * erreurs transitoires (5xx, timeout) ne polluent pas le cache 7 jours.
@@ -180,7 +188,7 @@ async function searchItunes(title: string, artist: string): Promise<ItunesResult
   try {
     const query = encodeURIComponent(`${title} ${artist}`);
     response = await fetch(
-      `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=1&country=FR`,
+      `https://itunes.apple.com/search?term=${query}&media=music&entity=song&limit=3&country=FR`,
       { signal: AbortSignal.timeout(5_000) }
     );
   } catch (error) {
@@ -209,20 +217,31 @@ async function searchItunes(title: string, artist: string): Promise<ItunesResult
     return null;
   }
 
-  if (data.resultCount > 0 && data.results[0]?.trackViewUrl) {
-    const hit = data.results[0];
-    // Replace the 100px thumbnail suffix with 600px — same CDN URL, no extra request.
-    const artworkUrl = hit.artworkUrl100
-      ? hit.artworkUrl100.replace('100x100bb', '600x600bb')
-      : null;
-    const result: ItunesResult = { trackViewUrl: hit.trackViewUrl, artworkUrl };
-    itunesCache.set(cacheKey, result);
-    return result;
+  const artistMatchingCandidates = data.results.filter(
+    (candidate) => candidate.trackViewUrl && artistMatch(artist, candidate.artistName)
+  );
+
+  if (artistMatchingCandidates.length === 0) {
+    // No candidate has the right artist: definitive negative. Cache 7 days.
+    itunesCache.set(cacheKey, null);
+    return null;
   }
 
-  // 0 results = definitive negative. Cache 7 days.
-  itunesCache.set(cacheKey, null);
-  return null;
+  const pick = artistMatchingCandidates.reduce((best, candidate) =>
+    similarity(title, candidate.trackName) > similarity(title, best.trackName) ? candidate : best
+  );
+
+  // Replace the 100px thumbnail suffix with 600px — same CDN URL, no extra request.
+  const artworkUrl = pick.artworkUrl100
+    ? pick.artworkUrl100.replace('100x100bb', '600x600bb')
+    : null;
+  const exactSong = songMatch(
+    { title, artist },
+    { title: pick.trackName, artist: pick.artistName }
+  );
+  const result: ItunesResult = { trackViewUrl: pick.trackViewUrl, artworkUrl, exactSong };
+  itunesCache.set(cacheKey, result);
+  return result;
 }
 
 /**
@@ -241,28 +260,44 @@ export async function searchSonglink(
   const cached = songlinkCache.get(cacheKey);
   if (cached !== undefined) return cached;
 
-  const itunesResult = await searchItunes(title, artist);
-  if (!itunesResult) {
-    // iTunes returned null. Cache only when itunesCache itself confirmed
-    // (transient itunes failure already returned null without caching, so
-    // we cannot distinguish here — accept that a transient itunes miss will
-    // also avoid the songlink cache write below).
-    songlinkCache.set(cacheKey, null);
+  const itunes = await searchItunes(title, artist);
+  if (!itunes) {
+    // `itunesCache` distinguishes definitive (0 artist-matching candidates,
+    // cached) from transient (network/5xx, not cached) failures — mirror
+    // that here so a transient iTunes error doesn't poison songlinkCache.
+    if (itunesCache.get(cacheKey) !== undefined) {
+      songlinkCache.set(cacheKey, null);
+    }
     return null;
   }
 
+  // The cover always comes from the artist-verified iTunes candidate, even
+  // when it's a different song by the same artist.
+  const coverOnlyResult: SonglinkResult = { platformLinks: {} };
+  if (itunes.artworkUrl) coverOnlyResult.artworkUrl = itunes.artworkUrl;
+
+  if (!itunes.exactSong) {
+    // Title doesn't match: attaching platform links would point to the
+    // wrong song. Keep the cover only.
+    songlinkCache.set(cacheKey, coverOnlyResult);
+    return coverOnlyResult;
+  }
+
   try {
-    const result = await getSonglinkData(itunesResult.trackViewUrl);
-    if (result) {
-      // Prefer Songlink entity thumbnail (~1400px), fall back to iTunes (600px).
-      const artworkUrl = result.metadata?.thumbnailUrl ?? itunesResult.artworkUrl ?? undefined;
-      if (artworkUrl) result.artworkUrl = artworkUrl;
+    const result = await getSonglinkData(itunes.trackViewUrl);
+    if (!result) {
+      songlinkCache.set(cacheKey, coverOnlyResult);
+      return coverOnlyResult;
     }
+    // Prefer Songlink entity thumbnail (~1400px), fall back to iTunes (600px).
+    const artworkUrl = result.metadata?.thumbnailUrl ?? itunes.artworkUrl ?? undefined;
+    if (artworkUrl) result.artworkUrl = artworkUrl;
     songlinkCache.set(cacheKey, result);
     return result;
   } catch {
-    // Transient Songlink failure: do NOT cache, return null for this call only.
+    // Transient Songlink failure: keep the verified cover, do NOT cache
+    // (links retry on the next call).
     logger.warn('songlink.transient_failure_uncached', { title, artist });
-    return null;
+    return coverOnlyResult;
   }
 }
