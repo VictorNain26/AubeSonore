@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from 'bun:test';
+import { beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
 
 process.env.DATABASE_URL ??= 'postgres://test:test@localhost:5432/test';
 process.env.BETTER_AUTH_SECRET ??= 'x'.repeat(32);
@@ -84,13 +84,16 @@ const fakeDb = {
 
 void mock.module('../db/index', () => ({ db: fakeDb, schema: realSchema }));
 
-const snapshotCoverMock = mock((): Promise<string | null> => Promise.resolve(null));
-void mock.module('./coverService', () => ({ snapshotCover: snapshotCoverMock }));
-
 const searchSonglinkMock = mock((): Promise<SonglinkResult | null> => Promise.resolve(null));
 void mock.module('./songlinkService', () => ({ searchSonglink: searchSonglinkMock }));
 
-const { likeTrack, refreshTrackLinks, refreshAllLinks } = await import('./trackService');
+const { likeTrack, refreshTrackLinks, refreshAllLinks, coverSnapshot } =
+  await import('./trackService');
+
+// Spy the internal cover-snapshot seam instead of mock.module('./coverService'):
+// a global module mock leaks across bun test files and poisoned coverService.test.ts.
+const snapshotCoverMock = spyOn(coverSnapshot, 'run');
+snapshotCoverMock.mockResolvedValue(null);
 
 const fakeUser: User = {
   id: 'user-1',

@@ -5,6 +5,12 @@ import type { User, LikedTrack } from '../db/schema';
 import { searchSonglink } from './songlinkService';
 import { snapshotCover } from './coverService';
 
+// Internal test seam: specs replace `coverSnapshot.run` via spyOn on this
+// object. Direct `mock.module('./coverService')` leaks globally across bun
+// test files and poisoned the real coverService.test.ts (snapshotCover then
+// returned null there). A plain-object property is spy-able without that leak.
+export const coverSnapshot = { run: snapshotCover };
+
 // Hard cap on the liked-tracks listing payload. Power users with thousands
 // of tracks would otherwise stream the entire library on every page load.
 // Pagination via cursor (?before=createdAt) is the long-term replacement.
@@ -98,7 +104,7 @@ async function enrichTrackInBackground(
   // no Songlink match, but there's still art worth freezing). Snapshot to R2
   // so it survives the source URL going away (station rotation, restart).
   const bestSource = songlinkData?.artworkUrl ?? track?.artworkUrl ?? null;
-  const durableUrl = bestSource ? await snapshotCover(bestSource) : null;
+  const durableUrl = bestSource ? await coverSnapshot.run(bestSource) : null;
 
   const update: Partial<LikedTrack> = {};
   if (songlinkData) {
@@ -257,7 +263,7 @@ export async function refreshAllLinks({
         const songlinkData = await searchSonglink(track.title, track.artist);
         if (!songlinkData) return false;
         const bestSource = songlinkData.artworkUrl ?? track.artworkUrl ?? null;
-        const durableUrl = bestSource ? await snapshotCover(bestSource) : null;
+        const durableUrl = bestSource ? await coverSnapshot.run(bestSource) : null;
         await db
           .update(schema.likedTracks)
           .set({
@@ -313,7 +319,7 @@ export async function refreshTrackLinks({
   // Re-snapshot on every refresh — this doubles as a retry when the original
   // like-time snapshot failed (network hiccup, R2 outage).
   const bestSource = songlinkData.artworkUrl ?? track.artworkUrl ?? null;
-  const durableUrl = bestSource ? await snapshotCover(bestSource) : null;
+  const durableUrl = bestSource ? await coverSnapshot.run(bestSource) : null;
 
   // Re-check userId in the UPDATE to close the TOCTOU window between the SELECT
   // above and this UPDATE: if the row was deleted/transferred in between, we
