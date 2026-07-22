@@ -20,6 +20,10 @@
   --accent: oklch(0.47 0.12 25);
   --on-accent: oklch(0.98 0.008 80);
   --dawn-tint: oklch(0.88 0.05 25);
+  --glyph-1: oklch(0.82 0.07 25);
+  --glyph-2: oklch(0.8 0.08 200);
+  --glyph-3: oklch(0.82 0.07 140);
+  --glyph-4: oklch(0.8 0.08 300);
 }
 
 [data-theme='dark'] {
@@ -34,6 +38,10 @@
   --accent: oklch(0.76 0.1 25);
   --on-accent: oklch(0.18 0.03 265);
   --dawn-tint: oklch(0.35 0.06 25);
+  --glyph-1: oklch(0.33 0.05 25);
+  --glyph-2: oklch(0.32 0.06 200);
+  --glyph-3: oklch(0.33 0.05 140);
+  --glyph-4: oklch(0.32 0.06 300);
 }
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
@@ -48,6 +56,10 @@
   --color-border: var(--border);
   --color-accent: var(--accent);
   --color-on-accent: var(--on-accent);
+  --color-glyph-1: var(--glyph-1);
+  --color-glyph-2: var(--glyph-2);
+  --color-glyph-3: var(--glyph-3);
+  --color-glyph-4: var(--glyph-4);
 
   --font-*: initial;
   --font-sans: var(--p-font-stack);
