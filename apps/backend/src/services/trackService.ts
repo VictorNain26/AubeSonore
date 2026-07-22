@@ -243,6 +243,7 @@ export async function refreshAllLinks({
       id: schema.likedTracks.id,
       title: schema.likedTracks.title,
       artist: schema.likedTracks.artist,
+      artworkUrl: schema.likedTracks.artworkUrl,
     })
     .from(schema.likedTracks)
     .where(eq(schema.likedTracks.userId, user.id));
@@ -255,12 +256,14 @@ export async function refreshAllLinks({
       chunk.map(async (track) => {
         const songlinkData = await searchSonglink(track.title, track.artist);
         if (!songlinkData) return false;
+        const bestSource = songlinkData.artworkUrl ?? track.artworkUrl ?? null;
+        const durableUrl = bestSource ? await snapshotCover(bestSource) : null;
         await db
           .update(schema.likedTracks)
           .set({
             songlinkUrl: songlinkData.pageUrl,
             platformLinks: songlinkData.platformLinks,
-            ...(songlinkData.artworkUrl ? { artworkUrl: songlinkData.artworkUrl } : {}),
+            ...(durableUrl ? { artworkUrl: durableUrl } : {}),
           })
           .where(eq(schema.likedTracks.id, track.id));
         return true;

@@ -50,14 +50,21 @@ const fakeDb = {
   }),
   select: (projection?: Partial<Record<keyof Row, unknown>>) => ({
     from: () => ({
-      where: () => ({
-        limit: (n: number): Promise<Array<Partial<Row>>> => {
-          const slice = rows.slice(0, n);
-          if (!projection) return Promise.resolve(slice);
+      // where() itself resolves the unfiltered/unlimited case (refreshAllLinks
+      // awaits it directly), and also exposes .limit() for the call sites that
+      // paginate (where clauses are accepted but not evaluated, as above).
+      where: () => {
+        const project = (slice: Row[]): Array<Partial<Row>> => {
+          if (!projection) return slice;
           const keys = Object.keys(projection) as (keyof Row)[];
-          return Promise.resolve(slice.map((row) => pick(row, keys)));
-        },
-      }),
+          return slice.map((row) => pick(row, keys));
+        };
+        const promise = Promise.resolve(project(rows)) as Promise<Array<Partial<Row>>> & {
+          limit: (n: number) => Promise<Array<Partial<Row>>>;
+        };
+        promise.limit = (n: number) => Promise.resolve(project(rows.slice(0, n)));
+        return promise;
+      },
     }),
   }),
   update: () => ({
@@ -83,7 +90,7 @@ void mock.module('./coverService', () => ({ snapshotCover: snapshotCoverMock }))
 const searchSonglinkMock = mock((): Promise<SonglinkResult | null> => Promise.resolve(null));
 void mock.module('./songlinkService', () => ({ searchSonglink: searchSonglinkMock }));
 
-const { likeTrack, refreshTrackLinks } = await import('./trackService');
+const { likeTrack, refreshTrackLinks, refreshAllLinks } = await import('./trackService');
 
 const fakeUser: User = {
   id: 'user-1',
@@ -217,5 +224,31 @@ describe('refreshTrackLinks', () => {
     expect(result.status).toBe(400);
     expect(snapshotCoverMock).not.toHaveBeenCalled();
     expect(rows[0]?.artworkUrl).toBe('https://azuracast.example.com/art/none.jpg');
+  });
+});
+
+describe('refreshAllLinks', () => {
+  it('snapshots the best cover source to R2 for each track it refreshes', async () => {
+    rows = [
+      makeRow({
+        id: 'track-4',
+        title: 'Song',
+        artist: 'Artist',
+        artworkUrl: 'https://azuracast.example.com/art/batch.jpg',
+        userId: fakeUser.id,
+      }),
+    ];
+    searchSonglinkMock.mockResolvedValueOnce({
+      pageUrl: 'https://song.link/batch',
+      platformLinks: { spotify: 'https://open.spotify.com/track/batch' },
+      artworkUrl: 'https://apple-cdn.example.com/art/batch.jpg',
+    });
+    snapshotCoverMock.mockResolvedValueOnce('https://covers.example.com/covers/batch.jpg');
+
+    const result = await refreshAllLinks({ user: fakeUser });
+
+    expect(snapshotCoverMock).toHaveBeenCalledWith('https://apple-cdn.example.com/art/batch.jpg');
+    expect(rows[0]?.artworkUrl).toBe('https://covers.example.com/covers/batch.jpg');
+    expect(result.updated).toBe(1);
   });
 });
