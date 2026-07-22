@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
 import { getAnalyser } from '../../lib/player';
+import { sampleBin, waveOffset } from '../../lib/waveform';
 import { WaveformCanvasView } from '../../design/organisms/WaveformCanvas';
 
 // ─────────────────────────────────────────────
@@ -42,7 +43,7 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
     songIdRef.current = songId;
   });
 
-  const pointsCount = 48;
+  const pointsCount = 72;
 
   useEffect(() => {
     if (smoothedDataRef.current.length !== pointsCount) {
@@ -130,33 +131,23 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
 
       for (let i = 0; i < pointsCount; i++) {
         if (frequencyData) {
-          const startBin = 2;
-          const endBin = 35;
-          const usableBins = endBin - startBin;
-          const center = pointsCount / 2;
-          const distFromCenter = Math.abs(i - center) / center;
-          const logDist = Math.pow(distFromCenter, 0.6);
-          const binOffset = Math.floor(logDist * usableBins);
-          const binIndex = startBin + binOffset;
+          const binIndex = sampleBin(i, pointsCount, 2, 35);
           const value = frequencyData[binIndex] ?? 0;
           const normalized = 0.15 + (value / 255) * 0.8;
           const smoothingFactor = 0.35;
           const prevValue = values[i] || 0.3;
-          const newValue = prevValue * (1 - smoothingFactor) + normalized * smoothingFactor;
-          values[i] = newValue;
+          values[i] = prevValue * (1 - smoothingFactor) + normalized * smoothingFactor;
         }
 
         const currentValue = values[i] || 0.3;
-        const signed = isPlaying ? (currentValue - 0.15) * Math.sin(i * 0.85 + time * 2.2) : 0;
+        const signed = waveOffset(currentValue, i, time, isPlaying);
         const y = mid + signed * amplitude;
         const x = i * stepX;
         if (i === 0) ctx.moveTo(x, y);
         else {
           const prevX = (i - 1) * stepX;
-          const prevValue = values[i - 1] || 0.3;
-          const prevSigned = isPlaying
-            ? (prevValue - 0.15) * Math.sin((i - 1) * 0.85 + time * 2.2)
-            : 0;
+          const prevValuePt = values[i - 1] || 0.3;
+          const prevSigned = waveOffset(prevValuePt, i - 1, time, isPlaying);
           const prevY = mid + prevSigned * amplitude;
           ctx.quadraticCurveTo(prevX + stepX / 2, (prevY + y) / 2, x, y);
         }
