@@ -30,6 +30,8 @@ pnpm --filter @aubesonore/frontend build-storybook  # build statique
 
 Standard d'écriture des stories (CSF3, args, une story par état, `Showcase`) : voir la section « Storybook documentation standard » de [`CLAUDE.md`](CLAUDE.md).
 
+**Serveur MCP (agents IA)** : l'addon `mcp` expose un serveur MCP sur `/mcp`, servi par le Storybook en cours d'exécution. Il est déclaré dans le `.mcp.json` racine (`storybook` → `http://localhost:6006/mcp`). Pour qu'un agent l'utilise : lancer Storybook en local, puis approuver le serveur via `claude` (les serveurs MCP de projet sont en attente d'approbation par défaut).
+
 ## Installation
 
 ```bash
