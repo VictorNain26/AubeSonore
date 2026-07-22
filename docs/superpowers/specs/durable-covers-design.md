@@ -43,11 +43,13 @@ Wrapper mince sur `Bun.S3Client`, creds depuis `config/env`.
 
 ### `apps/backend/src/services/coverService.ts`
 
-- `snapshotCover(sourceUrl: string): Promise<string | null>`
+- `snapshotCover(sourceUrl: string): Promise<string | null>` 0. **Skip l'art générique** : si `isDefaultArtwork(sourceUrl)` (réutilise `@aubesonore/core/azuracast`, la même fonction que le front/mobile) → `null`. Un morceau réellement sans pochette n'a **pas** de « bonne cover » à figer ; il tombe sur l'icône de repli. On ne gèle jamais le placeholder générique d'AzuraCast comme s'il était la pochette.
   1. `assertSafeUrl(sourceUrl, { requireHttps: env.IS_PROD })` — **SSRF** (réutilise le guard de la PR #139 ; `sourceUrl` est influencé par le client).
   2. `fetch` avec `AbortSignal.timeout` (~8 s), garde **taille** (≤ 5 Mo) et **content-type** (`image/*` uniquement).
   3. `putCover(bytes, contentType)` → `publicUrl(key)`.
   4. Échec (réseau, type, taille) → `null` (le caller garde l'URL source ; retry au prochain refresh).
+
+> Le backend dépendra de `@aubesonore/core` (`workspace:*`) pour `isDefaultArtwork` — logique platform-agnostic déjà partagée front/mobile, aucune duplication.
 
 ### Intégration `trackService.ts`
 
