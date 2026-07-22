@@ -22,7 +22,7 @@
   "dependencies": {
     "@aubesonore/shared-types": "workspace:*",
     "@elysiajs/cors": "^1.4.2",
-    "better-auth": "^1.6.23",
+    "better-auth": "^1.6.24",
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.28",
     "file-type": ">=21.3.2",
