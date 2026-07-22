@@ -5,12 +5,20 @@ import '@fontsource-variable/inter';
 import '@fontsource-variable/instrument-sans';
 import './index.css';
 import { initTheme } from './lib/theme';
+import { handlePreloadError } from './lib/preloadReload';
 
 const root = document.getElementById('root');
 
 if (!root) {
   throw new Error('Root element not found');
 }
+
+// Recover from lazy-chunk loads that fail because a new deployment removed the
+// old hashed asset (Vite build guide). Reloads once to fetch the fresh HTML +
+// chunks; the loop guard leaves persistent failures to the error boundary.
+window.addEventListener('vite:preloadError', () => {
+  handlePreloadError(sessionStorage, () => window.location.reload(), Date.now());
+});
 
 initTheme();
 
