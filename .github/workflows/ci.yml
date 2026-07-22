@@ -106,6 +106,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace packages
+        run: pnpm turbo build --filter=@aubesonore/shared-types --filter=@aubesonore/core
+
       - name: Run backend tests
         run: pnpm --filter=@aubesonore/backend test
 
