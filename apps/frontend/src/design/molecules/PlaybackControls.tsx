@@ -21,8 +21,10 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
       onClick={onTogglePlay}
       transition={toggleTransition}
       className={cn(
-        'size-14 lg:size-16 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
-        'bg-accent text-on-accent hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-80'
+        'size-14 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
+        'bg-accent text-on-accent transition duration-200 ease-out-quart',
+        'hover:opacity-90 active:opacity-80 motion-safe:hover:scale-105 motion-safe:active:scale-95',
+        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
       )}
       aria-label={isPlaying ? 'Arrêter la lecture' : 'Lancer la lecture'}
       aria-pressed={isPlaying}
@@ -36,7 +38,7 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
             exit={{ opacity: 0, scale: 0.8 }}
             transition={toggleTransition}
           >
-            <Square className="size-5" />
+            <Square className="size-5 fill-current" strokeWidth={0} />
           </m.span>
         ) : (
           <m.span
@@ -46,7 +48,7 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
             exit={{ opacity: 0, scale: 0.8 }}
             transition={toggleTransition}
           >
-            <Play className="size-6 ml-0.5" />
+            <Play className="size-6 ml-0.5 fill-current" strokeWidth={0} />
           </m.span>
         )}
       </AnimatePresence>

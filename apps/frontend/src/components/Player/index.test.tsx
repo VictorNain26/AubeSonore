@@ -26,6 +26,10 @@ vi.mock('./PlaybackControls', () => ({
   PlaybackControls: () => <div data-testid="controls">Controls</div>,
 }));
 
+vi.mock('./TrackActions', () => ({
+  TrackActions: () => <div data-testid="track-actions">Actions</div>,
+}));
+
 vi.mock('./SecondaryControls', () => ({
   SecondaryControls: () => <div data-testid="secondary">Secondary</div>,
 }));
@@ -92,6 +96,7 @@ describe('Player', () => {
     expect(screen.getByTestId('meta')).toBeInTheDocument();
     expect(screen.getByTestId('antenna')).toBeInTheDocument();
     expect(screen.getByTestId('controls')).toBeInTheDocument();
+    expect(screen.getByTestId('track-actions')).toBeInTheDocument();
     expect(screen.getByTestId('secondary')).toBeInTheDocument();
   });
 
