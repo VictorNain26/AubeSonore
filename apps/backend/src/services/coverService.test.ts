@@ -1,10 +1,6 @@
 import { describe, it, expect, spyOn, afterEach } from 'bun:test';
 import type { CoverStore } from '../lib/storage/coverStore';
 
-process.env.DATABASE_URL ??= 'postgres://test:test@localhost:5432/test';
-process.env.BETTER_AUTH_SECRET ??= 'x'.repeat(32);
-process.env.BETTER_AUTH_URL ??= 'http://localhost:3000';
-
 const { snapshotCover } = await import('./coverService');
 
 const okStore: CoverStore = {

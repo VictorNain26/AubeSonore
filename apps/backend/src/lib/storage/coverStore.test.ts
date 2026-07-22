@@ -1,10 +1,6 @@
 import { describe, it, expect } from 'bun:test';
 import type { CoverBucket } from './coverStore';
 
-process.env.DATABASE_URL ??= 'postgres://test:test@localhost:5432/test';
-process.env.BETTER_AUTH_SECRET ??= 'x'.repeat(32);
-process.env.BETTER_AUTH_URL ??= 'http://localhost:3000';
-
 const { createCoverStore } = await import('./coverStore');
 
 function fakeBucket() {

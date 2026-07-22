@@ -1,9 +1,5 @@
 import { beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
 
-process.env.DATABASE_URL ??= 'postgres://test:test@localhost:5432/test';
-process.env.BETTER_AUTH_SECRET ??= 'x'.repeat(32);
-process.env.BETTER_AUTH_URL ??= 'http://localhost:3000';
-
 import type { LikedTrack, User } from '../db/schema';
 import * as realSchema from '../db/schema';
 import type { SonglinkResult } from './songlinkService';
