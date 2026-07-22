@@ -153,6 +153,28 @@ describe('likeTrack → background enrichment', () => {
     expect(rows[0]?.platformLinks).toEqual({ spotify: 'https://open.spotify.com/track/abc' });
   });
 
+  it('keeps the AzuraCast artwork when a match carries links but no iTunes cover', async () => {
+    searchSonglinkMock.mockResolvedValueOnce({
+      pageUrl: 'https://song.link/nocover',
+      platformLinks: { spotify: 'https://open.spotify.com/track/nocover' },
+    });
+
+    await likeTrack({
+      user: fakeUser,
+      body: {
+        title: 'Cover-less Song',
+        artist: 'Known Artist',
+        youtubeUrl: 'https://youtube.example.com/watch?v=noc',
+        artworkUrl: 'https://azuracast.example.com/art/noc.jpg',
+      },
+    });
+    await flushBackgroundWork();
+
+    expect(rows[0]?.artworkUrl).toBe('https://azuracast.example.com/art/noc.jpg');
+    expect(rows[0]?.songlinkUrl).toBe('https://song.link/nocover');
+    expect(rows[0]?.platformLinks).toEqual({ spotify: 'https://open.spotify.com/track/nocover' });
+  });
+
   it('leaves artwork_url untouched when there is no AzuraCast art and no Songlink match', async () => {
     searchSonglinkMock.mockResolvedValueOnce(null);
 
