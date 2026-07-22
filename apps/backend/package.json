@@ -15,8 +15,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "test:coverage": "bun test --coverage",
+    "test": "bun test --isolate",
+    "test:coverage": "bun test --isolate --coverage",
     "clean": "rm -rf dist"
   },
   "dependencies": {

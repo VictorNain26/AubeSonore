@@ -55,13 +55,6 @@ interface EnvConfig {
   SMTP_PASSWORD: string | undefined;
   SMTP_FROM: string;
   DISABLE_EMAILS: boolean;
-
-  // Cloudflare R2 (durable cover storage). All-or-nothing: absent = feature off.
-  R2_ACCOUNT_ID: string | undefined;
-  R2_ACCESS_KEY_ID: string | undefined;
-  R2_SECRET_ACCESS_KEY: string | undefined;
-  R2_BUCKET: string | undefined;
-  COVERS_PUBLIC_URL: string | undefined;
 }
 
 function required(name: string): string {
@@ -146,12 +139,6 @@ export const env: EnvConfig = {
   SMTP_PASSWORD: optional('SMTP_PASSWORD'),
   SMTP_FROM: Bun.env.SMTP_FROM ?? 'AubeSonore <noreply@aubesonore.fr>',
   DISABLE_EMAILS: Bun.env.DISABLE_EMAILS === 'true',
-
-  R2_ACCOUNT_ID: optional('R2_ACCOUNT_ID'),
-  R2_ACCESS_KEY_ID: optional('R2_ACCESS_KEY_ID'),
-  R2_SECRET_ACCESS_KEY: optional('R2_SECRET_ACCESS_KEY'),
-  R2_BUCKET: optional('R2_BUCKET'),
-  COVERS_PUBLIC_URL: optional('COVERS_PUBLIC_URL'),
 };
 
 // Cross-field validation: secrets must be coherent.
@@ -173,17 +160,4 @@ if (env.VAPID_PRIVATE_KEY && !env.VAPID_PUBLIC_KEY) {
 }
 if (env.SMTP_HOST && (!env.SMTP_USER || !env.SMTP_PASSWORD)) {
   throw new Error('SMTP_HOST set but SMTP_USER or SMTP_PASSWORD missing');
-}
-
-const r2Vars = [
-  env.R2_ACCOUNT_ID,
-  env.R2_ACCESS_KEY_ID,
-  env.R2_SECRET_ACCESS_KEY,
-  env.R2_BUCKET,
-  env.COVERS_PUBLIC_URL,
-];
-if (r2Vars.some(Boolean) && !r2Vars.every(Boolean)) {
-  throw new Error(
-    'R2 cover storage is partially configured: set all of R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, COVERS_PUBLIC_URL — or none.'
-  );
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
+import { beforeEach, describe, expect, it, mock } from 'bun:test';
 
 import type { LikedTrack, User } from '../db/schema';
 import * as realSchema from '../db/schema';
@@ -83,13 +83,7 @@ void mock.module('../db/index', () => ({ db: fakeDb, schema: realSchema }));
 const searchSonglinkMock = mock((): Promise<SonglinkResult | null> => Promise.resolve(null));
 void mock.module('./songlinkService', () => ({ searchSonglink: searchSonglinkMock }));
 
-const { likeTrack, refreshTrackLinks, refreshAllLinks, coverSnapshot } =
-  await import('./trackService');
-
-// Spy the internal cover-snapshot seam instead of mock.module('./coverService'):
-// a global module mock leaks across bun test files and poisoned coverService.test.ts.
-const snapshotCoverMock = spyOn(coverSnapshot, 'run');
-snapshotCoverMock.mockResolvedValue(null);
+const { likeTrack, refreshTrackLinks, refreshAllLinks } = await import('./trackService');
 
 const fakeUser: User = {
   id: 'user-1',
@@ -106,8 +100,8 @@ const fakeUser: User = {
 };
 
 // enrichTrackInBackground is fire-and-forget from likeTrack; flush the
-// macrotask queue so its microtask chain (select → searchSonglink →
-// snapshotCover → update) has settled before assertions run.
+// macrotask queue so its microtask chain (select → searchSonglink → update)
+// has settled before assertions run.
 async function flushBackgroundWork(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
 }
@@ -115,13 +109,11 @@ async function flushBackgroundWork(): Promise<void> {
 beforeEach(() => {
   rows = [];
   searchSonglinkMock.mockClear();
-  snapshotCoverMock.mockClear();
 });
 
 describe('likeTrack → background enrichment', () => {
-  it('snapshots the AzuraCast artwork to R2 when Songlink has no match (emerging artist)', async () => {
+  it('keeps the AzuraCast artwork when Songlink has no match (emerging artist)', async () => {
     searchSonglinkMock.mockResolvedValueOnce(null);
-    snapshotCoverMock.mockResolvedValueOnce('https://covers.example.com/covers/r2.jpg');
 
     await likeTrack({
       user: fakeUser,
@@ -134,18 +126,16 @@ describe('likeTrack → background enrichment', () => {
     });
     await flushBackgroundWork();
 
-    expect(snapshotCoverMock).toHaveBeenCalledWith('https://azuracast.example.com/art/abc.jpg');
-    expect(rows[0]?.artworkUrl).toBe('https://covers.example.com/covers/r2.jpg');
+    expect(rows[0]?.artworkUrl).toBe('https://azuracast.example.com/art/abc.jpg');
     expect(rows[0]?.songlinkUrl).toBeNull();
   });
 
-  it('prefers the Songlink artwork over the AzuraCast one when a match is found', async () => {
+  it('uses the verified iTunes artwork directly when a Songlink match is found', async () => {
     searchSonglinkMock.mockResolvedValueOnce({
       pageUrl: 'https://song.link/abc',
       platformLinks: { spotify: 'https://open.spotify.com/track/abc' },
       artworkUrl: 'https://apple-cdn.example.com/art/hd.jpg',
     });
-    snapshotCoverMock.mockResolvedValueOnce('https://covers.example.com/covers/hd.jpg');
 
     await likeTrack({
       user: fakeUser,
@@ -158,15 +148,13 @@ describe('likeTrack → background enrichment', () => {
     });
     await flushBackgroundWork();
 
-    expect(snapshotCoverMock).toHaveBeenCalledWith('https://apple-cdn.example.com/art/hd.jpg');
-    expect(rows[0]?.artworkUrl).toBe('https://covers.example.com/covers/hd.jpg');
+    expect(rows[0]?.artworkUrl).toBe('https://apple-cdn.example.com/art/hd.jpg');
     expect(rows[0]?.songlinkUrl).toBe('https://song.link/abc');
     expect(rows[0]?.platformLinks).toEqual({ spotify: 'https://open.spotify.com/track/abc' });
   });
 
-  it('leaves artwork_url untouched when both Songlink and the snapshot fail', async () => {
+  it('leaves artwork_url untouched when there is no AzuraCast art and no Songlink match', async () => {
     searchSonglinkMock.mockResolvedValueOnce(null);
-    snapshotCoverMock.mockResolvedValueOnce(null);
 
     await likeTrack({
       user: fakeUser,
@@ -174,17 +162,16 @@ describe('likeTrack → background enrichment', () => {
         title: 'Song',
         artist: 'Artist',
         youtubeUrl: 'https://youtube.example.com/watch?v=ghi',
-        artworkUrl: 'https://azuracast.example.com/art/ghi.jpg',
       },
     });
     await flushBackgroundWork();
 
-    expect(rows[0]?.artworkUrl).toBe('https://azuracast.example.com/art/ghi.jpg');
+    expect(rows[0]?.artworkUrl).toBeNull();
   });
 });
 
 describe('refreshTrackLinks', () => {
-  it('re-snapshots artwork on refresh — serves as a retry for a failed like-time snapshot', async () => {
+  it('sets artwork to the verified iTunes cover on refresh', async () => {
     rows = [
       makeRow({
         id: 'track-2',
@@ -199,16 +186,14 @@ describe('refreshTrackLinks', () => {
       platformLinks: { spotify: 'https://open.spotify.com/track/xyz' },
       artworkUrl: 'https://apple-cdn.example.com/art/xyz.jpg',
     });
-    snapshotCoverMock.mockResolvedValueOnce('https://covers.example.com/covers/xyz.jpg');
 
     const result = await refreshTrackLinks({ user: fakeUser, id: 'track-2' });
 
-    expect(snapshotCoverMock).toHaveBeenCalledWith('https://apple-cdn.example.com/art/xyz.jpg');
-    expect(result.track?.artworkUrl).toBe('https://covers.example.com/covers/xyz.jpg');
+    expect(result.track?.artworkUrl).toBe('https://apple-cdn.example.com/art/xyz.jpg');
     expect(result.track?.songlinkUrl).toBe('https://song.link/xyz');
   });
 
-  it('returns an error and never snapshots when Songlink still has no match', async () => {
+  it('returns an error and leaves artwork unchanged when Songlink still has no match', async () => {
     rows = [
       makeRow({
         id: 'track-3',
@@ -221,13 +206,12 @@ describe('refreshTrackLinks', () => {
     const result = await refreshTrackLinks({ user: fakeUser, id: 'track-3' });
 
     expect(result.status).toBe(400);
-    expect(snapshotCoverMock).not.toHaveBeenCalled();
     expect(rows[0]?.artworkUrl).toBe('https://azuracast.example.com/art/none.jpg');
   });
 });
 
 describe('refreshAllLinks', () => {
-  it('snapshots the best cover source to R2 for each track it refreshes', async () => {
+  it('sets artwork to the verified iTunes cover for each track it refreshes', async () => {
     rows = [
       makeRow({
         id: 'track-4',
@@ -242,12 +226,10 @@ describe('refreshAllLinks', () => {
       platformLinks: { spotify: 'https://open.spotify.com/track/batch' },
       artworkUrl: 'https://apple-cdn.example.com/art/batch.jpg',
     });
-    snapshotCoverMock.mockResolvedValueOnce('https://covers.example.com/covers/batch.jpg');
 
     const result = await refreshAllLinks({ user: fakeUser });
 
-    expect(snapshotCoverMock).toHaveBeenCalledWith('https://apple-cdn.example.com/art/batch.jpg');
-    expect(rows[0]?.artworkUrl).toBe('https://covers.example.com/covers/batch.jpg');
+    expect(rows[0]?.artworkUrl).toBe('https://apple-cdn.example.com/art/batch.jpg');
     expect(result.updated).toBe(1);
   });
 });
