@@ -1,12 +1,11 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useInkFlip } from '../../lib/motion';
-import { useTrackActions } from '../../hooks/player/useTrackActions';
 import { TrackMetaView } from '../../design/organisms/TrackMeta';
 
-// The masthead: track title as a large serif headline, artist as its
-// dek. On a track flip the block does a soft crossfade with a slight
-// blur — "mise au net" — no translation, no delay.
+// The masthead: track title as a large headline, artist as its dek. On a
+// track flip the block does a soft crossfade with a slight blur. Actions
+// (like/share) live in TrackActions, in the action bar.
 
 interface TrackMetaProps {
   onArtistInfo?: (() => void) | undefined;
@@ -21,7 +20,6 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
       artist: s.data?.now_playing?.song.artist,
     }))
   );
-  const { isLiked, isLiking, handleToggleLike, handleShare } = useTrackActions();
 
   return (
     <TrackMetaView
@@ -30,10 +28,6 @@ export function TrackMeta({ onArtistInfo }: TrackMetaProps) {
       artist={artist}
       shId={shId}
       {...(onArtistInfo ? { onArtistInfo } : {})}
-      isLiked={isLiked}
-      isLiking={isLiking}
-      onToggleLike={handleToggleLike}
-      onShare={handleShare}
     />
   );
 }

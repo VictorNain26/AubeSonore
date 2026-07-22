@@ -8,27 +8,28 @@ import { TrackArtwork } from './TrackArtwork';
 import { TrackMeta } from './TrackMeta';
 import { Antenna } from './Antenna';
 import { PlaybackControls } from './PlaybackControls';
+import { TrackActions } from './TrackActions';
 import { SecondaryControls } from './SecondaryControls';
 import { ArtistContext } from './ArtistContext';
 import { ArtistBio } from './ArtistBio';
 import { RecentTracks } from './RecentTracks';
 
 /**
- * Composition root of the now-playing scene: single-viewport layout with the
- * centered player (row 1) and the recent-tracks rail (row 2). Arranges
- * sub-components only — every leaf (`TrackArtwork`, `TrackMeta`, `Antenna`,
- * `PlaybackControls`, `RecentTracks`, …) subscribes directly to the store it
- * cares about, and each already ships its own Storybook story. Side effects
- * (toasts, stats, media-session) live in `<PlayerSideEffects />`; the
- * `AuthModal` is hosted at App level, not here. Not storied on its own: a
- * presentational split would require re-mocking every child's store just to
- * reproduce compositions already documented individually.
+ * Composition root of the now-playing scene: single-viewport masthead with the
+ * cover on the left and, on the right, the title/artist, a transport line
+ * (`play` anchoring the full-width waveform) and a unified action bar
+ * (`like` · `share` · `volume`). Arranges sub-components only — every leaf
+ * subscribes directly to the store it cares about and ships its own story.
+ * Side effects live in `<PlayerSideEffects />`; the `AuthModal` is hosted at
+ * App level.
  */
 
 const NOW =
   'flex w-full max-w-3xl flex-col items-center gap-6 lg:flex-row lg:items-center lg:gap-10';
 const META =
-  'flex w-full min-w-0 flex-col items-center gap-3 text-center lg:items-start lg:text-left';
+  'flex w-full min-w-0 flex-col items-center gap-4 text-center lg:items-start lg:text-left';
+const TRANSPORT = 'flex w-full items-center gap-3 lg:gap-4';
+const ACTIONS = 'flex items-center gap-2 justify-center lg:justify-start';
 
 export default function Player() {
   const hasData = useNowPlayingStore((s) => s.data !== null);
@@ -47,14 +48,16 @@ export default function Player() {
       <div className="grid h-full grid-rows-[1fr_auto] overflow-hidden">
         <div className="flex min-h-0 min-w-0 flex-col items-center justify-center px-6 py-4">
           <div className={NOW}>
-            <div className="relative artwork-size shrink-0">
+            <div className="artwork-size shrink-0">
               <div className="aspect-square rounded-md animate-pulse bg-surface-raised" />
-              <div className="absolute -bottom-3 -right-3 size-14 lg:size-16 rounded-full animate-pulse bg-surface-raised" />
             </div>
             <div className={META}>
               <div className="h-9 w-3/4 animate-pulse rounded-sm bg-surface-raised" />
               <div className="h-5 w-1/3 animate-pulse rounded-sm bg-surface-raised" />
-              <div className="h-4 w-1/2 animate-pulse rounded-sm bg-surface-raised" />
+              <div className={TRANSPORT}>
+                <div className="size-14 shrink-0 animate-pulse rounded-full bg-surface-raised" />
+                <div className="h-10 flex-1 animate-pulse rounded-sm bg-surface-raised" />
+              </div>
             </div>
           </div>
         </div>
@@ -72,16 +75,21 @@ export default function Player() {
     >
       <div className="flex min-h-0 min-w-0 flex-col items-center justify-center px-6 py-4">
         <div className={NOW}>
-          <div className="relative artwork-size shrink-0">
+          <div className="artwork-size shrink-0">
             <TrackArtwork />
-            <div className="absolute -bottom-3 -right-3">
-              <PlaybackControls />
-            </div>
           </div>
           <div className={META}>
             <TrackMeta onArtistInfo={data?.bio ? () => setArtistPanelOpen(true) : undefined} />
-            <Antenna />
-            <SecondaryControls />
+            <div className={TRANSPORT}>
+              <PlaybackControls />
+              <div className="min-w-0 flex-1">
+                <Antenna />
+              </div>
+            </div>
+            <div className={ACTIONS}>
+              <TrackActions />
+              <SecondaryControls />
+            </div>
             <div className="hidden lg:block">
               <ArtistBio onOpenPanel={() => setArtistPanelOpen(true)} />
             </div>

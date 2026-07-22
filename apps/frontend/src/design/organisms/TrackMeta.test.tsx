@@ -8,10 +8,6 @@ const base = {
   inkFlip,
   artist: 'Some Artist',
   shId: 1,
-  isLiked: false,
-  isLiking: false,
-  onToggleLike: () => {},
-  onShare: () => {},
 };
 
 describe('TrackMetaView', () => {

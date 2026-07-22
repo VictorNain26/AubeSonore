@@ -22,12 +22,14 @@ export function SecondaryControlsView({
 }: SecondaryControlsViewProps) {
   return (
     <div className="flex items-center gap-1">
-      <VolumeControl
-        volume={volume}
-        isMuted={isMuted}
-        onVolumeChange={onVolumeChange}
-        onToggleMute={onToggleMute}
-      />
+      <div className="hidden lg:block">
+        <VolumeControl
+          volume={volume}
+          isMuted={isMuted}
+          onVolumeChange={onVolumeChange}
+          onToggleMute={onToggleMute}
+        />
+      </div>
       <AirPlayButton />
     </div>
   );
