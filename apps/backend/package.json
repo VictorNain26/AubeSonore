@@ -22,12 +22,12 @@
   "dependencies": {
     "@aubesonore/shared-types": "workspace:*",
     "@elysiajs/cors": "^1.4.2",
-    "better-auth": "^1.6.11",
+    "better-auth": "^1.6.23",
     "drizzle-orm": "^0.45.2",
     "elysia": "^1.4.28",
     "file-type": ">=21.3.2",
     "html-to-text": "^10.0.0",
-    "nodemailer": "^8.0.7",
+    "nodemailer": "^9.0.3",
     "pg": "^8.20.0",
     "valibot": "^1.4.0",
     "web-push": "^3.6.7"
