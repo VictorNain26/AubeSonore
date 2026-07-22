@@ -13,7 +13,7 @@ function fakeBucket() {
     file(key) {
       return {
         exists: () => Promise.resolve(written.has(key)),
-        write: (data, options) => {
+        write: (data, options: { type: string }) => {
           written.set(key, { data, type: options.type });
           return Promise.resolve(undefined);
         },

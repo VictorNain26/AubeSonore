@@ -13,7 +13,7 @@ const EXT_BY_TYPE: Record<string, string> = {
 export interface CoverBucket {
   file(key: string): {
     exists(): Promise<boolean>;
-    write(data: Uint8Array, options: { type: string; acl: 'public-read' }): Promise<unknown>;
+    write(data: Uint8Array, options: { type: string }): Promise<unknown>;
   };
 }
 
@@ -31,7 +31,8 @@ export function createCoverStore(bucket: CoverBucket, publicBaseUrl: string): Co
       const key = `covers/${hash}.${ext}`;
       const file = bucket.file(key);
       if (!(await file.exists())) {
-        await file.write(bytes, { type: contentType, acl: 'public-read' });
+        // Public access is controlled at the bucket level via custom domain, not per-object ACLs (R2 ignores ACLs).
+        await file.write(bytes, { type: contentType });
       }
       return `${base}/${key}`;
     },
