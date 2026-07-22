@@ -12,14 +12,16 @@ describe('Thumbnail', () => {
     );
   });
 
-  it('renders no image when no src is given', () => {
+  it('renders the CoverGlyph fallback when no src is given', () => {
     render(<Thumbnail alt="Pochette" />);
-    expect(screen.queryByRole('img')).toBeNull();
+    expect(screen.queryByRole('img', { name: 'Pochette' })).toBeNull();
+    expect(screen.getByRole('img', { name: 'Pochette indisponible' })).toBeInTheDocument();
   });
 
-  it('removes the image after a load error', () => {
+  it('replaces the image with the CoverGlyph fallback after a load error', () => {
     render(<Thumbnail src="https://example.test/broken.jpg" alt="Pochette" />);
     fireEvent.error(screen.getByRole('img', { name: 'Pochette' }));
-    expect(screen.queryByRole('img')).toBeNull();
+    expect(screen.queryByRole('img', { name: 'Pochette' })).toBeNull();
+    expect(screen.getByRole('img', { name: 'Pochette indisponible' })).toBeInTheDocument();
   });
 });

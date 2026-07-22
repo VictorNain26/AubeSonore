@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { CoverGlyph } from './CoverGlyph';
 
 const SIZE: Record<'sm' | 'md', string> = {
   sm: 'size-10',
@@ -14,14 +14,16 @@ export interface ThumbnailProps {
   alt?: string;
   /** Taille du carré : `sm` (40px) ou `md` (48px). */
   size?: 'sm' | 'md';
+  /** Chaîne source du hash déterministe du repli (ex. `${artist}|${title}`). Par défaut, `alt`. */
+  seed?: string;
   className?: string;
 }
 
 /**
- * Vignette carrée pour une pochette de morceau, avec repli automatique sur une icône
- * musicale si `src` est absent ou si l'image échoue à charger.
+ * Vignette carrée pour une pochette de morceau, avec repli automatique sur un
+ * `CoverGlyph` déterministe si `src` est absent ou si l'image échoue à charger.
  */
-export function Thumbnail({ src, alt = '', size = 'sm', className }: ThumbnailProps) {
+export function Thumbnail({ src, alt = '', size = 'sm', seed, className }: ThumbnailProps) {
   const [imgError, setImgError] = useState(false);
   const showImage = Boolean(src) && !imgError;
 
@@ -44,7 +46,7 @@ export function Thumbnail({ src, alt = '', size = 'sm', className }: ThumbnailPr
           onError={() => setImgError(true)}
         />
       ) : (
-        <Music className="absolute inset-0 m-auto size-4 text-text-faint" />
+        <CoverGlyph seed={seed ?? alt} size={size} className="size-full" />
       )}
     </div>
   );

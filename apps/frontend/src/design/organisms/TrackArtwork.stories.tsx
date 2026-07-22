@@ -15,7 +15,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Pochette du morceau en cours. Crossfade doux (`AnimatePresence`) sur changement de morceau, légère mise à l'échelle pendant la lecture, repli sur une icône musique quand la pochette est absente, invalide ou la couverture par défaut d'AzuraCast.",
+          "Pochette du morceau en cours. Crossfade doux (`AnimatePresence`) sur changement de morceau, légère mise à l'échelle pendant la lecture, repli sur un `CoverGlyph` déterministe quand la pochette est absente, invalide ou la couverture par défaut d'AzuraCast.",
       },
     },
   },
@@ -26,6 +26,7 @@ const meta = {
   args: {
     artUrl: 'https://picsum.photos/seed/aube/600/600',
     title: 'Nuits Sonores',
+    seed: 'Aube Sonore|Nuits Sonores',
     isDefaultCover: false,
     isPlaying: true,
     onArtError: () => {},

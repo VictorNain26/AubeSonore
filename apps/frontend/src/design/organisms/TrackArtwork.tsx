@@ -1,7 +1,7 @@
-import { Music } from 'lucide-react';
 import { AnimatePresence } from 'motion/react';
 import * as m from 'motion/react-m';
 import { cn } from '@/lib/utils';
+import { CoverGlyph } from '../atoms/CoverGlyph';
 import type { useInkFlip } from '../../lib/motion';
 
 /** Presentational props for the now-playing album art. */
@@ -10,7 +10,9 @@ export interface TrackArtworkViewProps {
   artUrl: string | undefined;
   /** Track title, used as the image's alt text. */
   title: string | undefined;
-  /** Whether to render the placeholder music icon instead of the image. */
+  /** Chaîne source du hash déterministe du repli `CoverGlyph` (ex. `${artist}|${title}`). */
+  seed: string;
+  /** Whether to render the placeholder CoverGlyph instead of the image. */
   isDefaultCover: boolean;
   /** Whether the antenna is currently playing (drives the subtle scale). */
   isPlaying: boolean;
@@ -23,6 +25,7 @@ export interface TrackArtworkViewProps {
 export function TrackArtworkView({
   artUrl,
   title,
+  seed,
   isDefaultCover,
   isPlaying,
   onArtError,
@@ -52,7 +55,7 @@ export function TrackArtworkView({
             />
           ) : (
             <div className="flex size-full items-center justify-center bg-surface-raised">
-              <Music className="size-12 text-text-faint" />
+              <CoverGlyph seed={seed} size="md" className="size-full" />
             </div>
           )}
         </AnimatePresence>

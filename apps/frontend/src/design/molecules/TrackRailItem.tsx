@@ -34,7 +34,11 @@ export function TrackRailItem({
 }: TrackRailItemProps) {
   return (
     <div role="listitem" className="group flex w-72 shrink-0 items-center gap-3 py-3">
-      <Thumbnail {...(art !== undefined ? { src: art } : {})} size="md" />
+      <Thumbnail
+        {...(art !== undefined ? { src: art } : {})}
+        size="md"
+        seed={`${artist}|${title}`}
+      />
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <p className="truncate text-body text-text-muted">{title}</p>
