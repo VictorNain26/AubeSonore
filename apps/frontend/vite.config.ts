@@ -9,6 +9,7 @@ import path from 'path';
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const apiBaseUrl = env.VITE_API_URL;
+  const analyze = env.ANALYZE === 'true';
 
   return {
     base: './',
@@ -63,12 +64,15 @@ export default defineConfig(({ mode }) => {
           ],
         },
       }),
-      visualizer({
-        filename: 'stats.html',
-        emitFile: true,
-        gzipSize: true,
-        brotliSize: true,
-      }) as PluginOption,
+      ...(analyze
+        ? [
+            visualizer({
+              filename: 'stats.html',
+              gzipSize: true,
+              brotliSize: true,
+            }) as PluginOption,
+          ]
+        : []),
     ],
     server: {
       host: '0.0.0.0',
@@ -94,7 +98,6 @@ export default defineConfig(({ mode }) => {
             if (id.includes('node_modules')) {
               if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion'))
                 return 'motion';
-              if (id.includes('@radix-ui')) return 'radix';
               if (id.includes('react-dom') || id.endsWith('/react/index.js')) return 'react-vendor';
             }
             return undefined;

@@ -1,5 +1,6 @@
 import { Music } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { cn } from '@/lib/utils';
 import type { useInkFlip } from '../../lib/motion';
 
@@ -38,7 +39,7 @@ export function TrackArtworkView({
       >
         <AnimatePresence mode="wait" initial={false}>
           {!isDefaultCover ? (
-            <motion.img
+            <m.img
               key={artUrl}
               src={artUrl}
               alt={title}

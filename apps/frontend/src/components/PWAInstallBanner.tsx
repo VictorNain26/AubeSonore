@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { modal } from '@/lib/motion';
 import { useBannerSlot } from '../stores/bannerSlotStore';
 import { PWAInstallBannerView } from '../design/molecules/PWAInstallBanner';
@@ -47,7 +48,7 @@ export function PWAInstallBanner() {
   return (
     <AnimatePresence>
       {show && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
@@ -55,7 +56,7 @@ export function PWAInstallBanner() {
           className="fixed bottom-4 inset-x-4 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]"
         >
           <PWAInstallBannerView onInstall={handleInstall} onDismiss={handleDismiss} />
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );
