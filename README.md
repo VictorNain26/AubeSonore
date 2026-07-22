@@ -1,236 +1,101 @@
 # AubeSonore
 
-Une webradio moderne avec interface React et backend TypeScript/Bun, organisee en monorepo.
-
-## Production
-
-- **Frontend**: https://aubesonore.fr
-- **Backend API**: https://aubesonore-backend-tomia-f4ec3e9e.koyeb.app
-- **Database**: Railway PostgreSQL
+Webradio moderne : diffusion AzuraCast, likes multi-plateformes, et une identité visuelle qui suit le moment de la journée. Monorepo pnpm + Turbo (backend Bun/Elysia, frontend Vite/React, application mobile Expo).
 
 ## Architecture
 
 ```
 aubesonore/
 ├── apps/
-│   ├── backend/          # API Bun + Elysia + TypeScript
-│   └── frontend/         # Vite + React + TypeScript
+│   ├── backend/          # API Bun + Elysia + Drizzle + PostgreSQL
+│   ├── frontend/         # Vite + React 19 + Tailwind 4 (PWA)
+│   └── mobile/           # Expo (React Native) — Android/iOS
 ├── packages/
-│   ├── shared-types/     # Types TypeScript partages
-│   ├── shared-utils/     # Utilitaires communs
-│   └── logger/           # Logging utilities
-├── docker-compose.yml    # Production Docker
-└── docker-compose.dev.yml # Development (DB only)
+│   ├── core/             # Logique agnostique de plateforme (partagée front ↔ mobile)
+│   └── shared-types/     # Types partagés backend ↔ clients
+├── docker-compose.yml        # Stack de production
+└── docker-compose.dev.yml    # PostgreSQL local (dev)
 ```
 
-## Features
+## Fonctionnalités
 
-### Like & Multi-Platform Links
+- **Écoute** : flux AzuraCast avec « en train de jouer » en temps réel.
+- **Like & liens multi-plateformes** : likez un morceau, ses liens Spotify / Apple Music / Deezer / YouTube Music / Tidal / Amazon / SoundCloud sont résolus automatiquement via Songlink/Odesli.
+- **Pochettes durables** : au like, la pochette est figée dans un stockage objet (Cloudflare R2) et servie via une URL stable — elle ne casse plus si le fichier disparaît d'AzuraCast.
+- **Identité jour/nuit** : l'ambiance visuelle suit le moment (aube, jour, crépuscule, nuit).
+- **Fil-journée** : historique d'écoute regroupé par moment de la journée.
+- **Notifications push** (Web Push / VAPID) et **statistiques d'écoute**.
+- **PWA** installable, et **application mobile** Expo.
 
-- Like les morceaux en cours ou dans l'historique
-- Integration **Songlink/Odesli** pour liens multi-plateformes automatiques
-- Liens directs vers: Spotify, Apple Music, Deezer, YouTube Music, Tidal, Amazon Music, SoundCloud
-- Persistence des covers en base64 (les covers ne disparaissent plus)
-- Choix de la plateforme preferee par utilisateur
+## Stack
 
-### Backend
+| Couche    | Technologies                                                |
+| --------- | ----------------------------------------------------------- |
+| Backend   | Bun, Elysia, Drizzle ORM + PostgreSQL, Better Auth, Valibot |
+| Frontend  | React 19, Vite 8, Tailwind CSS 4, Zustand, Storybook        |
+| Mobile    | Expo SDK 55, React Native 0.83, Reanimated, nativewind      |
+| Outillage | pnpm 10, Turbo, ESLint 9 (flat), Vitest + bun test          |
 
-- Better Auth (email + Google OAuth)
-- Songlink/Odesli API (liens multi-plateformes)
-- Covers persistees en base64
-- TypeScript strict mode
-- Drizzle ORM + PostgreSQL
+Auth : Better Auth (email vérifié + OAuth Google/Spotify). Liens multi-plateformes : Songlink/Odesli. Stockage pochettes : Cloudflare R2.
 
-### Frontend
+## Démarrage
 
-- React 19
-- Zustand (state management)
-- Tailwind CSS
-- Identite jour/nuit : l'ambiance visuelle suit le moment (aube, jour, crepuscule, nuit)
-- Fil-journee : historique d'ecoute regroupe par moment de la journee
-- PWA ready
-- TypeScript strict
+### Prérequis
 
-## Quick Start
-
-### Prerequis
-
-- Node.js >=20
-- PNPM >=10.13.1
-- Bun (pour le backend)
+- Node.js ≥ 20, pnpm ≥ 10, Bun (backend)
 - Docker (optionnel, pour PostgreSQL local)
 
-### Installation locale
+### Installation
 
 ```bash
-# Installer les dependances
 pnpm install
 
-# Configurer les environnements
+# Environnements (voir les .env.example pour la liste complète)
 cp apps/backend/.env.example apps/backend/.env
 cp apps/frontend/.env.example apps/frontend/.env
 
-# Option 1: PostgreSQL via Docker
-docker run -d --name aubesonore-db \
-  -e POSTGRES_USER=aubesonore \
-  -e POSTGRES_PASSWORD=aubesonore123 \
-  -e POSTGRES_DB=aubesonore \
-  -p 5432:5432 \
-  postgres:16-alpine
+# PostgreSQL local (option Docker)
+docker compose -f docker-compose.dev.yml up -d
 
-# Option 2: Utiliser Railway/Neon (modifier DATABASE_URL dans .env)
+# Appliquer le schéma
+cd apps/backend && bun run db:push && cd -
 
-# Appliquer le schema
-cd apps/backend && bun run db:push
-
-# Demarrer le projet
+# Tout démarrer (Turbo)
 pnpm dev
 ```
 
-L'application sera disponible sur:
-
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:3000
-
-## Configuration
-
-### Variables d'environnement
-
-#### Backend (.env)
-
-```bash
-PORT=3000
-DATABASE_URL=postgresql://user:pass@localhost:5432/aubesonore
-
-# Better Auth
-BETTER_AUTH_SECRET=your-secret-key-min-32-chars
-BETTER_AUTH_URL=http://localhost:3000
-
-# URLs
-FRONTEND_BASE_URL=http://localhost:5173
-BACKEND_BASE_URL=http://localhost:3000
-ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8080
-
-# OAuth (optionnel)
-GOOGLE_CLIENT_ID=
-GOOGLE_CLIENT_SECRET=
-```
-
-#### Frontend (.env)
-
-```bash
-VITE_API_URL=http://localhost:3000
-VITE_AZURACAST_BASE_URL=https://your-azuracast-instance.com
-```
-
-## API Endpoints
-
-### Authentication
-
-- `POST /api/auth/sign-in` - Connexion
-- `POST /api/auth/sign-up` - Inscription
-- `POST /api/auth/sign-out` - Deconnexion
-- `GET /api/auth/session` - Session courante
-- `GET /api/auth/callback/google` - Google OAuth callback
-
-### Tracks
-
-- `GET /api/track/like` - Recuperer les morceaux likes
-- `POST /api/track/like` - Liker un morceau (+ fetch Songlink automatique)
-- `DELETE /api/track/like/:id` - Supprimer un morceau like
-- `POST /api/track/check-liked` - Verifier si un morceau est like
-- `POST /api/track/:id/refresh-links` - Rafraichir les liens Songlink
-
-### Preferences
-
-- `GET /api/preferences` - Recuperer les preferences utilisateur
-- `PUT /api/preferences` - Mettre a jour la plateforme preferee
-
-### Utils
-
-- `GET /health` - Health check
-- `GET /` - API info
+- Frontend : http://localhost:5173
+- Backend : http://localhost:3000
 
 ## Commandes
 
-### Developpement
-
 ```bash
-pnpm dev                 # Demarrer tous les apps
-pnpm dev:backend         # Backend uniquement
-pnpm dev:frontend        # Frontend uniquement
+pnpm dev                       # tous les apps (turbo dev)
+pnpm dev:backend / dev:frontend
+pnpm build                     # build tous les apps
+pnpm lint                      # eslint .
+pnpm typecheck                 # turbo typecheck
+pnpm format:check              # prettier --check
+
+pnpm --filter @aubesonore/frontend test          # Vitest
+pnpm --filter @aubesonore/frontend storybook     # Storybook (design system) sur :6006
+pnpm --filter @aubesonore/backend test           # bun test
 ```
 
-### Build
+Détails par app : [backend](apps/backend/README.md) · [frontend](apps/frontend/README.md) · [mobile](apps/mobile/README.md).
 
-```bash
-pnpm build               # Build tous les apps
-pnpm build:backend       # Build backend
-pnpm build:frontend      # Build frontend
-```
+## Dépendances (Renovate)
 
-### Qualite du code
+Les mises à jour sont gérées par **Renovate** (`renovate.json`, source de vérité de la policy). Les updates sûres (patch/minor des devDependencies, patches runtime stables, GitHub Actions) sont **auto-mergées après CI verte** ; majors, stack mobile (Expo/React Native) et images Docker passent en **revue manuelle**. Les alertes de sécurité restent gérées par Dependabot. Le _Dependency Dashboard_ (issue GitHub) liste ce qui est en attente.
 
-```bash
-pnpm lint             # Lint tous les packages
-pnpm lint:fix         # Fix automatiquement
-pnpm typecheck        # Verification TypeScript
-```
+## Déploiement
 
-### Base de donnees
+- **Frontend** : Vercel (déploiement automatique depuis `master`).
+- **Backend** : VPS auto-hébergé, exposé via Cloudflare Tunnel (le flux radio passe par `radio.aubesonore.fr`).
+- **Base de données** : PostgreSQL.
 
-```bash
-cd apps/backend
-bun run db:generate    # Generer migrations
-bun run db:push        # Appliquer schema
-```
+`master` est protégée : une PR ne merge que si les 4 checks CI passent (Quality, Backend tests, Build all, Mobile typecheck). Voir [`CLAUDE.md`](CLAUDE.md) pour les conventions et le workflow.
 
-## Dependances
-
-Les mises a jour de dependances sont gerees par **Renovate** (`renovate.json`, source de verite de la policy). Les updates sures (patch/minor des devDependencies, patches runtime stables, GitHub Actions) sont **auto-mergees apres CI verte** ; les majors, la stack mobile (Expo / React Native) et les images Docker passent en **revue manuelle**. Les alertes de securite restent gerees par Dependabot. Le _Dependency Dashboard_ (issue GitHub ouverte par Renovate) liste tout ce qui est en attente.
-
-## Deploiement
-
-### Backend (Koyeb)
-
-Le backend est deploye automatiquement sur Koyeb depuis la branche `master`.
-
-Variables d'environnement requises sur Koyeb:
-
-- `DATABASE_URL` - Railway PostgreSQL
-- `BETTER_AUTH_SECRET` - Secret pour l'auth
-- `BETTER_AUTH_URL` - URL du backend
-- `FRONTEND_BASE_URL` - https://aubesonore.fr
-- `ALLOWED_ORIGINS` - https://aubesonore.fr
-
-### Frontend (Vercel)
-
-Le frontend est deploye automatiquement sur Vercel depuis la branche `master`.
-
-Variables d'environnement requises sur Vercel:
-
-- `VITE_API_URL` - URL du backend Koyeb
-- `VITE_AZURACAST_BASE_URL` - URL de l'instance AzuraCast
-
-### Database (Railway)
-
-PostgreSQL heberge sur Railway avec connexion externe.
-
-## Stack Technique
-
-| Composant            | Technologie              |
-| -------------------- | ------------------------ |
-| Runtime              | Bun                      |
-| Framework Backend    | Elysia                   |
-| Framework Frontend   | React 19 + Vite          |
-| Database             | PostgreSQL               |
-| ORM                  | Drizzle                  |
-| Auth                 | Better Auth              |
-| State                | Zustand                  |
-| Styling              | Tailwind CSS + shadcn/ui |
-| Validation           | Valibot                  |
-| Multi-platform links | Songlink/Odesli API      |
-
-## License
+## Licence
 
 MIT

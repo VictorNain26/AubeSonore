@@ -8,7 +8,7 @@ A webradio: backend Bun + Elysia, frontend Vite + React 19, Expo mobile, pnpm mo
 | -------- | --------------------------------------------------------------- |
 | Backend  | Bun 1.3, Elysia 1.4, Drizzle 0.45 + PostgreSQL, Better Auth 1.6 |
 | Frontend | React 19.2, Vite 8, Tailwind 4.3, Zustand 5                     |
-| Mobile   | Expo SDK 54, React Native 0.81, Reanimated 4, nativewind        |
+| Mobile   | Expo SDK 55, React Native 0.83, Reanimated 4, nativewind        |
 | Tooling  | pnpm 10.28, Turbo 2.9, ESLint 9 flat, Vitest 3.2 + bun test     |
 
 The README has setup details; this file is for Claude.

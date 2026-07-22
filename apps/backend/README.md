@@ -1,75 +1,67 @@
-# AubeSonore Backend
+# Backend AubeSonore
 
-AubeSonore Backend is an API built with [Elysia](https://elysiajs.com/) and runs on [Bun](https://bun.sh/). It exposes various routes that connect the AubeSonore application to Spotify and manage the tracks liked by users.
+API de la webradio, construite avec [Elysia](https://elysiajs.com/) sur [Bun](https://bun.sh/). Elle sert le catalogue « now playing » depuis AzuraCast, gère l'authentification, les likes et leur enrichissement multi-plateformes, et fige les pochettes dans un stockage durable.
 
-## Features
+## Ce que fait l'API
 
-- Authentication via [BetterAuth](https://www.npmjs.com/package/better-auth)
-- Manage track "likes" (add, remove, list)
-- Synchronisation with Spotify playlists
-- Scraping titles from HypeMachine
-- Optional CRON jobs to automatically synchronise playlists and start scraping sessions
-- SSE streams to follow the progress of long-running tasks
+- **Radio** : proxy de l'historique et du « en train de jouer » AzuraCast.
+- **Likes** : ajout / retrait / liste des morceaux aimés.
+- **Enrichissement** : résolution des liens multi-plateformes via Songlink/Odesli et métadonnées Last.fm, en tâche de fond.
+- **Pochettes durables** : au like, la pochette est snapshotée vers Cloudflare R2 (adressage par contenu) et l'URL devient stable.
+- **Auth** : [Better Auth](https://www.better-auth.com/) — email vérifié requis, OAuth Google et Spotify, cookies sécurisés, rate limiting.
+- **Notifications push** (Web Push / VAPID) et **statistiques d'écoute**.
+- **Sécurité** : garde SSRF (`assertSafeUrl`), en-têtes de sécurité, rate limiting par IP/utilisateur.
 
-## Requirements
+## Prérequis
 
-- [Bun](https://bun.sh/) installed locally
-- Access to a PostgreSQL database
-- A Spotify developer account to obtain API credentials
+- [Bun](https://bun.sh/) installé localement
+- Une base **PostgreSQL** accessible
 
 ## Installation
 
 ```bash
 bun install
+cp .env.example .env   # renseigner les variables ci-dessous
 ```
 
-Copy `.env.example` to `.env` and fill in all necessary environment variables:
+Variables principales (liste complète dans `.env.example`) :
+
+- `DATABASE_URL` — connexion PostgreSQL
+- `BETTER_AUTH_URL`, `BETTER_AUTH_SECRET` — configuration Better Auth
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — OAuth Google
+- `ALLOWED_ORIGINS`, `COOKIE_DOMAIN`, `FRONTEND_BASE_URL`, `BACKEND_BASE_URL`
+- `AZURACAST_BASE_URL`, `AZURACAST_API_KEY`, `AZURACAST_STATION_ID`
+- `LASTFM_API_KEY` — métadonnées
+- `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` — Web Push
+- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `COVERS_PUBLIC_URL` — pochettes durables (optionnel ; sans ces valeurs, le snapshot est un no-op)
+
+## Développement
 
 ```bash
-cp .env.example .env
+bun run db:push   # synchronise le schéma Drizzle vers la base
+bun run start     # démarre l'API
 ```
 
-Important variables include:
+Santé : [http://localhost:3000/health](http://localhost:3000/health).
 
-- `DATABASE_URL` – PostgreSQL connection URL
-- `BETTER_AUTH_URL` and `BETTER_AUTH_SECRET` – BetterAuth configuration
-- `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_USER_ID`, `SPOTIFY_REFRESH_TOKEN`
-- `PLAYLIST_PATH` and `COOKIE_FILE` for `spotdl`
-- SMTP settings for sending emails
-- `ENABLE_CRON` to activate scheduled tasks
+## Scripts utiles
 
-## Running in development
+- `bun run db:push` — pousse le schéma (dev + prod)
+- `bun run db:generate` — génère une migration versionnée
+- `bun run seed:admin` — crée un compte administrateur
+- `bun run reset:all` — réinitialise la base
+- `bun run scripts/backfill-covers.ts` — snapshot des pochettes des likes existants vers R2 (idempotent)
+- `bun test` — tests (bun)
+- `bun run lint` / `bun run typecheck`
 
-```bash
-bun run db:push   # run migrations
-bun run start
-```
+## Base de données (Drizzle)
 
-A health endpoint is available at [http://localhost:3000/health](http://localhost:3000/health).
+Le schéma (`src/db/schema.ts`) est la source de vérité ; les index sont déclarés inline. `db:push` synchronise directement (dev + prod). Les migrations appliquées sont suivies dans `__app_migrations` et rejouées au démarrage.
 
-## Docker usage
+## Déploiement
 
-A Docker image is provided:
+Servie sur un VPS auto-hébergé, exposée via Cloudflare Tunnel. Docker : voir `docker-compose.yml` à la racine.
 
-```bash
-docker build -t aubesonore-backend .
-docker run --env-file .env -p 3000:3000 aubesonore-backend
-```
+## Licence
 
-Migrations are launched automatically via `entrypoint.sh` when the container starts.
-
-## Helpful scripts
-
-- `bun run seed:admin` – create an administrator account
-- `bun run reset:all` – fully reset the database and spotDL files
-- `bun run lint` – run ESLint over the entire project
-
-## Deployment
-
-A GitHub Actions workflow (`.github/workflows/deploy.yml`) automatically deploys the `master` branch to the configured VPS.
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
+MIT

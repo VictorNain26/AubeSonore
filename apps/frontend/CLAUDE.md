@@ -1,6 +1,4 @@
-# Frontend — agent conventions (design system v3)
-
-Spec: `docs/superpowers/specs/2026-07-20-design-system-v3-design.md`.
+# Frontend — agent conventions (design system)
 
 ## Tailwind v4 — this project uses v4 syntax ONLY
 

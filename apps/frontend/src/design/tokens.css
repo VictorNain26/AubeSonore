@@ -1,5 +1,5 @@
 /*
-  AubeSonore — design system v3. Source unique des tokens.
+  AubeSonore — design system. Source unique des tokens.
   Couche primitive (--p-*) : jamais consommée par les composants.
   Couche sémantique : la seule API, exposée à Tailwind via @theme inline.
   AA prouvé par scripts/check-contrast.mjs sur les 2 thèmes.
