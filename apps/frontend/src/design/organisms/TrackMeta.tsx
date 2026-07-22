@@ -44,7 +44,8 @@ export function TrackMetaView({
         <m.h2
           key={shId ?? 'waiting'}
           {...inkFlip}
-          className="font-display text-title lg:text-display font-medium text-text [text-wrap:balance]"
+          title={title || undefined}
+          className="font-display text-title lg:text-display font-medium text-text [text-wrap:balance] line-clamp-2"
         >
           {title || 'Chargement du direct'}
         </m.h2>
