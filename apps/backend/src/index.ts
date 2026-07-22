@@ -4,7 +4,7 @@ import { env } from './config/env';
 import { pool } from './db';
 import { runMigrations } from './db/migrate';
 import { betterAuthPlugin } from './lib/auth/betterAuthPlugin';
-import { securityHeaders } from './lib/security/securityHeaders';
+import { securityHeaders, applySecurityHeaders } from './lib/security/securityHeaders';
 import { logger } from './lib/logger';
 import { trackRoutes } from './routes/track.routes';
 import { preferencesRoutes } from './routes/preferences.routes';
@@ -81,6 +81,7 @@ const app = new Elysia()
       path: new URL(request.url).pathname,
       err: error instanceof Error ? error.message : JSON.stringify(error),
     });
+    applySecurityHeaders(set.headers);
     set.status = 500;
     return { error: 'Internal server error' };
   })
