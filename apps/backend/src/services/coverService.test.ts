@@ -54,4 +54,24 @@ describe('snapshotCover', () => {
     const result = await snapshotCover('https://example.com/art/real.jpg', okStore);
     expect(result).toBeNull();
   });
+
+  it('returns null when the source responds 404 (no upload)', async () => {
+    const putSpy = spyOn(okStore, 'put');
+    spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 404 }));
+    const result = await snapshotCover('https://example.com/art/real.jpg', okStore);
+    expect(result).toBeNull();
+    expect(putSpy).not.toHaveBeenCalled();
+  });
+
+  it('returns null for a non-raster image type (SVG)', async () => {
+    spyOn(globalThis, 'fetch').mockResolvedValue(imageResponse('image/svg+xml', 512));
+    const result = await snapshotCover('https://example.com/art/real.svg', okStore);
+    expect(result).toBeNull();
+  });
+
+  it('returns null when the fetch is rejected by a redirect (redirect: "error")', async () => {
+    spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('unexpected redirect'));
+    const result = await snapshotCover('https://example.com/art/real.jpg', okStore);
+    expect(result).toBeNull();
+  });
 });

@@ -1,6 +1,6 @@
 import { isDefaultArtwork } from '@aubesonore/core/azuracast';
 import { assertSafeUrl } from '../lib/security/urlValidation';
-import { coverStore, type CoverStore } from '../lib/storage/coverStore';
+import { coverStore, SUPPORTED_COVER_TYPES, type CoverStore } from '../lib/storage/coverStore';
 import { env } from '../config/env';
 import { logger } from '../lib/logger';
 
@@ -23,11 +23,14 @@ export async function snapshotCover(
   try {
     await assertSafeUrl(sourceUrl, { requireHttps: env.IS_PROD });
 
-    const response = await fetch(sourceUrl, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
+    const response = await fetch(sourceUrl, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      redirect: 'error',
+    });
     if (!response.ok) return null;
 
     const contentType = response.headers.get('content-type')?.split(';')[0]?.trim() ?? '';
-    if (!contentType.startsWith('image/')) return null;
+    if (!SUPPORTED_COVER_TYPES.has(contentType)) return null;
 
     const bytes = new Uint8Array(await response.arrayBuffer());
     if (bytes.byteLength === 0 || bytes.byteLength > MAX_BYTES) return null;

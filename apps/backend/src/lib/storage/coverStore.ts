@@ -9,6 +9,8 @@ const EXT_BY_TYPE: Record<string, string> = {
   'image/avif': 'avif',
 };
 
+export const SUPPORTED_COVER_TYPES = new Set(Object.keys(EXT_BY_TYPE));
+
 /** Minimal shape of a bucket needed here; `Bun.S3Client` satisfies it structurally. */
 export interface CoverBucket {
   file(key: string): {
