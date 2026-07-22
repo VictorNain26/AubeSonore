@@ -1,5 +1,5 @@
 const TITLE_THRESHOLD = 0.6;
-const ARTIST_THRESHOLD = 0.55;
+const ARTIST_THRESHOLD = 0.7;
 
 export function normalize(s: string): string {
   return s
@@ -43,12 +43,16 @@ export function similarity(a: string, b: string): number {
   return 1 - distance / maxLength;
 }
 
-export function isMatch(
+export function artistMatch(a: string, b: string): boolean {
+  return similarity(a, b) >= ARTIST_THRESHOLD;
+}
+
+export function songMatch(
   query: { title: string; artist: string },
   candidate: { title: string; artist: string }
 ): boolean {
   return (
-    similarity(query.title, candidate.title) >= TITLE_THRESHOLD &&
-    similarity(query.artist, candidate.artist) >= ARTIST_THRESHOLD
+    artistMatch(query.artist, candidate.artist) &&
+    similarity(query.title, candidate.title) >= TITLE_THRESHOLD
   );
 }

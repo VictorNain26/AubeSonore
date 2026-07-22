@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'bun:test';
-import { normalize, similarity, isMatch } from './matchScore';
+import { normalize, similarity, artistMatch, songMatch } from './matchScore';
 
 describe('normalize', () => {
   it('lowercases, strips accents, feat and punctuation', () => {
@@ -23,26 +23,31 @@ describe('similarity', () => {
   });
 });
 
-describe('isMatch', () => {
-  it('accepts an exact-ish match', () => {
+describe('artistMatch', () => {
+  it('accepts the same artist regardless of the song', () => {
+    expect(artistMatch('The Sophs', 'The Sophs')).toBe(true);
+  });
+  it('rejects a different artist', () => {
+    expect(artistMatch('gemstonemario', 'Écho Mémoire')).toBe(false);
+  });
+  it('tolerates casing/punctuation drift', () => {
+    expect(artistMatch('canaries', 'Canaries')).toBe(true);
+    expect(artistMatch('Kiwi jr', 'Kiwi jr.')).toBe(true);
+  });
+});
+
+describe('songMatch', () => {
+  it('accepts the exact song by the right artist', () => {
     expect(
-      isMatch(
+      songMatch(
         { title: 'GOLDSTAR', artist: 'The Sophs' },
         { title: 'GOLDSTAR', artist: 'The Sophs' }
       )
     ).toBe(true);
   });
-  it('rejects a wrong song by the right artist (GOLDSTAR vs HOUSE)', () => {
+  it('rejects a different song by the right artist (cover ok, links not)', () => {
     expect(
-      isMatch({ title: 'GOLDSTAR', artist: 'The Sophs' }, { title: 'HOUSE', artist: 'The Sophs' })
+      songMatch({ title: 'GOLDSTAR', artist: 'The Sophs' }, { title: 'HOUSE', artist: 'The Sophs' })
     ).toBe(false);
-  });
-  it('tolerates casing/punctuation drift', () => {
-    expect(
-      isMatch(
-        { title: 'horsepower', artist: 'canaries' },
-        { title: 'horsepower', artist: 'Canaries' }
-      )
-    ).toBe(true);
   });
 });
