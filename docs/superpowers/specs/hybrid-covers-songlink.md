@@ -23,14 +23,15 @@ Supprimer : `services/coverService.ts` (+ test), `lib/storage/coverStore.ts` (+ 
 
 ### Songlink : vérification du match (`services/songlinkService.ts`)
 
-Le bug : `searchItunes` prend `results[0]` sans vérifier → mauvaise cover pour un émergent. Fix :
+Le bug : `searchItunes` prend `results[0]` sans vérifier → cover d'un **autre artiste** pour un émergent. Fix, avec une règle **artiste d'abord** (consigne : une cover d'un autre morceau du **même artiste** est acceptable ; seul un **mauvais artiste** est rejeté) :
 
-- Nouvelle fonction pure de normalisation + similarité (module dédié `lib/text/matchScore.ts`) :
-  - `normalize(s)` : minuscules, retrait des accents (NFKD→ASCII), suppression `feat`/parenthèses, réduction aux `[a-z0-9]+`.
-  - `similarity(a, b)` : ratio type Levenshtein/`SequenceMatcher` sur chaînes normalisées, ∈ [0,1].
-  - `isMatch(query, candidate)` : `similarity(title) ≥ 0.60 && similarity(artist) ≥ 0.55`.
-- `searchItunes(title, artist)` : requête `limit=3`, calcule le score de chaque résultat, garde le **meilleur** ; si aucun ne passe `isMatch` → **`null`** (pas de cover). Ne cache un négatif que sur un vrai « 0 result » ou un rejet déterministe (pas sur erreur transitoire).
-- `searchSonglink` inchangé dans son rôle : il enrichit les **liens** multi-plateformes à partir de l'URL iTunes vérifiée. Il n'est plus responsable de la cover — la cover vient de l'`artworkUrl` iTunes vérifié.
+- Module pur `lib/text/matchScore.ts` :
+  - `normalize(s)` : minuscules, accents (NFKD→ASCII), suppression `feat`/parenthèses, réduction `[a-z0-9]+`.
+  - `similarity(a, b)` : ratio Levenshtein normalisé ∈ [0,1].
+  - `artistMatch(a, b)` : `similarity(a, b) ≥ 0.70` — **gate COVER** (suffit).
+  - `songMatch(query, candidate)` : `artistMatch(query.artist, candidate.artist) && similarity(query.title, candidate.title) ≥ 0.60` — **gate LIENS** (le vrai morceau).
+- `searchItunes(title, artist)` → `{ trackViewUrl, artworkUrl, exactSong } | null` : requête `limit=3` ; garder les candidats dont l'**artiste matche** ; si aucun → `null` (pas de cover → onde). Parmi eux, piocher le meilleur par similarité de titre ; `artworkUrl` = sa pochette (même artiste = acceptable) ; `exactSong = songMatch(query, pick)`. Négatif déterministe (aucun artiste ne matche, ou 0 result) → caché ; transitoire → non caché.
+- `searchSonglink` : la **cover** vient toujours de l'`artworkUrl` iTunes (artiste vérifié). Les **liens** ne sont récupérés (via `getSonglinkData(trackViewUrl)`) **que si `exactSong`** — sinon on ne rattache pas des liens du mauvais morceau (cover posée, `platformLinks` vide). Le type `SonglinkResult` doit tolérer une cover sans `pageUrl`/liens (rendre `pageUrl` optionnel).
 
 ### Enrichissement (`services/trackService.ts`)
 

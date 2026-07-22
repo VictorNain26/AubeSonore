@@ -13,7 +13,7 @@
 - Backend : fichiers dotted (`matchScore.ts`), named exports, TS strict, valibot aux frontières. Tests `bun test`. Pas de commentaires sauf WHY non-évident.
 - Frontend : PascalCase composants, Tailwind v4 tokens uniquement (aucun hex/px hors `tokens.css`), design system atomique, story colocalisée pour tout atome (tous états × 2 thèmes, addon-a11y propre). Tests Vitest.
 - `pnpm typecheck && pnpm lint` zéro warning ; tests verts avant de clore une tâche.
-- Seuils de match validés empiriquement : `title ≥ 0.60`, `artist ≥ 0.55`.
+- Règle **artiste d'abord** : une cover d'un autre morceau du même artiste est acceptable ; seul un mauvais artiste est rejeté. `artistMatch` = `similarity(artist) ≥ 0.70` (gate cover). `songMatch` = `artistMatch && similarity(title) ≥ 0.60` (gate liens uniquement).
 
 ---
 
@@ -28,13 +28,14 @@
 
 - `normalize(s: string): string`
 - `similarity(a: string, b: string): number` (∈ [0,1])
-- `isMatch(query: { title: string; artist: string }, candidate: { title: string; artist: string }): boolean`
+- `artistMatch(a: string, b: string): boolean` — `similarity(a,b) ≥ 0.70` (gate COVER)
+- `songMatch(query: { title; artist }, candidate: { title; artist }): boolean` — `artistMatch(artist) && similarity(title) ≥ 0.60` (gate LIENS)
 
 - [ ] **Test d'abord** (`bun test`) :
 
 ```ts
 import { describe, it, expect } from 'bun:test';
-import { normalize, similarity, isMatch } from './matchScore';
+import { normalize, artistMatch, songMatch } from './matchScore';
 
 describe('normalize', () => {
   it('lowercases, strips accents, feat and punctuation', () => {
@@ -43,32 +44,36 @@ describe('normalize', () => {
     expect(normalize('Kiwi jr.')).toBe('kiwi jr');
   });
 });
-describe('isMatch', () => {
-  it('accepts an exact-ish match', () => {
+describe('artistMatch (cover gate — artist only)', () => {
+  it('accepts the same artist regardless of the song', () => {
+    expect(artistMatch('The Sophs', 'The Sophs')).toBe(true);
+  });
+  it('rejects a different artist', () => {
+    expect(artistMatch('gemstonemario', 'Écho Mémoire')).toBe(false);
+  });
+  it('tolerates casing/punctuation drift', () => {
+    expect(artistMatch('canaries', 'Canaries')).toBe(true);
+    expect(artistMatch('Kiwi jr', 'Kiwi jr.')).toBe(true);
+  });
+});
+describe('songMatch (links gate — right song)', () => {
+  it('accepts the exact song by the right artist', () => {
     expect(
-      isMatch(
+      songMatch(
         { title: 'GOLDSTAR', artist: 'The Sophs' },
         { title: 'GOLDSTAR', artist: 'The Sophs' }
       )
     ).toBe(true);
   });
-  it('rejects a wrong song by the right artist (GOLDSTAR vs HOUSE)', () => {
+  it('rejects a different song by the right artist (cover ok, links not)', () => {
     expect(
-      isMatch({ title: 'GOLDSTAR', artist: 'The Sophs' }, { title: 'HOUSE', artist: 'The Sophs' })
+      songMatch({ title: 'GOLDSTAR', artist: 'The Sophs' }, { title: 'HOUSE', artist: 'The Sophs' })
     ).toBe(false);
-  });
-  it('tolerates casing/punctuation drift', () => {
-    expect(
-      isMatch(
-        { title: 'horsepower', artist: 'canaries' },
-        { title: 'horsepower', artist: 'Canaries' }
-      )
-    ).toBe(true);
   });
 });
 ```
 
-- [ ] **Implémentation** : `normalize` (NFKD→ASCII, minuscules, retrait `(...)`/`feat`, `[^a-z0-9]+`→espace, trim). `similarity` = ratio de `SequenceMatcher`-like ; utiliser une implémentation simple de Levenshtein normalisée (pas de dépendance nouvelle). `isMatch` applique les deux seuils.
+- [ ] **Implémentation** : `normalize` (NFKD→ASCII, minuscules, retrait `(...)`/`feat`, `[^a-z0-9]+`→espace, trim). `similarity` = Levenshtein normalisé (pas de dépendance nouvelle). `artistMatch` = `similarity ≥ 0.70`. `songMatch` = `artistMatch(artist) && similarity(title) ≥ 0.60`.
 - [ ] **Run** `bun test src/lib/text/matchScore.test.ts` → vert.
 - [ ] **Commit** : `feat(backend): add normalized title/artist match scoring`
 
