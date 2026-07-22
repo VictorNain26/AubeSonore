@@ -1,12 +1,5 @@
 import { describe, it, expect, afterEach } from 'bun:test';
 
-process.env.DATABASE_URL ??= 'postgres://test:test@localhost:5432/test';
-process.env.BETTER_AUTH_SECRET ??= 'x'.repeat(32);
-process.env.BETTER_AUTH_URL ??= 'http://localhost:3000';
-process.env.AZURACAST_BASE_URL = 'http://azuracast.test';
-process.env.AZURACAST_API_KEY = 'secret-key';
-process.env.AZURACAST_STATION_ID = 'aubesonore';
-
 const { getStationHistory, radioHistoryCache } = await import('./radioService');
 
 const originalFetch = globalThis.fetch;

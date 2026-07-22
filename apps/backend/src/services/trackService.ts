@@ -3,6 +3,13 @@ import { eq, and, desc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { User, LikedTrack } from '../db/schema';
 import { searchSonglink } from './songlinkService';
+import { snapshotCover } from './coverService';
+
+// Internal test seam: specs replace `coverSnapshot.run` via spyOn on this
+// object. Direct `mock.module('./coverService')` leaks globally across bun
+// test files and poisoned the real coverService.test.ts (snapshotCover then
+// returned null there). A plain-object property is spy-able without that leak.
+export const coverSnapshot = { run: snapshotCover };
 
 // Hard cap on the liked-tracks listing payload. Power users with thousands
 // of tracks would otherwise stream the entire library on every page load.
@@ -84,20 +91,31 @@ async function enrichTrackInBackground(
   title: string,
   artist: string
 ): Promise<void> {
-  const songlinkData = await searchSonglink(title, artist);
-  if (!songlinkData) return;
+  const [track] = await db
+    .select({ artworkUrl: schema.likedTracks.artworkUrl })
+    .from(schema.likedTracks)
+    .where(eq(schema.likedTracks.id, trackId))
+    .limit(1);
 
-  await db
-    .update(schema.likedTracks)
-    .set({
-      songlinkUrl: songlinkData.pageUrl,
-      platformLinks: songlinkData.platformLinks,
-      // Songlink artwork (Apple Music CDN) is stable across AzuraCast track
-      // rotations. Always overwrite the AzuraCast URL which becomes a 404
-      // once the file is deleted from the station library.
-      ...(songlinkData.artworkUrl ? { artworkUrl: songlinkData.artworkUrl } : {}),
-    })
-    .where(eq(schema.likedTracks.id, trackId));
+  const songlinkData = await searchSonglink(title, artist);
+
+  // Prefer the higher-res Songlink/Apple art when a match is found, else fall
+  // back to the AzuraCast art captured at like-time (emerging-artist case —
+  // no Songlink match, but there's still art worth freezing). Snapshot to R2
+  // so it survives the source URL going away (station rotation, restart).
+  const bestSource = songlinkData?.artworkUrl ?? track?.artworkUrl ?? null;
+  const durableUrl = bestSource ? await coverSnapshot.run(bestSource) : null;
+
+  const update: Partial<LikedTrack> = {};
+  if (songlinkData) {
+    update.songlinkUrl = songlinkData.pageUrl;
+    update.platformLinks = songlinkData.platformLinks;
+  }
+  if (durableUrl) update.artworkUrl = durableUrl;
+
+  if (Object.keys(update).length === 0) return;
+
+  await db.update(schema.likedTracks).set(update).where(eq(schema.likedTracks.id, trackId));
 }
 
 export type LikedTrackListItem = LikedTrack;
@@ -231,6 +249,7 @@ export async function refreshAllLinks({
       id: schema.likedTracks.id,
       title: schema.likedTracks.title,
       artist: schema.likedTracks.artist,
+      artworkUrl: schema.likedTracks.artworkUrl,
     })
     .from(schema.likedTracks)
     .where(eq(schema.likedTracks.userId, user.id));
@@ -243,12 +262,14 @@ export async function refreshAllLinks({
       chunk.map(async (track) => {
         const songlinkData = await searchSonglink(track.title, track.artist);
         if (!songlinkData) return false;
+        const bestSource = songlinkData.artworkUrl ?? track.artworkUrl ?? null;
+        const durableUrl = bestSource ? await coverSnapshot.run(bestSource) : null;
         await db
           .update(schema.likedTracks)
           .set({
             songlinkUrl: songlinkData.pageUrl,
             platformLinks: songlinkData.platformLinks,
-            ...(songlinkData.artworkUrl ? { artworkUrl: songlinkData.artworkUrl } : {}),
+            ...(durableUrl ? { artworkUrl: durableUrl } : {}),
           })
           .where(eq(schema.likedTracks.id, track.id));
         return true;
@@ -295,6 +316,11 @@ export async function refreshTrackLinks({
     return { status: 400, error: 'Impossible de récupérer les liens pour ce morceau' };
   }
 
+  // Re-snapshot on every refresh — this doubles as a retry when the original
+  // like-time snapshot failed (network hiccup, R2 outage).
+  const bestSource = songlinkData.artworkUrl ?? track.artworkUrl ?? null;
+  const durableUrl = bestSource ? await coverSnapshot.run(bestSource) : null;
+
   // Re-check userId in the UPDATE to close the TOCTOU window between the SELECT
   // above and this UPDATE: if the row was deleted/transferred in between, we
   // return cleanly rather than touching another user's track.
@@ -303,6 +329,7 @@ export async function refreshTrackLinks({
     .set({
       songlinkUrl: songlinkData.pageUrl,
       platformLinks: songlinkData.platformLinks,
+      ...(durableUrl ? { artworkUrl: durableUrl } : {}),
     })
     .where(and(eq(schema.likedTracks.id, id), eq(schema.likedTracks.userId, user.id)))
     .returning();

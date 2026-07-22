@@ -20,6 +20,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@aubesonore/core": "workspace:*",
     "@aubesonore/shared-types": "workspace:*",
     "@elysiajs/cors": "^1.4.2",
     "better-auth": "^1.6.24",
