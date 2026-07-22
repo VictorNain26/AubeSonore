@@ -1,13 +1,13 @@
 # Backend AubeSonore
 
-API de la webradio, construite avec [Elysia](https://elysiajs.com/) sur [Bun](https://bun.sh/). Elle sert le catalogue « now playing » depuis AzuraCast, gère l'authentification, les likes et leur enrichissement multi-plateformes, et fige les pochettes dans un stockage durable.
+API de la webradio, construite avec [Elysia](https://elysiajs.com/) sur [Bun](https://bun.sh/). Elle sert le catalogue « now playing » depuis AzuraCast, gère l'authentification, les likes et leur enrichissement multi-plateformes.
 
 ## Ce que fait l'API
 
 - **Radio** : proxy de l'historique et du « en train de jouer » AzuraCast.
 - **Likes** : ajout / retrait / liste des morceaux aimés.
 - **Enrichissement** : résolution des liens multi-plateformes via Songlink/Odesli et métadonnées Last.fm, en tâche de fond.
-- **Pochettes durables** : au like, la pochette est snapshotée vers Cloudflare R2 (adressage par contenu) et l'URL devient stable.
+- **Pochettes** : à l'enrichissement, une pochette iTunes est retenue si l'artiste correspond (une autre pochette du même artiste reste acceptable) ; sinon l'URL AzuraCast est conservée et le client affiche un visuel « onde » déterministe.
 - **Auth** : [Better Auth](https://www.better-auth.com/) — email vérifié requis, OAuth Google et Spotify, cookies sécurisés, rate limiting.
 - **Notifications push** (Web Push / VAPID) et **statistiques d'écoute**.
 - **Sécurité** : garde SSRF (`assertSafeUrl`), en-têtes de sécurité, rate limiting par IP/utilisateur.
@@ -33,7 +33,6 @@ Variables principales (liste complète dans `.env.example`) :
 - `AZURACAST_BASE_URL`, `AZURACAST_API_KEY`, `AZURACAST_STATION_ID`
 - `LASTFM_API_KEY` — métadonnées
 - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` — Web Push
-- `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `COVERS_PUBLIC_URL` — pochettes durables (optionnel ; sans ces valeurs, le snapshot est un no-op)
 
 ## Développement
 
@@ -50,7 +49,6 @@ Santé : [http://localhost:3000/health](http://localhost:3000/health).
 - `bun run db:generate` — génère une migration versionnée
 - `bun run seed:admin` — crée un compte administrateur
 - `bun run reset:all` — réinitialise la base
-- `bun run scripts/backfill-covers.ts` — snapshot des pochettes des likes existants vers R2 (idempotent)
 - `bun test` — tests (bun)
 - `bun run lint` / `bun run typecheck`
 
