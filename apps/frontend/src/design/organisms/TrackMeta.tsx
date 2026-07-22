@@ -1,4 +1,5 @@
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { Heart, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { useInkFlip } from '../../lib/motion';
@@ -40,16 +41,16 @@ export function TrackMetaView({
   return (
     <div className="min-w-0">
       <AnimatePresence mode="wait" initial={false}>
-        <motion.h2
+        <m.h2
           key={shId ?? 'waiting'}
           {...inkFlip}
           className="font-display text-title lg:text-display font-medium text-text [text-wrap:balance]"
         >
           {title || 'Chargement du direct'}
-        </motion.h2>
+        </m.h2>
       </AnimatePresence>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.p
+        <m.p
           key={artist ?? 'waiting'}
           {...inkFlip}
           className="mt-1 lg:mt-2 text-lead text-text-muted"
@@ -64,7 +65,7 @@ export function TrackMetaView({
           ) : (
             (artist ?? '—')
           )}
-        </motion.p>
+        </m.p>
       </AnimatePresence>
       {title && (
         <div className="mt-2 flex items-center gap-1">

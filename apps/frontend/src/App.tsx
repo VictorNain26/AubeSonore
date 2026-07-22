@@ -1,4 +1,4 @@
-import { MotionConfig } from 'motion/react';
+import { LazyMotion, MotionConfig, domAnimation } from 'motion/react';
 import { AuthInit } from './components/AuthInit';
 import { AuthModalHost } from './components/AuthModalHost';
 import { NowPlayingPoller } from './components/NowPlayingPoller';
@@ -8,14 +8,16 @@ import { PWAInstallBanner } from './components/PWAInstallBanner';
 
 export default function App() {
   return (
-    <MotionConfig reducedMotion="user">
-      <AuthInit />
-      <NowPlayingPoller />
-      <Layout>
-        <HomePage />
-      </Layout>
-      <AuthModalHost />
-      <PWAInstallBanner />
-    </MotionConfig>
+    <LazyMotion features={domAnimation} strict>
+      <MotionConfig reducedMotion="user">
+        <AuthInit />
+        <NowPlayingPoller />
+        <Layout>
+          <HomePage />
+        </Layout>
+        <AuthModalHost />
+        <PWAInstallBanner />
+      </MotionConfig>
+    </LazyMotion>
   );
 }

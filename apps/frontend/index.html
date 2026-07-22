@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Warm the connection to the media origin (audio stream + now-playing API
+         + artwork, the likely LCP) so its TLS/DNS is ready before first paint. -->
+    <link rel="preconnect" href="https://radio.aubesonore.fr" />
+
     <!-- SEO -->
     <title>AubeSonore — Radio de Découverte Musicale Émergente</title>
     <meta

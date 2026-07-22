@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import * as m from 'motion/react-m';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useArtistInfo } from '../../hooks/useArtistInfo';
 import { pageEntry } from '../../lib/motion';
@@ -64,7 +64,7 @@ export default function Player() {
   }
 
   return (
-    <motion.div
+    <m.div
       className="grid h-full grid-rows-[1fr_auto] overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
@@ -92,6 +92,6 @@ export default function Player() {
       <RecentTracks />
 
       <ArtistContext isOpen={artistPanelOpen} onClose={() => setArtistPanelOpen(false)} />
-    </motion.div>
+    </m.div>
   );
 }

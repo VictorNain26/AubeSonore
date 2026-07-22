@@ -1,4 +1,5 @@
-import { motion, AnimatePresence } from 'motion/react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { Play, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toggle as toggleTransition } from '../../lib/motion';
@@ -16,7 +17,7 @@ export interface PlaybackControlsViewProps {
 
 export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackControlsViewProps) {
   return (
-    <motion.button
+    <m.button
       onClick={onTogglePlay}
       transition={toggleTransition}
       className={cn(
@@ -28,7 +29,7 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
     >
       <AnimatePresence mode="wait" initial={false}>
         {isPlaying ? (
-          <motion.span
+          <m.span
             key="stop"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -36,9 +37,9 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
             transition={toggleTransition}
           >
             <Square className="size-5" />
-          </motion.span>
+          </m.span>
         ) : (
-          <motion.span
+          <m.span
             key="play"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -46,9 +47,9 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
             transition={toggleTransition}
           >
             <Play className="size-6 ml-0.5" />
-          </motion.span>
+          </m.span>
         )}
       </AnimatePresence>
-    </motion.button>
+    </m.button>
   );
 }
