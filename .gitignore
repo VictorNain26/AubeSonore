@@ -71,3 +71,6 @@ certs/
 
 *storybook.log
 storybook-static
+
+# Bundle analyzer output (ANALYZE=true build)
+apps/frontend/stats.html
