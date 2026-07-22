@@ -47,17 +47,30 @@ export function checkRate(scope: string, ip: string, limit: number, windowMs: nu
 }
 
 /**
- * Extract caller IP from request headers. Honors x-forwarded-for (the first
- * IP is the original client; subsequent entries are proxies). Falls back to
- * `'anon'` so absence of header isn't a free pass for the same caller.
+ * Extract the caller IP from request headers.
+ *
+ * The origin is only reachable through the Cloudflare Tunnel, so
+ * `CF-Connecting-IP` — set by Cloudflare's edge and stripped of any
+ * client-supplied value — is the authoritative client IP. The first
+ * `x-forwarded-for` entry is client-controlled (Cloudflare *appends* the real
+ * IP), so it must not be trusted for a rate-limit key; only the last entry,
+ * appended by the nearest proxy, is. Falls back to `'anon'` so a missing header
+ * isn't a free pass for the same caller.
  */
 export function getClientIp(headers: Headers): string {
+  const cf = headers.get('cf-connecting-ip')?.trim();
+  if (cf) return cf;
+
+  const realIp = headers.get('x-real-ip')?.trim();
+  if (realIp) return realIp;
+
   const xff = headers.get('x-forwarded-for');
   if (xff) {
-    const first = xff.split(',')[0]?.trim();
-    if (first) return first;
+    const parts = xff.split(',');
+    const last = parts[parts.length - 1]?.trim();
+    if (last) return last;
   }
-  return headers.get('x-real-ip')?.trim() || 'anon';
+  return 'anon';
 }
 
 /** @internal Test-only reset. */

@@ -3,6 +3,7 @@ import { validateBody } from '../lib/validate';
 import { hasError } from '../lib/routeHelpers';
 import { subscribeSchema, sendPushSchema, unsubscribeSchema } from '../validators/pushValidator';
 import * as pushService from '../services/pushService';
+import { assertSafeUrl } from '../lib/security/urlValidation';
 import { auth } from '../lib/auth/index';
 import type { User, Session } from '../db/schema';
 
@@ -36,6 +37,16 @@ export const pushRoutes = new Elysia({ prefix: '/api/push' })
     if (hasError(data)) {
       set.status = 400;
       return data;
+    }
+
+    // SSRF guard: the endpoint is later POSTed to by the server (push send).
+    // Block private/link-local targets so a subscription can't point the
+    // server at internal services or cloud metadata.
+    try {
+      await assertSafeUrl(data.endpoint, { requireHttps: true });
+    } catch {
+      set.status = 400;
+      return { error: 'Endpoint de push non autorisé' };
     }
 
     await pushService.subscribe(user.id, data);

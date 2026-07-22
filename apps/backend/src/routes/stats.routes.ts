@@ -1,5 +1,8 @@
 import { Elysia } from 'elysia';
 import * as statsService from '../services/statsService';
+import { validateBody } from '../lib/validate';
+import { hasError } from '../lib/routeHelpers';
+import { statsSnapshotSchema } from '../validators/statsValidator';
 import { auth } from '../lib/auth/index';
 import type { User, Session } from '../db/schema';
 import type { StatsState } from '@aubesonore/shared-types/stats';
@@ -25,10 +28,10 @@ export const statsRoutes = new Elysia({ prefix: '/api/stats' })
       return { error: 'Non authentifié' };
     }
 
-    const snapshot = body as StatsState;
-    if (!snapshot || typeof snapshot !== 'object' || !Array.isArray(snapshot.events)) {
+    const snapshot = validateBody(statsSnapshotSchema, body);
+    if (hasError(snapshot)) {
       set.status = 400;
-      return { error: 'Snapshot invalide' };
+      return snapshot;
     }
 
     await statsService.upsertUserStats({ user, snapshot });

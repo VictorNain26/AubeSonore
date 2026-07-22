@@ -5,6 +5,7 @@ import { likeTrackSchema, checkLikedSchema } from '../validators/trackValidator'
 import * as trackService from '../services/trackService';
 import type { LikedTrackListItem } from '../services/trackService';
 import { auth } from '../lib/auth/index';
+import { checkRate } from '../lib/rateLimit';
 import type { User, Session, LikedTrack } from '../db/schema';
 
 // ─────────────────────────────────────────────
@@ -21,6 +22,11 @@ interface ServiceResponse<T = LikedTrack> {
 // ─────────────────────────────────────────────
 // Routes /api/track
 // ─────────────────────────────────────────────
+
+// Per-user cap on mutations that fan out to external services (iTunes /
+// Songlink enrichment). Generous enough to never touch real usage.
+const TRACK_MUTATION_LIMIT = 60;
+const TRACK_MUTATION_WINDOW_MS = 60_000;
 
 export const trackRoutes = new Elysia({ prefix: '/api/track' })
   // Helper pour récupérer la session
@@ -39,6 +45,19 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     if (!user) {
       set.status = 401;
       return { error: 'Non authentifié' };
+    }
+
+    if (
+      !checkRate(
+        'track-mutation',
+        `user:${user.id}`,
+        TRACK_MUTATION_LIMIT,
+        TRACK_MUTATION_WINDOW_MS
+      )
+    ) {
+      set.status = 429;
+      set.headers['retry-after'] = '60';
+      return { error: 'Trop de requêtes, réessayez dans une minute' };
     }
 
     const data = validateBody(likeTrackSchema, body);
@@ -157,6 +176,19 @@ export const trackRoutes = new Elysia({ prefix: '/api/track' })
     if (!user) {
       set.status = 401;
       return { error: 'Non authentifié' };
+    }
+
+    if (
+      !checkRate(
+        'track-mutation',
+        `user:${user.id}`,
+        TRACK_MUTATION_LIMIT,
+        TRACK_MUTATION_WINDOW_MS
+      )
+    ) {
+      set.status = 429;
+      set.headers['retry-after'] = '60';
+      return { error: 'Trop de requêtes, réessayez dans une minute' };
     }
 
     const { trackId } = params;
