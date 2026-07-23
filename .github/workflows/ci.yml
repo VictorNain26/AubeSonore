@@ -146,33 +146,6 @@ jobs:
       - name: Build (backend + frontend)
         run: pnpm turbo build --filter=@aubesonore/backend --filter=@aubesonore/frontend
 
-  mobile-check:
-    name: Mobile typecheck
-    if: github.event.pull_request.draft != true
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: pnpm/action-setup@v6
-        with:
-          version: 10.28.0
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: 'pnpm'
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      # See the quality job: mobile imports @aubesonore/core/* and
-      # @aubesonore/shared-types/* subpaths, which need built dist/*.d.ts.
-      - name: Build workspace packages
-        run: pnpm turbo build --filter=@aubesonore/shared-types --filter=@aubesonore/core
-
-      - name: Typecheck mobile
-        run: pnpm --filter=@aubesonore/mobile typecheck
-
 # Deployments handled by platform-native integrations:
 # - Vercel: connects repo, auto-deploys on push
 # - Koyeb: connects repo, auto-deploys on push

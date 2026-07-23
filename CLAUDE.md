@@ -1,6 +1,6 @@
 # AubeSonore — Project Instructions for Claude
 
-A webradio: backend Bun + Elysia, frontend Vite + React 19, Expo mobile, pnpm monorepo orchestrated by Turbo.
+A webradio: backend Bun + Elysia, frontend Vite + React 19, pnpm monorepo orchestrated by Turbo.
 
 ## Stack at a glance
 
@@ -8,7 +8,6 @@ A webradio: backend Bun + Elysia, frontend Vite + React 19, Expo mobile, pnpm mo
 | -------- | --------------------------------------------------------------- |
 | Backend  | Bun 1.3, Elysia 1.4, Drizzle 0.45 + PostgreSQL, Better Auth 1.6 |
 | Frontend | React 19.2, Vite 8, Tailwind 4.3, Zustand 5                     |
-| Mobile   | Expo SDK 55, React Native 0.83, Reanimated 4, nativewind        |
 | Tooling  | pnpm 10.28, Turbo 2.9, ESLint 9 flat, Vitest 3.2 + bun test     |
 
 The README has setup details; this file is for Claude.
@@ -23,7 +22,7 @@ The README has setup details; this file is for Claude.
 ## Workflow rules
 
 - Run `pnpm typecheck && pnpm lint` before claiming work is done. `pnpm test` (frontend Vitest) and `pnpm --filter @aubesonore/backend test` (bun) for changes touching the relevant tested modules.
-- **`master` is branch-protected** — a PR merges only when the 4 required CI checks pass (`Quality (lint, typecheck, test, audit)`, `Backend tests (bun)`, `Build all`, `Mobile typecheck`); no human review is required. Dependency updates flow through Renovate with auto-merge — see _Dependency automation_.
+- **`master` is branch-protected** — a PR merges only when the 3 required CI checks pass (`Quality (lint, typecheck, test, audit)`, `Backend tests (bun)`, `Build all`); no human review is required. Dependency updates flow through Renovate with auto-merge — see _Dependency automation_.
 - **Don't bypass hooks** (`--no-verify`, `--no-gpg-sign`) — if a hook fails, fix the cause.
 - **Trust internal boundaries** — Valibot/TypeBox validate at the HTTP boundary; internal functions assume validated input.
 - **Stage explicitly** (`git add <file>`) — never `git add .`/`-A`.
@@ -51,12 +50,6 @@ apps/frontend/src/
   pages/         — top-level routes (only HomePage today)
   stores/        — Zustand stores
   layout/        — app shell
-
-apps/mobile/src/
-  app/           — Expo Router screens
-  components/    — RN components
-  services/      — API clients
-  stores/        — Zustand (shared slices from packages/core)
 
 packages/
   core/          — platform-agnostic logic (slices, parsers, share helpers)
@@ -109,17 +102,16 @@ These versions are what the audit aligned us to. Bumps are fine; majors should b
 - React 19.2, Vite 8, Tailwind 4.3
 - Bun 1.3.14, Elysia 1.4.28
 - Better Auth 1.6.11, Drizzle 0.45.2
-- Expo SDK 55 (RN 0.83), New Architecture enabled. Note: SDK 56 needs RN 0.85. Plan major mobile bumps separately.
 
 ## Dependency automation (Renovate)
 
 Dependency PRs are managed by **Renovate** (runs as a GitHub App; config in `renovate.json`), not by Dependabot. Dependabot is kept for **security alerts only** — the hybrid pattern. `renovate.json` is the source of truth for the policy; change it there, not here.
 
 - **Auto-merged once CI is green**: `devDependencies` minor/patch, stable (`>=1.0`) runtime **patches**, and GitHub Actions minor/patch.
-- **Manual review always**: every **major**, the mobile stack (Expo / React Native, grouped), and Docker base images.
+- **Manual review always**: every **major** and Docker base images.
 - Updates are grouped, scheduled weekly (Monday), and held by `minimumReleaseAge: 3 days` (supply-chain guard). Security updates ignore the delay.
 - Renovate maintains a **Dependency Dashboard** issue listing everything pending — use it to trigger or rebase updates.
-- Auto-merge is safe only because of the branch protection on `master` (the 4 required checks above). Repo settings `allow_auto_merge` + `delete_branch_on_merge` are on, so merged branches self-delete.
+- Auto-merge is safe only because of the branch protection on `master` (the 3 required checks above). Repo settings `allow_auto_merge` + `delete_branch_on_merge` are on, so merged branches self-delete.
 
 ## Scaling roadmap
 
