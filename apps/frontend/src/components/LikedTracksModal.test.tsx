@@ -91,13 +91,15 @@ describe('LikedTracksModal', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('marks the delete button reachable via focus and coarse pointers', () => {
+  it('reveals every row action on hover/focus and keeps them visible for coarse pointers', () => {
     useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
     renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    const deleteButton = screen.getByRole('button', { name: 'Retirer de ma bibliothèque' });
-    expect(deleteButton.className).toContain('focus-visible:opacity-100');
-    expect(deleteButton.className).toContain('pointer-coarse:opacity-100');
+    const actions = screen.getByTestId('row-actions');
+    expect(actions.className).toContain('opacity-0');
+    expect(actions.className).toContain('group-hover:opacity-100');
+    expect(actions.className).toContain('group-focus-within:opacity-100');
+    expect(actions.className).toContain('pointer-coarse:opacity-100');
   });
 
   it('applies scroll-pt-16 to the modal scroll container so a focused row clears the sticky header', () => {

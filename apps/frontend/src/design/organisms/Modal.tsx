@@ -1,5 +1,13 @@
 import type { ReactElement, ReactNode } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
+import { cn } from '@/lib/utils';
+
+type ModalSize = 'md' | 'lg';
+
+const SIZE_CLASSES: Record<ModalSize, string> = {
+  md: 'w-[min(92vw,28rem)]',
+  lg: 'w-[min(92vw,36rem)]',
+};
 
 export interface ModalProps {
   /** Titre affiché dans l'en-tête de la fenêtre. */
@@ -12,19 +20,27 @@ export interface ModalProps {
   open?: boolean;
   /** Appelé quand l'état ouvert/fermé change. */
   onOpenChange?: (open: boolean) => void;
+  /** Largeur : `md` (défaut, formulaires) ou `lg` (contenus en liste). */
+  size?: ModalSize;
 }
 
 /**
  * Fenêtre modale basée sur Base UI Dialog. Utilisable en mode non contrôlé (avec `trigger`)
- * ou contrôlé (`open`/`onOpenChange`, trigger externe).
+ * ou contrôlé (`open`/`onOpenChange`, trigger externe). La hauteur est plafonnée au
+ * viewport : à charge du contenu de scroller (`overflow-y-auto` + `min-h-0`).
  */
-export function Modal({ title, trigger, children, open, onOpenChange }: ModalProps) {
+export function Modal({ title, trigger, children, open, onOpenChange, size = 'md' }: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       {trigger ? <Dialog.Trigger render={trigger} /> : null}
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 bg-scrim backdrop-blur-sm transition-opacity duration-300 ease-out-quart data-[starting-style]:opacity-0 data-[ending-style]:opacity-0" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 flex w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-md border border-border bg-surface-raised p-6 text-text transition-[opacity,transform] duration-300 ease-out-quart data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 focus:outline-none">
+        <Dialog.Popup
+          className={cn(
+            'fixed top-1/2 left-1/2 flex max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-md border border-border bg-surface-raised p-6 text-text transition-[opacity,transform] duration-300 ease-out-quart data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 focus:outline-none',
+            SIZE_CLASSES[size]
+          )}
+        >
           <div className="flex items-start justify-between gap-4">
             <Dialog.Title className="font-display text-title">{title}</Dialog.Title>
             <Dialog.Close
