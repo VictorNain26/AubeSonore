@@ -45,4 +45,22 @@ describe('Modal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
     expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything());
   });
+
+  it('caps the popup height to the viewport so scrolled content stays reachable', () => {
+    render(
+      <Modal title="Panneau artiste" open>
+        <p>Contenu</p>
+      </Modal>
+    );
+    expect(screen.getByRole('dialog').className).toContain('max-h-[calc(100dvh-2rem)]');
+  });
+
+  it('widens the popup with size lg', () => {
+    render(
+      <Modal title="Panneau artiste" open size="lg">
+        <p>Contenu</p>
+      </Modal>
+    );
+    expect(screen.getByRole('dialog').className).toContain('w-[min(92vw,36rem)]');
+  });
 });

@@ -60,14 +60,14 @@ export function LikedTracksModalView({
   const selectedPlatformName = platforms.find((p) => p.id === selectedPlatformId)?.name;
 
   return (
-    <Modal title="Ma bibliothèque" open={open} onOpenChange={onOpenChange}>
+    <Modal title="Ma bibliothèque" open={open} onOpenChange={onOpenChange} size="lg">
       <p className="-mt-3 text-caption text-text-faint">
         {totalCount} {totalCount > 1 ? 'morceaux' : 'morceau'}
       </p>
 
       <div
         data-testid="modal-scroll-container"
-        className="max-h-[70dvh] overflow-y-auto scroll-pt-16"
+        className="max-h-[70dvh] min-h-0 overflow-y-auto scroll-pt-16"
       >
         {totalCount > 0 && (
           <div className="sticky top-0 z-10 flex items-center justify-end gap-2 border-b border-border bg-surface-raised pb-4">

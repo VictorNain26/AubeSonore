@@ -77,3 +77,23 @@ export const Vide: Story = {
 export const Chargement: Story = {
   args: { isLoading: true },
 };
+
+const manyTracks: LikedTrackViewModel[] = Array.from({ length: 30 }, (_, i) => ({
+  id: `t${i + 1}`,
+  title: `Morceau ${i + 1}`,
+  artist: i % 2 === 0 ? 'Aube Sonore' : 'Les Ombres Claires',
+  linkHref: `https://open.spotify.com/track/${i + 1}`,
+  pendingRemoval: false,
+}));
+
+export const ListeLongue: Story = {
+  args: { totalCount: 50, tracks: manyTracks, hiddenCount: 20 },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          'Liste longue : la zone défile sous l’en-tête « Ouvrir avec » (sticky), plafonnée à 70dvh, avec la pagination « Afficher les N autres » en pied.',
+      },
+    },
+  },
+};

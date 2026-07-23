@@ -79,7 +79,10 @@ export function LikedTrackRowView({
         <p className="truncate text-caption text-text-muted">{artist}</p>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div
+        data-testid="row-actions"
+        className="flex items-center gap-1 opacity-0 transition-opacity duration-150 ease-out-quart group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
+      >
         {linkHref ? (
           <a
             href={linkHref}
@@ -121,10 +124,7 @@ export function LikedTrackRowView({
           onClick={onDelete}
           aria-label="Retirer de ma bibliothèque"
           title="Retirer"
-          className={cn(
-            'text-text-faint opacity-0 hover:bg-surface hover:text-accent',
-            'group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100'
-          )}
+          className="text-text-faint hover:bg-surface hover:text-accent"
         >
           <Trash2 className="size-4" />
         </Button>
