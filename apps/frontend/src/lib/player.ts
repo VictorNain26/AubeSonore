@@ -31,6 +31,11 @@ interface PlayerActions {
 
 type PlayerStore = PlayerState & PlayerActions;
 
+// The stream plays through a bare native <audio> element and is deliberately
+// NOT routed through the Web Audio API. createMediaElementSource() would make
+// the AudioContext the audio's sole output path, and iOS suspends that context
+// a few seconds after the screen locks — silencing background playback
+// (WebKit bug #231105). Lock-screen controls come from Media Session instead.
 const audio = new Audio();
 audio.preload = 'none';
 audio.crossOrigin = 'anonymous';
@@ -41,9 +46,6 @@ export function getAudioElement(): HTMLAudioElement {
   return audio;
 }
 
-let audioContext: AudioContext | null = null;
-let analyser: AnalyserNode | null = null;
-let sourceNode: MediaElementAudioSourceNode | null = null;
 // Tracks if a stop() is in progress so the resulting audio error event
 // is not surfaced as a playError to the user.
 let isStopping = false;
@@ -63,19 +65,6 @@ const getStoredVolume = (): number => {
 };
 
 audio.volume = getStoredVolume();
-
-const initAudioContext = () => {
-  if (audioContext && sourceNode) return;
-  audioContext = new AudioContext();
-  analyser = audioContext.createAnalyser();
-  analyser.fftSize = 128;
-  analyser.smoothingTimeConstant = 0.8;
-  sourceNode = audioContext.createMediaElementSource(audio);
-  sourceNode.connect(analyser);
-  analyser.connect(audioContext.destination);
-};
-
-export const getAnalyser = (): AnalyserNode | null => analyser;
 
 function classifyPlayError(err: unknown): PlayError | null {
   if (err instanceof Error && err.name === 'AbortError') {
@@ -132,10 +121,6 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
     wantsPlayback = true;
     reconnectAttempts = 0;
     try {
-      initAudioContext();
-      if (audioContext?.state === 'suspended') {
-        await audioContext.resume();
-      }
       audio.src = STREAM_URL;
       audio.load();
       await audio.play();

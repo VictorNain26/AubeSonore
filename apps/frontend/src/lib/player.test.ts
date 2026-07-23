@@ -32,18 +32,6 @@ beforeEach(() => {
       return mockAudioInstance;
     })
   );
-  vi.stubGlobal(
-    'AudioContext',
-    vi.fn().mockImplementation(function () {
-      return {
-        createAnalyser: () => ({ connect: vi.fn(), fftSize: 0, smoothingTimeConstant: 0 }),
-        createMediaElementSource: () => ({ connect: vi.fn() }),
-        state: 'running',
-        resume: vi.fn(),
-        destination: {},
-      };
-    })
-  );
 });
 
 afterEach(() => {
@@ -56,6 +44,19 @@ describe('player store', () => {
     await usePlayer.getState().play();
     expect(usePlayer.getState().isPlaying).toBe(true);
     expect(usePlayer.getState().playError).toBeNull();
+  });
+
+  it('play() never routes audio through Web Audio (keeps iOS lock-screen playback alive)', async () => {
+    // Regression guard for the locked-screen silence bug: routing the stream
+    // through createMediaElementSource makes the AudioContext the sole output,
+    // and iOS suspends it seconds after lock (WebKit #231105). The player must
+    // stay on the bare <audio> element.
+    const AudioContextSpy = vi.fn();
+    vi.stubGlobal('AudioContext', AudioContextSpy);
+    const { usePlayer } = await import('./player');
+    await usePlayer.getState().play();
+    expect(usePlayer.getState().isPlaying).toBe(true);
+    expect(AudioContextSpy).not.toHaveBeenCalled();
   });
 
   it('does NOT set playError on AbortError (double-click race)', async () => {
