@@ -1,11 +1,9 @@
-import { AnimatePresence } from 'motion/react';
-import * as m from 'motion/react-m';
 import { Play, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toggle as toggleTransition } from '../../lib/motion';
 
 // Play / stop button, subscribing directly to usePlayer. The single flat
-// accent block of the scene — the central gesture, deliberately alone.
+// accent block of the scene — the central gesture, deliberately alone. The
+// glyph swaps instantly on toggle; feedback comes from the press/hover scale.
 
 /** Presentational props for the central play/stop control. */
 export interface PlaybackControlsViewProps {
@@ -17,41 +15,22 @@ export interface PlaybackControlsViewProps {
 
 export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackControlsViewProps) {
   return (
-    <m.button
+    <button
       onClick={onTogglePlay}
-      transition={toggleTransition}
       className={cn(
         'size-14 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
-        'bg-accent text-on-accent transition duration-200 ease-out-quart',
-        'hover:opacity-90 active:opacity-80 motion-safe:hover:scale-105 motion-safe:active:scale-95',
+        'bg-accent text-on-accent transition-transform duration-200 ease-out-quart',
+        'motion-safe:hover:scale-105 motion-safe:active:scale-95',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
       )}
       aria-label={isPlaying ? 'Arrêter la lecture' : 'Lancer la lecture'}
       aria-pressed={isPlaying}
     >
-      <AnimatePresence mode="wait" initial={false}>
-        {isPlaying ? (
-          <m.span
-            key="stop"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={toggleTransition}
-          >
-            <Square className="size-5 fill-current" strokeWidth={0} />
-          </m.span>
-        ) : (
-          <m.span
-            key="play"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            transition={toggleTransition}
-          >
-            <Play className="size-6 ml-0.5 fill-current" strokeWidth={0} />
-          </m.span>
-        )}
-      </AnimatePresence>
-    </m.button>
+      {isPlaying ? (
+        <Square className="size-5 fill-current" strokeWidth={0} />
+      ) : (
+        <Play className="size-6 ml-0.5 fill-current" strokeWidth={0} />
+      )}
+    </button>
   );
 }

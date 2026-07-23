@@ -14,21 +14,11 @@ import { ArtistContext } from './ArtistContext';
 import { ArtistBio } from './ArtistBio';
 import { RecentTracks } from './RecentTracks';
 
-/**
- * Composition root of the now-playing scene: single-viewport masthead with the
- * cover on the left and, on the right, the title/artist, a transport line
- * (`play` anchoring the full-width waveform) and a unified action bar
- * (`like` · `share` · `volume`). Arranges sub-components only — every leaf
- * subscribes directly to the store it cares about and ships its own story.
- * Side effects live in `<PlayerSideEffects />`; the `AuthModal` is hosted at
- * App level.
- */
-
 const NOW =
-  'flex w-full max-w-3xl flex-col items-center gap-6 lg:flex-row lg:items-center lg:gap-10';
+  'flex w-full max-w-4xl flex-col items-center gap-6 lg:flex-row lg:items-center lg:gap-10';
 const META =
   'flex w-full min-w-0 flex-col items-center gap-4 text-center lg:items-start lg:text-left';
-const TRANSPORT = 'flex w-full items-center gap-3 lg:gap-4';
+const TRANSPORT = 'flex w-full items-center';
 const ACTIONS = 'flex items-center gap-2 justify-center lg:justify-start';
 
 export default function Player() {

@@ -5,7 +5,7 @@ const inkFlip = {
   initial: { opacity: 0, filter: 'blur(3px)' },
   animate: { opacity: 1, filter: 'blur(0px)' },
   exit: { opacity: 0, filter: 'blur(3px)' },
-  transition: { duration: 0.25, ease: 'easeOut' as const },
+  transition: { duration: 0.35, ease: [0.2, 0, 0, 1] as [number, number, number, number] },
 };
 
 const meta = {

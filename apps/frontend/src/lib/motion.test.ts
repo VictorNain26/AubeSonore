@@ -20,7 +20,7 @@ describe('useInkFlip', () => {
     });
   });
 
-  it('returns blur crossfade variants with a 0.25s duration by default', () => {
+  it('returns blur crossfade variants with a 0.35s duration by default', () => {
     useReducedMotion.mockReturnValue(false);
     const { result } = renderHook(() => useInkFlip());
 
@@ -28,7 +28,7 @@ describe('useInkFlip', () => {
       initial: { opacity: 0, filter: 'blur(3px)' },
       animate: { opacity: 1, filter: 'blur(0px)' },
       exit: { opacity: 0, filter: 'blur(3px)' },
-      transition: { duration: 0.25, ease: 'easeOut' },
+      transition: { duration: 0.35, ease: [0.2, 0, 0, 1] },
     });
   });
 });

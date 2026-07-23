@@ -1,13 +1,10 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { LayoutView } from '../design/templates/LayoutView';
+import { AboutModal } from '../design/organisms/AboutModal';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { toastError } from '../lib/appToast';
-
-const AboutModal = lazy(() =>
-  import('../design/organisms/AboutModal').then((m) => ({ default: m.AboutModal }))
-);
 
 interface LayoutProps {
   children: ReactNode;
@@ -61,9 +58,7 @@ export default function Layout({ children }: LayoutProps) {
       onOpenAbout={() => setIsAboutOpen(true)}
       aboutModal={
         isAboutOpen ? (
-          <Suspense fallback={null}>
-            <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
-          </Suspense>
+          <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
         ) : null
       }
     >
