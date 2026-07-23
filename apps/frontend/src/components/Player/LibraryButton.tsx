@@ -1,18 +1,14 @@
-import { lazy, Suspense, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
 import { ModalErrorFallback } from '../../design/organisms/ErrorFallback';
 import { LibraryButtonView } from '../../design/molecules/LibraryButton';
-
-const LikedTracksModal = lazy(() =>
-  import('../LikedTracksModal').then((m) => ({ default: m.LikedTracksModal }))
-);
+import { LikedTracksModal } from '../LikedTracksModal';
 
 // Library trigger: opens the LikedTracks modal when authenticated,
-// otherwise opens the shared auth modal via the store. Hosts the
-// LikedTracks modal lazily so the bundle splits at this leaf.
+// otherwise opens the shared auth modal via the store.
 
 export function LibraryButton() {
   const tracks = useLikedTracksStore((s) => s.tracks);
@@ -38,13 +34,11 @@ export function LibraryButton() {
       />
 
       {isModalOpen && (
-        <Suspense fallback={null}>
-          <ErrorBoundary
-            FallbackComponent={(props) => <ModalErrorFallback {...props} onClose={handleClose} />}
-          >
-            <LikedTracksModal isOpen={isModalOpen} onClose={handleClose} />
-          </ErrorBoundary>
-        </Suspense>
+        <ErrorBoundary
+          FallbackComponent={(props) => <ModalErrorFallback {...props} onClose={handleClose} />}
+        >
+          <LikedTracksModal isOpen={isModalOpen} onClose={handleClose} />
+        </ErrorBoundary>
       )}
     </>
   );

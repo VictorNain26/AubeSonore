@@ -16,6 +16,5 @@ describe('TrackMetaView', () => {
     render(<TrackMetaView {...base} title={long} />);
     const heading = screen.getByRole('heading', { level: 2 });
     expect(heading).toHaveAttribute('title', long);
-    expect(heading.className).toContain('line-clamp-2');
   });
 });

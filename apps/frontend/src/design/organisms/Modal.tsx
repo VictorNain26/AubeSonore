@@ -23,8 +23,8 @@ export function Modal({ title, trigger, children, open, onOpenChange }: ModalPro
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       {trigger ? <Dialog.Trigger render={trigger} /> : null}
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 bg-text/40 duration-150" />
-        <Dialog.Popup className="fixed top-1/2 left-1/2 flex w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-md border border-border bg-surface-raised p-6 text-text focus:outline-none">
+        <Dialog.Backdrop className="fixed inset-0 bg-scrim backdrop-blur-sm transition-opacity duration-300 ease-out-quart data-[starting-style]:opacity-0 data-[ending-style]:opacity-0" />
+        <Dialog.Popup className="fixed top-1/2 left-1/2 flex w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-md border border-border bg-surface-raised p-6 text-text transition-[opacity,transform] duration-300 ease-out-quart data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 focus:outline-none">
           <div className="flex items-start justify-between gap-4">
             <Dialog.Title className="font-display text-title">{title}</Dialog.Title>
             <Dialog.Close
