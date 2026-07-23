@@ -1,9 +1,8 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { Toaster } from 'sonner';
 import { server } from '../mocks/server';
 import { renderWithProviders } from '../test-utils';
 import { LikedTracksModal } from './LikedTracksModal';
@@ -41,6 +40,13 @@ beforeEach(() => {
       updatedAt: new Date().toISOString(),
     },
   });
+  // The modal refetches liked tracks on open; keep the mocked GET consistent
+  // with whatever the test placed in the store so the refetch is a no-op.
+  server.use(
+    http.get('http://localhost:3000/api/track/like', () =>
+      HttpResponse.json(useLikedTracksStore.getState().tracks)
+    )
+  );
 });
 
 describe('LikedTracksModal', () => {
@@ -101,57 +107,44 @@ describe('LikedTracksModal', () => {
     expect(screen.getByTestId('modal-scroll-container').className).toContain('scroll-pt-16');
   });
 
-  it('shows an undo toast after a successful delete and re-adds the track on undo, keeping album and isrc', async () => {
+  it('keeps the track visible with an inline Undo on delete, and cancels the removal on undo', async () => {
+    useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
+    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Retirer de ma bibliothèque' }));
+
+    // The track stays in the store (pending), the row shows the inline Undo.
+    expect(useLikedTracksStore.getState().tracks).toHaveLength(1);
+    const undoButton = await screen.findByRole('button', { name: 'Annuler' });
+
+    await userEvent.click(undoButton);
+
+    expect(useLikedTracksStore.getState().tracks).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Annuler' })).not.toBeInTheDocument();
+  });
+
+  it('fires the unlike request only after the grace period elapses', async () => {
+    let deleteCalled = false;
     server.use(
-      http.post('http://localhost:3000/api/track/like', async ({ request }) => {
-        const body = (await request.json()) as {
-          title: string;
-          artist: string;
-          album?: string;
-          isrc?: string;
-        };
-        return HttpResponse.json({
-          track: {
-            id: 't1',
-            userId: 'u1',
-            title: body.title,
-            artist: body.artist,
-            album: body.album ?? null,
-            artworkUrl: null,
-            youtubeUrl: 'https://youtube.com/x',
-            isrc: body.isrc ?? null,
-            songlinkUrl: null,
-            platformLinks: null,
-            createdAt: new Date().toISOString(),
-          },
-        });
+      http.delete('http://localhost:3000/api/track/like/:id', () => {
+        deleteCalled = true;
+        return HttpResponse.json({ message: 'ok' });
       })
     );
-    useLikedTracksStore.setState({
-      tracks: [{ ...makeTrack(0), album: 'Some Album', isrc: 'US1234567890' }],
-    });
-    renderWithProviders(
-      <>
-        <LikedTracksModal isOpen={true} onClose={vi.fn()} />
-        <Toaster />
-      </>
-    );
+    vi.useFakeTimers();
+    try {
+      useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
+      renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    const deleteButton = screen.getByRole('button', { name: 'Retirer de ma bibliothèque' });
-    await userEvent.click(deleteButton);
+      fireEvent.click(screen.getByRole('button', { name: 'Retirer de ma bibliothèque' }));
+      // Within the grace period the removal has not been committed yet.
+      expect(deleteCalled).toBe(false);
 
-    await waitFor(() => {
-      expect(useLikedTracksStore.getState().tracks).toHaveLength(0);
-    });
+      await vi.advanceTimersByTimeAsync(5000);
 
-    const undoButton = await screen.findByRole('button', { name: 'Annuler' });
-    fireEvent.click(undoButton);
-
-    await waitFor(() => {
-      expect(useLikedTracksStore.getState().tracks).toHaveLength(1);
-    });
-    const restored = useLikedTracksStore.getState().tracks[0];
-    expect(restored?.album).toBe('Some Album');
-    expect(restored?.isrc).toBe('US1234567890');
+      expect(deleteCalled).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

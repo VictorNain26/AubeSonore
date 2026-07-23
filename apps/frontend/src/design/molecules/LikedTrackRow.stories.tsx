@@ -8,26 +8,23 @@ const meta = {
     docs: {
       description: {
         component:
-          'Une ligne de la modale « Ma bibliothèque » : pochette, titre/artiste, lien vers la plateforme préférée et suppression. Basculez le thème (barre d’outils **Thème**) pour vérifier chaque état en clair et sombre.',
+          'Une ligne de la modale « Ma bibliothèque » : pochette, titre/artiste, actions ouvrir/partager, et suppression avec annulation inline. Basculez le thème (barre d’outils **Thème**) pour vérifier chaque état en clair et sombre.',
       },
     },
   },
   argTypes: {
-    linkIsSearch: {
-      control: 'boolean',
-      description: 'Le lien est une recherche plutôt qu’un lien direct vers le morceau.',
-    },
-    isDeleting: { control: 'boolean' },
+    pendingRemoval: { control: 'boolean' },
   },
   args: {
     title: 'Nuits Sonores',
     artist: 'Aube Sonore',
     artworkUrl: 'https://picsum.photos/seed/aube-liked/96',
     linkHref: 'https://open.spotify.com/track/x',
-    linkIsSearch: false,
     platformName: 'Spotify',
-    isDeleting: false,
+    pendingRemoval: false,
+    onShare: () => {},
     onDelete: () => {},
+    onUndo: () => {},
   },
 } satisfies Meta<typeof LikedTrackRowView>;
 export default meta;
@@ -50,20 +47,25 @@ export const SansPochette: Story = {
   },
 };
 
-export const Recherche: Story = {
-  args: { linkIsSearch: true },
+export const LienNonResolu: Story = {
+  args: { linkHref: null },
   parameters: {
     docs: {
       description: {
-        story: 'Aucun lien direct trouvé : le bouton ouvre une recherche sur la plateforme.',
+        story:
+          'Liens pas encore résolus : ouvrir et partager sont désactivés (jamais de recherche déguisée).',
       },
     },
   },
 };
 
 export const Suppression: Story = {
-  args: { isDeleting: true },
+  args: { pendingRemoval: true },
   parameters: {
-    docs: { description: { story: 'Suppression en cours : la ligne s’atténue.' } },
+    docs: {
+      description: {
+        story: 'Retrait en attente : la ligne reste visible, grisée, avec un bouton « Annuler ».',
+      },
+    },
   },
 };

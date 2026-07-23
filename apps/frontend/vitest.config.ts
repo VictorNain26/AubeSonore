@@ -59,7 +59,6 @@ export default defineConfig({
         'src/hooks/player/**',
         // External SDK wrappers — covered by browser, not unit tests
         'src/lib/cast/**',
-        'src/lib/exportLibrary.ts',
         // Browser-only Cast/AirPlay event bridges (same rationale as lib/cast/**)
         'src/stores/castStore.ts',
       ],
