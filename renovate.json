@@ -51,12 +51,6 @@
       "automerge": false
     },
     {
-      "description": "Mobile stack: grouped, manual review (Expo SDK and React Native are tightly coupled)",
-      "matchPackageNames": ["expo", "/^expo-/", "@expo/**", "/^react-native/", "@react-native/**"],
-      "groupName": "mobile (expo / react-native)",
-      "automerge": false
-    },
-    {
       "description": "Docker base image tag bumps: manual review (digest re-pins auto-merge via the rule above)",
       "matchManagers": ["dockerfile", "docker-compose"],
       "matchUpdateTypes": ["major", "minor", "patch"],
