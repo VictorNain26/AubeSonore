@@ -1,5 +1,4 @@
-import { Download, Loader2, RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 import { Modal } from './Modal';
 import { Menu } from '../molecules/Menu';
 import { Button } from '../atoms/Button';
@@ -10,9 +9,10 @@ export interface LikedTrackViewModel {
   title: string;
   artist: string;
   artworkUrl?: string;
-  linkHref: string;
-  linkIsSearch: boolean;
-  isDeleting: boolean;
+  /** Direct platform link, or `null` while links are still resolving. */
+  linkHref: string | null;
+  /** Row is pending removal (grayed, showing Undo). */
+  pendingRemoval: boolean;
 }
 
 export interface PlatformOption {
@@ -28,21 +28,19 @@ export interface LikedTracksModalViewProps {
   tracks: LikedTrackViewModel[];
   hiddenCount: number;
   onShowMore: () => void;
-  isRefreshing: boolean;
-  onRefreshAll: () => void;
-  onExport: () => void;
   platforms: readonly PlatformOption[];
   selectedPlatformId: string;
   onSelectPlatform: (platformId: string) => void;
+  onShareTrack: (id: string) => void;
   onDeleteTrack: (id: string) => void;
+  onUndoTrack: (id: string) => void;
 }
 
 /**
- * Presentational body of the "Ma bibliothèque" modal: header actions
- * (refresh links / export CSV / preferred-platform picker), the track list
- * (loading / empty / populated), and the "show more" pagination control.
- * The container owns all store reads, the delete/undo flow, and pagination
- * state.
+ * Presentational body of the "Ma bibliothèque" modal: a preferred-platform
+ * picker, the track list (loading / empty / populated), and the "show more"
+ * pagination control. The container owns all store reads, link resolution,
+ * the pending-removal timer, and pagination state.
  */
 export function LikedTracksModalView({
   open,
@@ -52,13 +50,12 @@ export function LikedTracksModalView({
   tracks,
   hiddenCount,
   onShowMore,
-  isRefreshing,
-  onRefreshAll,
-  onExport,
   platforms,
   selectedPlatformId,
   onSelectPlatform,
+  onShareTrack,
   onDeleteTrack,
+  onUndoTrack,
 }: LikedTracksModalViewProps) {
   const selectedPlatformName = platforms.find((p) => p.id === selectedPlatformId)?.name;
 
@@ -73,45 +70,24 @@ export function LikedTracksModalView({
         className="max-h-[70dvh] overflow-y-auto scroll-pt-16"
       >
         {totalCount > 0 && (
-          <div className="sticky top-0 z-10 flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface-raised pb-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={onRefreshAll}
-                disabled={isRefreshing}
-                className="border border-border text-caption"
-              >
-                <RefreshCw className={cn('size-4', isRefreshing && 'animate-spin')} />
-                Mettre à jour les liens
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={onExport}
-                className="border border-border text-caption"
-              >
-                <Download className="size-4" />
-                Exporter (CSV)
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-caption text-text-faint">Ouvrir avec</span>
-              <Menu
-                trigger={
-                  <Button
-                    variant="ghost"
-                    className="border border-border text-caption"
-                    aria-label="Sélectionner la plateforme préférée"
-                  >
-                    {selectedPlatformName}
-                  </Button>
-                }
-                items={platforms.map((platform) => ({
-                  label: platform.name,
-                  onSelect: () => onSelectPlatform(platform.id),
-                  selected: platform.id === selectedPlatformId,
-                }))}
-              />
-            </div>
+          <div className="sticky top-0 z-10 flex items-center justify-end gap-2 border-b border-border bg-surface-raised pb-4">
+            <span className="text-caption text-text-faint">Ouvrir avec</span>
+            <Menu
+              trigger={
+                <Button
+                  variant="ghost"
+                  className="border border-border text-caption"
+                  aria-label="Sélectionner la plateforme préférée"
+                >
+                  {selectedPlatformName}
+                </Button>
+              }
+              items={platforms.map((platform) => ({
+                label: platform.name,
+                onSelect: () => onSelectPlatform(platform.id),
+                selected: platform.id === selectedPlatformId,
+              }))}
+            />
           </div>
         )}
 
@@ -135,10 +111,11 @@ export function LikedTracksModalView({
                 artist={track.artist}
                 {...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {})}
                 linkHref={track.linkHref}
-                linkIsSearch={track.linkIsSearch}
                 {...(selectedPlatformName ? { platformName: selectedPlatformName } : {})}
-                isDeleting={track.isDeleting}
+                pendingRemoval={track.pendingRemoval}
+                onShare={() => onShareTrack(track.id)}
                 onDelete={() => onDeleteTrack(track.id)}
+                onUndo={() => onUndoTrack(track.id)}
               />
             ))}
           </div>

@@ -14,16 +14,14 @@ const tracks: LikedTrackViewModel[] = [
     artist: 'Aube Sonore',
     artworkUrl: 'https://picsum.photos/seed/aube-liked-1/96',
     linkHref: 'https://open.spotify.com/track/1',
-    linkIsSearch: false,
-    isDeleting: false,
+    pendingRemoval: false,
   },
   {
     id: 't2',
     title: 'Réveil',
     artist: 'Les Ombres Claires',
-    linkHref: 'https://open.spotify.com/search/x',
-    linkIsSearch: true,
-    isDeleting: false,
+    linkHref: null,
+    pendingRemoval: false,
   },
   {
     id: 't3',
@@ -31,8 +29,7 @@ const tracks: LikedTrackViewModel[] = [
     artist: 'Cendres',
     artworkUrl: 'https://picsum.photos/seed/aube-liked-3/96',
     linkHref: 'https://open.spotify.com/track/3',
-    linkIsSearch: false,
-    isDeleting: true,
+    pendingRemoval: true,
   },
 ];
 
@@ -43,13 +40,12 @@ const meta = {
     docs: {
       description: {
         component:
-          'Corps de la modale « Ma bibliothèque » : actions de bibliothèque (rafraîchir les liens, exporter en CSV, plateforme préférée) et la liste des morceaux aimés (chargement / vide / peuplée). Le conteneur `LikedTracksModal` gère les stores et le flux de suppression.',
+          'Corps de la modale « Ma bibliothèque » : sélecteur de plateforme préférée et liste des morceaux aimés (chargement / vide / peuplée) avec ouvrir, partager et retrait annulable. Le conteneur `LikedTracksModal` gère les stores, la résolution des liens et le minuteur de retrait.',
       },
     },
   },
   argTypes: {
     isLoading: { control: 'boolean' },
-    isRefreshing: { control: 'boolean' },
     hiddenCount: { control: 'number' },
   },
   args: {
@@ -60,13 +56,12 @@ const meta = {
     tracks,
     hiddenCount: 0,
     onShowMore: () => {},
-    isRefreshing: false,
-    onRefreshAll: () => {},
-    onExport: () => {},
     platforms,
     selectedPlatformId: 'spotify',
     onSelectPlatform: () => {},
+    onShareTrack: () => {},
     onDeleteTrack: () => {},
+    onUndoTrack: () => {},
   },
 } satisfies Meta<typeof LikedTracksModalView>;
 export default meta;

@@ -9,51 +9,29 @@ export interface ShareableTrack {
 }
 
 /**
- * Returns a platform-specific search URL for a given query.
+ * Returns the direct platform link for a track on the user's preferred
+ * platform, falling back to any other real platform link. Returns `null`
+ * when no real platform link exists yet — callers disable open/share instead
+ * of surfacing a search URL or a third-party song.link page.
  */
-export function getSearchUrl(platform: PreferredPlatform, query: string): string {
-  const encoded = encodeURIComponent(query);
-  const urls: Record<PreferredPlatform, string> = {
-    spotify: `https://open.spotify.com/search/${encoded}`,
-    appleMusic: `https://music.apple.com/search?term=${encoded}`,
-    deezer: `https://www.deezer.com/search/${encoded}`,
-    youtubeMusic: `https://music.youtube.com/search?q=${encoded}`,
-    youtube: `https://www.youtube.com/results?search_query=${encoded}`,
-    tidal: `https://listen.tidal.com/search?q=${encoded}`,
-    amazonMusic: `https://music.amazon.com/search/${encoded}`,
-    soundcloud: `https://soundcloud.com/search?q=${encoded}`,
-  };
-  return urls[platform];
-}
-
-/**
- * Returns the best link for opening a track on the user's preferred platform.
- * Falls back to any available link, then songlink, then a search URL.
- */
-export function getPreferredLink(
+export function getPlatformLink(
   track: ShareableTrack,
   preferredPlatform: PreferredPlatform
-): { url: string; isSearch: boolean } {
-  if (track.platformLinks) {
-    const platformKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
-    const preferred = track.platformLinks[platformKey];
-    if (preferred) return { url: preferred, isSearch: false };
-
-    const firstAvailable = (Object.values(track.platformLinks) as Array<string | undefined>).find(
-      Boolean
-    );
-    if (firstAvailable) return { url: firstAvailable, isSearch: false };
-  }
-
-  if (track.songlinkUrl) return { url: track.songlinkUrl, isSearch: false };
-
-  const query = `${track.title} ${track.artist}`;
-  return { url: getSearchUrl(preferredPlatform, query), isSearch: true };
+): string | null {
+  if (!track.platformLinks) return null;
+  const platformKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
+  const preferred = track.platformLinks[platformKey];
+  if (preferred) return preferred;
+  const firstAvailable = (Object.values(track.platformLinks) as Array<string | undefined>).find(
+    Boolean
+  );
+  return firstAvailable ?? null;
 }
 
 /**
- * Returns the best listening URL for sharing a track.
- * Priority: preferred platform link > any platform link > songlinkUrl > youtubeUrl > YouTube search
+ * Returns the best listening URL for sharing a track from the now-playing
+ * surface (player / recent rail), where links are not yet resolved in DB.
+ * Priority: preferred platform link > any platform link > songlinkUrl > youtubeUrl > YouTube search.
  */
 export function getTrackShareUrl(
   track: ShareableTrack,
@@ -82,15 +60,4 @@ export function getTrackShareUrl(
 
   // Last resort: YouTube search
   return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${track.artist} - ${track.title}`)}`;
-}
-
-/**
- * Builds a share message with the track info and listening link.
- */
-export function buildShareText(
-  track: ShareableTrack,
-  preferredPlatform?: PreferredPlatform | null
-): string {
-  const url = getTrackShareUrl(track, preferredPlatform);
-  return `${track.title} — ${track.artist}\n${url}`;
 }

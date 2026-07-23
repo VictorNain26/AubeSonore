@@ -1,4 +1,4 @@
-import { ExternalLink, Search, Trash2 } from 'lucide-react';
+import { ExternalLink, Share2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Thumbnail } from '../atoms/Thumbnail';
 import { Button } from '../atoms/Button';
@@ -8,36 +8,65 @@ export interface LikedTrackRowProps {
   artist: string;
   /** Cover art URL. Falls back to the `Thumbnail` placeholder icon when absent. */
   artworkUrl?: string;
-  /** Preferred-platform link for this track. */
-  linkHref: string;
-  /** `true` when `linkHref` is a search URL rather than a direct track link. */
-  linkIsSearch: boolean;
-  /** Name of the platform the link opens (used in the link's `title`). */
+  /** Direct platform link, or `null` while links are still resolving — open and share are disabled then (never a search URL). */
+  linkHref: string | null;
+  /** Name of the platform the link opens (used in the open/share tooltips). */
   platformName?: string;
-  isDeleting: boolean;
+  /** Row is pending removal: shown grayed with an Undo affordance instead of the actions. */
+  pendingRemoval: boolean;
+  /** Share this track (native share sheet, clipboard fallback). */
+  onShare: () => void;
+  /** Start removal (enters the pending-removal state). */
   onDelete: () => void;
+  /** Cancel a pending removal. */
+  onUndo: () => void;
 }
+
+const ACTION_BASE =
+  'flex size-11 items-center justify-center rounded-full text-text-faint transition-colors duration-150 ease-out-quart focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
 
 /**
  * One row of the "Ma bibliothèque" modal: cover, title/artist, open-on-platform
- * link, and remove action. Purely presentational — the container owns the
- * store reads and the delete flow (optimistic removal + undo toast).
+ * and share actions, and removal with inline undo. Purely presentational — the
+ * container owns the store reads, link resolution, and the pending-removal timer.
  */
 export function LikedTrackRowView({
   title,
   artist,
   artworkUrl,
   linkHref,
-  linkIsSearch,
   platformName,
-  isDeleting,
+  pendingRemoval,
+  onShare,
   onDelete,
+  onUndo,
 }: LikedTrackRowProps) {
+  if (pendingRemoval) {
+    return (
+      <div role="listitem" className="flex items-center gap-3 py-2">
+        <Thumbnail
+          {...(artworkUrl ? { src: artworkUrl } : {})}
+          alt={title}
+          seed={`${artist}|${title}`}
+          className="bg-surface opacity-40 grayscale"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-body text-text-muted line-through">{title}</p>
+          <p className="truncate text-caption text-text-faint">Retiré</p>
+        </div>
+        <Button variant="ghost" onClick={onUndo} className="text-caption text-accent">
+          Annuler
+        </Button>
+      </div>
+    );
+  }
+
+  const openTitle = linkHref
+    ? `Ouvrir sur ${platformName ?? 'la plateforme'}`
+    : 'Liens en cours de résolution…';
+
   return (
-    <div
-      role="listitem"
-      className={cn('group flex items-center gap-3 py-2', isDeleting && 'opacity-50')}
-    >
+    <div role="listitem" className="group flex items-center gap-3 py-2">
       <Thumbnail
         {...(artworkUrl ? { src: artworkUrl } : {})}
         alt={title}
@@ -51,30 +80,50 @@ export function LikedTrackRowView({
       </div>
 
       <div className="flex items-center gap-1">
-        <a
-          href={linkHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={cn(
-            'flex size-11 cursor-pointer items-center justify-center rounded-full',
-            'text-text-faint transition-colors duration-150 ease-out-quart hover:bg-surface hover:text-text',
-            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-80'
-          )}
-          title={linkIsSearch ? `Rechercher sur ${platformName}` : `Ouvrir sur ${platformName}`}
+        {linkHref ? (
+          <a
+            href={linkHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+              ACTION_BASE,
+              'cursor-pointer hover:bg-surface hover:text-text active:opacity-80'
+            )}
+            title={openTitle}
+            aria-label={openTitle}
+          >
+            <ExternalLink className="size-4" />
+          </a>
+        ) : (
+          <span
+            className={cn(ACTION_BASE, 'cursor-not-allowed opacity-40')}
+            title={openTitle}
+            aria-label={openTitle}
+            aria-disabled="true"
+          >
+            <ExternalLink className="size-4" />
+          </span>
+        )}
+
+        <Button
+          variant="icon"
+          onClick={onShare}
+          disabled={!linkHref}
+          aria-label="Partager ce morceau"
+          title={linkHref ? 'Partager' : 'Liens en cours de résolution…'}
+          className="text-text-faint hover:bg-surface hover:text-text"
         >
-          {linkIsSearch ? <Search className="size-4" /> : <ExternalLink className="size-4" />}
-        </a>
+          <Share2 className="size-4" />
+        </Button>
 
         <Button
           variant="icon"
           onClick={onDelete}
-          disabled={isDeleting}
           aria-label="Retirer de ma bibliothèque"
           title="Retirer"
           className={cn(
             'text-text-faint opacity-0 hover:bg-surface hover:text-accent',
-            'group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100',
-            isDeleting && 'animate-pulse'
+            'group-hover:opacity-100 focus-visible:opacity-100 pointer-coarse:opacity-100'
           )}
         >
           <Trash2 className="size-4" />

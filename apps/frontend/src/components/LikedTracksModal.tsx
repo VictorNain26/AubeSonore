@@ -1,11 +1,9 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { PLATFORMS } from '@aubesonore/shared-types/client';
 import type { PreferredPlatform } from '../lib/api';
-import { trackApi } from '../lib/api';
-import { exportAsCSV } from '../lib/exportLibrary';
-import { getPreferredLink } from '@aubesonore/core/share';
+import { getPlatformLink } from '@aubesonore/core/share';
 import { toast } from 'sonner';
-import { toastError } from '../lib/appToast';
+import { shareTrack } from '../lib/shareTrack';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import { LikedTracksModalView } from '../design/organisms/LikedTracksModalView';
@@ -15,36 +13,97 @@ interface LikedTracksModalProps {
   onClose: () => void;
 }
 
+// Grace period during which a removed track stays visible with an Undo
+// affordance before the unlike request actually fires.
+const REMOVAL_DELAY_MS = 5000;
+
 export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const tracks = useLikedTracksStore((s) => s.tracks);
   const isLoading = useLikedTracksStore((s) => s.isLoading);
   const unlikeTrack = useLikedTracksStore((s) => s.unlikeTrack);
-  const likeTrack = useLikedTracksStore((s) => s.likeTrack);
+  const refresh = useLikedTracksStore((s) => s.refresh);
   const preferences = usePreferencesStore((s) => s.preferences);
   const updatePlatform = usePreferencesStore((s) => s.updatePlatform);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [visibleCount, setVisibleCount] = useState(50);
   const [wasOpen, setWasOpen] = useState(isOpen);
-  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [pendingRemovalIds, setPendingRemovalIds] = useState<Set<string>>(new Set());
+  const removalTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
+  const preferredPlatform = preferences?.preferredPlatform || 'spotify';
+
+  // Reset pagination on open via the React "adjust state on prop change"
+  // pattern rather than an effect.
   if (isOpen !== wasOpen) {
     setWasOpen(isOpen);
     if (isOpen) setVisibleCount(50);
   }
 
-  const handleRefreshAll = useCallback(() => {
-    setIsRefreshing(true);
-    void (async () => {
-      try {
-        await trackApi.refreshAllLinks();
-        toast.success('Liens mis à jour');
-      } catch {
-        toastError('Erreur lors du rafraîchissement');
-      } finally {
-        setIsRefreshing(false);
-      }
-    })();
+  // Refetch on open: links resolved server-side after the like (background
+  // enrichment) land here, so the "open" action points at a real track link
+  // instead of the unresolved state.
+  useEffect(() => {
+    if (isOpen) void refresh();
+  }, [isOpen, refresh]);
+
+  // On close, finalize any pending removals (closing confirms the intent) and
+  // clear their timers so nothing fires against an unmounted component.
+  useEffect(() => {
+    const timers = removalTimers.current;
+    return () => {
+      timers.forEach((timer, id) => {
+        clearTimeout(timer);
+        void unlikeTrack(id);
+      });
+      timers.clear();
+    };
+  }, [unlikeTrack]);
+
+  const handleDelete = useCallback(
+    (id: string) => {
+      setPendingRemovalIds((prev) => new Set(prev).add(id));
+      const timer = setTimeout(() => {
+        removalTimers.current.delete(id);
+        setPendingRemovalIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        void unlikeTrack(id);
+      }, REMOVAL_DELAY_MS);
+      removalTimers.current.set(id, timer);
+    },
+    [unlikeTrack]
+  );
+
+  const handleUndo = useCallback((id: string) => {
+    const timer = removalTimers.current.get(id);
+    if (timer) {
+      clearTimeout(timer);
+      removalTimers.current.delete(id);
+    }
+    setPendingRemovalIds((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   }, []);
+
+  const handleShare = useCallback(
+    (id: string) => {
+      const track = tracks.find((t) => t.id === id);
+      if (!track) return;
+      const url = getPlatformLink(track, preferredPlatform);
+      if (!url) return;
+      void shareTrack({ title: track.title, artist: track.artist, url })
+        .then((result) => {
+          if (result === 'copied') toast('Lien copié');
+        })
+        .catch(() => {
+          toast('Partage impossible');
+        });
+    },
+    [tracks, preferredPlatform]
+  );
 
   const handleUpdatePlatform = useCallback(
     (platform: PreferredPlatform) => {
@@ -53,42 +112,6 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
     [updatePlatform]
   );
 
-  const handleUnlikeTrack = useCallback(
-    (id: string) => {
-      setDeletingIds((prev) => new Set(prev).add(id));
-      void (async () => {
-        const track = tracks.find((t) => t.id === id);
-        const removed = await unlikeTrack(id);
-        setDeletingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(id);
-          return next;
-        });
-        if (removed && track) {
-          toast('Morceau retiré', {
-            action: {
-              label: 'Annuler',
-              onClick: () => {
-                void likeTrack({
-                  title: track.title,
-                  artist: track.artist,
-                  ...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {}),
-                  ...(track.album ? { album: track.album } : {}),
-                  ...(track.isrc ? { isrc: track.isrc } : {}),
-                  youtubeUrl: track.youtubeUrl,
-                });
-              },
-            },
-          });
-        }
-      })();
-    },
-    [tracks, unlikeTrack, likeTrack]
-  );
-
-  const preferredPlatform = preferences?.preferredPlatform || 'spotify';
-
-  // Sort newest first
   const sortedTracks = useMemo(
     () =>
       [...tracks].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
@@ -98,18 +121,14 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const visibleTracks = sortedTracks.slice(0, visibleCount);
   const hiddenCount = sortedTracks.length - visibleTracks.length;
 
-  const trackViewModels = visibleTracks.map((track) => {
-    const { url: linkHref, isSearch: linkIsSearch } = getPreferredLink(track, preferredPlatform);
-    return {
-      id: track.id,
-      title: track.title,
-      artist: track.artist,
-      ...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {}),
-      linkHref,
-      linkIsSearch,
-      isDeleting: deletingIds.has(track.id),
-    };
-  });
+  const trackViewModels = visibleTracks.map((track) => ({
+    id: track.id,
+    title: track.title,
+    artist: track.artist,
+    ...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {}),
+    linkHref: getPlatformLink(track, preferredPlatform),
+    pendingRemoval: pendingRemovalIds.has(track.id),
+  }));
 
   return (
     <LikedTracksModalView
@@ -118,17 +137,16 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
         if (!open) onClose();
       }}
       totalCount={tracks.length}
-      isLoading={isLoading}
+      isLoading={isLoading && tracks.length === 0}
       tracks={trackViewModels}
       hiddenCount={hiddenCount}
       onShowMore={() => setVisibleCount(sortedTracks.length)}
-      isRefreshing={isRefreshing}
-      onRefreshAll={handleRefreshAll}
-      onExport={() => exportAsCSV(tracks)}
       platforms={PLATFORMS}
       selectedPlatformId={preferredPlatform}
       onSelectPlatform={(platformId) => handleUpdatePlatform(platformId as PreferredPlatform)}
-      onDeleteTrack={handleUnlikeTrack}
+      onShareTrack={handleShare}
+      onDeleteTrack={handleDelete}
+      onUndoTrack={handleUndo}
     />
   );
 }
