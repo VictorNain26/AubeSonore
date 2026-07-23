@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { ChevronDown, Loader2 } from 'lucide-react';
 import { Modal } from './Modal';
 import { Menu } from '../molecules/Menu';
 import { Button } from '../atoms/Button';
@@ -67,7 +67,7 @@ export function LikedTracksModalView({
 
       <div
         data-testid="modal-scroll-container"
-        className="max-h-[70dvh] min-h-0 overflow-y-auto scroll-pt-16"
+        className="max-h-[70dvh] min-h-0 overflow-y-auto scroll-pt-16 scrollbar-none"
       >
         {totalCount > 0 && (
           <div className="sticky top-0 z-10 flex items-center justify-end gap-2 border-b border-border bg-surface-raised pb-4">
@@ -76,10 +76,14 @@ export function LikedTracksModalView({
               trigger={
                 <Button
                   variant="ghost"
-                  className="border border-border text-caption"
+                  className="border border-border text-caption data-[popup-open]:bg-surface [&[data-popup-open]>svg]:rotate-180"
                   aria-label="Sélectionner la plateforme préférée"
                 >
                   {selectedPlatformName}
+                  <ChevronDown
+                    data-testid="platform-picker-chevron"
+                    className="size-3.5 text-text-faint transition-transform duration-150 ease-out-quart"
+                  />
                 </Button>
               }
               items={platforms.map((platform) => ({
