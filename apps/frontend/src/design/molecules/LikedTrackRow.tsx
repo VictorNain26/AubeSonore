@@ -43,7 +43,7 @@ export function LikedTrackRowView({
 }: LikedTrackRowProps) {
   if (pendingRemoval) {
     return (
-      <div role="listitem" className="flex items-center gap-3 py-2">
+      <div role="listitem" className="-mx-2 flex items-center gap-3 px-2 py-2">
         <Thumbnail
           {...(artworkUrl ? { src: artworkUrl } : {})}
           alt={title}
@@ -66,7 +66,10 @@ export function LikedTrackRowView({
     : 'Liens en cours de résolution…';
 
   return (
-    <div role="listitem" className="group flex items-center gap-3 py-2">
+    <div
+      role="listitem"
+      className="group -mx-2 flex items-center gap-3 rounded-md px-2 py-2 transition-colors duration-150 ease-out-quart hover:bg-surface"
+    >
       <Thumbnail
         {...(artworkUrl ? { src: artworkUrl } : {})}
         alt={title}

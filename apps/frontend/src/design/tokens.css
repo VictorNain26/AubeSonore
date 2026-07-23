@@ -96,6 +96,14 @@
   --ease-out-quart: cubic-bezier(0.2, 0, 0, 1);
 }
 
+@utility scrollbar-none {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility dawn-glow {
   background-image: linear-gradient(
     to bottom,

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
@@ -107,6 +107,29 @@ describe('LikedTracksModal', () => {
     renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
     expect(screen.getByTestId('modal-scroll-container').className).toContain('scroll-pt-16');
+  });
+
+  it('hides the scrollbar on the scroll container', () => {
+    useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
+    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+
+    expect(screen.getByTestId('modal-scroll-container').className).toContain('scrollbar-none');
+  });
+
+  it('highlights the hovered row so the revealed actions read as one unit', () => {
+    useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
+    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+
+    expect(screen.getByRole('listitem').className).toContain('hover:bg-surface');
+  });
+
+  it('marks the platform picker as a dropdown with a chevron that rotates when open', () => {
+    useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
+    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+
+    const picker = screen.getByRole('button', { name: 'Sélectionner la plateforme préférée' });
+    expect(within(picker).getByTestId('platform-picker-chevron')).toBeInTheDocument();
+    expect(picker.className).toContain('[&[data-popup-open]>svg]:rotate-180');
   });
 
   it('keeps the track visible with an inline Undo on delete, and cancels the removal on undo', async () => {
