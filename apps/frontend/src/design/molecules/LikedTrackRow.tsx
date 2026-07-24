@@ -71,7 +71,10 @@ export function LikedTrackRowView({
           aria-valuenow={Math.round(fraction * 100)}
           className="mt-2 h-0.5 overflow-hidden rounded-full bg-border"
         >
-          <div className="h-full bg-accent" style={{ width: `${fraction * 100}%` }} />
+          <div
+            className="h-full bg-accent transition-[width] duration-250 ease-linear"
+            style={{ width: `${fraction * 100}%` }}
+          />
         </div>
       </div>
     );
