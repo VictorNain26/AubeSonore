@@ -91,15 +91,12 @@ describe('LikedTracksModal', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('reveals every row action on hover/focus and keeps them visible for coarse pointers', () => {
+  it('keeps every row action visible without hover or focus', () => {
     useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
     renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
     const actions = screen.getByTestId('row-actions');
-    expect(actions.className).toContain('opacity-0');
-    expect(actions.className).toContain('group-hover:opacity-100');
-    expect(actions.className).toContain('group-focus-within:opacity-100');
-    expect(actions.className).toContain('pointer-coarse:opacity-100');
+    expect(actions.className).not.toContain('opacity-0');
   });
 
   it('applies scroll-pt-16 to the modal scroll container so a focused row clears the sticky header', () => {

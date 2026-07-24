@@ -8,7 +8,7 @@ const meta: Meta<typeof TrackRailItem> = {
     docs: {
       description: {
         component:
-          'Ligne d’un morceau récent : miniature, titre/artiste, actions favori/partage révélées au survol/focus. Composite : les états sont montrés côte à côte plutôt qu’en une story par variante.',
+          'Ligne d’un morceau récent : miniature, titre/artiste, actions favori/partage toujours visibles. Composite : les états sont montrés côte à côte plutôt qu’en une story par variante.',
       },
     },
   },
@@ -60,9 +60,6 @@ export const Etats: Story = {
         onToggle={noop}
         onShare={noop}
       />
-      <p className="py-2 text-caption text-text-muted">
-        Survolez une ligne pour révéler like / partage.
-      </p>
     </div>
   ),
 };
