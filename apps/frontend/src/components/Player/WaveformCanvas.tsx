@@ -1,17 +1,20 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { waveOffset } from '../../lib/waveform';
+import { getAnalyser } from '../../lib/player';
+import { sampleBin, waveOffset } from '../../lib/waveform';
 import { WaveformCanvasView } from '../../design/organisms/WaveformCanvas';
 
 // ─────────────────────────────────────────────
-// Antenna trace — a procedural on-air waveform with internal rAF.
+// Antenna trace — an audio-reactive waveform with internal rAF.
 // ─────────────────────────────────────────────
 // This is NOT a progress bar. A live broadcast can't be scrubbed and you
 // can't rewind it, so there is no elapsed/remaining and no played/unplayed
 // split — every point is drawn the same way. It signals one thing: the
-// antenna is on air. The motion is procedural (time-based), NOT driven by
-// the audio signal: reading frequencies would require routing the stream
-// through Web Audio, which suspends playback on a locked iOS screen
-// (see lib/player.ts).
+// antenna is on air, and this is the shape of its sound.
+//
+// Frequencies come from the player's Web Audio analyser — except on iOS,
+// where the stream stays off Web Audio (locked-screen playback would die,
+// see lib/player.ts) and getAnalyser() returns null: the trace then keeps
+// its time-based procedural motion.
 //
 // The rAF loop lives inside the canvas so the React tree is never
 // re-rendered on a frame tick. `isPlaying`/`songId` are read from refs so
@@ -30,6 +33,7 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>(0);
   const timeRef = useRef<number>(0);
+  const frequencyDataRef = useRef<Uint8Array | null>(null);
   const smoothedDataRef = useRef<number[]>([]);
   const textColorRef = useRef<string>('');
   const colorThemeKeyRef = useRef<string | undefined>(undefined);
@@ -107,6 +111,17 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
       }
       const textColor = textColorRef.current;
 
+      const analyser = getAnalyser();
+      let frequencyData: Uint8Array | null = null;
+
+      if (isPlaying && analyser && !reducedMotion.matches) {
+        if (!frequencyDataRef.current) {
+          frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount);
+        }
+        analyser.getByteFrequencyData(frequencyDataRef.current as Uint8Array<ArrayBuffer>);
+        frequencyData = frequencyDataRef.current;
+      }
+
       const mid = height / 2;
       const values: number[] = smoothedDataRef.current;
       ctx.beginPath();
@@ -120,6 +135,15 @@ export function WaveformCanvas({ isPlaying, songId }: WaveformCanvasProps) {
       const amplitude = height * 0.42;
 
       for (let i = 0; i < pointsCount; i++) {
+        if (frequencyData) {
+          const binIndex = sampleBin(i, pointsCount, 2, 35);
+          const value = frequencyData[binIndex] ?? 0;
+          const normalized = 0.15 + (value / 255) * 0.8;
+          const smoothingFactor = 0.35;
+          const prevValue = values[i] || 0.3;
+          values[i] = prevValue * (1 - smoothingFactor) + normalized * smoothingFactor;
+        }
+
         const currentValue = values[i] || 0.3;
         const signed = waveOffset(currentValue, i, time, isPlaying);
         const y = mid + signed * amplitude;
