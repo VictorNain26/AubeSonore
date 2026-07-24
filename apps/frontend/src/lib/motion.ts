@@ -38,7 +38,7 @@ export function useRowExit() {
   }
   return {
     exit: { height: 0, opacity: 0 },
-    transition: { duration: 0.3, ease: easeSoft } satisfies Transition,
+    transition: { duration: 0.5, ease: easeSoft } satisfies Transition,
   };
 }
 
@@ -54,9 +54,9 @@ export function useRailEntry() {
     };
   }
   return {
-    initial: { opacity: 0, x: -16 },
+    initial: { opacity: 0, x: -20 },
     animate: { opacity: 1, x: 0 },
-    transition: { duration: 0.4, ease: easeSoft } satisfies Transition,
+    transition: { duration: 0.6, ease: easeSoft } satisfies Transition,
   };
 }
 
@@ -76,6 +76,6 @@ export function useInkFlip() {
     initial: { opacity: 0, filter: 'blur(3px)' },
     animate: { opacity: 1, filter: 'blur(0px)' },
     exit: { opacity: 0, filter: 'blur(3px)' },
-    transition: { duration: 0.35, ease: easeSoft } satisfies Transition,
+    transition: { duration: 0.6, ease: easeSoft } satisfies Transition,
   };
 }

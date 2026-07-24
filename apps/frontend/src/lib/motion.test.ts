@@ -28,7 +28,7 @@ describe('useInkFlip', () => {
       initial: { opacity: 0, filter: 'blur(3px)' },
       animate: { opacity: 1, filter: 'blur(0px)' },
       exit: { opacity: 0, filter: 'blur(3px)' },
-      transition: { duration: 0.35, ease: [0.2, 0, 0, 1] },
+      transition: { duration: 0.6, ease: [0.2, 0, 0, 1] },
     });
   });
 });
@@ -40,7 +40,7 @@ describe('useRowExit', () => {
 
     expect(result.current).toEqual({
       exit: { height: 0, opacity: 0 },
-      transition: { duration: 0.3, ease: [0.2, 0, 0, 1] },
+      transition: { duration: 0.5, ease: [0.2, 0, 0, 1] },
     });
   });
 
@@ -61,9 +61,9 @@ describe('useRailEntry', () => {
     const { result } = renderHook(() => useRailEntry());
 
     expect(result.current).toEqual({
-      initial: { opacity: 0, x: -16 },
+      initial: { opacity: 0, x: -20 },
       animate: { opacity: 1, x: 0 },
-      transition: { duration: 0.4, ease: [0.2, 0, 0, 1] },
+      transition: { duration: 0.6, ease: [0.2, 0, 0, 1] },
     });
   });
 
