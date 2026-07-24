@@ -27,6 +27,39 @@ export const modal: Transition = {
   ease: easeSoft,
 };
 
+// Library row removal: the list closes the gap with a height collapse.
+export function useRowExit() {
+  const reduced = useReducedMotion();
+  if (reduced) {
+    return {
+      exit: { opacity: 0 },
+      transition: { duration: 0 } satisfies Transition,
+    };
+  }
+  return {
+    exit: { height: 0, opacity: 0 },
+    transition: { duration: 0.3, ease: easeSoft } satisfies Transition,
+  };
+}
+
+// Rail entry ("Vient de passer"): soft fade + slight slide for the item
+// that just arrived at the head of the rail.
+export function useRailEntry() {
+  const reduced = useReducedMotion();
+  if (reduced) {
+    return {
+      initial: { opacity: 1 },
+      animate: { opacity: 1 },
+      transition: { duration: 0 } satisfies Transition,
+    };
+  }
+  return {
+    initial: { opacity: 0, x: -16 },
+    animate: { opacity: 1, x: 0 },
+    transition: { duration: 0.4, ease: easeSoft } satisfies Transition,
+  };
+}
+
 // Track-flip variants: crossfade + slight blur, no translation. Blur is
 // not covered by MotionConfig's reducedMotion, so the hook gates it.
 export function useInkFlip() {
