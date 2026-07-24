@@ -26,10 +26,20 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const updatePlatform = usePreferencesStore((s) => s.updatePlatform);
   const [visibleCount, setVisibleCount] = useState(50);
   const [wasOpen, setWasOpen] = useState(isOpen);
-  const [pendingRemovalIds, setPendingRemovalIds] = useState<Set<string>>(new Set());
+  // id → timestamp at which the pending removal becomes effective.
+  const [pendingRemovals, setPendingRemovals] = useState<Map<string, number>>(new Map());
   const removalTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  // Ticks the countdown bars shown on pending-removal rows. Only runs while
+  // at least one removal is pending.
+  const [now, setNow] = useState(() => Date.now());
 
   const preferredPlatform = preferences?.preferredPlatform || 'spotify';
+
+  useEffect(() => {
+    if (pendingRemovals.size === 0) return;
+    const interval = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(interval);
+  }, [pendingRemovals.size]);
 
   // Reset pagination on open via the React "adjust state on prop change"
   // pattern rather than an effect.
@@ -60,11 +70,11 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
   const handleDelete = useCallback(
     (id: string) => {
-      setPendingRemovalIds((prev) => new Set(prev).add(id));
+      setPendingRemovals((prev) => new Map(prev).set(id, Date.now() + REMOVAL_DELAY_MS));
       const timer = setTimeout(() => {
         removalTimers.current.delete(id);
-        setPendingRemovalIds((prev) => {
-          const next = new Set(prev);
+        setPendingRemovals((prev) => {
+          const next = new Map(prev);
           next.delete(id);
           return next;
         });
@@ -81,8 +91,8 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
       clearTimeout(timer);
       removalTimers.current.delete(id);
     }
-    setPendingRemovalIds((prev) => {
-      const next = new Set(prev);
+    setPendingRemovals((prev) => {
+      const next = new Map(prev);
       next.delete(id);
       return next;
     });
@@ -121,14 +131,20 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const visibleTracks = sortedTracks.slice(0, visibleCount);
   const hiddenCount = sortedTracks.length - visibleTracks.length;
 
-  const trackViewModels = visibleTracks.map((track) => ({
-    id: track.id,
-    title: track.title,
-    artist: track.artist,
-    ...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {}),
-    linkHref: getPlatformLink(track, preferredPlatform),
-    pendingRemoval: pendingRemovalIds.has(track.id),
-  }));
+  const trackViewModels = visibleTracks.map((track) => {
+    const removalEndsAt = pendingRemovals.get(track.id);
+    return {
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      ...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {}),
+      linkHref: getPlatformLink(track, preferredPlatform),
+      pendingRemoval: removalEndsAt !== undefined,
+      ...(removalEndsAt !== undefined
+        ? { removalFraction: Math.max(0, Math.min(1, (removalEndsAt - now) / REMOVAL_DELAY_MS)) }
+        : {}),
+    };
+  });
 
   return (
     <LikedTracksModalView

@@ -148,6 +148,24 @@ describe('LikedTracksModal', () => {
     expect(screen.queryByRole('button', { name: 'Annuler' })).not.toBeInTheDocument();
   });
 
+  it('shows a countdown bar while a removal is pending, and removes it on undo', async () => {
+    useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
+    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Retirer de ma bibliothèque' }));
+
+    const bar = await screen.findByRole('progressbar', {
+      name: 'Temps restant avant suppression',
+    });
+    const valueNow = Number(bar.getAttribute('aria-valuenow'));
+    expect(valueNow).toBeGreaterThan(90);
+    expect(valueNow).toBeLessThanOrEqual(100);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Annuler' }));
+
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
   it('fires the unlike request only after the grace period elapses', async () => {
     let deleteCalled = false;
     server.use(

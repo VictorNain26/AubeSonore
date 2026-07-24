@@ -8,7 +8,7 @@ const meta: Meta<typeof Rail> = {
     docs: {
       description: {
         component:
-          'Piste horizontale défilable (Embla) sans flèches ni scrollbar visible, glissable à la souris comme au doigt. Composite : les entrées sont passées en `children` (`role="listitem"`), pas de story par état d’args.',
+          'Piste horizontale défilable (Embla), glissable à la souris comme au doigt. Le défilement est signalé par un fondu sur les bords masqués et par des flèches précédent/suivant au survol (pointeurs fins). Composite : les entrées sont passées en `children` (`role="listitem"`), pas de story par état d’args.',
       },
     },
   },
@@ -52,7 +52,7 @@ export const Draggable: Story = {
   ),
   parameters: {
     docs: {
-      description: { story: 'Assez de cartes pour déborder : la piste devient glissable.' },
+      description: { story: 'Assez de cartes pour déborder : fondu de bord et flèches au survol.' },
     },
   },
 };

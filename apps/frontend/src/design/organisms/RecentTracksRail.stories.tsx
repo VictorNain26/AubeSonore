@@ -8,7 +8,7 @@ const meta: Meta<typeof RecentTracksRail> = {
     docs: {
       description: {
         component:
-          'Section « Vient de passer » : piste horizontale des morceaux récents, avec chargement (squelettes), historique partiel et état vide. Composite : `entries` est un tableau de données, pas de story par état d’args.',
+          'Section « Vient de passer » : piste horizontale des morceaux récents (fondu de bord et flèches au survol quand ça déborde, entrée animée du nouvel item), avec chargement (squelettes), historique partiel et état vide. Composite : `entries` est un tableau de données, pas de story par état d’args.',
       },
     },
   },

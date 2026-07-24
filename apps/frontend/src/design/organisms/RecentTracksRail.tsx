@@ -1,5 +1,8 @@
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { Rail } from '../atoms/Rail';
 import { TrackRailItem } from '../molecules/TrackRailItem';
+import { useRailEntry } from '../../lib/motion';
 
 export interface RailEntry {
   id: number;
@@ -34,6 +37,8 @@ export function RecentTracksRail({
   onToggle,
   onShare,
 }: RecentTracksRailProps) {
+  const railEntry = useRailEntry();
+
   return (
     <section aria-label="Vient de passer" className="min-w-0 border-t border-border">
       <div className="mx-auto w-full min-w-0 px-6 py-3">
@@ -65,18 +70,21 @@ export function RecentTracksRail({
         ) : (
           <div className="pt-1.5 pb-1">
             <Rail ariaLabel="Vient de passer">
-              {entries.map((entry) => (
-                <TrackRailItem
-                  key={entry.id}
-                  title={entry.title}
-                  artist={entry.artist}
-                  {...(entry.art !== undefined ? { art: entry.art } : {})}
-                  isLiked={entry.isLiked}
-                  isLiking={entry.isLiking}
-                  onToggle={() => onToggle(entry.id)}
-                  onShare={() => onShare(entry.id)}
-                />
-              ))}
+              <AnimatePresence initial={false}>
+                {entries.map((entry) => (
+                  <m.div key={entry.id} {...railEntry} className="shrink-0">
+                    <TrackRailItem
+                      title={entry.title}
+                      artist={entry.artist}
+                      {...(entry.art !== undefined ? { art: entry.art } : {})}
+                      isLiked={entry.isLiked}
+                      isLiking={entry.isLiking}
+                      onToggle={() => onToggle(entry.id)}
+                      onShare={() => onShare(entry.id)}
+                    />
+                  </m.div>
+                ))}
+              </AnimatePresence>
             </Rail>
           </div>
         )}

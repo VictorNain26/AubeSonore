@@ -8,7 +8,7 @@ const meta = {
     docs: {
       description: {
         component:
-          'Une ligne de la modale « Ma bibliothèque » : pochette, titre/artiste, actions ouvrir/partager, et suppression avec annulation inline. Basculez le thème (barre d’outils **Thème**) pour vérifier chaque état en clair et sombre.',
+          'Une ligne de la modale « Ma bibliothèque » : pochette, titre/artiste, actions ouvrir/partager, et suppression avec annulation inline et barre de compte à rebours. Basculez le thème (barre d’outils **Thème**) pour vérifier chaque état en clair et sombre.',
       },
     },
   },
@@ -60,11 +60,12 @@ export const LienNonResolu: Story = {
 };
 
 export const Suppression: Story = {
-  args: { pendingRemoval: true },
+  args: { pendingRemoval: true, removalFraction: 0.6 },
   parameters: {
     docs: {
       description: {
-        story: 'Retrait en attente : la ligne reste visible, grisée, avec un bouton « Annuler ».',
+        story:
+          'Retrait en attente : la ligne reste visible, grisée, avec un bouton « Annuler » et une barre de compte à rebours avant suppression effective.',
       },
     },
   },

@@ -14,6 +14,8 @@ export interface LikedTrackRowProps {
   platformName?: string;
   /** Row is pending removal: shown grayed with an Undo affordance instead of the actions. */
   pendingRemoval: boolean;
+  /** Remaining share of the removal grace period (1 → 0), drives the countdown bar. */
+  removalFraction?: number | undefined;
   /** Share this track (native share sheet, clipboard fallback). */
   onShare: () => void;
   /** Start removal (enters the pending-removal state). */
@@ -37,26 +39,40 @@ export function LikedTrackRowView({
   linkHref,
   platformName,
   pendingRemoval,
+  removalFraction,
   onShare,
   onDelete,
   onUndo,
 }: LikedTrackRowProps) {
   if (pendingRemoval) {
+    const fraction = removalFraction ?? 1;
     return (
-      <div role="listitem" className="-mx-2 flex items-center gap-3 px-2 py-2">
-        <Thumbnail
-          {...(artworkUrl ? { src: artworkUrl } : {})}
-          alt={title}
-          seed={`${artist}|${title}`}
-          className="bg-surface opacity-40 grayscale"
-        />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-body text-text-muted line-through">{title}</p>
-          <p className="truncate text-caption text-text-faint">Retiré</p>
+      <div role="listitem" className="-mx-2 px-2 py-2">
+        <div className="flex items-center gap-3">
+          <Thumbnail
+            {...(artworkUrl ? { src: artworkUrl } : {})}
+            alt={title}
+            seed={`${artist}|${title}`}
+            className="bg-surface opacity-40 grayscale"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-body text-text-muted line-through">{title}</p>
+            <p className="truncate text-caption text-text-faint">Retiré</p>
+          </div>
+          <Button variant="ghost" onClick={onUndo} className="text-caption text-accent">
+            Annuler
+          </Button>
         </div>
-        <Button variant="ghost" onClick={onUndo} className="text-caption text-accent">
-          Annuler
-        </Button>
+        <div
+          role="progressbar"
+          aria-label="Temps restant avant suppression"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(fraction * 100)}
+          className="mt-2 h-0.5 overflow-hidden rounded-full bg-border"
+        >
+          <div className="h-full bg-accent" style={{ width: `${fraction * 100}%` }} />
+        </div>
       </div>
     );
   }

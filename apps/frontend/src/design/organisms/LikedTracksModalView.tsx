@@ -1,8 +1,11 @@
 import { ChevronDown, Loader2 } from 'lucide-react';
+import { AnimatePresence } from 'motion/react';
+import * as m from 'motion/react-m';
 import { Modal } from './Modal';
 import { Menu } from '../molecules/Menu';
 import { Button } from '../atoms/Button';
 import { LikedTrackRowView } from '../molecules/LikedTrackRow';
+import { useRowExit } from '../../lib/motion';
 
 export interface LikedTrackViewModel {
   id: string;
@@ -13,6 +16,8 @@ export interface LikedTrackViewModel {
   linkHref: string | null;
   /** Row is pending removal (grayed, showing Undo). */
   pendingRemoval: boolean;
+  /** Remaining share of the removal grace period (1 → 0), drives the countdown bar. */
+  removalFraction?: number;
 }
 
 export interface PlatformOption {
@@ -58,6 +63,7 @@ export function LikedTracksModalView({
   onUndoTrack,
 }: LikedTracksModalViewProps) {
   const selectedPlatformName = platforms.find((p) => p.id === selectedPlatformId)?.name;
+  const rowExit = useRowExit();
 
   return (
     <Modal title="Ma bibliothèque" open={open} onOpenChange={onOpenChange} size="lg">
@@ -108,20 +114,26 @@ export function LikedTracksModalView({
           </div>
         ) : (
           <div className="divide-y divide-border pt-4" role="list">
-            {tracks.map((track) => (
-              <LikedTrackRowView
-                key={track.id}
-                title={track.title}
-                artist={track.artist}
-                {...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {})}
-                linkHref={track.linkHref}
-                {...(selectedPlatformName ? { platformName: selectedPlatformName } : {})}
-                pendingRemoval={track.pendingRemoval}
-                onShare={() => onShareTrack(track.id)}
-                onDelete={() => onDeleteTrack(track.id)}
-                onUndo={() => onUndoTrack(track.id)}
-              />
-            ))}
+            <AnimatePresence initial={false}>
+              {tracks.map((track) => (
+                <m.div key={track.id} {...rowExit} className="-mx-2 overflow-hidden px-2">
+                  <LikedTrackRowView
+                    title={track.title}
+                    artist={track.artist}
+                    {...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {})}
+                    linkHref={track.linkHref}
+                    {...(selectedPlatformName ? { platformName: selectedPlatformName } : {})}
+                    pendingRemoval={track.pendingRemoval}
+                    {...(track.removalFraction !== undefined
+                      ? { removalFraction: track.removalFraction }
+                      : {})}
+                    onShare={() => onShareTrack(track.id)}
+                    onDelete={() => onDeleteTrack(track.id)}
+                    onUndo={() => onUndoTrack(track.id)}
+                  />
+                </m.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
 
