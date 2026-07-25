@@ -54,21 +54,17 @@ export async function unsubscribe(userId: string, endpoint: string): Promise<voi
 
 const PUSH_CHUNK_SIZE = 50;
 
-export async function sendToAll(
-  title: string,
-  body: string,
-  url?: string
-): Promise<{ sent: number; failed: number }> {
-  const subs = await db
-    .select({
-      id: schema.pushSubscriptions.id,
-      endpoint: schema.pushSubscriptions.endpoint,
-      p256dh: schema.pushSubscriptions.p256dh,
-      auth: schema.pushSubscriptions.auth,
-    })
-    .from(schema.pushSubscriptions);
+interface SubscriptionRow {
+  id: string;
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}
 
-  const payload = JSON.stringify({ title, body, url: url ?? '/' });
+async function sendToSubscriptions(
+  subs: SubscriptionRow[],
+  payload: string
+): Promise<{ sent: number; failed: number }> {
   let sent = 0;
   let failed = 0;
   const deadSubIds: string[] = [];
@@ -110,6 +106,44 @@ export async function sendToAll(
   }
 
   return { sent, failed };
+}
+
+export async function sendToAll(
+  title: string,
+  body: string,
+  url?: string
+): Promise<{ sent: number; failed: number }> {
+  const subs = await db
+    .select({
+      id: schema.pushSubscriptions.id,
+      endpoint: schema.pushSubscriptions.endpoint,
+      p256dh: schema.pushSubscriptions.p256dh,
+      auth: schema.pushSubscriptions.auth,
+    })
+    .from(schema.pushSubscriptions);
+
+  return sendToSubscriptions(subs, JSON.stringify({ title, body, url: url ?? '/' }));
+}
+
+export async function sendToUsers(
+  userIds: string[],
+  title: string,
+  body: string,
+  url?: string
+): Promise<{ sent: number; failed: number }> {
+  if (userIds.length === 0) return { sent: 0, failed: 0 };
+
+  const subs = await db
+    .select({
+      id: schema.pushSubscriptions.id,
+      endpoint: schema.pushSubscriptions.endpoint,
+      p256dh: schema.pushSubscriptions.p256dh,
+      auth: schema.pushSubscriptions.auth,
+    })
+    .from(schema.pushSubscriptions)
+    .where(inArray(schema.pushSubscriptions.userId, userIds));
+
+  return sendToSubscriptions(subs, JSON.stringify({ title, body, url: url ?? '/' }));
 }
 
 /**
