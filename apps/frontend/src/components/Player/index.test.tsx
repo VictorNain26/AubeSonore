@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { render, screen } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
+import { useArtistPanelStore } from '../../stores/artistPanelStore';
+import { useArtistInfo } from '../../hooks/useArtistInfo';
 import Player from './index';
 
 vi.mock('./TrackArtwork', () => ({
@@ -34,10 +36,15 @@ vi.mock('./SecondaryControls', () => ({
   SecondaryControls: () => <div data-testid="secondary">Secondary</div>,
 }));
 
-vi.mock('./ArtistContext', () => ({
-  ArtistContext: ({ isOpen }: { isOpen: boolean }) =>
-    isOpen ? <div data-testid="artist-context">Artist Context</div> : null,
-}));
+vi.mock('./ArtistContext', async () => {
+  const { useArtistPanelStore } = await import('../../stores/artistPanelStore');
+  return {
+    ArtistContext: () => {
+      const artistName = useArtistPanelStore((s) => s.artistName);
+      return artistName ? <div data-testid="artist-context">Artist Context</div> : null;
+    },
+  };
+});
 
 vi.mock('./ArtistBio', () => ({
   ArtistBio: ({ onOpenPanel }: { onOpenPanel?: () => void }) => (
@@ -53,8 +60,10 @@ vi.mock('./RecentTracks', () => ({
 }));
 
 vi.mock('../../hooks/useArtistInfo', () => ({
-  useArtistInfo: vi.fn(() => ({ data: null })),
+  useArtistInfo: vi.fn(() => ({ data: null, isLoading: false })),
 }));
+
+const mockedUseArtistInfo = vi.mocked(useArtistInfo);
 
 beforeEach(() => {
   useNowPlayingStore.setState({
@@ -63,6 +72,8 @@ beforeEach(() => {
     error: null,
   });
   usePlayer.setState({ isPlaying: false });
+  useArtistPanelStore.setState({ artistName: null });
+  mockedUseArtistInfo.mockReturnValue({ data: null, isLoading: false });
 });
 
 describe('Player', () => {
@@ -147,15 +158,19 @@ describe('Player', () => {
     expect(screen.getByTestId('recent-tracks')).toBeInTheDocument();
   });
 
-  it('closes artist panel when track changes', () => {
+  it('opens the artist panel from TrackMeta when a bio exists', () => {
+    mockedUseArtistInfo.mockReturnValue({
+      data: { bio: 'A biography.', tags: [], similarArtists: [], listeners: 0 },
+      isLoading: false,
+    });
     const mockData = {
       now_playing: {
         sh_id: 1,
         played_at: 0,
         song: {
           id: 'song-1',
-          title: 'Artist A',
-          artist: 'Artist A',
+          title: 'Test Track',
+          artist: 'Test Artist',
           art: 'https://example.com/art.jpg',
         },
       },
@@ -165,21 +180,9 @@ describe('Player', () => {
     useNowPlayingStore.setState({ data: mockData as never });
     render(<Player />);
 
-    const secondData = {
-      now_playing: {
-        sh_id: 2,
-        played_at: 1,
-        song: {
-          id: 'song-2',
-          title: 'Artist B',
-          artist: 'Artist B',
-          art: 'https://example.com/art.jpg',
-        },
-      },
-      song_history: [mockData.now_playing],
-    };
+    fireEvent.click(screen.getByRole('button', { name: 'Info' }));
 
-    useNowPlayingStore.setState({ data: secondData as never });
-    expect(screen.queryByTestId('artist-context')).not.toBeInTheDocument();
+    expect(useArtistPanelStore.getState().artistName).toBe('Test Artist');
+    expect(screen.getByTestId('artist-context')).toBeInTheDocument();
   });
 });

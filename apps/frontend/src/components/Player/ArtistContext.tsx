@@ -1,14 +1,14 @@
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useArtistInfo } from '../../hooks/useArtistInfo';
+import { useArtistPanelStore } from '../../stores/artistPanelStore';
 import { ArtistContextView } from '../../design/organisms/ArtistContext';
 
-interface ArtistContextProps {
-  isOpen: boolean;
-  onClose: () => void;
-}
+export function ArtistContext() {
+  const panelArtist = useArtistPanelStore((s) => s.artistName);
+  const close = useArtistPanelStore((s) => s.close);
+  const nowPlayingArtist = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
 
-export function ArtistContext({ isOpen, onClose }: ArtistContextProps) {
-  const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
+  const artistName = panelArtist ?? nowPlayingArtist;
   const { data, isLoading } = useArtistInfo(artistName);
 
   if (!artistName) return null;
@@ -16,8 +16,8 @@ export function ArtistContext({ isOpen, onClose }: ArtistContextProps) {
   return (
     <ArtistContextView
       artistName={artistName}
-      isOpen={isOpen}
-      onClose={onClose}
+      isOpen={panelArtist !== null}
+      onClose={close}
       isLoading={isLoading}
       data={data}
     />

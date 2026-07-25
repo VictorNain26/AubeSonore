@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import * as m from 'motion/react-m';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useArtistInfo } from '../../hooks/useArtistInfo';
+import { useArtistPanelStore } from '../../stores/artistPanelStore';
 import { pageEntry } from '../../lib/motion';
 
 import { TrackArtwork } from './TrackArtwork';
@@ -25,13 +25,7 @@ export default function Player() {
   const hasData = useNowPlayingStore((s) => s.data !== null);
   const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
   const { data } = useArtistInfo(artistName);
-  const [artistPanelOpen, setArtistPanelOpen] = useState(false);
-  const [prevArtistName, setPrevArtistName] = useState(artistName);
-
-  if (artistName !== prevArtistName) {
-    setPrevArtistName(artistName);
-    setArtistPanelOpen(false);
-  }
+  const openArtistPanel = useArtistPanelStore((s) => s.open);
 
   if (!hasData) {
     return (
@@ -69,7 +63,9 @@ export default function Player() {
             <TrackArtwork />
           </div>
           <div className={META}>
-            <TrackMeta onArtistInfo={data?.bio ? () => setArtistPanelOpen(true) : undefined} />
+            <TrackMeta
+              onArtistInfo={data?.bio && artistName ? () => openArtistPanel(artistName) : undefined}
+            />
             <div className={TRANSPORT}>
               <PlaybackControls />
               <div className="min-w-0 flex-1">
@@ -81,7 +77,11 @@ export default function Player() {
               <SecondaryControls />
             </div>
             <div className="hidden lg:block">
-              <ArtistBio onOpenPanel={() => setArtistPanelOpen(true)} />
+              <ArtistBio
+                onOpenPanel={() => {
+                  if (artistName) openArtistPanel(artistName);
+                }}
+              />
             </div>
           </div>
         </div>
@@ -89,7 +89,7 @@ export default function Player() {
 
       <RecentTracks />
 
-      <ArtistContext isOpen={artistPanelOpen} onClose={() => setArtistPanelOpen(false)} />
+      <ArtistContext />
     </m.div>
   );
 }
