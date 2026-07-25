@@ -7,9 +7,10 @@
   "scripts": {
     "dev": "vite --port 5173 --host 0.0.0.0",
     "build": "vite build",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit",
+    "compile:i18n": "paraglide-js compile --project ./project.inlang --outdir ./src/paraglide --emit-ts-declarations --silent",
+    "lint": "pnpm compile:i18n && eslint .",
+    "lint:fix": "pnpm compile:i18n && eslint . --fix",
+    "typecheck": "pnpm compile:i18n && tsc --noEmit",
     "check:contrast": "node scripts/check-contrast.mjs",
     "preview": "vite preview",
     "test": "vitest",
