@@ -71,7 +71,10 @@ export function LikedTrackRowView({
           aria-valuenow={Math.round(fraction * 100)}
           className="mt-2 h-0.5 overflow-hidden rounded-full bg-border"
         >
-          <div className="h-full bg-accent" style={{ width: `${fraction * 100}%` }} />
+          <div
+            className="h-full bg-accent transition-[width] duration-250 ease-linear"
+            style={{ width: `${fraction * 100}%` }}
+          />
         </div>
       </div>
     );
@@ -84,7 +87,7 @@ export function LikedTrackRowView({
   return (
     <div
       role="listitem"
-      className="group -mx-2 flex items-center gap-3 rounded-md px-2 py-2 transition-colors duration-150 ease-out-quart hover:bg-surface"
+      className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2 transition-colors duration-150 ease-out-quart hover:bg-surface"
     >
       <Thumbnail
         {...(artworkUrl ? { src: artworkUrl } : {})}
@@ -98,10 +101,7 @@ export function LikedTrackRowView({
         <p className="truncate text-caption text-text-muted">{artist}</p>
       </div>
 
-      <div
-        data-testid="row-actions"
-        className="flex items-center gap-1 opacity-0 transition-opacity duration-150 ease-out-quart group-hover:opacity-100 group-focus-within:opacity-100 pointer-coarse:opacity-100"
-      >
+      <div data-testid="row-actions" className="flex items-center gap-1">
         {linkHref ? (
           <a
             href={linkHref}
