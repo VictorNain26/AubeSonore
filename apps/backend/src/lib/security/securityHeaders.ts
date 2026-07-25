@@ -7,14 +7,15 @@ import { env } from '../../config/env';
  * (onError) — the latter never fires onAfterHandle, so error responses would
  * otherwise ship without these headers.
  * Permissive CSP (frame-ancestors 'none') prevents clickjacking without
- * blocking JSON responses.
+ * blocking JSON responses. It is assigned with `??=` so a route serving HTML
+ * (the share page) can set its own CSP without this hook clobbering it.
  */
 export function applySecurityHeaders(headers: Record<string, string | number | undefined>): void {
   headers['X-Content-Type-Options'] = 'nosniff';
   headers['X-Frame-Options'] = 'DENY';
   headers['Referrer-Policy'] = 'strict-origin-when-cross-origin';
   headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()';
-  headers['Content-Security-Policy'] = "default-src 'none'; frame-ancestors 'none'";
+  headers['Content-Security-Policy'] ??= "default-src 'none'; frame-ancestors 'none'";
   if (env.IS_PROD) {
     headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains';
   }

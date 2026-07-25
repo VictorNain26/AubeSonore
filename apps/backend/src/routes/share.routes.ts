@@ -1,0 +1,50 @@
+import { Elysia } from 'elysia';
+import { checkRate, getClientIp } from '../lib/rateLimit';
+import { logger } from '../lib/logger';
+import { searchSonglink } from '../services/songlinkService';
+import { renderSharePage } from '../services/templates/sharePage';
+
+const SHARE_LIMIT = 30;
+const SHARE_WINDOW_MS = 60_000;
+
+// The page ships an inline <style> and remote https covers but no JS.
+const SHARE_PAGE_CSP = "default-src 'self'; img-src https:; style-src 'unsafe-inline'";
+
+// Public track share page (no /api prefix): the URL is what listeners paste
+// into chats/social networks, so it must be short and readable by crawlers.
+export const shareRoutes = new Elysia().get('/t', async ({ request, query, set }) => {
+  const ip = getClientIp(request.headers);
+  if (!checkRate('share', ip, SHARE_LIMIT, SHARE_WINDOW_MS)) {
+    set.status = 429;
+    set.headers['retry-after'] = '60';
+    return { error: 'Trop de requêtes, réessayez dans 1 minute' };
+  }
+
+  const title = typeof query.title === 'string' ? query.title.trim() : '';
+  const artist = typeof query.artist === 'string' ? query.artist.trim() : '';
+  if (!title || !artist) {
+    set.status = 400;
+    return { error: 'Paramètres "artist" et "title" requis' };
+  }
+
+  let songlink = null;
+  try {
+    songlink = await searchSonglink(title, artist);
+  } catch (error) {
+    // Transient Songlink failure: the page renders without cover/links.
+    logger.warn('share.songlink_error', {
+      title,
+      artist,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  const shareUrl = `${new URL(request.url).origin}/t?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`;
+
+  set.headers['content-type'] = 'text/html; charset=utf-8';
+  set.headers['cache-control'] = 'public, max-age=3600';
+  // Same casing as applySecurityHeaders: its `??=` guard matches this exact
+  // key, a different one would ship two merged CSP values.
+  set.headers['Content-Security-Policy'] = SHARE_PAGE_CSP;
+  return renderSharePage({ title, artist, shareUrl, songlink });
+});
