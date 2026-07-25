@@ -17,6 +17,7 @@ import { songlinkCache, itunesCache } from './services/songlinkService';
 import { lastfmCache } from './services/lastfmService';
 import { radioHistoryCache } from './services/radioService';
 import { purgeExpiredAuthRows } from './services/pushService';
+import { startLikedArtistWatcher } from './services/likedArtistWatcher';
 
 // Apply pending DB migrations BEFORE serving traffic. The runner tracks
 // applied migrations in __app_migrations and is idempotent across restarts.
@@ -52,6 +53,8 @@ const purgeTimer = setInterval(() => {
 if (typeof purgeTimer === 'object' && purgeTimer !== null && 'unref' in purgeTimer) {
   (purgeTimer as { unref: () => void }).unref();
 }
+
+startLikedArtistWatcher();
 
 const app = new Elysia()
   // Per-request start time, available to onAfterHandle via context.
