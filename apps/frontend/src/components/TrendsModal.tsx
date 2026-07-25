@@ -6,6 +6,7 @@ import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { useTrends } from '../hooks/useTrends';
 import { TrendsModalView, type TrendEntryViewModel } from '../design/organisms/TrendsModalView';
 import type { TrendEntry } from '../hooks/useTrends';
+import * as m from '@/paraglide/messages.js';
 
 interface TrendsModalProps {
   isOpen: boolean;
@@ -31,10 +32,10 @@ export function TrendsModal({ isOpen, onClose }: TrendsModalProps) {
       url: getRadioShareUrl(entry.title, entry.artist),
     })
       .then((result) => {
-        if (result === 'copied') toast('Lien copié');
+        if (result === 'copied') toast(m.toast_link_copied());
       })
       .catch(() => {
-        toast('Partage impossible');
+        toast(m.toast_share_failed());
       });
   }, []);
 

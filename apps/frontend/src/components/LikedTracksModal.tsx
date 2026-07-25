@@ -7,6 +7,7 @@ import { shareTrack, getRadioShareUrl } from '../lib/shareTrack';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import { LikedTracksModalView } from '../design/organisms/LikedTracksModalView';
+import * as m from '@/paraglide/messages.js';
 
 interface LikedTracksModalProps {
   isOpen: boolean;
@@ -108,10 +109,10 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
         url: getRadioShareUrl(track.title, track.artist),
       })
         .then((result) => {
-          if (result === 'copied') toast('Lien copié');
+          if (result === 'copied') toast(m.toast_link_copied());
         })
         .catch(() => {
-          toast('Partage impossible');
+          toast(m.toast_share_failed());
         });
     },
     [tracks]

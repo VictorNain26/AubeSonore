@@ -1,7 +1,16 @@
 import { defineConfig } from 'vitest/config';
+import { paraglideVitePlugin } from '@inlang/paraglide-js';
 import path from 'path';
 
 export default defineConfig({
+  plugins: [
+    paraglideVitePlugin({
+      project: './project.inlang',
+      outdir: './src/paraglide',
+      strategy: ['localStorage', 'preferredLanguage', 'baseLocale'],
+      emitTsDeclarations: true,
+    }),
+  ],
   test: {
     globals: true,
     environment: 'node',

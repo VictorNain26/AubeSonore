@@ -1,0 +1,20 @@
+{
+  "skip_link": "Skip to main content",
+  "header_about": "About",
+  "header_user_menu": "User menu",
+  "header_user_fallback": "User",
+  "header_sign_in": "Sign in",
+  "header_sign_out": "Sign out",
+  "language_switch_label": "Changer de langue / Switch language",
+  "library_open": "Open my library",
+  "library_modal_title": "My library",
+  "trends_open": "View trends",
+  "trends_modal_title": "Trends",
+  "trends_tab_week": "This week",
+  "trends_tab_all_time": "All time",
+  "toast_added_to_library": "Added to your library",
+  "toast_removed_from_library": "Removed from your library",
+  "toast_link_copied": "Link copied",
+  "toast_share_failed": "Couldn't share",
+  "toast_discover_artist": "Discover {artist}"
+}

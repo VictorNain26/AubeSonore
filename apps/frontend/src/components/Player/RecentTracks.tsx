@@ -5,6 +5,7 @@ import { useLikeAction } from '../../hooks/player/useLikeAction';
 import { shareTrack, getRadioShareUrl } from '../../lib/shareTrack';
 import { RecentTracksRail, type RailEntry } from '../../design/organisms/RecentTracksRail';
 import type { SongEntry } from '../../lib/azuracast';
+import * as m from '@/paraglide/messages.js';
 
 export function RecentTracks() {
   const history = useNowPlayingStore((s) => s.data?.song_history);
@@ -34,10 +35,10 @@ export function RecentTracks() {
       url: getRadioShareUrl(entry.song.title, entry.song.artist),
     })
       .then((result) => {
-        if (result === 'copied') toast('Lien copié');
+        if (result === 'copied') toast(m.toast_link_copied());
       })
       .catch(() => {
-        toast('Partage impossible');
+        toast(m.toast_share_failed());
       });
   };
 

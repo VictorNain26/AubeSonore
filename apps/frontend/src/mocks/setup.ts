@@ -35,6 +35,12 @@ if (typeof globalThis.matchMedia === 'undefined') {
   });
 }
 
+// jsdom annonce navigator.languages = ['en-US'] : la stratégie
+// preferredLanguage résoudrait 'en' et casserait les assertions FR.
+if (typeof localStorage !== 'undefined') {
+  localStorage.setItem('PARAGLIDE_LOCALE', 'fr');
+}
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());

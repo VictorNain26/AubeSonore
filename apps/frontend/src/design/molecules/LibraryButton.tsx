@@ -1,6 +1,7 @@
 import { Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '../atoms/Button';
+import * as m from '@/paraglide/messages.js';
 
 export interface LibraryButtonViewProps {
   /** La bibliothèque contient au moins un titre aimé (met en accent le bouton). */
@@ -13,7 +14,7 @@ export function LibraryButtonView({ hasLikedTracks, onOpen }: LibraryButtonViewP
   return (
     <Button
       variant="icon"
-      aria-label="Ouvrir ma bibliothèque"
+      aria-label={m.library_open()}
       onClick={onOpen}
       className={cn(hasLikedTracks && 'text-accent hover:text-accent')}
     >

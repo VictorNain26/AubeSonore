@@ -1,0 +1,20 @@
+{
+  "skip_link": "Aller au contenu principal",
+  "header_about": "À propos",
+  "header_user_menu": "Menu utilisateur",
+  "header_user_fallback": "Utilisateur",
+  "header_sign_in": "Connexion",
+  "header_sign_out": "Déconnexion",
+  "language_switch_label": "Changer de langue / Switch language",
+  "library_open": "Ouvrir ma bibliothèque",
+  "library_modal_title": "Ma bibliothèque",
+  "trends_open": "Voir les tendances",
+  "trends_modal_title": "Tendances",
+  "trends_tab_week": "Cette semaine",
+  "trends_tab_all_time": "Depuis le début",
+  "toast_added_to_library": "Ajouté à votre bibliothèque",
+  "toast_removed_from_library": "Retiré de votre bibliothèque",
+  "toast_link_copied": "Lien copié",
+  "toast_share_failed": "Partage impossible",
+  "toast_discover_artist": "Découvrir {artist}"
+}

@@ -25,6 +25,7 @@ export default tseslint.config(
       '**/metro.config.js',
       '**/scripts/**',
       '**/drizzle/**',
+      '**/src/paraglide/**',
     ],
   },
 
