@@ -3,6 +3,8 @@ import { toast } from 'sonner';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
+import { useArtistPanelStore } from '../../stores/artistPanelStore';
+import { getArtistInfo } from '../../lib/artistInfo';
 
 // Encapsulates the like / unlike flow used by both TrackArtwork (current
 // track) and RecentTracks (previously played). Guards against:
@@ -60,7 +62,17 @@ export function useLikeAction(): UseLikeAction {
             requestData.artworkUrl = artworkUrl;
           }
           await likeTrack(requestData);
-          toast.success('Ajouté à votre bibliothèque');
+          const info = await getArtistInfo(artist);
+          if (info?.bio) {
+            toast.success('Ajouté à votre bibliothèque', {
+              action: {
+                label: `Découvrir ${artist}`,
+                onClick: () => useArtistPanelStore.getState().open(artist),
+              },
+            });
+          } else {
+            toast.success('Ajouté à votre bibliothèque');
+          }
         }
       } finally {
         setLikingTrackId(null);
