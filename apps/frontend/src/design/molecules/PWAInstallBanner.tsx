@@ -1,5 +1,6 @@
 import { X, Download } from 'lucide-react';
 import { Button } from '../atoms/Button';
+import * as m from '@/paraglide/messages.js';
 
 interface PWAInstallBannerViewProps {
   /** Triggers the native install prompt. */
@@ -16,11 +17,11 @@ export function PWAInstallBannerView({ onInstall, onDismiss }: PWAInstallBannerV
   return (
     <div className="rounded-md border border-border bg-surface-raised flex items-center gap-3 px-4 py-3 max-w-sm w-full">
       <Download className="size-5 text-text-faint shrink-0" />
-      <p className="text-body text-text flex-1">Installer AubeSonore</p>
+      <p className="text-body text-text flex-1">{m.pwa_install_title()}</p>
       <Button variant="primary" onClick={onInstall}>
-        Installer
+        {m.pwa_install_action()}
       </Button>
-      <Button variant="icon" aria-label="Fermer" onClick={onDismiss}>
+      <Button variant="icon" aria-label={m.close()} onClick={onDismiss}>
         <X />
       </Button>
     </div>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { FallbackProps } from 'react-error-boundary';
 import { Button } from '../atoms/Button';
 import { Modal } from './Modal';
+import * as m from '@/paraglide/messages.js';
 
 /**
  * Error boundary fallback shown when the player crashes. Offers a single
@@ -10,10 +11,10 @@ import { Modal } from './Modal';
 export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
   return (
     <div role="alert" className="border-t border-border w-full max-w-lg mx-auto pt-6 text-center">
-      <p className="font-display text-title text-text">{"La lecture s'est interrompue"}</p>
-      <p className="mt-2 text-body text-text-muted">Rechargez ou réessayez dans un instant.</p>
+      <p className="font-display text-title text-text">{m.error_player_title()}</p>
+      <p className="mt-2 text-body text-text-muted">{m.error_player_body()}</p>
       <Button variant="primary" onClick={resetErrorBoundary} className="mt-4">
-        Réessayer
+        {m.error_retry()}
       </Button>
     </div>
   );
@@ -35,14 +36,11 @@ export function ModalErrorFallback({ onClose }: ModalErrorFallbackProps) {
     onClose();
   };
   return (
-    <Modal title="Une erreur est survenue" open={isOpen} onOpenChange={(o) => !o && handleClose()}>
+    <Modal title={m.error_generic()} open={isOpen} onOpenChange={(o) => !o && handleClose()}>
       <div role="alert" className="text-center">
-        <p className="text-body text-text-muted">
-          La fenêtre a rencontré un problème. Fermez-la puis rouvrez-la ; si l&apos;erreur persiste,
-          rechargez la page.
-        </p>
+        <p className="text-body text-text-muted">{m.error_modal_body()}</p>
         <Button variant="primary" onClick={handleClose} className="mt-4">
-          Fermer
+          {m.close()}
         </Button>
       </div>
     </Modal>

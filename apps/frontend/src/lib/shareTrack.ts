@@ -1,4 +1,5 @@
 import { API_BASE_URL } from '../utils/config';
+import * as m from '@/paraglide/messages.js';
 
 interface ShareTrackInput {
   title: string;
@@ -11,7 +12,7 @@ export async function shareTrack({
   artist,
   url,
 }: ShareTrackInput): Promise<'shared' | 'copied'> {
-  const text = `« ${title} — ${artist} », découvert sur AubeSonore`;
+  const text = m.share_text({ title, artist });
   if (typeof navigator.share === 'function') {
     try {
       await navigator.share({ title: 'AubeSonore', text, url });
