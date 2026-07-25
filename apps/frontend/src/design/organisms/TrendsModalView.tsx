@@ -33,18 +33,12 @@ const TABS: { id: TabId; label: () => string }[] = [
   { id: 'allTime', label: m.trends_tab_all_time },
 ];
 
-const WEEK_EMPTY_COPY =
-  'Les tendances de la semaine se dessinent — aimez un morceau pour les faire bouger.';
-const ALL_TIME_EMPTY_COPY =
-  "Personne n'a encore aimé de morceau — les coups de cœur de la communauté apparaîtront ici.";
-const ERROR_COPY = 'Impossible de charger les tendances — réessayez dans un instant.';
-
 // En dessous de 3 entrées, le classement de la semaine ressemble plus à un
 // hasard qu'à une tendance : on affiche l'état vide à la place.
 const WEEK_MIN_ENTRIES = 3;
 
 function likesCaption(likes: number): string {
-  return likes === 1 ? "1 auditeur l'a aimé" : `${likes} auditeurs l'ont aimé`;
+  return likes === 1 ? m.trends_likes_one() : m.trends_likes_other({ count: likes });
 }
 
 /**
@@ -70,11 +64,11 @@ export function TrendsModalView({
 
   return (
     <Modal title={m.trends_modal_title()} open={open} onOpenChange={onOpenChange} size="lg">
-      <p className="-mt-3 text-caption text-text-faint">Les morceaux les plus aimés ici même</p>
+      <p className="-mt-3 text-caption text-text-faint">{m.trends_subtitle()}</p>
 
       <div
         role="tablist"
-        aria-label="Période des tendances"
+        aria-label={m.trends_tablist_aria()}
         className="flex gap-1 rounded-full bg-surface p-1"
       >
         {TABS.map(({ id, label }) => (
@@ -96,7 +90,7 @@ export function TrendsModalView({
 
       <div className="max-h-[70dvh] min-h-0 overflow-y-auto scrollbar-none">
         {isLoading ? (
-          <div className="divide-y divide-border" aria-label="Chargement">
+          <div className="divide-y divide-border" aria-label={m.loading()}>
             {Array.from({ length: 5 }, (_, i) => (
               <div key={i} className="flex items-center gap-3 py-2">
                 <div className="size-10 animate-pulse rounded-sm bg-surface" />
@@ -108,10 +102,10 @@ export function TrendsModalView({
             ))}
           </div>
         ) : hasError ? (
-          <p className="py-10 text-center text-body text-text-muted">{ERROR_COPY}</p>
+          <p className="py-10 text-center text-body text-text-muted">{m.trends_error()}</p>
         ) : showWeekEmpty || showAllTimeEmpty ? (
           <p className="py-10 text-center text-body text-text-muted">
-            {showWeekEmpty ? WEEK_EMPTY_COPY : ALL_TIME_EMPTY_COPY}
+            {showWeekEmpty ? m.trends_week_empty() : m.trends_all_time_empty()}
           </p>
         ) : (
           <div className="divide-y divide-border" role="list">
@@ -141,10 +135,10 @@ export function TrendsModalView({
                     onClick={() => onLikeTrack(entry)}
                     aria-label={
                       entry.isLiked
-                        ? `Retirer « ${entry.title} » de ma bibliothèque`
-                        : `Aimer « ${entry.title} »`
+                        ? m.trends_unlike_aria({ title: entry.title })
+                        : m.trends_like_aria({ title: entry.title })
                     }
-                    title={entry.isLiked ? 'Retirer de ma bibliothèque' : 'Aimer'}
+                    title={entry.isLiked ? m.library_remove() : m.trends_like_action()}
                     className={cn(
                       entry.isLiked
                         ? 'text-accent hover:text-accent'
@@ -156,8 +150,8 @@ export function TrendsModalView({
                   <Button
                     variant="icon"
                     onClick={() => onShareTrack(entry)}
-                    aria-label={`Partager « ${entry.title} »`}
-                    title="Partager"
+                    aria-label={m.trends_share_aria({ title: entry.title })}
+                    title={m.track_share()}
                     className="text-text-faint hover:bg-surface hover:text-text"
                   >
                     <Share2 className="size-4" />
