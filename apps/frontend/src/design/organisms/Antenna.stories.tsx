@@ -16,6 +16,7 @@ const meta = {
     isOnline: true,
     isPlaying: true,
     songId: 42,
+    listenerCount: 37,
   },
 } satisfies Meta<typeof AntennaView>;
 export default meta;
@@ -27,3 +28,14 @@ export const OnAir: Story = {};
 export const Paused: Story = { args: { isPlaying: false } };
 
 export const OffAir: Story = { args: { isOnline: false } };
+
+export const SansCompteur: Story = {
+  args: { listenerCount: undefined },
+  parameters: {
+    docs: {
+      description: {
+        story: 'Avant le premier payload (ou donnée absente) : le compteur ne s’affiche pas.',
+      },
+    },
+  },
+};
