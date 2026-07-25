@@ -20,6 +20,7 @@ const meta = {
     artistName: 'Aube Ensemble',
     isOpen: true,
     onClose: () => {},
+    onSelectSimilar: () => {},
     isLoading: false,
     data: {
       bio: 'Un collectif électro-acoustique explorant les lisières entre field recording et synthèse modulaire, actif depuis 2019.',

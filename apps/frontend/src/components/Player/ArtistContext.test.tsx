@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useArtistPanelStore } from '../../stores/artistPanelStore';
@@ -51,5 +51,49 @@ describe('ArtistContext', () => {
     render(<ArtistContext />);
     fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
     expect(useArtistPanelStore.getState().artistName).toBeNull();
+  });
+
+  it('loads a similar artist bio in the same modal when its chip is clicked', () => {
+    mockedUseArtistInfo.mockImplementation((name) =>
+      name === 'Other'
+        ? {
+            data: { bio: 'Other bio.', tags: [], similarArtists: [], listeners: 0 },
+            isLoading: false,
+          }
+        : {
+            data: { bio: 'A biography.', tags: [], similarArtists: ['Other'], listeners: 0 },
+            isLoading: false,
+          }
+    );
+    useArtistPanelStore.setState({ artistName: 'Some Artist' });
+    render(<ArtistContext />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Other' }));
+
+    expect(screen.getByRole('dialog', { name: 'Other' })).toBeInTheDocument();
+    expect(screen.getByText('Other bio.')).toBeInTheDocument();
+  });
+
+  it('resets browsing when the panel reopens with another artist', () => {
+    mockedUseArtistInfo.mockImplementation((name) =>
+      name === 'Other'
+        ? {
+            data: { bio: 'Other bio.', tags: [], similarArtists: [], listeners: 0 },
+            isLoading: false,
+          }
+        : {
+            data: { bio: 'A biography.', tags: [], similarArtists: ['Other'], listeners: 0 },
+            isLoading: false,
+          }
+    );
+    useArtistPanelStore.setState({ artistName: 'Some Artist' });
+    render(<ArtistContext />);
+    fireEvent.click(screen.getByRole('button', { name: 'Other' }));
+    expect(screen.getByRole('dialog', { name: 'Other' })).toBeInTheDocument();
+
+    act(() => useArtistPanelStore.getState().open('Some Artist'));
+
+    expect(screen.getByRole('dialog', { name: 'Some Artist' })).toBeInTheDocument();
+    expect(screen.getByText('A biography.')).toBeInTheDocument();
   });
 });

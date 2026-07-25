@@ -13,6 +13,8 @@ export interface ArtistContextViewProps {
   isLoading: boolean;
   /** Artist info payload, once loaded. */
   data: ArtistInfo | null;
+  /** Called when a similar-artist chip is selected, to navigate to its bio. */
+  onSelectSimilar?: (name: string) => void;
 }
 
 export function ArtistContextView({
@@ -21,6 +23,7 @@ export function ArtistContextView({
   onClose,
   isLoading,
   data,
+  onSelectSimilar,
 }: ArtistContextViewProps) {
   return (
     <Modal title={artistName} open={isOpen} onOpenChange={(o) => !o && onClose()}>
@@ -53,12 +56,14 @@ export function ArtistContextView({
             <p className="text-caption text-text-faint mb-1.5">Artistes similaires</p>
             <div className="flex flex-wrap gap-1.5">
               {data.similarArtists.map((name) => (
-                <span
+                <button
                   key={name}
-                  className="px-2 py-0.5 rounded-full bg-surface-raised text-caption text-text-muted border border-border"
+                  type="button"
+                  onClick={() => onSelectSimilar?.(name)}
+                  className="inline-flex min-h-6 cursor-pointer items-center px-2 py-0.5 rounded-full bg-surface-raised text-caption text-text-muted border border-border transition-colors duration-150 ease-out-quart hover:bg-surface hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
                   {name}
-                </span>
+                </button>
               ))}
             </div>
           </div>
