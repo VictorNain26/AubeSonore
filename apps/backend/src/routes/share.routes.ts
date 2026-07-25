@@ -2,13 +2,21 @@ import { Elysia } from 'elysia';
 import { checkRate, getClientIp } from '../lib/rateLimit';
 import { logger } from '../lib/logger';
 import { searchSonglink } from '../services/songlinkService';
-import { renderSharePage } from '../services/templates/sharePage';
+import { renderSharePage, type ShareLocale } from '../services/templates/sharePage';
 
 const SHARE_LIMIT = 30;
 const SHARE_WINDOW_MS = 60_000;
 
 // The page ships an inline <style> and remote https covers but no JS.
 const SHARE_PAGE_CSP = "default-src 'self'; img-src https:; style-src 'unsafe-inline'";
+
+// First fr/en token wins, French by default. Deliberately naive (ignores
+// q-values): the header is nearly always a single locale or fr/en ordered.
+export function pickShareLocale(acceptLanguage: string | null): ShareLocale {
+  if (!acceptLanguage) return 'fr';
+  const match = /(?:^|,)\s*(fr|en)\b/i.exec(acceptLanguage);
+  return match?.[1]?.toLowerCase() === 'en' ? 'en' : 'fr';
+}
 
 // Public track share page (no /api prefix): the URL is what listeners paste
 // into chats/social networks, so it must be short and readable by crawlers.
@@ -43,8 +51,10 @@ export const shareRoutes = new Elysia().get('/t', async ({ request, query, set }
 
   set.headers['content-type'] = 'text/html; charset=utf-8';
   set.headers['cache-control'] = 'public, max-age=3600';
+  set.headers['vary'] = 'accept-language';
   // Same casing as applySecurityHeaders: its `??=` guard matches this exact
   // key, a different one would ship two merged CSP values.
   set.headers['Content-Security-Policy'] = SHARE_PAGE_CSP;
-  return renderSharePage({ title, artist, shareUrl, songlink });
+  const locale = pickShareLocale(request.headers.get('accept-language'));
+  return renderSharePage({ title, artist, shareUrl, songlink, locale });
 });

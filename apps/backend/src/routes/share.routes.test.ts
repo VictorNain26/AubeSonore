@@ -143,4 +143,37 @@ describe('GET /t', () => {
       "default-src 'none'; frame-ancestors 'none'"
     );
   });
+
+  it('serves English copy for an English Accept-Language', async () => {
+    mockSonglinkSuccess();
+
+    const res = await app.handle(
+      new Request('http://localhost/t?title=Balance%20Act&artist=Psychic%20Lines', {
+        headers: { 'accept-language': 'en-US,en;q=0.9' },
+      })
+    );
+
+    const html = await res.text();
+    expect(html).toContain('<html lang="en">');
+    expect(html).toContain('Listen live');
+    expect(html).toContain('Listen on Spotify');
+    expect(html).toContain('Heard on AubeSonore');
+    expect(res.headers.get('vary')).toContain('accept-language');
+  });
+
+  it('serves French copy for French or missing Accept-Language', async () => {
+    mockSonglinkSuccess();
+
+    const french = await app.handle(
+      new Request('http://localhost/t?title=Balance%20Act&artist=Psychic%20Lines', {
+        headers: { 'accept-language': 'fr-FR,fr;q=0.9,en;q=0.8' },
+      })
+    );
+    expect(await french.text()).toContain('Écouter le direct');
+
+    const noHeader = await app.handle(
+      new Request('http://localhost/t?title=Balance%20Act&artist=Psychic%20Lines')
+    );
+    expect(await noHeader.text()).toContain('Écouter le direct');
+  });
 });
