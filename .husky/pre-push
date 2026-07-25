@@ -1,0 +1,12 @@
+# Local mirror of the required CI checks: the GitHub Actions quota is
+# limited, so the quality gate runs at push time — a red tree never
+# leaves the machine. Mirrors .github/workflows/ci.yml (format is
+# already enforced by lint-staged at commit; coverage/audit stay in CI).
+set -e
+pnpm turbo build --filter=@aubesonore/shared-types --filter=@aubesonore/core
+pnpm lint
+pnpm turbo typecheck
+pnpm --filter=@aubesonore/frontend check:contrast
+pnpm --filter=@aubesonore/frontend test --run
+pnpm --filter=@aubesonore/backend test
+pnpm turbo build --filter=@aubesonore/backend --filter=@aubesonore/frontend
