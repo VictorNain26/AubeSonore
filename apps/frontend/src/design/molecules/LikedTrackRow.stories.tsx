@@ -53,7 +53,7 @@ export const LienNonResolu: Story = {
     docs: {
       description: {
         story:
-          'Liens pas encore résolus : ouvrir et partager sont désactivés (jamais de recherche déguisée).',
+          'Liens pas encore résolus : ouvrir est désactivé (jamais de recherche déguisée) ; partager reste actif car il pointe vers la page de partage de la radio.',
       },
     },
   },
