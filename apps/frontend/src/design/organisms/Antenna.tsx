@@ -11,9 +11,11 @@ export interface AntennaViewProps {
   isPlaying: boolean;
   /** Identifiant du morceau courant, pour réamorcer le tracé au changement. */
   songId: number | undefined;
+  /** Auditeurs uniques en direct, `undefined` avant le premier payload. */
+  listenerCount: number | undefined;
 }
 
-export function AntennaView({ isOnline, isPlaying, songId }: AntennaViewProps) {
+export function AntennaView({ isOnline, isPlaying, songId, listenerCount }: AntennaViewProps) {
   if (!isOnline) {
     return (
       <p className="text-caption text-text-muted" aria-live="polite">
@@ -23,8 +25,15 @@ export function AntennaView({ isOnline, isPlaying, songId }: AntennaViewProps) {
   }
 
   return (
-    <div className="w-full min-w-0">
-      <WaveformCanvas isPlaying={isPlaying} songId={songId} />
+    <div className="flex w-full min-w-0 items-center gap-3">
+      <div className="min-w-0 flex-1">
+        <WaveformCanvas isPlaying={isPlaying} songId={songId} />
+      </div>
+      {listenerCount !== undefined && (
+        <p className="shrink-0 text-caption text-text-faint">
+          {listenerCount} {listenerCount > 1 ? 'auditeurs' : 'auditeur'} en ce moment
+        </p>
+      )}
     </div>
   );
 }
