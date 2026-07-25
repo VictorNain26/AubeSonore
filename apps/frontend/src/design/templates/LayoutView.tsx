@@ -4,6 +4,7 @@ import { LogIn, Info } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { Menu } from '../molecules/Menu';
 import { LibraryButton } from '../../components/Player/LibraryButton';
+import { TrendsButton } from '../../components/Player/TrendsButton';
 import { ThemeToggle } from '../../layout/ThemeToggle';
 
 export interface LayoutUser {
@@ -31,7 +32,7 @@ export interface LayoutViewProps {
 
 /**
  * Charpente de l'application : bandeau (wordmark, thème, à propos, bibliothèque,
- * compte), lien d'évitement, landmark `<main>` et notifications toast. Le
+ * tendances, compte), lien d'évitement, landmark `<main>` et notifications toast. Le
  * conteneur `Layout` lit les stores auth/modale et gère l'ouverture de la
  * modale « À propos » et le flux de réinitialisation de mot de passe.
  */
@@ -60,6 +61,7 @@ export function LayoutView({
             <Info className="size-5" />
           </Button>
           <LibraryButton />
+          <TrendsButton />
 
           {isLoading ? (
             <div className="size-11 animate-pulse rounded-full bg-surface-raised" />
