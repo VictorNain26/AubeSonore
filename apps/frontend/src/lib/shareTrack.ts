@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../utils/config';
+
 interface ShareTrackInput {
   title: string;
   artist: string;
@@ -20,4 +22,8 @@ export async function shareTrack({
   }
   await navigator.clipboard.writeText(`${text} ${url}`);
   return 'copied';
+}
+
+export function getRadioShareUrl(title: string, artist: string): string {
+  return `${API_BASE_URL}/t?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`;
 }

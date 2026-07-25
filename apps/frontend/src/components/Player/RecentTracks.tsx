@@ -1,10 +1,8 @@
 import { toast } from 'sonner';
 import { useNowPlayingStore } from '../../lib/azuracast/store';
 import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
-import { usePreferencesStore } from '../../stores/preferencesStore';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
-import { getTrackShareUrl } from '@aubesonore/core/share';
-import { shareTrack } from '../../lib/shareTrack';
+import { shareTrack, getRadioShareUrl } from '../../lib/shareTrack';
 import { RecentTracksRail, type RailEntry } from '../../design/organisms/RecentTracksRail';
 import type { SongEntry } from '../../lib/azuracast';
 
@@ -15,7 +13,6 @@ export function RecentTracks() {
   const isLoading = !useNowPlayingStore((s) => s.data);
 
   const tracks = useLikedTracksStore((s) => s.tracks);
-  const preferences = usePreferencesStore((s) => s.preferences);
   const { likingTrackId, toggleLike } = useLikeAction();
 
   const entries = (history ?? []).filter((e) => e.sh_id !== nowPlayingId).slice(0, 6);
@@ -31,19 +28,10 @@ export function RecentTracks() {
   }));
 
   const handleShare = (entry: SongEntry) => {
-    const likedTrack = tracks.find(
-      (t) =>
-        t.title.toLowerCase() === entry.song.title.toLowerCase() &&
-        t.artist.toLowerCase() === entry.song.artist.toLowerCase()
-    );
-    const url = getTrackShareUrl(
-      likedTrack ?? { title: entry.song.title, artist: entry.song.artist },
-      preferences?.preferredPlatform
-    );
     void shareTrack({
       title: entry.song.title,
       artist: entry.song.artist,
-      url,
+      url: getRadioShareUrl(entry.song.title, entry.song.artist),
     })
       .then((result) => {
         if (result === 'copied') toast('Lien copié');

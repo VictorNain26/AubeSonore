@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { shareTrack } from './shareTrack';
+import { shareTrack, getRadioShareUrl } from './shareTrack';
+import { API_BASE_URL } from '../utils/config';
 
 const input = {
   title: 'Balance Act',
@@ -34,5 +35,25 @@ describe('shareTrack', () => {
     const share = vi.fn().mockRejectedValue(new DOMException('cancel', 'AbortError'));
     vi.stubGlobal('navigator', { share, clipboard: { writeText: vi.fn() } });
     await expect(shareTrack(input)).resolves.toBe('shared');
+  });
+});
+
+describe('getRadioShareUrl', () => {
+  it('builds the /t share URL with artist and title params', () => {
+    expect(getRadioShareUrl('Balance Act', 'Psychic Lines')).toBe(
+      `${API_BASE_URL}/t?artist=Psychic%20Lines&title=Balance%20Act`
+    );
+  });
+
+  it('encodes slashes in the artist name', () => {
+    expect(getRadioShareUrl('Back in Black', 'AC/DC')).toBe(
+      `${API_BASE_URL}/t?artist=AC%2FDC&title=Back%20in%20Black`
+    );
+  });
+
+  it('encodes spaces in both params', () => {
+    expect(getRadioShareUrl('La Vie En Rose', 'Édith Piaf')).toBe(
+      `${API_BASE_URL}/t?artist=${encodeURIComponent('Édith Piaf')}&title=La%20Vie%20En%20Rose`
+    );
   });
 });
