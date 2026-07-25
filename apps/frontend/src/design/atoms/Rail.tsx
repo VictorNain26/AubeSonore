@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import * as m from '@/paraglide/messages.js';
 import { cn } from '@/lib/utils';
 
 export interface RailProps {
@@ -69,7 +70,7 @@ export function Rail({ ariaLabel, children }: RailProps) {
         <button
           type="button"
           onClick={() => emblaApi?.scrollPrev()}
-          aria-label="Faire défiler vers la gauche"
+          aria-label={m.rail_scroll_left()}
           className={cn(ARROW_CLASS, 'left-1')}
         >
           <ChevronLeft className="size-5" />
@@ -79,7 +80,7 @@ export function Rail({ ariaLabel, children }: RailProps) {
         <button
           type="button"
           onClick={() => emblaApi?.scrollNext()}
-          aria-label="Faire défiler vers la droite"
+          aria-label={m.rail_scroll_right()}
           className={cn(ARROW_CLASS, 'right-1')}
         >
           <ChevronRight className="size-5" />

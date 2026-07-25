@@ -1,4 +1,5 @@
 import { Play, Square } from 'lucide-react';
+import * as m from '@/paraglide/messages.js';
 import { cn } from '@/lib/utils';
 
 // Play / stop button, subscribing directly to usePlayer. The single flat
@@ -23,7 +24,7 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
         'motion-safe:hover:scale-105 motion-safe:active:scale-95',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
       )}
-      aria-label={isPlaying ? 'Arrêter la lecture' : 'Lancer la lecture'}
+      aria-label={isPlaying ? m.playback_stop() : m.playback_start()}
       aria-pressed={isPlaying}
     >
       {isPlaying ? (

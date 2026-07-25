@@ -1,4 +1,5 @@
 import { Airplay } from 'lucide-react';
+import * as m from '@/paraglide/messages.js';
 import { cn } from '@/lib/utils';
 import { Button } from '../atoms/Button';
 
@@ -15,7 +16,7 @@ export function AirPlayButtonView({ isActive, onOpenPicker }: AirPlayButtonViewP
       variant="icon"
       onClick={onOpenPicker}
       className={cn(isActive && 'text-accent hover:text-accent')}
-      aria-label={isActive ? 'Diffusion AirPlay active' : 'Diffuser via AirPlay'}
+      aria-label={isActive ? m.airplay_active() : m.airplay_open()}
     >
       <span className="flex flex-col items-center gap-0.5">
         <Airplay className="size-5" />
