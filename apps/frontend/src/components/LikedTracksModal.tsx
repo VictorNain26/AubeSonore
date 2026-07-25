@@ -3,7 +3,7 @@ import { PLATFORMS } from '@aubesonore/shared-types/client';
 import type { PreferredPlatform } from '../lib/api';
 import { getPlatformLink } from '@aubesonore/core/share';
 import { toast } from 'sonner';
-import { shareTrack } from '../lib/shareTrack';
+import { shareTrack, getRadioShareUrl } from '../lib/shareTrack';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import { LikedTracksModalView } from '../design/organisms/LikedTracksModalView';
@@ -102,9 +102,11 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
     (id: string) => {
       const track = tracks.find((t) => t.id === id);
       if (!track) return;
-      const url = getPlatformLink(track, preferredPlatform);
-      if (!url) return;
-      void shareTrack({ title: track.title, artist: track.artist, url })
+      void shareTrack({
+        title: track.title,
+        artist: track.artist,
+        url: getRadioShareUrl(track.title, track.artist),
+      })
         .then((result) => {
           if (result === 'copied') toast('Lien copié');
         })
@@ -112,7 +114,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
           toast('Partage impossible');
         });
     },
-    [tracks, preferredPlatform]
+    [tracks]
   );
 
   const handleUpdatePlatform = useCallback(

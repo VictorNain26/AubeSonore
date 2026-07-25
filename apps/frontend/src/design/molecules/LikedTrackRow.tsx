@@ -8,7 +8,7 @@ export interface LikedTrackRowProps {
   artist: string;
   /** Cover art URL. Falls back to the `Thumbnail` placeholder icon when absent. */
   artworkUrl?: string;
-  /** Direct platform link, or `null` while links are still resolving — open and share are disabled then (never a search URL). */
+  /** Direct platform link, or `null` while links are still resolving — open is disabled then (never a search URL). Share always works: it links to the radio share page. */
   linkHref: string | null;
   /** Name of the platform the link opens (used in the open/share tooltips). */
   platformName?: string;
@@ -130,9 +130,8 @@ export function LikedTrackRowView({
         <Button
           variant="icon"
           onClick={onShare}
-          disabled={!linkHref}
           aria-label="Partager ce morceau"
-          title={linkHref ? 'Partager' : 'Liens en cours de résolution…'}
+          title="Partager"
           className="text-text-faint hover:bg-surface hover:text-text"
         >
           <Share2 className="size-4" />
