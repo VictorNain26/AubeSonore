@@ -5,6 +5,7 @@ import { AboutModal } from '../design/organisms/AboutModal';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { toastError } from '../lib/appToast';
+import * as m from '@/paraglide/messages.js';
 
 interface LayoutProps {
   children: ReactNode;
@@ -37,7 +38,7 @@ export default function Layout({ children }: LayoutProps) {
 
     const error = new URLSearchParams(window.location.search).get('error');
     if (error === 'INVALID_TOKEN') {
-      toastError('Ce lien est invalide ou a expiré. Demandez un nouveau lien.');
+      toastError(m.toast_reset_link_invalid());
     }
 
     const token = readResetTokenFromUrl();

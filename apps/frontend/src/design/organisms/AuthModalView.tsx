@@ -3,6 +3,7 @@ import { Eye, EyeOff, MailCheck, ArrowLeft } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button } from '../atoms/Button';
 import { TextField } from '../atoms/TextField';
+import * as m from '@/paraglide/messages.js';
 
 export type AuthMode = 'signin' | 'signup' | 'forgot' | 'verification-sent' | 'reset-password';
 
@@ -74,23 +75,6 @@ function GoogleLogo({ className }: { className?: string }) {
 const TEXT_LINK_CLASSES =
   'inline-flex min-h-11 cursor-pointer items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-80';
 
-const HEADER_COPY: Record<AuthMode, { title: string; desc: string }> = {
-  signin: { title: 'Bon retour', desc: 'Connectez-vous pour retrouver vos découvertes' },
-  signup: {
-    title: 'Créer un compte',
-    desc: 'Inscrivez-vous pour ne plus perdre vos découvertes',
-  },
-  forgot: { title: 'Mot de passe oublié', desc: 'On vous envoie un lien de réinitialisation' },
-  'verification-sent': {
-    title: 'Vérifiez votre boîte mail',
-    desc: 'Un email de confirmation vient d’être envoyé',
-  },
-  'reset-password': {
-    title: 'Nouveau mot de passe',
-    desc: 'Choisissez un mot de passe d’au moins 6 caractères',
-  },
-};
-
 /**
  * Corps présentationnel de la modale d'authentification : en-tête, boutons
  * OAuth, formulaire (champs selon le flux) et écran de confirmation d'email.
@@ -125,14 +109,23 @@ export function AuthModalView({
   onPasswordConfirmBlur,
   onSwitchMode,
 }: AuthModalViewProps) {
-  const headerCopy = HEADER_COPY[mode];
+  const headerCopy = {
+    signin: { title: m.auth_signin_title(), desc: m.auth_signin_desc() },
+    signup: { title: m.auth_signup_title(), desc: m.auth_signup_desc() },
+    forgot: { title: m.auth_forgot_title(), desc: m.auth_forgot_desc() },
+    'verification-sent': {
+      title: m.auth_verification_title(),
+      desc: m.auth_verification_desc(),
+    },
+    'reset-password': { title: m.auth_new_password(), desc: m.auth_reset_desc() },
+  }[mode];
 
   const passwordToggle = (
     <Button
       type="button"
       variant="icon"
       onClick={onToggleShowPassword}
-      aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+      aria-label={showPassword ? m.auth_password_hide() : m.auth_password_show()}
       aria-pressed={showPassword}
     >
       {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -153,7 +146,7 @@ export function AuthModalView({
         <Button
           type="button"
           variant="icon"
-          aria-label="Retour à la connexion"
+          aria-label={m.auth_back_to_signin()}
           onClick={() => onSwitchMode('signin')}
           className="-mt-2"
         >
@@ -175,12 +168,12 @@ export function AuthModalView({
                 className="w-full justify-center gap-3 border border-border"
               >
                 <GoogleLogo className="size-5" />
-                Continuer avec Google
+                {m.auth_oauth_google()}
               </Button>
 
               <div className="flex items-center gap-3 py-1">
                 <div className="flex-1 border-t border-border" />
-                <span className="text-caption text-text-faint uppercase">ou</span>
+                <span className="text-caption text-text-faint uppercase">{m.auth_or()}</span>
                 <div className="flex-1 border-t border-border" />
               </div>
             </>
@@ -189,9 +182,9 @@ export function AuthModalView({
           {mode === 'signup' && (
             <TextField
               id="name"
-              label="Nom"
+              label={m.auth_name_label()}
               type="text"
-              placeholder="Jeanne Dupont"
+              placeholder={m.auth_name_placeholder()}
               value={name}
               onChange={(e) => onNameChange(e.target.value)}
               required
@@ -205,7 +198,7 @@ export function AuthModalView({
               ref={emailRef}
               label="Email"
               type="email"
-              placeholder="vous@exemple.fr"
+              placeholder={m.auth_email_placeholder()}
               value={email}
               onChange={(e) => onEmailChange(e.target.value)}
               onBlur={onEmailBlur}
@@ -219,7 +212,7 @@ export function AuthModalView({
             <TextField
               id="password"
               ref={passwordRef}
-              label={mode === 'reset-password' ? 'Nouveau mot de passe' : 'Mot de passe'}
+              label={mode === 'reset-password' ? m.auth_new_password() : m.auth_password_label()}
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => onPasswordChange(e.target.value)}
@@ -236,7 +229,7 @@ export function AuthModalView({
             <TextField
               id="password-confirm"
               ref={passwordConfirmRef}
-              label="Confirmer le mot de passe"
+              label={m.auth_password_confirm_label()}
               type={showPassword ? 'text' : 'password'}
               value={passwordConfirm}
               onChange={(e) => onPasswordConfirmChange(e.target.value)}
@@ -255,21 +248,21 @@ export function AuthModalView({
                 onClick={() => onSwitchMode('forgot')}
                 className={`${TEXT_LINK_CLASSES} text-caption text-accent hover:underline`}
               >
-                Mot de passe oublié ?
+                {m.auth_forgot_link()}
               </button>
             </div>
           )}
 
           <Button type="submit" loading={isLoading} className="w-full justify-center">
             {isLoading
-              ? 'Chargement...'
+              ? m.auth_loading()
               : mode === 'signin'
-                ? 'Se connecter'
+                ? m.auth_submit_signin()
                 : mode === 'signup'
-                  ? "S'inscrire"
+                  ? m.auth_submit_signup()
                   : mode === 'forgot'
-                    ? 'Envoyer le lien'
-                    : 'Réinitialiser'}
+                    ? m.auth_submit_forgot()
+                    : m.auth_submit_reset()}
           </Button>
 
           {mode !== 'forgot' && mode !== 'reset-password' && (
@@ -281,13 +274,13 @@ export function AuthModalView({
               >
                 {mode === 'signin' ? (
                   <>
-                    Pas encore de compte ?{' '}
-                    <span className="text-accent hover:underline">S&apos;inscrire</span>
+                    {m.auth_no_account()}{' '}
+                    <span className="text-accent hover:underline">{m.auth_submit_signup()}</span>
                   </>
                 ) : (
                   <>
-                    Déjà un compte ?{' '}
-                    <span className="text-accent hover:underline">Se connecter</span>
+                    {m.auth_have_account()}{' '}
+                    <span className="text-accent hover:underline">{m.auth_submit_signin()}</span>
                   </>
                 )}
               </button>
@@ -306,18 +299,17 @@ function VerificationSentBody({ email, onClose }: { email: string; onClose: () =
         <MailCheck className="size-7 text-accent" />
       </div>
       <p className="text-body text-text-muted">
-        Un email a été envoyé à <span className="font-medium break-all text-text">{email}</span>.
-        Cliquez sur le lien pour activer votre compte.
+        {m.auth_verification_sent_to()}{' '}
+        <span className="font-medium break-all text-text">{email}</span>.{' '}
+        {m.auth_verification_click_link()}
       </p>
-      <p className="text-caption text-text-faint">
-        Pas reçu ? Vérifiez vos spams. Le lien expire dans 24 h.
-      </p>
+      <p className="text-caption text-text-faint">{m.auth_verification_spam_hint()}</p>
       <Button
         variant="ghost"
         onClick={onClose}
         className="w-full justify-center border border-border"
       >
-        J&apos;ai compris
+        {m.auth_verification_dismiss()}
       </Button>
     </div>
   );

@@ -2,6 +2,7 @@ import { API_BASE_URL } from '../utils/config';
 import { createTrackApi, createPreferencesApi } from '@aubesonore/core/api';
 import type { ApiClient } from '@aubesonore/core/api';
 import type { AuthResponse } from '@aubesonore/shared-types/client';
+import * as m from '@/paraglide/messages.js';
 
 export type {
   ClientLikedTrack as LikedTrack,
@@ -23,7 +24,7 @@ async function fetchApi<T>(endpoint: string, options: RequestInit = {}): Promise
   });
 
   if (!response.ok) {
-    const error = (await response.json().catch(() => ({ error: 'Erreur réseau' }))) as {
+    const error = (await response.json().catch(() => ({ error: m.error_network() }))) as {
       error?: string;
     };
     throw new Error(error.error || `HTTP ${response.status}`);
@@ -60,10 +61,10 @@ export const authApi = {
       body: JSON.stringify({ email, password, name }),
     });
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({ message: 'Erreur inscription' }))) as {
+      const error = (await response.json().catch(() => ({ message: m.error_signup_failed() }))) as {
         message?: string;
       };
-      throw new Error(error.message || 'Erreur inscription');
+      throw new Error(error.message || m.error_signup_failed());
     }
     return response.json() as Promise<AuthResponse>;
   },
@@ -76,10 +77,10 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     });
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({ message: 'Erreur connexion' }))) as {
+      const error = (await response.json().catch(() => ({ message: m.error_signin_failed() }))) as {
         message?: string;
       };
-      throw new Error(error.message || 'Erreur connexion');
+      throw new Error(error.message || m.error_signin_failed());
     }
     return response.json() as Promise<AuthResponse>;
   },
@@ -105,10 +106,10 @@ export const authApi = {
     if (!response.ok && response.status !== 404) {
       // 404 is returned when the email isn't registered — treat as success to
       // avoid email enumeration. Other errors bubble up.
-      const error = (await response.json().catch(() => ({ message: 'Erreur réseau' }))) as {
+      const error = (await response.json().catch(() => ({ message: m.error_network() }))) as {
         message?: string;
       };
-      throw new Error(error.message || 'Erreur lors de la demande');
+      throw new Error(error.message || m.error_request_failed());
     }
   },
 
@@ -120,12 +121,10 @@ export const authApi = {
       body: JSON.stringify({ token, newPassword }),
     });
     if (!response.ok) {
-      const error = (await response
-        .json()
-        .catch(() => ({ message: 'Lien invalide ou expiré' }))) as {
+      const error = (await response.json().catch(() => ({ message: m.error_link_invalid() }))) as {
         message?: string;
       };
-      throw new Error(error.message || 'Erreur lors de la réinitialisation');
+      throw new Error(error.message || m.error_reset_failed());
     }
   },
 
@@ -139,13 +138,13 @@ export const authApi = {
       body: JSON.stringify({ provider, callbackURL: window.location.origin }),
     });
     if (!response.ok) {
-      const error = (await response.json().catch(() => ({ message: 'Erreur connexion' }))) as {
+      const error = (await response.json().catch(() => ({ message: m.error_signin_failed() }))) as {
         message?: string;
       };
-      throw new Error(error.message || 'Connexion impossible');
+      throw new Error(error.message || m.error_oauth_failed());
     }
     const data = (await response.json()) as { url?: string };
-    if (!data.url) throw new Error('URL de redirection manquante');
+    if (!data.url) throw new Error(m.error_redirect_missing());
     window.location.href = data.url;
   },
 };

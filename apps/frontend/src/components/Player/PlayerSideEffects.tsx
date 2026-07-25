@@ -4,6 +4,7 @@ import { toastError } from '../../lib/appToast';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
 import { useMediaSession } from '../../hooks/player/useMediaSession';
+import * as m from '@/paraglide/messages.js';
 
 // Invisible component that hosts player side-effects driven by external
 // state (now-playing track flips, audio playing state). Keeps these
@@ -28,7 +29,7 @@ export function PlayerSideEffects(): null {
 
   useEffect(() => {
     if (playError) {
-      toastError(`Lecture impossible : ${playError.message}`);
+      toastError(m.toast_playback_failed({ message: playError.message }));
       clearPlayError();
     }
   }, [playError, clearPlayError]);

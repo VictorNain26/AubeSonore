@@ -4,6 +4,7 @@ import { authApi } from '../lib/api';
 import { toast } from 'sonner';
 import { toastError } from '../lib/appToast';
 import { AuthModalView, type AuthMode } from '../design/organisms/AuthModalView';
+import * as m from '@/paraglide/messages.js';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,19 +18,17 @@ interface AuthModalProps {
 
 function validateEmailFormat(value: string): string | undefined {
   if (!value) return undefined;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-    ? undefined
-    : 'Adresse email invalide — vérifiez le format (vous@exemple.fr).';
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? undefined : m.auth_error_email_invalid();
 }
 
 function validatePasswordLength(value: string): string | undefined {
   if (!value) return undefined;
-  return value.length >= 6 ? undefined : 'Le mot de passe doit contenir au moins 6 caractères.';
+  return value.length >= 6 ? undefined : m.auth_error_password_length();
 }
 
 function validatePasswordMatch(password: string, confirm: string): string | undefined {
   if (!confirm) return undefined;
-  return confirm === password ? undefined : 'Les mots de passe ne correspondent pas.';
+  return confirm === password ? undefined : m.auth_error_password_mismatch();
 }
 
 export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken }: AuthModalProps) {
@@ -120,7 +119,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
     try {
       if (mode === 'signin') {
         await signIn(email, password);
-        toast.success('Connexion réussie !');
+        toast.success(m.toast_signin_success());
         handleClose();
       } else if (mode === 'signup') {
         await signUp(email, password, name);
@@ -132,16 +131,16 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
         setMode('verification-sent');
       } else if (mode === 'forgot') {
         await authApi.forgetPassword(email);
-        toast.success('Si un compte existe, un email vient d’être envoyé.');
+        toast.success(m.toast_forgot_sent());
         setMode('signin');
       } else if (mode === 'reset-password' && resetToken) {
         await authApi.resetPassword(resetToken, password);
-        toast.success('Mot de passe mis à jour. Connectez-vous.');
+        toast.success(m.toast_password_reset());
         resetForm();
         setMode('signin');
       }
     } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Une erreur est survenue');
+      toastError(err instanceof Error ? err.message : m.error_generic());
     } finally {
       setIsLoading(false);
     }
@@ -153,7 +152,7 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
       await authApi.signInWithProvider(provider);
       // On success the browser navigates to the provider; keep loading state.
     } catch (err) {
-      toastError(err instanceof Error ? err.message : 'Connexion impossible');
+      toastError(err instanceof Error ? err.message : m.error_oauth_failed());
       setIsLoading(false);
     }
   };
