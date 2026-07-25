@@ -4,6 +4,7 @@ import { TrendingUp } from 'lucide-react';
 import { Button } from '../../design/atoms/Button';
 import { ModalErrorFallback } from '../../design/organisms/ErrorFallback';
 import { TrendsModal } from '../TrendsModal';
+import * as m from '@/paraglide/messages.js';
 
 // Trends trigger: opens the community trends modal. Public — unlike the
 // library, no auth gate: the ranking is an anonymous aggregate.
@@ -15,7 +16,7 @@ export function TrendsButton() {
 
   return (
     <>
-      <Button variant="icon" aria-label="Voir les tendances" onClick={handleOpen}>
+      <Button variant="icon" aria-label={m.trends_open()} onClick={handleOpen}>
         <TrendingUp className="size-5" />
       </Button>
 

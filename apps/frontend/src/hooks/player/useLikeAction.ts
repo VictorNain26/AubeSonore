@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
 import { useArtistPanelStore } from '../../stores/artistPanelStore';
 import { getArtistInfo } from '../../lib/artistInfo';
+import * as m from '@/paraglide/messages.js';
 
 // Encapsulates the like / unlike flow used by both TrackArtwork (current
 // track) and RecentTracks (previously played). Guards against:
@@ -50,7 +51,7 @@ export function useLikeAction(): UseLikeAction {
         if (existingTrack) {
           const success = await unlikeTrack(existingTrack.id);
           if (success) {
-            toast.success('Retiré de votre bibliothèque');
+            toast.success(m.toast_removed_from_library());
           }
         } else {
           const requestData: Parameters<typeof likeTrack>[0] = {
@@ -64,14 +65,14 @@ export function useLikeAction(): UseLikeAction {
           await likeTrack(requestData);
           const info = await getArtistInfo(artist);
           if (info?.bio) {
-            toast.success('Ajouté à votre bibliothèque', {
+            toast.success(m.toast_added_to_library(), {
               action: {
-                label: `Découvrir ${artist}`,
+                label: m.toast_discover_artist({ artist }),
                 onClick: () => useArtistPanelStore.getState().open(artist),
               },
             });
           } else {
-            toast.success('Ajouté à votre bibliothèque');
+            toast.success(m.toast_added_to_library());
           }
         }
       } finally {

@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { Modal } from './Modal';
 import { Thumbnail } from '../atoms/Thumbnail';
 import { Button } from '../atoms/Button';
+import * as m from '@/paraglide/messages.js';
 
 export interface TrendEntryViewModel {
   title: string;
@@ -27,9 +28,9 @@ export interface TrendsModalViewProps {
 
 type TabId = 'week' | 'allTime';
 
-const TABS: { id: TabId; label: string }[] = [
-  { id: 'week', label: 'Cette semaine' },
-  { id: 'allTime', label: 'Depuis le début' },
+const TABS: { id: TabId; label: () => string }[] = [
+  { id: 'week', label: m.trends_tab_week },
+  { id: 'allTime', label: m.trends_tab_all_time },
 ];
 
 const WEEK_EMPTY_COPY =
@@ -68,7 +69,7 @@ export function TrendsModalView({
   const showAllTimeEmpty = tab === 'allTime' && allTime.length === 0;
 
   return (
-    <Modal title="Tendances" open={open} onOpenChange={onOpenChange} size="lg">
+    <Modal title={m.trends_modal_title()} open={open} onOpenChange={onOpenChange} size="lg">
       <p className="-mt-3 text-caption text-text-faint">Les morceaux les plus aimés ici même</p>
 
       <div
@@ -88,7 +89,7 @@ export function TrendsModalView({
               tab === id ? 'bg-surface-raised text-text' : 'text-text-muted hover:text-text'
             )}
           >
-            {label}
+            {label()}
           </button>
         ))}
       </div>

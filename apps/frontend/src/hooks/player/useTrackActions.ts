@@ -5,6 +5,7 @@ import { useNowPlayingStore } from '../../lib/azuracast';
 import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
 import { useLikeAction } from './useLikeAction';
 import { shareTrack, getRadioShareUrl } from '../../lib/shareTrack';
+import * as m from '@/paraglide/messages.js';
 
 interface UseTrackActions {
   title: string | undefined;
@@ -43,10 +44,10 @@ export function useTrackActions(): UseTrackActions {
       url: getRadioShareUrl(title, artist),
     })
       .then((result) => {
-        if (result === 'copied') toast('Lien copié');
+        if (result === 'copied') toast(m.toast_link_copied());
       })
       .catch(() => {
-        toast('Partage impossible');
+        toast(m.toast_share_failed());
       });
   }, [title, artist]);
 

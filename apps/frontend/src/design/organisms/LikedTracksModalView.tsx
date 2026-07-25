@@ -6,6 +6,7 @@ import { Menu } from '../molecules/Menu';
 import { Button } from '../atoms/Button';
 import { LikedTrackRowView } from '../molecules/LikedTrackRow';
 import { useRowExit } from '../../lib/motion';
+import * as i18n from '@/paraglide/messages.js';
 
 export interface LikedTrackViewModel {
   id: string;
@@ -66,7 +67,7 @@ export function LikedTracksModalView({
   const rowExit = useRowExit();
 
   return (
-    <Modal title="Ma bibliothèque" open={open} onOpenChange={onOpenChange} size="lg">
+    <Modal title={i18n.library_modal_title()} open={open} onOpenChange={onOpenChange} size="lg">
       <p className="-mt-3 text-caption text-text-faint">
         {totalCount} {totalCount > 1 ? 'morceaux' : 'morceau'}
       </p>
