@@ -1,4 +1,5 @@
 import { Heart, Share2 } from 'lucide-react';
+import * as m from '@/paraglide/messages.js';
 import { Thumbnail } from '../atoms/Thumbnail';
 import { IconButton } from '../atoms/IconButton';
 
@@ -46,7 +47,7 @@ export function TrackRailItem({
       </div>
 
       <IconButton
-        label={isLiked ? 'Retirer de mes morceaux' : 'Ajouter à mes morceaux'}
+        label={isLiked ? m.track_remove_from_mine() : m.track_add_to_mine()}
         active={isLiked}
         disabled={isLiking}
         onClick={onToggle}
@@ -54,7 +55,7 @@ export function TrackRailItem({
         <Heart className="size-5" fill={isLiked ? 'currentColor' : 'none'} />
       </IconButton>
 
-      <IconButton label="Partager" onClick={onShare}>
+      <IconButton label={m.track_share()} onClick={onShare}>
         <Share2 className="size-5" />
       </IconButton>
     </div>

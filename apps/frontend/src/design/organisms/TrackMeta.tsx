@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import * as m from 'motion/react-m';
+import * as i18n from '@/paraglide/messages.js';
 import type { useInkFlip } from '../../lib/motion';
 
 export interface TrackMetaViewProps {
@@ -40,7 +41,7 @@ export function TrackMetaView({ inkFlip, title, artist, shId, onArtistInfo }: Tr
             title={title || undefined}
             className="font-display text-title lg:text-display font-medium text-text [text-wrap:balance]"
           >
-            {title || 'Chargement du direct'}
+            {title || i18n.player_loading_live()}
           </m.h2>
         </AnimatePresence>
         <AnimatePresence mode="wait" initial={false}>

@@ -1,4 +1,5 @@
 import { Volume2, VolumeX } from 'lucide-react';
+import * as m from '@/paraglide/messages.js';
 import { cn } from '@/lib/utils';
 import { Button } from '../atoms/Button';
 import { Slider } from '../atoms/Slider';
@@ -43,12 +44,12 @@ export function VolumeControlView({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       role="group"
-      aria-label="Contrôle du volume"
+      aria-label={m.volume_group()}
     >
       <Button
         variant="icon"
         onClick={onIconClick}
-        aria-label={showMuted ? 'Volume — rétablir le son' : 'Volume — couper le son'}
+        aria-label={showMuted ? m.volume_unmute() : m.volume_mute()}
       >
         <VolumeIcon />
       </Button>
@@ -67,7 +68,7 @@ export function VolumeControlView({
       >
         <div className="rounded-md border border-border bg-surface-raised p-3">
           <Slider
-            label="Volume"
+            label={m.volume_slider()}
             orientation="vertical"
             min={0}
             max={1}

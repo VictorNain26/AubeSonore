@@ -1,4 +1,5 @@
 import { Heart, Share2 } from 'lucide-react';
+import * as m from '@/paraglide/messages.js';
 import { cn } from '@/lib/utils';
 import { Button } from '../atoms/Button';
 
@@ -22,12 +23,12 @@ export function TrackActionsView({
 }: TrackActionsViewProps) {
   return (
     <div className="flex items-center gap-1">
-      <Button variant="icon" aria-label="Partager ce morceau" onClick={onShare}>
+      <Button variant="icon" aria-label={m.track_share_this()} onClick={onShare}>
         <Share2 className="size-5" />
       </Button>
       <Button
         variant="icon"
-        aria-label={isLiked ? 'Retirer de ma bibliothèque' : 'Ajouter à ma bibliothèque'}
+        aria-label={isLiked ? m.library_remove() : m.library_add()}
         onClick={onToggleLike}
         aria-pressed={isLiked}
         disabled={isLiking}

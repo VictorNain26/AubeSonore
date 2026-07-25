@@ -1,4 +1,5 @@
 import { WaveformCanvas } from '../../components/Player/WaveformCanvas';
+import * as m from '@/paraglide/messages.js';
 
 // The antenna trace: a live, audio-reactive waveform that signals the
 // stream is on air. Not a timeline — a live broadcast has no scrubbable
@@ -19,7 +20,7 @@ export function AntennaView({ isOnline, isPlaying, songId, listenerCount }: Ante
   if (!isOnline) {
     return (
       <p className="text-caption text-text-muted" aria-live="polite">
-        Hors antenne — revenez un peu plus tard.
+        {m.antenna_off_air()}
       </p>
     );
   }
@@ -31,7 +32,9 @@ export function AntennaView({ isOnline, isPlaying, songId, listenerCount }: Ante
       </div>
       {listenerCount !== undefined && (
         <p className="shrink-0 text-caption text-text-faint">
-          {listenerCount} {listenerCount > 1 ? 'auditeurs' : 'auditeur'} en ce moment
+          {listenerCount > 1
+            ? m.antenna_listeners_other({ count: listenerCount })
+            : m.antenna_listeners_one({ count: listenerCount })}
         </p>
       )}
     </div>

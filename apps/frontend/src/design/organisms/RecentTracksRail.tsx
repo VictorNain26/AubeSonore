@@ -1,5 +1,6 @@
 import { AnimatePresence } from 'motion/react';
 import * as m from 'motion/react-m';
+import * as i18n from '@/paraglide/messages.js';
 import { Rail } from '../atoms/Rail';
 import { TrackRailItem } from '../molecules/TrackRailItem';
 import { useRailEntry } from '../../lib/motion';
@@ -40,13 +41,15 @@ export function RecentTracksRail({
   const railEntry = useRailEntry();
 
   return (
-    <section aria-label="Vient de passer" className="min-w-0 border-t border-border">
+    <section aria-label={i18n.recent_tracks_title()} className="min-w-0 border-t border-border">
       <div className="mx-auto w-full min-w-0 px-6 py-3">
         <div className="flex items-baseline gap-3">
           <h2 className="font-display text-caption tracking-widest uppercase text-text-faint">
-            Vient de passer
+            {i18n.recent_tracks_title()}
           </h2>
-          {partial ? <p className="text-caption text-text-faint">Historique partiel.</p> : null}
+          {partial ? (
+            <p className="text-caption text-text-faint">{i18n.recent_tracks_partial()}</p>
+          ) : null}
         </div>
 
         {isLoading && entries.length === 0 ? (
@@ -66,10 +69,10 @@ export function RecentTracksRail({
             ))}
           </div>
         ) : entries.length === 0 ? (
-          <p className="text-caption text-text-faint pt-1.5">Aucun morceau pour l&apos;instant.</p>
+          <p className="text-caption text-text-faint pt-1.5">{i18n.recent_tracks_empty()}</p>
         ) : (
           <div className="pt-1.5 pb-1">
-            <Rail ariaLabel="Vient de passer">
+            <Rail ariaLabel={i18n.recent_tracks_title()}>
               <AnimatePresence initial={false}>
                 {entries.map((entry) => (
                   <m.div key={entry.id} {...railEntry} className="shrink-0">
