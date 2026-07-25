@@ -69,7 +69,9 @@ export function LikedTracksModalView({
   return (
     <Modal title={i18n.library_modal_title()} open={open} onOpenChange={onOpenChange} size="lg">
       <p className="-mt-3 text-caption text-text-faint">
-        {totalCount} {totalCount > 1 ? 'morceaux' : 'morceau'}
+        {totalCount > 1
+          ? i18n.library_track_count_other({ count: totalCount })
+          : i18n.library_track_count_one({ count: totalCount })}
       </p>
 
       <div
@@ -78,13 +80,13 @@ export function LikedTracksModalView({
       >
         {totalCount > 0 && (
           <div className="sticky top-0 z-10 flex items-center justify-end gap-2 border-b border-border bg-surface-raised pb-4">
-            <span className="text-caption text-text-faint">Ouvrir avec</span>
+            <span className="text-caption text-text-faint">{i18n.library_open_with()}</span>
             <Menu
               trigger={
                 <Button
                   variant="ghost"
                   className="border border-border text-caption data-[popup-open]:bg-surface [&[data-popup-open]>svg]:rotate-180"
-                  aria-label="Sélectionner la plateforme préférée"
+                  aria-label={i18n.library_platform_picker()}
                 >
                   {selectedPlatformName}
                   <ChevronDown
@@ -104,14 +106,12 @@ export function LikedTracksModalView({
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-8 animate-spin text-text-faint" aria-label="Chargement" />
+            <Loader2 className="size-8 animate-spin text-text-faint" aria-label={i18n.loading()} />
           </div>
         ) : totalCount === 0 ? (
           <div className="space-y-1 py-10 text-center">
-            <p className="text-lead text-text">Rien ici pour l&apos;instant.</p>
-            <p className="text-body text-text-muted">
-              Aimez un morceau au passage — il vous attendra ici.
-            </p>
+            <p className="text-lead text-text">{i18n.library_empty_title()}</p>
+            <p className="text-body text-text-muted">{i18n.library_empty_body()}</p>
           </div>
         ) : (
           <div className="divide-y divide-border pt-4" role="list">
@@ -141,7 +141,7 @@ export function LikedTracksModalView({
         {hiddenCount > 0 && (
           <div className="flex justify-center pt-4">
             <Button variant="ghost" onClick={onShowMore}>
-              Afficher les {hiddenCount} autres
+              {i18n.library_show_more({ count: hiddenCount })}
             </Button>
           </div>
         )}

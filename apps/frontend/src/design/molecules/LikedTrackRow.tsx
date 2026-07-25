@@ -2,6 +2,7 @@ import { ExternalLink, Share2, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Thumbnail } from '../atoms/Thumbnail';
 import { Button } from '../atoms/Button';
+import * as m from '@/paraglide/messages.js';
 
 export interface LikedTrackRowProps {
   title: string;
@@ -57,15 +58,15 @@ export function LikedTrackRowView({
           />
           <div className="min-w-0 flex-1">
             <p className="truncate text-body text-text-muted line-through">{title}</p>
-            <p className="truncate text-caption text-text-faint">Retiré</p>
+            <p className="truncate text-caption text-text-faint">{m.liked_track_removed()}</p>
           </div>
           <Button variant="ghost" onClick={onUndo} className="text-caption text-accent">
-            Annuler
+            {m.liked_track_undo()}
           </Button>
         </div>
         <div
           role="progressbar"
-          aria-label="Temps restant avant suppression"
+          aria-label={m.liked_track_removal_countdown()}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(fraction * 100)}
@@ -81,8 +82,8 @@ export function LikedTrackRowView({
   }
 
   const openTitle = linkHref
-    ? `Ouvrir sur ${platformName ?? 'la plateforme'}`
-    : 'Liens en cours de résolution…';
+    ? m.liked_track_open_on({ platform: platformName ?? m.liked_track_platform_fallback() })
+    : m.liked_track_links_resolving();
 
   return (
     <div
@@ -130,8 +131,8 @@ export function LikedTrackRowView({
         <Button
           variant="icon"
           onClick={onShare}
-          aria-label="Partager ce morceau"
-          title="Partager"
+          aria-label={m.track_share_this()}
+          title={m.track_share()}
           className="text-text-faint hover:bg-surface hover:text-text"
         >
           <Share2 className="size-4" />
@@ -140,8 +141,8 @@ export function LikedTrackRowView({
         <Button
           variant="icon"
           onClick={onDelete}
-          aria-label="Retirer de ma bibliothèque"
-          title="Retirer"
+          aria-label={m.library_remove()}
+          title={m.liked_track_remove_short()}
           className="text-text-faint hover:bg-surface hover:text-accent"
         >
           <Trash2 className="size-4" />

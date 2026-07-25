@@ -1,5 +1,6 @@
 import { Modal } from './Modal';
 import type { ArtistInfo } from '../../hooks/useArtistInfo';
+import * as m from '@/paraglide/messages.js';
 
 /** Presentational props for the artist bio modal. */
 export interface ArtistContextViewProps {
@@ -37,7 +38,7 @@ export function ArtistContextView({
         ) : data?.bio ? (
           <p className="text-body text-text-muted leading-relaxed">{data.bio}</p>
         ) : (
-          <p className="text-body text-text-muted">Pas d&apos;informations pour cet artiste.</p>
+          <p className="text-body text-text-muted">{m.artist_no_info()}</p>
         )}
         {data && data.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -53,7 +54,7 @@ export function ArtistContextView({
         )}
         {data && data.similarArtists.length > 0 && (
           <div>
-            <p className="text-caption text-text-faint mb-1.5">Artistes similaires</p>
+            <p className="text-caption text-text-faint mb-1.5">{m.artist_similar()}</p>
             <div className="flex flex-wrap gap-1.5">
               {data.similarArtists.map((name) => (
                 <button
