@@ -32,10 +32,10 @@ describe('SettingsMenu', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Réglages et compte' }));
 
-    expect(await screen.findByRole('menuitemradio', { name: 'Clair' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', { name: 'Sombre' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', { name: 'Français' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', { name: 'English' })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Clair/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Sombre/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Français' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'English' })).toBeInTheDocument();
     expect(screen.queryByText('Déconnexion')).not.toBeInTheDocument();
   });
 
@@ -50,34 +50,34 @@ describe('SettingsMenu', () => {
     expect(await screen.findByText('Jane')).toBeInTheDocument();
     expect(screen.getByText('jane@example.com')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Déconnexion' }));
+    await userEvent.click(screen.getByRole('button', { name: /Déconnexion/ }));
     expect(onSignOut).toHaveBeenCalledOnce();
   });
 
-  it('le radio thème reflète le thème courant et changer persiste le choix', async () => {
+  it('le segment thème reflète le thème courant et changer persiste le choix', async () => {
     render(<SettingsMenu user={null} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Réglages et compte' }));
-    expect(await screen.findByRole('menuitemradio', { name: 'Clair' })).toHaveAttribute(
-      'aria-checked',
+    expect(await screen.findByRole('button', { name: /Clair/ })).toHaveAttribute(
+      'aria-pressed',
       'true'
     );
 
-    await userEvent.click(screen.getByRole('menuitemradio', { name: 'Sombre' }));
+    await userEvent.click(screen.getByRole('button', { name: /Sombre/ }));
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('dark');
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
   });
 
-  it('le radio langue reflète getLocale et changer appelle setLocale', async () => {
+  it('le segment langue reflète getLocale et changer appelle setLocale', async () => {
     render(<SettingsMenu user={null} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Réglages et compte' }));
-    expect(await screen.findByRole('menuitemradio', { name: 'Français' })).toHaveAttribute(
-      'aria-checked',
+    expect(await screen.findByRole('button', { name: 'Français' })).toHaveAttribute(
+      'aria-pressed',
       'true'
     );
 
-    await userEvent.click(screen.getByRole('menuitemradio', { name: 'English' }));
+    await userEvent.click(screen.getByRole('button', { name: 'English' }));
     expect(setLocale).toHaveBeenCalledWith('en');
     expect(getLocale()).toBe('en');
   });
