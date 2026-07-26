@@ -1,8 +1,7 @@
-import type { ReactNode } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import { Globe, LogOut, Moon, Settings, Sun } from 'lucide-react';
 import { Button } from '../atoms/Button';
-import { cn } from '@/lib/utils';
+import { SegmentedControl } from '../molecules/SegmentedControl';
 import type { Theme } from '../../lib/theme';
 import * as m from '@/paraglide/messages.js';
 
@@ -19,32 +18,6 @@ export interface SettingsMenuViewProps {
   onThemeChange: (theme: Theme) => void;
   onLocaleChange: (locale: 'fr' | 'en') => void;
   onSignOut?: (() => void) | undefined;
-}
-
-const segmentedTrack = 'flex rounded-full bg-surface p-0.5 gap-0.5';
-const segmentedOption =
-  'flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full text-caption text-text-muted transition-colors duration-150 ease-out-quart hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
-const segmentedActive = 'bg-text text-surface font-medium hover:text-surface';
-
-function SegmentedOption({
-  active,
-  onSelect,
-  children,
-}: {
-  active: boolean;
-  onSelect: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onSelect}
-      className={cn(segmentedOption, active && segmentedActive)}
-    >
-      {children}
-    </button>
-  );
 }
 
 /**
@@ -95,19 +68,23 @@ export function SettingsMenuView({
             <div className="flex flex-col gap-3 pt-3">
               <div className="flex flex-col gap-1.5">
                 <p className="px-1 text-caption text-text-muted">{m.settings_theme()}</p>
-                <div className={segmentedTrack} role="group" aria-label={m.settings_theme()}>
-                  <SegmentedOption
-                    active={theme === 'light'}
-                    onSelect={() => onThemeChange('light')}
-                  >
-                    <Sun className="size-3.5" />
-                    {m.settings_theme_light()}
-                  </SegmentedOption>
-                  <SegmentedOption active={theme === 'dark'} onSelect={() => onThemeChange('dark')}>
-                    <Moon className="size-3.5" />
-                    {m.settings_theme_dark()}
-                  </SegmentedOption>
-                </div>
+                <SegmentedControl
+                  ariaLabel={m.settings_theme()}
+                  value={theme}
+                  onChange={onThemeChange}
+                  options={[
+                    {
+                      value: 'light',
+                      label: m.settings_theme_light(),
+                      icon: <Sun className="size-3.5" />,
+                    },
+                    {
+                      value: 'dark',
+                      label: m.settings_theme_dark(),
+                      icon: <Moon className="size-3.5" />,
+                    },
+                  ]}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
@@ -115,14 +92,15 @@ export function SettingsMenuView({
                   <Globe className="size-3.5" />
                   {m.settings_language()}
                 </p>
-                <div className={segmentedTrack} role="group" aria-label={m.settings_language()}>
-                  <SegmentedOption active={locale === 'fr'} onSelect={() => onLocaleChange('fr')}>
-                    {m.settings_language_fr()}
-                  </SegmentedOption>
-                  <SegmentedOption active={locale === 'en'} onSelect={() => onLocaleChange('en')}>
-                    {m.settings_language_en()}
-                  </SegmentedOption>
-                </div>
+                <SegmentedControl
+                  ariaLabel={m.settings_language()}
+                  value={locale}
+                  onChange={onLocaleChange}
+                  options={[
+                    { value: 'fr', label: m.settings_language_fr() },
+                    { value: 'en', label: m.settings_language_en() },
+                  ]}
+                />
               </div>
             </div>
 
