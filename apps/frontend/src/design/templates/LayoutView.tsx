@@ -2,11 +2,9 @@ import type { ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { LogIn, Info } from 'lucide-react';
 import { Button } from '../atoms/Button';
-import { Menu } from '../molecules/Menu';
 import { LibraryButton } from '../../components/Player/LibraryButton';
 import { TrendsButton } from '../../components/Player/TrendsButton';
-import { ThemeToggle } from '../../layout/ThemeToggle';
-import { LanguageToggle } from '../molecules/LanguageToggle';
+import { SettingsMenu } from '../../components/SettingsMenu';
 import * as m from '@/paraglide/messages.js';
 
 export interface LayoutUser {
@@ -33,8 +31,8 @@ export interface LayoutViewProps {
 }
 
 /**
- * Charpente de l'application : bandeau (wordmark, thème, à propos, bibliothèque,
- * tendances, compte), lien d'évitement, landmark `<main>` et notifications toast. Le
+ * Charpente de l'application : bandeau (wordmark, à propos, bibliothèque,
+ * tendances, réglages et compte), lien d'évitement, landmark `<main>` et notifications toast. Le
  * conteneur `Layout` lit les stores auth/modale et gère l'ouverture de la
  * modale « À propos » et le flux de réinitialisation de mot de passe.
  */
@@ -58,8 +56,6 @@ export function LayoutView({
         <p className="font-display text-title tracking-tight">AubeSonore</p>
 
         <div className="flex items-center gap-1">
-          <LanguageToggle />
-          <ThemeToggle />
           <Button variant="icon" aria-label={m.header_about()} onClick={onOpenAbout}>
             <Info className="size-5" />
           </Button>
@@ -69,29 +65,15 @@ export function LayoutView({
           {isLoading ? (
             <div className="size-11 animate-pulse rounded-full bg-surface-raised" />
           ) : isAuthenticated && user ? (
-            <Menu
-              header={
-                <div className="font-sans">
-                  <p className="truncate text-body font-medium">
-                    {user.name || m.header_user_fallback()}
-                  </p>
-                  <p className="truncate text-caption text-text-muted">{user.email}</p>
-                </div>
-              }
-              trigger={
-                <Button variant="icon" aria-label={m.header_user_menu()}>
-                  <span className="flex size-7 items-center justify-center rounded-full bg-surface-raised text-caption font-medium">
-                    {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
-                  </span>
-                </Button>
-              }
-              items={[{ label: m.header_sign_out(), onSelect: onSignOut }]}
-            />
+            <SettingsMenu user={user} onSignOut={onSignOut} />
           ) : (
-            <Button variant="ghost" aria-label={m.header_sign_in()} onClick={onOpenAuthModal}>
-              <LogIn className="size-4" />
-              <span className="hidden sm:inline">{m.header_sign_in()}</span>
-            </Button>
+            <>
+              <SettingsMenu user={null} />
+              <Button variant="ghost" aria-label={m.header_sign_in()} onClick={onOpenAuthModal}>
+                <LogIn className="size-4" />
+                <span className="hidden sm:inline">{m.header_sign_in()}</span>
+              </Button>
+            </>
           )}
         </div>
       </header>
