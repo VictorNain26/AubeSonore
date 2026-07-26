@@ -1,5 +1,6 @@
-import { Menu as BaseMenu } from '@base-ui/react/menu';
-import { Settings } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Popover } from '@base-ui/react/popover';
+import { Globe, LogOut, Moon, Settings, Sun } from 'lucide-react';
 import { Button } from '../atoms/Button';
 import { cn } from '@/lib/utils';
 import type { Theme } from '../../lib/theme';
@@ -20,20 +21,36 @@ export interface SettingsMenuViewProps {
   onSignOut?: (() => void) | undefined;
 }
 
-const itemClassName =
-  'flex h-11 cursor-default items-center px-4 outline-none data-[highlighted]:bg-surface';
+const segmentedTrack = 'flex rounded-full bg-surface p-0.5 gap-0.5';
+const segmentedOption =
+  'flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full text-caption text-text-muted transition-colors duration-150 ease-out-quart hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
+const segmentedActive = 'bg-text text-surface font-medium hover:text-surface';
 
-const radioItemClassName = cn(
-  itemClassName,
-  'data-[checked]:bg-surface data-[checked]:font-medium'
-);
-
-const groupLabelClassName = 'px-4 pt-2 pb-1 text-caption text-text-muted';
+function SegmentedOption({
+  active,
+  onSelect,
+  children,
+}: {
+  active: boolean;
+  onSelect: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onSelect}
+      className={cn(segmentedOption, active && segmentedActive)}
+    >
+      {children}
+    </button>
+  );
+}
 
 /**
- * Menu unique de réglages : thème, langue, et compte quand l'utilisateur est
- * connecté (en-tête nom/email + déconnexion). Anonyme : déclencheur roue dentée,
- * la visibilité du CTA « Connexion » restant au header.
+ * Panneau unique de réglages : thème et langue en contrôles segmentés, et
+ * compte quand l'utilisateur est connecté (en-tête nom/email + déconnexion).
+ * Anonyme : déclencheur roue dentée, le CTA « Connexion » reste au header.
  */
 export function SettingsMenuView({
   user,
@@ -44,8 +61,8 @@ export function SettingsMenuView({
   onSignOut,
 }: SettingsMenuViewProps) {
   return (
-    <BaseMenu.Root>
-      <BaseMenu.Trigger
+    <Popover.Root>
+      <Popover.Trigger
         render={
           <Button variant="icon" aria-label={m.settings_menu_label()}>
             {user ? (
@@ -58,62 +75,74 @@ export function SettingsMenuView({
           </Button>
         }
       />
-      <BaseMenu.Portal>
-        <BaseMenu.Positioner sideOffset={4}>
-          <BaseMenu.Popup className="max-h-72 min-w-44 overflow-y-auto rounded-md border border-border bg-surface-raised py-1 text-body text-text focus:outline-none">
+      <Popover.Portal>
+        <Popover.Positioner sideOffset={8} align="end">
+          <Popover.Popup className="w-64 rounded-lg border border-border bg-surface-raised p-3 text-body text-text shadow-lg focus:outline-none">
             {user ? (
-              <BaseMenu.Group className="border-b border-border px-4 py-2">
-                <BaseMenu.GroupLabel className="font-sans">
+              <div className="flex items-center gap-3 border-b border-border px-1 pt-1 pb-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-body font-medium">
+                  {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0 font-sans">
                   <p className="truncate text-body font-medium">
                     {user.name || m.header_user_fallback()}
                   </p>
                   <p className="truncate text-caption text-text-muted">{user.email}</p>
-                </BaseMenu.GroupLabel>
-              </BaseMenu.Group>
+                </div>
+              </div>
             ) : null}
-            <BaseMenu.Group>
-              <BaseMenu.GroupLabel className={groupLabelClassName}>
-                {m.settings_theme()}
-              </BaseMenu.GroupLabel>
-              <BaseMenu.RadioGroup
-                value={theme}
-                onValueChange={(value) => onThemeChange(value as Theme)}
-              >
-                <BaseMenu.RadioItem value="light" closeOnClick className={radioItemClassName}>
-                  {m.settings_theme_light()}
-                </BaseMenu.RadioItem>
-                <BaseMenu.RadioItem value="dark" closeOnClick className={radioItemClassName}>
-                  {m.settings_theme_dark()}
-                </BaseMenu.RadioItem>
-              </BaseMenu.RadioGroup>
-            </BaseMenu.Group>
-            <BaseMenu.Group>
-              <BaseMenu.GroupLabel className={groupLabelClassName}>
-                {m.settings_language()}
-              </BaseMenu.GroupLabel>
-              <BaseMenu.RadioGroup
-                value={locale}
-                onValueChange={(value) => onLocaleChange(value as 'fr' | 'en')}
-              >
-                <BaseMenu.RadioItem value="fr" closeOnClick className={radioItemClassName}>
-                  {m.settings_language_fr()}
-                </BaseMenu.RadioItem>
-                <BaseMenu.RadioItem value="en" closeOnClick className={radioItemClassName}>
-                  {m.settings_language_en()}
-                </BaseMenu.RadioItem>
-              </BaseMenu.RadioGroup>
-            </BaseMenu.Group>
+
+            <div className="flex flex-col gap-3 pt-3">
+              <div className="flex flex-col gap-1.5">
+                <p className="px-1 text-caption text-text-muted">{m.settings_theme()}</p>
+                <div className={segmentedTrack} role="group" aria-label={m.settings_theme()}>
+                  <SegmentedOption
+                    active={theme === 'light'}
+                    onSelect={() => onThemeChange('light')}
+                  >
+                    <Sun className="size-3.5" />
+                    {m.settings_theme_light()}
+                  </SegmentedOption>
+                  <SegmentedOption active={theme === 'dark'} onSelect={() => onThemeChange('dark')}>
+                    <Moon className="size-3.5" />
+                    {m.settings_theme_dark()}
+                  </SegmentedOption>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <p className="flex items-center gap-1.5 px-1 text-caption text-text-muted">
+                  <Globe className="size-3.5" />
+                  {m.settings_language()}
+                </p>
+                <div className={segmentedTrack} role="group" aria-label={m.settings_language()}>
+                  <SegmentedOption active={locale === 'fr'} onSelect={() => onLocaleChange('fr')}>
+                    {m.settings_language_fr()}
+                  </SegmentedOption>
+                  <SegmentedOption active={locale === 'en'} onSelect={() => onLocaleChange('en')}>
+                    {m.settings_language_en()}
+                  </SegmentedOption>
+                </div>
+              </div>
+            </div>
+
             {user && onSignOut ? (
-              <>
-                <BaseMenu.Separator className="my-1 border-t border-border" />
-                <BaseMenu.Item onClick={onSignOut} className={itemClassName}>
-                  {m.header_sign_out()}
-                </BaseMenu.Item>
-              </>
+              <Popover.Close
+                render={
+                  <button
+                    type="button"
+                    onClick={onSignOut}
+                    className="mt-3 flex h-11 w-full cursor-pointer items-center gap-2 rounded-md border-t border-border px-3 pt-2 text-body text-text-muted transition-colors duration-150 ease-out-quart hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  >
+                    <LogOut className="size-4" />
+                    {m.header_sign_out()}
+                  </button>
+                }
+              />
             ) : null}
-          </BaseMenu.Popup>
-        </BaseMenu.Positioner>
-      </BaseMenu.Portal>
-    </BaseMenu.Root>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
   );
 }
