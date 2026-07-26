@@ -5,15 +5,16 @@ import userEvent from '@testing-library/user-event';
 import { getLocale, setLocale } from '@/paraglide/runtime.js';
 import type * as ParaglideRuntime from '@/paraglide/runtime.js';
 import { SettingsMenu } from './SettingsMenu';
+import { useLocaleStore } from '../stores/localeStore';
 import { THEME_STORAGE_KEY } from '../lib/theme';
 
-// setLocale recharge la page par défaut ; en test on neutralise le reload
-// tout en gardant le vrai changement de locale (getLocale, messages).
+// La locale change désormais sans reload (store réactif) : on garde le vrai
+// setLocale paraglide et on espionne simplement ses appels.
 vi.mock('@/paraglide/runtime.js', async (importOriginal) => {
   const actual = await importOriginal<typeof ParaglideRuntime>();
   return {
     ...actual,
-    setLocale: vi.fn((locale: 'fr' | 'en') => actual.setLocale(locale, { reload: false })),
+    setLocale: vi.fn(actual.setLocale),
   };
 });
 
@@ -22,7 +23,8 @@ const jane = { name: 'Jane', email: 'jane@example.com' };
 beforeEach(() => {
   localStorage.clear();
   document.documentElement.removeAttribute('data-theme');
-  void setLocale('fr');
+  void setLocale('fr', { reload: false });
+  useLocaleStore.setState({ locale: 'fr' });
   vi.mocked(setLocale).mockClear();
 });
 
@@ -78,7 +80,16 @@ describe('SettingsMenu', () => {
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'English' }));
-    expect(setLocale).toHaveBeenCalledWith('en');
+    expect(setLocale).toHaveBeenCalledWith('en', { reload: false });
     expect(getLocale()).toBe('en');
+  });
+
+  it('le changement de langue re-rend l’UI en anglais sans recharger la page', async () => {
+    render(<SettingsMenu user={null} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Réglages et compte' }));
+    await userEvent.click(await screen.findByRole('button', { name: 'English' }));
+
+    expect(await screen.findByRole('button', { name: 'Settings and account' })).toBeInTheDocument();
   });
 });
