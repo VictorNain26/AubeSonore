@@ -79,7 +79,7 @@ describe('Layout', () => {
       </Layout>
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Menu utilisateur' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Réglages et compte' }));
 
     expect(await screen.findByText('Jane')).toBeInTheDocument();
     expect(screen.getByText('jane@example.com')).toBeInTheDocument();
@@ -98,7 +98,7 @@ describe('Layout', () => {
     );
 
     expect(screen.queryByRole('button', { name: 'Connexion' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Menu utilisateur' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Réglages et compte' })).not.toBeInTheDocument();
   });
 
   it('opens the reset-password modal from the URL and cleans it up', () => {
