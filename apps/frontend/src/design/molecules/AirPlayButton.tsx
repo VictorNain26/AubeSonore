@@ -20,7 +20,7 @@ export function AirPlayButtonView({ isActive, onOpenPicker }: AirPlayButtonViewP
     >
       <span className="flex flex-col items-center gap-0.5">
         <Airplay className="size-5" />
-        {isActive && <span className="size-1 rounded-full bg-accent" />}
+        {isActive && <span className="bg-accent size-1 rounded-full" />}
       </span>
     </Button>
   );

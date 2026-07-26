@@ -15,8 +15,8 @@ interface PWAInstallBannerViewProps {
  */
 export function PWAInstallBannerView({ onInstall, onDismiss }: PWAInstallBannerViewProps) {
   return (
-    <div className="rounded-md border border-border bg-surface-raised flex items-center gap-3 px-4 py-3 max-w-sm w-full">
-      <Download className="size-5 text-text-faint shrink-0" />
+    <div className="border-border bg-surface-raised flex w-full max-w-sm items-center gap-3 rounded-md border px-4 py-3">
+      <Download className="text-text-faint size-5 shrink-0" />
       <p className="text-body text-text flex-1">{m.pwa_install_title()}</p>
       <Button variant="primary" onClick={onInstall}>
         {m.pwa_install_action()}

@@ -31,7 +31,7 @@ export function AntennaView({ isOnline, isPlaying, songId, listenerCount }: Ante
         <WaveformCanvas isPlaying={isPlaying} songId={songId} />
       </div>
       {listenerCount !== undefined && (
-        <p className="shrink-0 text-caption text-text-faint">
+        <p className="text-caption text-text-faint shrink-0">
           {listenerCount > 1
             ? m.antenna_listeners_other({ count: listenerCount })
             : m.antenna_listeners_one({ count: listenerCount })}

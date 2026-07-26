@@ -40,7 +40,7 @@ const Wave = ({
 
 export const Etude: StoryObj = {
   render: () => (
-    <div className="flex flex-col gap-8 text-text">
+    <div className="text-text flex flex-col gap-8">
       <Wave amplitude={26} cycles={9} thickness={1.5} label="Direct — fine (1.5)" />
       <Wave amplitude={26} cycles={9} thickness={2.5} label="Direct — médium (2.5)" />
       <Wave amplitude={12} cycles={14} thickness={1.5} label="Direct — dense et calme" />
@@ -48,7 +48,7 @@ export const Etude: StoryObj = {
       <div className="text-accent">
         <Wave amplitude={26} cycles={9} thickness={1.5} label="Variante accent (à discuter)" />
       </div>
-      <p className="max-w-[66ch] text-caption text-text-muted">
+      <p className="text-caption text-text-muted max-w-[66ch]">
         Étude statique : épaisseurs et densités de la ligne d’encre. La version temps réel
         (WebAudio) arrive avec la migration du Player ; sous prefers-reduced-motion elle restera un
         filet + mention textuelle du direct.

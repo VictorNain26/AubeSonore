@@ -57,8 +57,8 @@ export function LikedTrackRowView({
             className="bg-surface opacity-40 grayscale"
           />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-body text-text-muted line-through">{title}</p>
-            <p className="truncate text-caption text-text-faint">{m.liked_track_removed()}</p>
+            <p className="text-body text-text-muted truncate line-through">{title}</p>
+            <p className="text-caption text-text-faint truncate">{m.liked_track_removed()}</p>
           </div>
           <Button variant="ghost" onClick={onUndo} className="text-caption text-accent">
             {m.liked_track_undo()}
@@ -70,10 +70,10 @@ export function LikedTrackRowView({
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(fraction * 100)}
-          className="mt-2 h-0.5 overflow-hidden rounded-full bg-border"
+          className="bg-border mt-2 h-0.5 overflow-hidden rounded-full"
         >
           <div
-            className="h-full bg-accent transition-[width] duration-250 ease-linear"
+            className="bg-accent h-full transition-[width] duration-250 ease-linear"
             style={{ width: `${fraction * 100}%` }}
           />
         </div>
@@ -88,7 +88,7 @@ export function LikedTrackRowView({
   return (
     <div
       role="listitem"
-      className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2 transition-colors duration-150 ease-out-quart hover:bg-surface"
+      className="ease-out-quart hover:bg-surface -mx-2 flex items-center gap-3 rounded-md px-2 py-2 transition-colors duration-150"
     >
       <Thumbnail
         {...(artworkUrl ? { src: artworkUrl } : {})}
@@ -98,8 +98,8 @@ export function LikedTrackRowView({
       />
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-body text-text">{title}</p>
-        <p className="truncate text-caption text-text-muted">{artist}</p>
+        <p className="text-body text-text truncate">{title}</p>
+        <p className="text-caption text-text-muted truncate">{artist}</p>
       </div>
 
       <div data-testid="row-actions" className="flex items-center gap-1">
@@ -110,7 +110,7 @@ export function LikedTrackRowView({
             rel="noopener noreferrer"
             className={cn(
               ACTION_BASE,
-              'cursor-pointer hover:bg-surface hover:text-text active:opacity-80'
+              'hover:bg-surface hover:text-text cursor-pointer active:opacity-80'
             )}
             title={openTitle}
             aria-label={openTitle}

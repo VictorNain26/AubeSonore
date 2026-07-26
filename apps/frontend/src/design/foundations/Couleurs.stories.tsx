@@ -25,7 +25,7 @@ export const Palette: StoryObj = {
           </figure>
         ))}
       </div>
-      <div className="rounded-md bg-accent p-4 text-body text-on-accent">
+      <div className="bg-accent text-body text-on-accent rounded-md p-4">
         Texte sur accent — la paire on-accent/accent est prouvée AA.
       </div>
     </div>
@@ -35,8 +35,8 @@ export const Palette: StoryObj = {
 export const LueurAube: StoryObj = {
   render: () => (
     <div className="dawn-glow -m-8 min-h-screen p-8">
-      <p className="max-w-[66ch] text-display">La page semble imprimée au lever du jour.</p>
-      <p className="mt-4 max-w-[66ch] text-body text-text-muted">
+      <p className="text-display max-w-[66ch]">La page semble imprimée au lever du jour.</p>
+      <p className="text-body text-text-muted mt-4 max-w-[66ch]">
         La lueur est un dégradé statique en tête de page, présent dans les deux thèmes. Elle doit
         rester discrète : si elle se remarque avant le contenu, elle est trop forte.
       </p>

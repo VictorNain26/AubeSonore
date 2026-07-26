@@ -34,7 +34,7 @@ export const Etats: Story = {
     },
   },
   render: () => (
-    <div role="list" className="flex flex-col divide-y divide-border">
+    <div role="list" className="divide-border flex flex-col divide-y">
       <TrackRailItem
         title="Titre du morceau"
         artist="Artiste"

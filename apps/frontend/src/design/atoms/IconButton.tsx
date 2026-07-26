@@ -28,7 +28,7 @@ export function IconButton({
       type="button"
       aria-label={label}
       className={cn(
-        'shrink-0 rounded-md focus-visible:bg-surface-raised',
+        'focus-visible:bg-surface-raised shrink-0 rounded-md',
         active ? 'text-accent' : 'text-text-faint hover:text-text',
         className
       )}

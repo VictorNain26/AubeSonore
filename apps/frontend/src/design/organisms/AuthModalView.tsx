@@ -140,7 +140,7 @@ export function AuthModalView({
         if (!open) onClose();
       }}
     >
-      <p className="-mt-3 text-caption text-text-faint">{headerCopy.desc}</p>
+      <p className="text-caption text-text-faint -mt-3">{headerCopy.desc}</p>
 
       {(mode === 'forgot' || mode === 'reset-password') && (
         <Button
@@ -165,16 +165,16 @@ export function AuthModalView({
                 variant="ghost"
                 onClick={onOAuthGoogle}
                 disabled={isLoading}
-                className="w-full justify-center gap-3 border border-border"
+                className="border-border w-full justify-center gap-3 border"
               >
                 <GoogleLogo className="size-5" />
                 {m.auth_oauth_google()}
               </Button>
 
               <div className="flex items-center gap-3 py-1">
-                <div className="flex-1 border-t border-border" />
+                <div className="border-border flex-1 border-t" />
                 <span className="text-caption text-text-faint uppercase">{m.auth_or()}</span>
-                <div className="flex-1 border-t border-border" />
+                <div className="border-border flex-1 border-t" />
               </div>
             </>
           )}
@@ -295,19 +295,19 @@ export function AuthModalView({
 function VerificationSentBody({ email, onClose }: { email: string; onClose: () => void }) {
   return (
     <div className="space-y-4 text-center">
-      <div className="mx-auto flex size-14 items-center justify-center rounded-full border border-accent/20 bg-accent/10">
-        <MailCheck className="size-7 text-accent" />
+      <div className="border-accent/20 bg-accent/10 mx-auto flex size-14 items-center justify-center rounded-full border">
+        <MailCheck className="text-accent size-7" />
       </div>
       <p className="text-body text-text-muted">
         {m.auth_verification_sent_to()}{' '}
-        <span className="font-medium break-all text-text">{email}</span>.{' '}
+        <span className="text-text font-medium break-all">{email}</span>.{' '}
         {m.auth_verification_click_link()}
       </p>
       <p className="text-caption text-text-faint">{m.auth_verification_spam_hint()}</p>
       <Button
         variant="ghost"
         onClick={onClose}
-        className="w-full justify-center border border-border"
+        className="border-border w-full justify-center border"
       >
         {m.auth_verification_dismiss()}
       </Button>

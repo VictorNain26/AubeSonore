@@ -8,6 +8,7 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 import storybook from 'eslint-plugin-storybook';
 import vitest from '@vitest/eslint-plugin';
 import testingLibrary from 'eslint-plugin-testing-library';
+import betterTailwindcss from 'eslint-plugin-better-tailwindcss';
 
 export default tseslint.config(
   {
@@ -94,6 +95,27 @@ export default tseslint.config(
       ...jsxA11y.flatConfigs.recommended.rules,
       'jsx-a11y/click-events-have-key-events': 'warn',
       'jsx-a11y/no-static-element-interactions': 'warn',
+    },
+  },
+
+  // Tailwind correctness (frontend only): class order/formatting stays with
+  // prettier-plugin-tailwindcss — here only the rules that catch real bugs.
+  // Test files carry class-like fixtures (cn('a', 'b')), not real classes.
+  {
+    files: ['apps/frontend/src/**/*.{ts,tsx}'],
+    ignores: ['apps/frontend/src/**/*.test.{ts,tsx}'],
+    plugins: { 'better-tailwindcss': betterTailwindcss },
+    settings: {
+      'better-tailwindcss': {
+        entryPoint: 'apps/frontend/src/index.css',
+      },
+    },
+    rules: {
+      'better-tailwindcss/no-unknown-classes': 'warn',
+      'better-tailwindcss/no-duplicate-classes': 'warn',
+      'better-tailwindcss/no-conflicting-classes': 'warn',
+      'better-tailwindcss/no-deprecated-classes': 'warn',
+      'better-tailwindcss/no-unnecessary-whitespace': 'warn',
     },
   },
 

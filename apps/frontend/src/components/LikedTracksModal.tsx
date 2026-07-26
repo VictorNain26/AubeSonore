@@ -2,12 +2,10 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { PLATFORMS } from '@aubesonore/shared-types/client';
 import type { PreferredPlatform } from '../lib/api';
 import { getPlatformLink } from '@aubesonore/core/share';
-import { toast } from 'sonner';
-import { shareTrack, getRadioShareUrl } from '../lib/shareTrack';
+import { shareTrackWithToast, getRadioShareUrl } from '../lib/shareTrack';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import { LikedTracksModalView } from '../design/organisms/LikedTracksModalView';
-import * as m from '@/paraglide/messages.js';
 
 interface LikedTracksModalProps {
   isOpen: boolean;
@@ -103,17 +101,11 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
     (id: string) => {
       const track = tracks.find((t) => t.id === id);
       if (!track) return;
-      void shareTrack({
+      void shareTrackWithToast({
         title: track.title,
         artist: track.artist,
         url: getRadioShareUrl(track.title, track.artist),
-      })
-        .then((result) => {
-          if (result === 'copied') toast(m.toast_link_copied());
-        })
-        .catch(() => {
-          toast(m.toast_share_failed());
-        });
+      });
     },
     [tracks]
   );

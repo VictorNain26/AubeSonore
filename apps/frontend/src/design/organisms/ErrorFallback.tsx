@@ -10,9 +10,9 @@ import * as m from '@/paraglide/messages.js';
  */
 export function PlayerErrorFallback({ resetErrorBoundary }: FallbackProps) {
   return (
-    <div role="alert" className="border-t border-border w-full max-w-lg mx-auto pt-6 text-center">
+    <div role="alert" className="border-border mx-auto w-full max-w-lg border-t pt-6 text-center">
       <p className="font-display text-title text-text">{m.error_player_title()}</p>
-      <p className="mt-2 text-body text-text-muted">{m.error_player_body()}</p>
+      <p className="text-body text-text-muted mt-2">{m.error_player_body()}</p>
       <Button variant="primary" onClick={resetErrorBoundary} className="mt-4">
         {m.error_retry()}
       </Button>

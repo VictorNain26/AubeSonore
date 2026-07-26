@@ -19,10 +19,10 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
     <button
       onClick={onTogglePlay}
       className={cn(
-        'size-14 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
-        'bg-accent text-on-accent transition-transform duration-200 ease-out-quart',
+        'flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-full',
+        'bg-accent text-on-accent ease-out-quart transition-transform duration-200',
         'motion-safe:hover:scale-105 motion-safe:active:scale-95',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+        'focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2'
       )}
       aria-label={isPlaying ? m.playback_stop() : m.playback_start()}
       aria-pressed={isPlaying}
@@ -30,7 +30,7 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
       {isPlaying ? (
         <Square className="size-5 fill-current" strokeWidth={0} />
       ) : (
-        <Play className="size-6 ml-0.5 fill-current" strokeWidth={0} />
+        <Play className="ml-0.5 size-6 fill-current" strokeWidth={0} />
       )}
     </button>
   );

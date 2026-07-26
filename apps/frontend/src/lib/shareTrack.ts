@@ -1,3 +1,4 @@
+import { toast } from 'sonner';
 import { API_BASE_URL } from '../utils/config';
 import * as m from '@/paraglide/messages.js';
 
@@ -27,4 +28,14 @@ export async function shareTrack({
 
 export function getRadioShareUrl(title: string, artist: string): string {
   return `${API_BASE_URL}/t?artist=${encodeURIComponent(artist)}&title=${encodeURIComponent(title)}`;
+}
+
+/** Shares then toasts the outcome — the flow every share entry point uses. */
+export async function shareTrackWithToast(input: ShareTrackInput): Promise<void> {
+  try {
+    const result = await shareTrack(input);
+    if (result === 'copied') toast(m.toast_link_copied());
+  } catch {
+    toast(m.toast_share_failed());
+  }
 }

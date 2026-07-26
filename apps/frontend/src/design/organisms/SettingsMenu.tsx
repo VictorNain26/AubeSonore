@@ -1,8 +1,7 @@
-import type { ReactNode } from 'react';
 import { Popover } from '@base-ui/react/popover';
 import { Globe, LogOut, Moon, Settings, Sun } from 'lucide-react';
 import { Button } from '../atoms/Button';
-import { cn } from '@/lib/utils';
+import { SegmentedControl } from '../molecules/SegmentedControl';
 import type { Theme } from '../../lib/theme';
 import * as m from '@/paraglide/messages.js';
 
@@ -19,32 +18,6 @@ export interface SettingsMenuViewProps {
   onThemeChange: (theme: Theme) => void;
   onLocaleChange: (locale: 'fr' | 'en') => void;
   onSignOut?: (() => void) | undefined;
-}
-
-const segmentedTrack = 'flex rounded-full bg-surface p-0.5 gap-0.5';
-const segmentedOption =
-  'flex h-9 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-full text-caption text-text-muted transition-colors duration-150 ease-out-quart hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent';
-const segmentedActive = 'bg-text text-surface font-medium hover:text-surface';
-
-function SegmentedOption({
-  active,
-  onSelect,
-  children,
-}: {
-  active: boolean;
-  onSelect: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={active}
-      onClick={onSelect}
-      className={cn(segmentedOption, active && segmentedActive)}
-    >
-      {children}
-    </button>
-  );
 }
 
 /**
@@ -66,7 +39,7 @@ export function SettingsMenuView({
         render={
           <Button variant="icon" aria-label={m.settings_menu_label()}>
             {user ? (
-              <span className="flex size-7 items-center justify-center rounded-full bg-surface-raised text-caption font-medium">
+              <span className="bg-surface-raised text-caption flex size-7 items-center justify-center rounded-full font-medium">
                 {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
               </span>
             ) : (
@@ -77,52 +50,57 @@ export function SettingsMenuView({
       />
       <Popover.Portal>
         <Popover.Positioner sideOffset={8} align="end">
-          <Popover.Popup className="w-64 rounded-lg border border-border bg-surface-raised p-3 text-body text-text shadow-lg focus:outline-none">
+          <Popover.Popup className="border-border bg-surface-raised text-body text-text w-64 rounded-lg border p-3 shadow-lg focus:outline-none">
             {user ? (
-              <div className="flex items-center gap-3 border-b border-border px-1 pt-1 pb-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-surface text-body font-medium">
+              <div className="border-border flex items-center gap-3 border-b px-1 pt-1 pb-3">
+                <span className="bg-surface text-body flex size-9 shrink-0 items-center justify-center rounded-full font-medium">
                   {user.name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                 </span>
                 <div className="min-w-0 font-sans">
-                  <p className="truncate text-body font-medium">
+                  <p className="text-body truncate font-medium">
                     {user.name || m.header_user_fallback()}
                   </p>
-                  <p className="truncate text-caption text-text-muted">{user.email}</p>
+                  <p className="text-caption text-text-muted truncate">{user.email}</p>
                 </div>
               </div>
             ) : null}
 
             <div className="flex flex-col gap-3 pt-3">
               <div className="flex flex-col gap-1.5">
-                <p className="px-1 text-caption text-text-muted">{m.settings_theme()}</p>
-                <div className={segmentedTrack} role="group" aria-label={m.settings_theme()}>
-                  <SegmentedOption
-                    active={theme === 'light'}
-                    onSelect={() => onThemeChange('light')}
-                  >
-                    <Sun className="size-3.5" />
-                    {m.settings_theme_light()}
-                  </SegmentedOption>
-                  <SegmentedOption active={theme === 'dark'} onSelect={() => onThemeChange('dark')}>
-                    <Moon className="size-3.5" />
-                    {m.settings_theme_dark()}
-                  </SegmentedOption>
-                </div>
+                <p className="text-caption text-text-muted px-1">{m.settings_theme()}</p>
+                <SegmentedControl
+                  ariaLabel={m.settings_theme()}
+                  value={theme}
+                  onChange={onThemeChange}
+                  options={[
+                    {
+                      value: 'light',
+                      label: m.settings_theme_light(),
+                      icon: <Sun className="size-3.5" />,
+                    },
+                    {
+                      value: 'dark',
+                      label: m.settings_theme_dark(),
+                      icon: <Moon className="size-3.5" />,
+                    },
+                  ]}
+                />
               </div>
 
               <div className="flex flex-col gap-1.5">
-                <p className="flex items-center gap-1.5 px-1 text-caption text-text-muted">
+                <p className="text-caption text-text-muted flex items-center gap-1.5 px-1">
                   <Globe className="size-3.5" />
                   {m.settings_language()}
                 </p>
-                <div className={segmentedTrack} role="group" aria-label={m.settings_language()}>
-                  <SegmentedOption active={locale === 'fr'} onSelect={() => onLocaleChange('fr')}>
-                    {m.settings_language_fr()}
-                  </SegmentedOption>
-                  <SegmentedOption active={locale === 'en'} onSelect={() => onLocaleChange('en')}>
-                    {m.settings_language_en()}
-                  </SegmentedOption>
-                </div>
+                <SegmentedControl
+                  ariaLabel={m.settings_language()}
+                  value={locale}
+                  onChange={onLocaleChange}
+                  options={[
+                    { value: 'fr', label: m.settings_language_fr() },
+                    { value: 'en', label: m.settings_language_en() },
+                  ]}
+                />
               </div>
             </div>
 
@@ -132,7 +110,7 @@ export function SettingsMenuView({
                   <button
                     type="button"
                     onClick={onSignOut}
-                    className="mt-3 flex h-11 w-full cursor-pointer items-center gap-2 rounded-md border-t border-border px-3 pt-2 text-body text-text-muted transition-colors duration-150 ease-out-quart hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                    className="border-border text-body text-text-muted ease-out-quart hover:text-text focus-visible:outline-accent mt-3 flex h-11 w-full cursor-pointer items-center gap-2 rounded-md border-t px-3 pt-2 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2"
                   >
                     <LogOut className="size-4" />
                     {m.header_sign_out()}

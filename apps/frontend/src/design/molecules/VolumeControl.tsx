@@ -56,17 +56,17 @@ export function VolumeControlView({
 
       <div
         className={cn(
-          'absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50',
-          'transition-[opacity,translate] duration-200 ease-out-quart',
+          'absolute bottom-full left-1/2 z-50 mb-2 -translate-x-1/2',
+          'ease-out-quart transition-[opacity,translate] duration-200',
           isExpanded
-            ? 'opacity-100 pointer-events-auto translate-y-0'
-            : 'opacity-0 pointer-events-none translate-y-2'
+            ? 'pointer-events-auto translate-y-0 opacity-100'
+            : 'pointer-events-none translate-y-2 opacity-0'
         )}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}
         role="presentation"
       >
-        <div className="rounded-md border border-border bg-surface-raised p-3">
+        <div className="border-border bg-surface-raised rounded-md border p-3">
           <Slider
             label={m.volume_slider()}
             orientation="vertical"
