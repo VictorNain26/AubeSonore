@@ -47,12 +47,12 @@ export function LayoutView({
   aboutModal,
 }: LayoutViewProps) {
   return (
-    <div className="h-dvh min-h-[600px] grid grid-rows-[auto_1fr] overflow-hidden dawn-glow text-text">
+    <div className="dawn-glow text-text grid h-dvh min-h-[600px] grid-rows-[auto_1fr] overflow-hidden">
       <a href="#main" className="skip-link">
         {m.skip_link()}
       </a>
 
-      <header className="mx-auto flex w-full max-w-page items-center justify-between px-6 pt-6 pb-3 font-sans">
+      <header className="max-w-page mx-auto flex w-full items-center justify-between px-6 pt-6 pb-3 font-sans">
         <p className="font-display text-title tracking-tight">AubeSonore</p>
 
         <div className="flex items-center gap-1">
@@ -63,7 +63,7 @@ export function LayoutView({
           <TrendsButton />
 
           {isLoading ? (
-            <div className="size-11 animate-pulse rounded-full bg-surface-raised" />
+            <div className="bg-surface-raised size-11 animate-pulse rounded-full" />
           ) : isAuthenticated && user ? (
             <SettingsMenu user={user} onSignOut={onSignOut} />
           ) : (
@@ -78,7 +78,7 @@ export function LayoutView({
         </div>
       </header>
 
-      <main id="main" className="min-h-0 overflow-y-auto lg:overflow-hidden flex flex-col">
+      <main id="main" className="flex min-h-0 flex-col overflow-y-auto lg:overflow-hidden">
         {children}
       </main>
 

@@ -42,8 +42,8 @@ export function TrackRailItem({
       />
 
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-        <p className="truncate text-body text-text-muted">{title}</p>
-        <p className="truncate text-caption text-text-faint">{artist}</p>
+        <p className="text-body text-text-muted truncate">{title}</p>
+        <p className="text-caption text-text-faint truncate">{artist}</p>
       </div>
 
       <IconButton

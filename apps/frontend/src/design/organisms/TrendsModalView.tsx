@@ -64,12 +64,12 @@ export function TrendsModalView({
 
   return (
     <Modal title={m.trends_modal_title()} open={open} onOpenChange={onOpenChange} size="lg">
-      <p className="-mt-3 text-caption text-text-faint">{m.trends_subtitle()}</p>
+      <p className="text-caption text-text-faint -mt-3">{m.trends_subtitle()}</p>
 
       <div
         role="tablist"
         aria-label={m.trends_tablist_aria()}
-        className="flex gap-1 rounded-full bg-surface p-1"
+        className="bg-surface flex gap-1 rounded-full p-1"
       >
         {TABS.map(({ id, label }) => (
           <button
@@ -79,7 +79,7 @@ export function TrendsModalView({
             aria-selected={tab === id}
             onClick={() => setTab(id)}
             className={cn(
-              'h-11 flex-1 rounded-full text-body font-medium transition-colors duration-150 ease-out-quart focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+              'text-body ease-out-quart focus-visible:outline-accent h-11 flex-1 rounded-full font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2',
               tab === id ? 'bg-surface-raised text-text' : 'text-text-muted hover:text-text'
             )}
           >
@@ -88,34 +88,34 @@ export function TrendsModalView({
         ))}
       </div>
 
-      <div className="max-h-[70dvh] min-h-0 overflow-y-auto scrollbar-none">
+      <div className="max-h-[70dvh] min-h-0 scrollbar-none overflow-y-auto">
         {isLoading ? (
-          <div className="divide-y divide-border" aria-label={m.loading()}>
+          <div className="divide-border divide-y" aria-label={m.loading()}>
             {Array.from({ length: 5 }, (_, i) => (
               <div key={i} className="flex items-center gap-3 py-2">
-                <div className="size-10 animate-pulse rounded-sm bg-surface" />
+                <div className="bg-surface size-10 animate-pulse rounded-sm" />
                 <div className="flex-1 space-y-2">
-                  <div className="h-3 w-2/3 animate-pulse rounded-sm bg-surface" />
-                  <div className="h-2.5 w-1/3 animate-pulse rounded-sm bg-surface" />
+                  <div className="bg-surface h-3 w-2/3 animate-pulse rounded-sm" />
+                  <div className="bg-surface h-2.5 w-1/3 animate-pulse rounded-sm" />
                 </div>
               </div>
             ))}
           </div>
         ) : hasError ? (
-          <p className="py-10 text-center text-body text-text-muted">{m.trends_error()}</p>
+          <p className="text-body text-text-muted py-10 text-center">{m.trends_error()}</p>
         ) : showWeekEmpty || showAllTimeEmpty ? (
-          <p className="py-10 text-center text-body text-text-muted">
+          <p className="text-body text-text-muted py-10 text-center">
             {showWeekEmpty ? m.trends_week_empty() : m.trends_all_time_empty()}
           </p>
         ) : (
-          <div className="divide-y divide-border" role="list">
+          <div className="divide-border divide-y" role="list">
             {entries.map((entry, index) => (
               <div
                 key={`${entry.artist}|${entry.title}`}
                 role="listitem"
                 className="-mx-2 flex items-center gap-3 rounded-md px-2 py-2"
               >
-                <span className="w-6 shrink-0 text-center text-caption text-text-faint">
+                <span className="text-caption text-text-faint w-6 shrink-0 text-center">
                   {index + 1}
                 </span>
                 <Thumbnail
@@ -125,8 +125,8 @@ export function TrendsModalView({
                   className="bg-surface"
                 />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-body text-text">{entry.title}</p>
-                  <p className="truncate text-caption text-text-muted">{entry.artist}</p>
+                  <p className="text-body text-text truncate">{entry.title}</p>
+                  <p className="text-caption text-text-muted truncate">{entry.artist}</p>
                   <p className="text-caption text-text-faint">{likesCaption(entry.likes)}</p>
                 </div>
                 <div data-testid="row-actions" className="flex items-center gap-1">

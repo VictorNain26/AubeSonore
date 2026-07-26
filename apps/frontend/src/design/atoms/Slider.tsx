@@ -59,15 +59,15 @@ export function Slider({
       >
         <BaseSlider.Track
           className={
-            isVertical ? 'relative h-full w-1 bg-border' : 'relative h-px w-full bg-border'
+            isVertical ? 'bg-border relative h-full w-1' : 'bg-border relative h-px w-full'
           }
         >
           <BaseSlider.Indicator
-            className={isVertical ? 'absolute bottom-0 w-1 bg-accent' : 'absolute h-px bg-accent'}
+            className={isVertical ? 'bg-accent absolute bottom-0 w-1' : 'bg-accent absolute h-px'}
           />
           <BaseSlider.Thumb
             aria-label={label}
-            className="size-4 rounded-full border border-accent bg-surface transition-transform duration-150 ease-out-quart focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:scale-110"
+            className="border-accent bg-surface ease-out-quart focus-visible:outline-accent size-4 rounded-full border transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-110"
           />
         </BaseSlider.Track>
       </BaseSlider.Control>

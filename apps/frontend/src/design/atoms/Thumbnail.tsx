@@ -30,7 +30,7 @@ export function Thumbnail({ src, alt = '', size = 'sm', seed, className }: Thumb
   return (
     <div
       className={cn(
-        'relative shrink-0 overflow-hidden rounded-sm bg-surface-raised',
+        'bg-surface-raised relative shrink-0 overflow-hidden rounded-sm',
         SIZE[size],
         className
       )}

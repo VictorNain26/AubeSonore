@@ -17,7 +17,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
     <Modal title="AubeSonore" open={isOpen} onOpenChange={(o) => !o && onClose()}>
       <div className="space-y-5">
         <p className="text-body text-text-muted leading-relaxed">{m.about_body()}</p>
-        <div className="flex items-center gap-2 text-caption text-text-faint">
+        <div className="text-caption text-text-faint flex items-center gap-2">
           <Mail className="size-4 shrink-0" />
           <a href="mailto:contact@aubesonore.fr" className="text-accent hover:underline">
             contact@aubesonore.fr

@@ -1,11 +1,9 @@
-import { toast } from 'sonner';
 import { useNowPlayingStore } from '../../lib/azuracast/store';
 import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
 import { useLikeAction } from '../../hooks/player/useLikeAction';
-import { shareTrack, getRadioShareUrl } from '../../lib/shareTrack';
+import { shareTrackWithToast, getRadioShareUrl } from '../../lib/shareTrack';
 import { RecentTracksRail, type RailEntry } from '../../design/organisms/RecentTracksRail';
 import type { SongEntry } from '../../lib/azuracast';
-import * as m from '@/paraglide/messages.js';
 
 export function RecentTracks() {
   const history = useNowPlayingStore((s) => s.data?.song_history);
@@ -29,17 +27,11 @@ export function RecentTracks() {
   }));
 
   const handleShare = (entry: SongEntry) => {
-    void shareTrack({
+    void shareTrackWithToast({
       title: entry.song.title,
       artist: entry.song.artist,
       url: getRadioShareUrl(entry.song.title, entry.song.artist),
-    })
-      .then((result) => {
-        if (result === 'copied') toast(m.toast_link_copied());
-      })
-      .catch(() => {
-        toast(m.toast_share_failed());
-      });
+    });
   };
 
   return (

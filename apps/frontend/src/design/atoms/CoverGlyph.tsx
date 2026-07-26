@@ -39,7 +39,7 @@ export function CoverGlyph({ seed, size = 'sm', className }: CoverGlyphProps) {
     >
       <svg
         viewBox="0 0 48 48"
-        className="absolute inset-0 size-full text-on-accent/30"
+        className="text-on-accent/30 absolute inset-0 size-full"
         aria-hidden="true"
       >
         <path d="M0 30 Q12 22 24 30 T48 30" fill="none" stroke="currentColor" strokeWidth="2" />

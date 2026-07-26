@@ -40,7 +40,7 @@ export function SegmentedControl<Value extends string>({
         if (next !== undefined) onChange(next);
       }}
       aria-label={ariaLabel}
-      className="flex gap-0.5 rounded-full bg-surface p-0.5"
+      className="bg-surface flex gap-0.5 rounded-full p-0.5"
     >
       {options.map((option) => (
         <Toggle key={option.value} value={option.value} className={cn(optionClass)}>

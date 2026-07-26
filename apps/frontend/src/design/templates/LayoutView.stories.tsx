@@ -18,7 +18,7 @@ const meta = {
     isLoading: { control: 'boolean' },
   },
   args: {
-    children: <p className="p-6 text-body text-text">Contenu de la page.</p>,
+    children: <p className="text-body text-text p-6">Contenu de la page.</p>,
     user: null,
     isAuthenticated: false,
     isLoading: false,

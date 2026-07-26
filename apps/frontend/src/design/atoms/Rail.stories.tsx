@@ -23,7 +23,7 @@ type Story = StoryObj<typeof Rail>;
 const Card = ({ n }: { n: number }) => (
   <div
     role="listitem"
-    className="flex h-20 w-64 shrink-0 items-center justify-center rounded-md bg-surface-raised text-body text-text-muted"
+    className="bg-surface-raised text-body text-text-muted flex h-20 w-64 shrink-0 items-center justify-center rounded-md"
   >
     Carte {n}
   </div>

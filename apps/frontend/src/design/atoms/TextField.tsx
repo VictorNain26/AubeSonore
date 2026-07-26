@@ -22,9 +22,9 @@ export function TextField({ label, error, trailing, className, ...props }: TextF
       <div className="relative">
         <Field.Control
           className={cn(
-            'h-11 w-full rounded-md border border-border bg-surface px-3 text-body text-text',
-            'transition-colors duration-150 ease-out-quart placeholder:text-text-faint',
-            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+            'border-border bg-surface text-body text-text h-11 w-full rounded-md border px-3',
+            'ease-out-quart placeholder:text-text-faint transition-colors duration-150',
+            'focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',
             error !== undefined && 'border-accent',
             trailing !== undefined && 'pr-11',

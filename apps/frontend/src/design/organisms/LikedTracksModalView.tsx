@@ -68,7 +68,7 @@ export function LikedTracksModalView({
 
   return (
     <Modal title={i18n.library_modal_title()} open={open} onOpenChange={onOpenChange} size="lg">
-      <p className="-mt-3 text-caption text-text-faint">
+      <p className="text-caption text-text-faint -mt-3">
         {totalCount > 1
           ? i18n.library_track_count_other({ count: totalCount })
           : i18n.library_track_count_one({ count: totalCount })}
@@ -76,22 +76,22 @@ export function LikedTracksModalView({
 
       <div
         data-testid="modal-scroll-container"
-        className="max-h-[70dvh] min-h-0 overflow-y-auto scroll-pt-16 scrollbar-none"
+        className="max-h-[70dvh] min-h-0 scroll-pt-16 scrollbar-none overflow-y-auto"
       >
         {totalCount > 0 && (
-          <div className="sticky top-0 z-10 flex items-center justify-end gap-2 border-b border-border bg-surface-raised pb-4">
+          <div className="border-border bg-surface-raised sticky top-0 z-10 flex items-center justify-end gap-2 border-b pb-4">
             <span className="text-caption text-text-faint">{i18n.library_open_with()}</span>
             <Menu
               trigger={
                 <Button
                   variant="ghost"
-                  className="border border-border text-caption data-[popup-open]:bg-surface [&[data-popup-open]>svg]:rotate-180"
+                  className="border-border text-caption data-[popup-open]:bg-surface border [&[data-popup-open]>svg]:rotate-180"
                   aria-label={i18n.library_platform_picker()}
                 >
                   {selectedPlatformName}
                   <ChevronDown
                     data-testid="platform-picker-chevron"
-                    className="size-3.5 text-text-faint transition-transform duration-150 ease-out-quart"
+                    className="text-text-faint ease-out-quart size-3.5 transition-transform duration-150"
                   />
                 </Button>
               }
@@ -106,7 +106,7 @@ export function LikedTracksModalView({
 
         {isLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="size-8 animate-spin text-text-faint" aria-label={i18n.loading()} />
+            <Loader2 className="text-text-faint size-8 animate-spin" aria-label={i18n.loading()} />
           </div>
         ) : totalCount === 0 ? (
           <div className="space-y-1 py-10 text-center">
@@ -114,7 +114,7 @@ export function LikedTracksModalView({
             <p className="text-body text-text-muted">{i18n.library_empty_body()}</p>
           </div>
         ) : (
-          <div className="divide-y divide-border pt-4" role="list">
+          <div className="divide-border divide-y pt-4" role="list">
             <AnimatePresence initial={false}>
               {tracks.map((track) => (
                 <m.div key={track.id} {...rowExit} className="-mx-2 overflow-hidden px-2">

@@ -35,10 +35,10 @@ export function Modal({ title, trigger, children, open, onOpenChange, size = 'md
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       {trigger ? <Dialog.Trigger render={trigger} /> : null}
       <Dialog.Portal>
-        <Dialog.Backdrop className="fixed inset-0 bg-scrim backdrop-blur-sm transition-opacity duration-300 ease-out-quart data-[starting-style]:opacity-0 data-[ending-style]:opacity-0" />
+        <Dialog.Backdrop className="bg-scrim ease-out-quart fixed inset-0 backdrop-blur-sm transition-opacity duration-300 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
         <Dialog.Popup
           className={cn(
-            'fixed top-1/2 left-1/2 flex max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-md border border-border bg-surface-raised p-6 text-text transition-[opacity,transform] duration-300 ease-out-quart data-[starting-style]:scale-95 data-[starting-style]:opacity-0 data-[ending-style]:scale-95 data-[ending-style]:opacity-0 focus-visible:outline-none',
+            'border-border bg-surface-raised text-text ease-out-quart fixed top-1/2 left-1/2 flex max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-md border p-6 transition-[opacity,transform] duration-300 focus-visible:outline-none data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
             SIZE_CLASSES[size]
           )}
         >
@@ -46,7 +46,7 @@ export function Modal({ title, trigger, children, open, onOpenChange, size = 'md
             <Dialog.Title className="font-display text-title">{title}</Dialog.Title>
             <Dialog.Close
               aria-label={m.close()}
-              className="inline-flex size-11 shrink-0 items-center justify-center rounded-full text-text-muted transition-opacity duration-150 ease-out-quart hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-80"
+              className="text-text-muted ease-out-quart hover:bg-surface focus-visible:outline-accent inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:opacity-80"
             >
               ✕
             </Dialog.Close>

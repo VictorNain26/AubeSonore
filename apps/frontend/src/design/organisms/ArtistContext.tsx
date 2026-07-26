@@ -31,9 +31,9 @@ export function ArtistContextView({
       <div className="space-y-4">
         {isLoading ? (
           <div className="flex flex-col gap-2" aria-hidden="true">
-            <div className="h-4 w-full animate-pulse rounded-sm bg-surface-raised" />
-            <div className="h-4 w-5/6 animate-pulse rounded-sm bg-surface-raised" />
-            <div className="h-4 w-2/3 animate-pulse rounded-sm bg-surface-raised" />
+            <div className="bg-surface-raised h-4 w-full animate-pulse rounded-sm" />
+            <div className="bg-surface-raised h-4 w-5/6 animate-pulse rounded-sm" />
+            <div className="bg-surface-raised h-4 w-2/3 animate-pulse rounded-sm" />
           </div>
         ) : data?.bio ? (
           <p className="text-body text-text-muted leading-relaxed">{data.bio}</p>
@@ -45,7 +45,7 @@ export function ArtistContextView({
             {data.tags.map((tag) => (
               <span
                 key={tag}
-                className="px-2 py-0.5 rounded-full bg-surface-raised text-caption text-text-faint border border-border"
+                className="bg-surface-raised text-caption text-text-faint border-border rounded-full border px-2 py-0.5"
               >
                 {tag}
               </span>
@@ -61,7 +61,7 @@ export function ArtistContextView({
                   key={name}
                   type="button"
                   onClick={() => onSelectSimilar?.(name)}
-                  className="inline-flex min-h-6 cursor-pointer items-center px-2 py-0.5 rounded-full bg-surface-raised text-caption text-text-muted border border-border transition-colors duration-150 ease-out-quart hover:bg-surface hover:text-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                  className="bg-surface-raised text-caption text-text-muted border-border ease-out-quart hover:bg-surface hover:text-text focus-visible:outline-accent inline-flex min-h-6 cursor-pointer items-center rounded-full border px-2 py-0.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2"
                 >
                   {name}
                 </button>

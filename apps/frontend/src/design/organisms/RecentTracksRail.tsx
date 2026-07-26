@@ -41,10 +41,10 @@ export function RecentTracksRail({
   const railEntry = useRailEntry();
 
   return (
-    <section aria-label={i18n.recent_tracks_title()} className="min-w-0 border-t border-border">
+    <section aria-label={i18n.recent_tracks_title()} className="border-border min-w-0 border-t">
       <div className="mx-auto w-full min-w-0 px-6 py-3">
         <div className="flex items-baseline gap-3">
-          <h2 className="font-display text-caption tracking-widest uppercase text-text-faint">
+          <h2 className="font-display text-caption text-text-faint tracking-widest uppercase">
             {i18n.recent_tracks_title()}
           </h2>
           {partial ? (
@@ -60,10 +60,10 @@ export function RecentTracksRail({
                 data-testid="recent-tracks-skeleton"
                 className="flex w-72 shrink-0 items-center gap-3 py-3"
               >
-                <div className="size-12 rounded-sm animate-pulse bg-surface-raised" />
+                <div className="bg-surface-raised size-12 animate-pulse rounded-sm" />
                 <div className="flex flex-1 flex-col gap-1.5">
-                  <div className="h-3.5 w-28 rounded-sm animate-pulse bg-surface-raised" />
-                  <div className="h-3 w-16 rounded-sm animate-pulse bg-surface-raised" />
+                  <div className="bg-surface-raised h-3.5 w-28 animate-pulse rounded-sm" />
+                  <div className="bg-surface-raised h-3 w-16 animate-pulse rounded-sm" />
                 </div>
               </div>
             ))}

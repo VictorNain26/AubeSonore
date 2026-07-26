@@ -35,8 +35,8 @@ export function TrackArtworkView({
     <div key={artUrl} className="w-full">
       <div
         className={cn(
-          'relative aspect-square w-full overflow-hidden rounded-md bg-surface-raised',
-          'transition-transform duration-250 ease-out-quart',
+          'bg-surface-raised relative aspect-square w-full overflow-hidden rounded-md',
+          'ease-out-quart transition-transform duration-250',
           isPlaying && 'scale-[1.01]'
         )}
       >
@@ -54,7 +54,7 @@ export function TrackArtworkView({
               {...inkFlip}
             />
           ) : (
-            <div className="flex size-full items-center justify-center bg-surface-raised">
+            <div className="bg-surface-raised flex size-full items-center justify-center">
               <CoverGlyph seed={seed} size="md" className="size-full" />
             </div>
           )}

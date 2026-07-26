@@ -10,7 +10,7 @@ import { PlayerErrorFallback } from '../design/organisms/ErrorFallback';
  */
 export default function HomePage() {
   return (
-    <div className="mx-auto size-full max-w-page px-6 pb-6 min-h-0">
+    <div className="max-w-page mx-auto size-full min-h-0 px-6 pb-6">
       <ErrorBoundary FallbackComponent={PlayerErrorFallback}>
         <Player />
       </ErrorBoundary>

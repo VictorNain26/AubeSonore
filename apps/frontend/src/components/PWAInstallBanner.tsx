@@ -53,7 +53,7 @@ export function PWAInstallBanner() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 20 }}
           transition={modal}
-          className="fixed bottom-4 inset-x-4 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]"
+          className="fixed inset-x-4 bottom-4 z-50 flex justify-center pb-[env(safe-area-inset-bottom)]"
         >
           <PWAInstallBannerView onInstall={handleInstall} onDismiss={handleDismiss} />
         </m.div>

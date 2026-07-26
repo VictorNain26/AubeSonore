@@ -33,14 +33,14 @@ export default function Player() {
         <div className="flex min-h-0 min-w-0 flex-col items-center justify-center px-6 py-4">
           <div className={NOW}>
             <div className="artwork-size shrink-0">
-              <div className="aspect-square rounded-md animate-pulse bg-surface-raised" />
+              <div className="bg-surface-raised aspect-square animate-pulse rounded-md" />
             </div>
             <div className={META}>
-              <div className="h-9 w-3/4 animate-pulse rounded-sm bg-surface-raised" />
-              <div className="h-5 w-1/3 animate-pulse rounded-sm bg-surface-raised" />
+              <div className="bg-surface-raised h-9 w-3/4 animate-pulse rounded-sm" />
+              <div className="bg-surface-raised h-5 w-1/3 animate-pulse rounded-sm" />
               <div className={TRANSPORT}>
-                <div className="size-14 shrink-0 animate-pulse rounded-full bg-surface-raised" />
-                <div className="h-10 flex-1 animate-pulse rounded-sm bg-surface-raised" />
+                <div className="bg-surface-raised size-14 shrink-0 animate-pulse rounded-full" />
+                <div className="bg-surface-raised h-10 flex-1 animate-pulse rounded-sm" />
               </div>
             </div>
           </div>

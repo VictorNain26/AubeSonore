@@ -1,12 +1,10 @@
 import { useCallback } from 'react';
-import { toast } from 'sonner';
-import { shareTrack, getRadioShareUrl } from '../lib/shareTrack';
+import { shareTrackWithToast, getRadioShareUrl } from '../lib/shareTrack';
 import { useLikeAction } from '../hooks/player/useLikeAction';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { useTrends } from '../hooks/useTrends';
 import { TrendsModalView, type TrendEntryViewModel } from '../design/organisms/TrendsModalView';
 import type { TrendEntry } from '../hooks/useTrends';
-import * as m from '@/paraglide/messages.js';
 
 interface TrendsModalProps {
   isOpen: boolean;
@@ -26,17 +24,11 @@ export function TrendsModal({ isOpen, onClose }: TrendsModalProps) {
   );
 
   const handleShare = useCallback((entry: TrendEntryViewModel) => {
-    void shareTrack({
+    void shareTrackWithToast({
       title: entry.title,
       artist: entry.artist,
       url: getRadioShareUrl(entry.title, entry.artist),
-    })
-      .then((result) => {
-        if (result === 'copied') toast(m.toast_link_copied());
-      })
-      .catch(() => {
-        toast(m.toast_share_failed());
-      });
+    });
   }, []);
 
   const isLiked = (entry: TrendEntry) =>

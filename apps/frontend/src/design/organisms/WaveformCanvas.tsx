@@ -7,5 +7,5 @@ export interface WaveformCanvasViewProps {
 }
 
 export function WaveformCanvasView({ canvasRef }: WaveformCanvasViewProps) {
-  return <canvas ref={canvasRef} className="w-full max-w-full h-10" aria-hidden="true" />;
+  return <canvas ref={canvasRef} className="h-10 w-full max-w-full" aria-hidden="true" />;
 }

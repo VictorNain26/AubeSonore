@@ -30,7 +30,7 @@ export function TrackMetaView({ inkFlip, title, artist, shId, onArtistInfo }: Tr
 
   return (
     <div
-      className="-mb-1 overflow-hidden transition-[height] duration-600 ease-out-quart"
+      className="ease-out-quart -mb-1 overflow-hidden transition-[height] duration-600"
       style={height !== undefined ? { height } : undefined}
     >
       <div ref={contentRef} className="pb-1">
@@ -39,7 +39,7 @@ export function TrackMetaView({ inkFlip, title, artist, shId, onArtistInfo }: Tr
             key={shId ?? 'waiting'}
             {...inkFlip}
             title={title || undefined}
-            className="font-display text-title lg:text-display font-medium text-text [text-wrap:balance]"
+            className="font-display text-title lg:text-display text-text font-medium [text-wrap:balance]"
           >
             {title || i18n.player_loading_live()}
           </m.h2>
@@ -49,7 +49,7 @@ export function TrackMetaView({ inkFlip, title, artist, shId, onArtistInfo }: Tr
             {onArtistInfo && artist ? (
               <button
                 onClick={onArtistInfo}
-                className="cursor-pointer underline decoration-border underline-offset-4 hover:decoration-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent rounded-sm transition-colors"
+                className="decoration-border hover:decoration-text focus-visible:outline-accent cursor-pointer rounded-sm underline underline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
               >
                 {artist}
               </button>
