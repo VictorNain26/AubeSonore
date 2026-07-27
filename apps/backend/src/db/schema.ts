@@ -195,6 +195,53 @@ export const userStats = pgTable('user_stats', {
 });
 
 // ─────────────────────────────────────────────
+// ARTIST TABLE — canonical identity only
+// ─────────────────────────────────────────────
+export const artist = pgTable(
+  'artist',
+  {
+    id: text('id').primaryKey(),
+    normalizedName: text('normalized_name').notNull(),
+    displayName: text('display_name').notNull(),
+    slug: text('slug').notNull(),
+    deezerId: text('deezer_id'),
+    mbid: text('mbid'),
+    firstSeenAt: timestamp('first_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    // The resolution hot path is a single lookup on this column.
+    artistNormalizedNameUnique: uniqueIndex('artist_normalized_name_unique').on(
+      table.normalizedName
+    ),
+    // Postgres allows repeated NULLs in a unique index, so unresolved rows
+    // (no upstream match) do not collide with each other.
+    artistDeezerIdUnique: uniqueIndex('artist_deezer_id_unique').on(table.deezerId),
+    artistMbidUnique: uniqueIndex('artist_mbid_unique').on(table.mbid),
+  })
+);
+
+// ─────────────────────────────────────────────
+// RADIO_PLAY TABLE — what the antenna actually played
+// ─────────────────────────────────────────────
+export const radioPlay = pgTable(
+  'radio_play',
+  {
+    id: text('id').primaryKey(),
+    title: text('title').notNull(),
+    artist: text('artist').notNull(),
+    // Denormalised so the artist page filters without recomputing per row.
+    artistNormalized: text('artist_normalized').notNull(),
+    playedAt: timestamp('played_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    radioPlayArtistPlayedAtIdx: index('radio_play_artist_played_at_idx').on(
+      table.artistNormalized,
+      table.playedAt
+    ),
+  })
+);
+
+// ─────────────────────────────────────────────
 // TYPES INFÉRÉS
 // ─────────────────────────────────────────────
 
@@ -221,3 +268,9 @@ export type NewPushSubscription = InferInsertModel<typeof pushSubscriptions>;
 
 export type UserStats = InferSelectModel<typeof userStats>;
 export type NewUserStats = InferInsertModel<typeof userStats>;
+
+export type Artist = InferSelectModel<typeof artist>;
+export type NewArtist = InferInsertModel<typeof artist>;
+
+export type RadioPlayRow = InferSelectModel<typeof radioPlay>;
+export type NewRadioPlayRow = InferInsertModel<typeof radioPlay>;
