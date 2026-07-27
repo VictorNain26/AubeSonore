@@ -69,6 +69,17 @@ packages/
 - `bun db:push` syncs schema directly to the connected DB (used in dev + prod). `bun db:generate` builds versioned migrations (currently the snapshot meta has drifted from the source — push is more reliable).
 - All indexes are declared inline in `schema.ts`. Migration `0002_perf_indexes.sql` is the canonical script for adding them to an existing DB.
 
+## Working with artist enrichment
+
+The artist page at `/artist/:id/:slug` composes four sources; each is isolated, cached, and allowed to fail on its own.
+
+- **Identity first.** `artistResolver.resolveArtist` turns a messy AzuraCast string into a canonical id persisted in the `artist` table, so URLs stay stable across restarts. It strips `feat.`/`ft.`/`featuring` only — **never split on `&`, `+` or `,`**, that destroys "Simon & Garfunkel" and "Earth, Wind & Fire".
+- **Sources**: `deezerService` (portrait, similar artists, top tracks — keyless), `lastfmService` (FR bio, tags), `musicbrainzService` (Bandcamp/SoundCloud/official links; **1 req/s throttle and an identifying `User-Agent` are hard API requirements**). Spotify related-artists is deprecated for new apps — do not add it.
+- **`radioPlayService` is the floor.** No external source knows what this radio played, so `likedArtistWatcher` records every new track. That watcher now runs even without VAPID keys — don't re-couple it to push config.
+- Every service uses `TtlCache` + a circuit breaker + `createSingleFlight`, so a cold popular page triggers one upstream call, not one per listener.
+- **OG tags**: nginx proxies `/artist/*` documents to `artistPage.routes`, which fetches the deployed `index.html` from the frontend container and injects meta via `HTMLRewriter`. `og:image` is restricted to an allowlist of Deezer CDN hosts. nginx resolves the backend through a variable so the static site survives an API outage — don't turn it back into a literal upstream.
+- Deezer images are **hotlinked, never re-hosted**.
+
 ## SSRF, headers, and other security baselines
 
 - Never `fetch()` a user-supplied URL without `assertSafeUrl()` from `lib/security/urlValidation`. It blocks private IPv4/IPv6, link-local (`169.254.0.0/16` = cloud metadata), and enforces `https` in prod.
@@ -84,7 +95,7 @@ packages/
 
 ## What NOT to do
 
-- Don't re-introduce unused deps (`axios`, `cheerio`, `@tanstack/react-query`, `react-router-dom`, `@elysiajs/cron`, `class-variance-authority`, `dayjs`, `react-intersection-observer`) — they were removed in the May 2026 audit. Use existing alternatives.
+- Don't re-introduce unused deps (`axios`, `cheerio`, `@tanstack/react-query`, `@elysiajs/cron`, `class-variance-authority`, `dayjs`, `react-intersection-observer`) — they were removed in the May 2026 audit. Use existing alternatives. **`react-router` is not in this list**: it is a deliberate dependency since the artist page (v7 declarative mode; the v7 package is `react-router`, the `react-router-dom` split is gone). Keep it pinned to `^7` — v8 requires React >= 19.2.7 and the app is on 19.2.6.
 - Don't write per-package `pnpm-lock.yaml` or `bun.lock` — the root pnpm-lock is authoritative.
 - Don't re-add `.github/dependabot.yml` version updates — Renovate owns dependency PRs now (Dependabot = security alerts only). See _Dependency automation_.
 - Don't disable `requireEmailVerification` unless a temporary migration window is needed (and roll back immediately).
