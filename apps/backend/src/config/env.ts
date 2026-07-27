@@ -39,6 +39,9 @@ interface EnvConfig {
   LASTFM_API_KEY: string | undefined;
   // MusicBrainz requires a descriptive User-Agent and bans callers without one.
   MUSICBRAINZ_USER_AGENT: string;
+  // Frontend service on the compose network. The artist page reads the deployed
+  // index.html from it to inject OG tags; a shared volume would go stale.
+  FRONTEND_ORIGIN_INTERNAL: string;
 
   // AzuraCast (radio history proxy — key must stay server-side)
   AZURACAST_BASE_URL: string;
@@ -128,6 +131,7 @@ export const env: EnvConfig = {
   LASTFM_API_KEY: optional('LASTFM_API_KEY'),
   MUSICBRAINZ_USER_AGENT:
     Bun.env.MUSICBRAINZ_USER_AGENT ?? 'AubeSonore/1.0 (https://aubesonore.fr)',
+  FRONTEND_ORIGIN_INTERNAL: Bun.env.FRONTEND_ORIGIN_INTERNAL ?? 'http://frontend',
 
   AZURACAST_BASE_URL: Bun.env.AZURACAST_BASE_URL ?? '',
   AZURACAST_API_KEY: Bun.env.AZURACAST_API_KEY ?? '',

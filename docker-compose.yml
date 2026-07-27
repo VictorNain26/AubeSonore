@@ -109,6 +109,8 @@ services:
         VITE_STATION_SHORTCODE: ${VITE_STATION_SHORTCODE:-aubesonore}
     container_name: aubesonore-frontend
     restart: unless-stopped
+    # Deliberately no depends_on: nginx resolves the backend at request time,
+    # so the static site stays servable even when the API is down.
     ports:
       - "127.0.0.1:3002:80"
     healthcheck:
