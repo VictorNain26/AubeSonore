@@ -122,10 +122,15 @@ ArtistProfile {
 
 Client-rendered React 19 metadata is **invisible to social scrapers** (they don't run JS — [React 19 blog](https://react.dev/blog/2024/12/05/react-19), [Facebook crawler](https://developers.facebook.com/docs/sharing/webmasters/crawler/)). So OG is injected **server-side**:
 
-- Elysia route for `/artist/:id` reads the built `index.html` and rewrites `<head>` with **Bun's native `HTMLRewriter`** (no dependency, encodes attribute values safely — safer than string-replace): `og:title`, `og:description`, `og:image`, `og:url`, `og:type`, and the `twitter:card=summary_large_image` pair.
+This is only possible because the frontend now runs on the same host as the backend, inside the same compose project (see `chore(infra): serve the frontend from the self-hosted stack`). While the SPA was on Vercel, the backend had no access to the built `index.html` and no way to serve the document — the reason this section previously described an unimplementable design.
+
+- **nginx** proxies `/artist/*` **document** requests to the backend over the compose network; hashed JS/CSS/image assets keep being served straight from static.
+- The backend **fetches `index.html` from the frontend container over HTTP** (`http://frontend/`) rather than mounting a shared volume — a volume would go stale on rebuild, an HTTP fetch always reflects the deployed build. Cached in `ttlCache`.
+- It rewrites `<head>` with **Bun's native `HTMLRewriter`** (no dependency, encodes attribute values safely — safer than string-replace): `og:title`, `og:description`, `og:image`, `og:url`, `og:type`, and the `twitter:card=summary_large_image` pair.
 - `og:image` is the **absolute https** Deezer URL, validated against a host allowlist before injection (see Security).
 - Rendered HTML cached per artist in `ttlCache` so repeated scrapes are cheap.
-- nginx proxies `/artist/*` **document** requests to the backend; hashed JS/CSS/image assets stay served straight from static. Not prerendering (routes are unbounded), not UA-split dynamic rendering (Google-deprecated) — the same OG-injected HTML is served to everyone; the body still hydrates client-side, so there is no UX cost. Basis: [Elysia static plugin](https://elysiajs.com/plugins/static), [Google dynamic-rendering deprecation](https://developers.google.com/search/docs/crawling-indexing/javascript/dynamic-rendering).
+- One canonical URL for humans and crawlers. Not prerendering (routes are unbounded), not UA-split dynamic rendering (Google-deprecated) — the same OG-injected HTML is served to everyone; the body still hydrates client-side, so there is no UX cost. Basis: [Google dynamic-rendering deprecation](https://developers.google.com/search/docs/crawling-indexing/javascript/dynamic-rendering).
+- The existing `/t` track-share route (`share.routes.ts` + `services/templates/sharePage.ts`) stays as it is. Its `escapeHtml` helper and its test shape — asserting on rendered `<meta>` content, including an XSS case — are the model for the artist OG tests.
 
 React 19 in-app `<title>`/`<meta>` is kept for the browser tab and Googlebot — complementary, not a substitute.
 
