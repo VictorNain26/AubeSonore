@@ -146,6 +146,6 @@ jobs:
       - name: Build (backend + frontend)
         run: pnpm turbo build --filter=@aubesonore/backend --filter=@aubesonore/frontend
 
-# Deployments handled by platform-native integrations:
-# - Vercel: connects repo, auto-deploys on push
-# - Koyeb: connects repo, auto-deploys on push
+# Deployment is manual on the self-hosted server (frontend + backend + Postgres
+# in a single compose project): `git pull && docker compose up -d --build`.
+# See the "Déploiement" section of the README.

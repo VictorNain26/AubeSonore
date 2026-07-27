@@ -88,9 +88,21 @@ Les mises à jour sont gérées par **Renovate** (`renovate.json`, source de vé
 
 ## Déploiement
 
-- **Frontend** : Vercel (déploiement automatique depuis `master`).
-- **Backend** : VPS auto-hébergé, exposé via Cloudflare Tunnel (le flux radio passe par `radio.aubesonore.fr`).
+Toute la stack est auto-hébergée sur le même serveur et exposée via Cloudflare Tunnel ; le flux radio passe par `radio.aubesonore.fr`.
+
+- **Frontend** : SPA statique buildée par `apps/frontend/Dockerfile`, servie par nginx (`aubesonore.fr`), publiée sur la loopback en `127.0.0.1:3002`.
+- **Backend** : Bun/Elysia (`api.aubesonore.fr`), publié en `127.0.0.1:3001`.
 - **Base de données** : PostgreSQL.
+
+Déploiement manuel depuis le checkout du serveur :
+
+```bash
+cd /home/victormoi/AubeSonore
+git pull
+docker compose up -d --build
+```
+
+Les variables `VITE_*` sont inlinées **au build** (ce ne sont pas des secrets) : changer l'URL de l'API impose un `--build`, pas un simple restart.
 
 `master` est protégée : une PR ne merge que si les 3 checks CI passent (Quality, Backend tests, Build all). Voir [`CLAUDE.md`](CLAUDE.md) pour les conventions et le workflow.
 

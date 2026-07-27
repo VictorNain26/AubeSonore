@@ -1,5 +1,5 @@
 # AubeSonore — self-hosted production stack (home server)
-# Frontend stays on Vercel; this hosts backend + Postgres.
+# Hosts frontend + backend + Postgres.
 # Public exposure (aubesonore.fr / api / radio) is handled by the host-level
 # cloudflared systemd service, not by this compose.
 # AzuraCast runs from its own compose (~/azuracast) and is reached via the host gateway.
@@ -94,6 +94,29 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+    logging:
+      options: { max-size: "10m", max-file: "3" }
+
+  # Static SPA served by nginx. Published on loopback only: public exposure
+  # goes through the host-level cloudflared tunnel, same as the backend.
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-https://api.aubesonore.fr}
+        VITE_AZURACAST_BASE_URL: ${VITE_AZURACAST_BASE_URL:-https://radio.aubesonore.fr}
+        VITE_STATION_SHORTCODE: ${VITE_STATION_SHORTCODE:-aubesonore}
+    container_name: aubesonore-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3002:80"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     logging:
       options: { max-size: "10m", max-file: "3" }
 
