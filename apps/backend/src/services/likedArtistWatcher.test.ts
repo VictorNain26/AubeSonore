@@ -17,8 +17,14 @@ interface SentCall {
   url: string;
 }
 
+interface RecordedPlay {
+  title: string;
+  artist: string;
+}
+
 function makeDeps(overrides: Partial<WatcherDeps> = {}) {
   const sent: SentCall[] = [];
+  const played: RecordedPlay[] = [];
   let currentTime = 1_000_000;
   const deps: WatcherDeps = {
     fetchNowPlaying: () => Promise.resolve(track(1)),
@@ -27,10 +33,14 @@ function makeDeps(overrides: Partial<WatcherDeps> = {}) {
       sent.push({ userIds, title, body, url });
       return Promise.resolve({ sent: userIds.length, failed: 0 });
     },
+    recordPlay: (title, artist) => {
+      played.push({ title, artist });
+      return Promise.resolve();
+    },
     now: () => currentTime,
     ...overrides,
   };
-  return { deps, sent, advance: (ms: number) => (currentTime += ms) };
+  return { deps, sent, played, advance: (ms: number) => (currentTime += ms) };
 }
 
 describe('createLikedArtistNotifier', () => {
@@ -125,5 +135,52 @@ describe('createLikedArtistNotifier', () => {
     await check();
 
     expect(sent).toHaveLength(0);
+  });
+});
+
+describe('radio play recording', () => {
+  it('records every new track, even when nobody liked the artist', async () => {
+    const { deps, played, sent } = makeDeps({ findUserIdsByArtist: () => Promise.resolve([]) });
+    const check = createLikedArtistNotifier(deps);
+
+    await check();
+
+    expect(sent).toHaveLength(0);
+    expect(played).toEqual([{ title: 'F Major', artist: 'Hania Rani' }]);
+  });
+
+  it('records once per sh_id, not once per poll', async () => {
+    let current = track(1);
+    const { deps, played } = makeDeps({ fetchNowPlaying: () => Promise.resolve(current) });
+    const check = createLikedArtistNotifier(deps);
+
+    await check();
+    await check();
+    current = track(2);
+    await check();
+
+    expect(played).toHaveLength(2);
+  });
+
+  it('does not record a blank artist', async () => {
+    const { deps, played } = makeDeps({
+      fetchNowPlaying: () => Promise.resolve(track(1, '   ')),
+    });
+    const check = createLikedArtistNotifier(deps);
+
+    await check();
+
+    expect(played).toHaveLength(0);
+  });
+
+  it('keeps notifying when recording the play fails', async () => {
+    const { deps, sent } = makeDeps({
+      recordPlay: () => Promise.reject(new Error('db down')),
+    });
+    const check = createLikedArtistNotifier(deps);
+
+    await check();
+
+    expect(sent).toHaveLength(1);
   });
 });

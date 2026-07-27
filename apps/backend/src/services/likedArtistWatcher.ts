@@ -3,6 +3,7 @@ import { db, schema } from '../db/index';
 import { env } from '../config/env';
 import { logger } from '../lib/logger';
 import { isPushEnabled, sendToUsers } from './pushService';
+import { recordPlay } from './radioPlayService';
 
 export interface NowPlayingTrack {
   sh_id: number;
@@ -14,6 +15,7 @@ export interface WatcherDeps {
   fetchNowPlaying: () => Promise<NowPlayingTrack | null>;
   findUserIdsByArtist: (artistLower: string) => Promise<string[]>;
   send: (userIds: string[], title: string, body: string, url: string) => Promise<unknown>;
+  recordPlay: (title: string, artist: string) => Promise<void>;
   now?: () => number;
 }
 
@@ -33,6 +35,17 @@ export function createLikedArtistNotifier(deps: WatcherDeps): () => Promise<void
 
     const artistLower = track.artist.trim().toLowerCase();
     if (!artistLower) return;
+
+    // Recorded for every new track, whether or not anyone is notified — this
+    // is the artist page's floor. A write failure must not silence the push.
+    try {
+      await deps.recordPlay(track.title, track.artist);
+    } catch (err) {
+      logger.warn('radioPlay.record_failed', {
+        artist: track.artist,
+        message: (err as Error).message,
+      });
+    }
 
     const userIds = await deps.findUserIdsByArtist(artistLower);
     const cutoff = now() - DEDUPE_MS;
@@ -96,15 +109,18 @@ async function findUserIdsByArtist(artistLower: string): Promise<string[]> {
 }
 
 export function startLikedArtistWatcher(intervalMs = 60_000): () => void {
-  if (!isPushEnabled()) {
-    logger.info('liked artist watcher disabled: VAPID keys not configured');
-    return () => {};
+  // The watcher runs even without VAPID keys: recording what the antenna
+  // plays feeds the artist page and must not depend on push being configured.
+  const pushEnabled = isPushEnabled();
+  if (!pushEnabled) {
+    logger.info('liked artist notifications disabled: VAPID keys not configured');
   }
 
   const check = createLikedArtistNotifier({
     fetchNowPlaying,
-    findUserIdsByArtist,
+    findUserIdsByArtist: pushEnabled ? findUserIdsByArtist : () => Promise.resolve([]),
     send: (userIds, title, body, url) => sendToUsers(userIds, title, body, url),
+    recordPlay,
   });
 
   const timer = setInterval(() => {
