@@ -20,6 +20,11 @@ export interface CoverGlyphProps {
   seed: string;
   /** Taille du carré : `sm` (40px) ou `md` (48px). */
   size?: 'sm' | 'md';
+  /**
+   * Libellé accessible. À préciser dès que plusieurs glyphes coexistent sur
+   * une page, sinon ils sont tous annoncés à l'identique.
+   */
+  label?: string;
   className?: string;
 }
 
@@ -27,7 +32,12 @@ export interface CoverGlyphProps {
  * Visuel de repli déterministe pour une pochette absente : teinte + onde
  * statique dérivées d'un hash du `seed`, sans animation.
  */
-export function CoverGlyph({ seed, size = 'sm', className }: CoverGlyphProps) {
+export function CoverGlyph({
+  seed,
+  size = 'sm',
+  label = 'Pochette indisponible',
+  className,
+}: CoverGlyphProps) {
   const index = hash(seed) % TINTS.length;
   const tint = TINTS[index];
 
@@ -35,7 +45,7 @@ export function CoverGlyph({ seed, size = 'sm', className }: CoverGlyphProps) {
     <div
       className={cn(SIZE[size], tint, 'relative shrink-0 overflow-hidden rounded-sm', className)}
       role="img"
-      aria-label="Pochette indisponible"
+      aria-label={label}
     >
       <svg
         viewBox="0 0 48 48"
