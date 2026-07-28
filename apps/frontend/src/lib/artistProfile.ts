@@ -21,3 +21,24 @@ export async function fetchArtistProfile(
   cache.set(id, { data: profile, expiresAt: Date.now() + TTL_MS });
   return profile;
 }
+
+/**
+ * Turns the messy artist string AzuraCast gives us into the canonical page
+ * path. The id is resolved server-side so the URL survives a restart.
+ */
+export async function resolveArtistPath(
+  name: string,
+  signal?: AbortSignal
+): Promise<string | null> {
+  const trimmed = name.trim();
+  if (!trimmed) return null;
+
+  const response = await fetch(
+    `${API_BASE_URL}/api/artist/resolve?name=${encodeURIComponent(trimmed)}`,
+    { signal: signal ?? null }
+  );
+  if (!response.ok) return null;
+
+  const { id, slug } = (await response.json()) as { id: string; slug: string };
+  return `/artist/${id}/${slug}`;
+}

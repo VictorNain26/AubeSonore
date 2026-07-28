@@ -1,7 +1,7 @@
 import * as m from 'motion/react-m';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useArtistInfo } from '../../hooks/useArtistInfo';
-import { useArtistPanelStore } from '../../stores/artistPanelStore';
+import { useArtistNavigation } from '../../hooks/useArtistNavigation';
 import { pageEntry } from '../../lib/motion';
 
 import { TrackArtwork } from './TrackArtwork';
@@ -10,7 +10,6 @@ import { Antenna } from './Antenna';
 import { PlaybackControls } from './PlaybackControls';
 import { TrackActions } from './TrackActions';
 import { SecondaryControls } from './SecondaryControls';
-import { ArtistContext } from './ArtistContext';
 import { ArtistBio } from './ArtistBio';
 import { RecentTracks } from './RecentTracks';
 
@@ -25,7 +24,7 @@ export default function Player() {
   const hasData = useNowPlayingStore((s) => s.data !== null);
   const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
   const { data } = useArtistInfo(artistName);
-  const openArtistPanel = useArtistPanelStore((s) => s.open);
+  const goToArtist = useArtistNavigation();
 
   if (!hasData) {
     return (
@@ -64,7 +63,13 @@ export default function Player() {
           </div>
           <div className={META}>
             <TrackMeta
-              onArtistInfo={data?.bio && artistName ? () => openArtistPanel(artistName) : undefined}
+              onArtistInfo={
+                data?.bio && artistName
+                  ? () => {
+                      void goToArtist(artistName);
+                    }
+                  : undefined
+              }
             />
             <div className={TRANSPORT}>
               <PlaybackControls />
@@ -79,7 +84,7 @@ export default function Player() {
             <div className="hidden lg:block">
               <ArtistBio
                 onOpenPanel={() => {
-                  if (artistName) openArtistPanel(artistName);
+                  if (artistName) void goToArtist(artistName);
                 }}
               />
             </div>
@@ -88,8 +93,6 @@ export default function Player() {
       </div>
 
       <RecentTracks />
-
-      <ArtistContext />
     </m.div>
   );
 }

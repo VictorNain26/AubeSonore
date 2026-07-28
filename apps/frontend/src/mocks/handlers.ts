@@ -64,6 +64,12 @@ export const handlers = [
     });
   }),
 
+  http.get(`${API}/api/artist/resolve`, ({ request }) => {
+    const name = new URL(request.url).searchParams.get('name');
+    if (!name || name === 'Unknown') return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json({ id: 'art_1', slug: 'simon-garfunkel' });
+  }),
+
   // AzuraCast static fallback
   http.get(`${AZURA}/api/nowplaying_static/aubesonore.json`, () =>
     HttpResponse.json(makeNowPlaying())

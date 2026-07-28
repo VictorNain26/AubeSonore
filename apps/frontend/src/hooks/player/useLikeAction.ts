@@ -3,8 +3,8 @@ import { toast } from 'sonner';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
-import { useArtistPanelStore } from '../../stores/artistPanelStore';
-import { getArtistInfo } from '../../lib/artistInfo';
+import { useArtistNavigation } from '../useArtistNavigation';
+import { resolveArtistPath } from '../../lib/artistProfile';
 import * as m from '@/paraglide/messages.js';
 
 // Encapsulates the like / unlike flow used by both TrackArtwork (current
@@ -27,6 +27,7 @@ export function useLikeAction(): UseLikeAction {
   const setLikingTrackId = useLikedTracksStore((s) => s.setLikingTrackId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const openAuthModal = useAuthModalStore((s) => s.open);
+  const goToArtist = useArtistNavigation();
 
   const toggleLike = useCallback(
     async (title: string, artist: string, artworkUrl?: string): Promise<void> => {
@@ -63,12 +64,16 @@ export function useLikeAction(): UseLikeAction {
             requestData.artworkUrl = artworkUrl;
           }
           await likeTrack(requestData);
-          const info = await getArtistInfo(artist);
-          if (info?.bio) {
+          // Resolving up front keeps the toast action honest: no "discover"
+          // button for an artist that has no page to land on.
+          const artistPath = await resolveArtistPath(artist);
+          if (artistPath) {
             toast.success(m.toast_added_to_library(), {
               action: {
                 label: m.toast_discover_artist({ artist }),
-                onClick: () => useArtistPanelStore.getState().open(artist),
+                onClick: () => {
+                  void goToArtist(artist);
+                },
               },
             });
           } else {
@@ -79,7 +84,7 @@ export function useLikeAction(): UseLikeAction {
         setLikingTrackId(null);
       }
     },
-    [likeTrack, unlikeTrack, tracks, isAuthenticated, openAuthModal, setLikingTrackId]
+    [likeTrack, unlikeTrack, tracks, isAuthenticated, openAuthModal, setLikingTrackId, goToArtist]
   );
 
   return { likingTrackId, toggleLike };

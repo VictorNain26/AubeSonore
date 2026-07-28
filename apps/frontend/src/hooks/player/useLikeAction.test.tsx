@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
+import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { renderHook, act, waitFor, screen } from '@testing-library/react';
+import { MemoryRouter, useLocation } from 'react-router';
 import { toast } from 'sonner';
 import { useLikeAction } from './useLikeAction';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
-import { useArtistPanelStore } from '../../stores/artistPanelStore';
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -13,16 +14,29 @@ vi.mock('sonner', () => ({
 
 const mockedToastSuccess = vi.mocked(toast.success);
 
+function LocationProbe() {
+  const { pathname } = useLocation();
+  return <span data-testid="path">{pathname}</span>;
+}
+
+function Wrapper({ children }: { children: ReactNode }) {
+  return (
+    <MemoryRouter initialEntries={['/']}>
+      {children}
+      <LocationProbe />
+    </MemoryRouter>
+  );
+}
+
 describe('useLikeAction', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useAuthStore.setState({ isAuthenticated: true });
     useLikedTracksStore.setState({ tracks: [], likingTrackId: null, error: null });
-    useArtistPanelStore.setState({ artistName: null });
   });
 
-  it('offers a "Découvrir" toast action opening the artist panel after a like', async () => {
-    const { result } = renderHook(() => useLikeAction());
+  it('offers a "Découvrir" toast action leading to the artist page after a like', async () => {
+    const { result } = renderHook(() => useLikeAction(), { wrapper: Wrapper });
 
     await act(() => result.current.toggleLike('Test Track', 'Test Artist'));
 
@@ -35,11 +49,13 @@ describe('useLikeAction', () => {
     expect(options.action.label).toBe('Découvrir Test Artist');
 
     act(() => options.action.onClick());
-    expect(useArtistPanelStore.getState().artistName).toBe('Test Artist');
+    await waitFor(() =>
+      expect(screen.getByTestId('path')).toHaveTextContent('/artist/art_1/simon-garfunkel')
+    );
   });
 
-  it('shows a plain toast when the artist has no bio', async () => {
-    const { result } = renderHook(() => useLikeAction());
+  it('shows a plain toast when the artist has no page to land on', async () => {
+    const { result } = renderHook(() => useLikeAction(), { wrapper: Wrapper });
 
     await act(() => result.current.toggleLike('Test Track', 'Unknown'));
 

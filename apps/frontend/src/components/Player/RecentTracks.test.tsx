@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
+import { renderWithProviders as render } from '../../test-utils';
 import { RecentTracks } from './RecentTracks';
 import { useNowPlayingStore, __resetNowPlayingStore } from '../../lib/azuracast/store';
 import { makeNowPlaying } from '../../mocks/handlers';

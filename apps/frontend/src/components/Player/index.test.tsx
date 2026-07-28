@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import { render, screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, waitFor } from '@testing-library/react';
+import { useLocation } from 'react-router';
+import { renderWithProviders } from '../../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
-import { useArtistPanelStore } from '../../stores/artistPanelStore';
 import { useArtistInfo } from '../../hooks/useArtistInfo';
 import Player from './index';
 
@@ -36,16 +37,6 @@ vi.mock('./SecondaryControls', () => ({
   SecondaryControls: () => <div data-testid="secondary">Secondary</div>,
 }));
 
-vi.mock('./ArtistContext', async () => {
-  const { useArtistPanelStore } = await import('../../stores/artistPanelStore');
-  return {
-    ArtistContext: () => {
-      const artistName = useArtistPanelStore((s) => s.artistName);
-      return artistName ? <div data-testid="artist-context">Artist Context</div> : null;
-    },
-  };
-});
-
 vi.mock('./ArtistBio', () => ({
   ArtistBio: ({ onOpenPanel }: { onOpenPanel?: () => void }) => (
     <div data-testid="artist-bio">
@@ -65,6 +56,11 @@ vi.mock('../../hooks/useArtistInfo', () => ({
 
 const mockedUseArtistInfo = vi.mocked(useArtistInfo);
 
+function LocationProbe() {
+  const { pathname } = useLocation();
+  return <span data-testid="path">{pathname}</span>;
+}
+
 beforeEach(() => {
   useNowPlayingStore.setState({
     data: null,
@@ -72,14 +68,13 @@ beforeEach(() => {
     error: null,
   });
   usePlayer.setState({ isPlaying: false });
-  useArtistPanelStore.setState({ artistName: null });
   mockedUseArtistInfo.mockReturnValue({ data: null, isLoading: false });
 });
 
 describe('Player', () => {
   it('renders skeleton when no data', () => {
     useNowPlayingStore.setState({ data: null });
-    render(<Player />);
+    renderWithProviders(<Player />);
     expect(screen.queryByTestId('artwork')).not.toBeInTheDocument();
     expect(screen.queryByTestId('meta')).not.toBeInTheDocument();
   });
@@ -101,7 +96,7 @@ describe('Player', () => {
 
     useNowPlayingStore.setState({ data: mockData as never });
     usePlayer.setState({ isPlaying: true });
-    render(<Player />);
+    renderWithProviders(<Player />);
 
     expect(screen.getByTestId('artwork')).toBeInTheDocument();
     expect(screen.getByTestId('meta')).toBeInTheDocument();
@@ -127,7 +122,7 @@ describe('Player', () => {
     };
 
     useNowPlayingStore.setState({ data: mockData as never });
-    render(<Player />);
+    renderWithProviders(<Player />);
 
     expect(screen.getByTestId('recent-tracks')).toBeInTheDocument();
   });
@@ -148,7 +143,7 @@ describe('Player', () => {
     };
 
     useNowPlayingStore.setState({ data: mockData as never });
-    render(<Player />);
+    renderWithProviders(<Player />);
 
     expect(screen.getByTestId('artwork')).toBeInTheDocument();
     expect(screen.getByTestId('meta')).toBeInTheDocument();
@@ -158,7 +153,7 @@ describe('Player', () => {
     expect(screen.getByTestId('recent-tracks')).toBeInTheDocument();
   });
 
-  it('opens the artist panel from TrackMeta when a bio exists', () => {
+  it('navigates to the artist page from TrackMeta when a bio exists', async () => {
     mockedUseArtistInfo.mockReturnValue({
       data: { bio: 'A biography.', tags: [], similarArtists: [], listeners: 0 },
       isLoading: false,
@@ -178,11 +173,17 @@ describe('Player', () => {
     };
 
     useNowPlayingStore.setState({ data: mockData as never });
-    render(<Player />);
+    renderWithProviders(
+      <>
+        <Player />
+        <LocationProbe />
+      </>
+    );
 
     fireEvent.click(screen.getByRole('button', { name: 'Info' }));
 
-    expect(useArtistPanelStore.getState().artistName).toBe('Test Artist');
-    expect(screen.getByTestId('artist-context')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByTestId('path')).toHaveTextContent('/artist/art_1/simon-garfunkel')
+    );
   });
 });
