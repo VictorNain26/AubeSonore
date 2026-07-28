@@ -1,0 +1,11 @@
+[Unit]
+Description=Poll origin/master for AubeSonore deployments
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=2min
+RandomizedDelaySec=30
+Unit=aubesonore-deploy.service
+
+[Install]
+WantedBy=timers.target
