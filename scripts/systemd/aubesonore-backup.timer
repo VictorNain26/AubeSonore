@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily AubeSonore database dump
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=20m
+Persistent=true
+Unit=aubesonore-backup.service
+
+[Install]
+WantedBy=timers.target

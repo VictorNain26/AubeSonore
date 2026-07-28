@@ -28,6 +28,22 @@ The README has setup details; this file is for Claude.
 - **Stage explicitly** (`git add <file>`) — never `git add .`/`-A`.
 - **YAGNI** — no abstractions for hypothetical future requirements. Don't add error handling for impossible cases. Three similar lines beat a premature helper.
 
+## Deployment (self-hosted, pull-based)
+
+The stack runs on the maintainer's own box. Merging to `master` is the whole deploy action — `scripts/deploy.sh`, driven by a **systemd user timer**, polls `git ls-remote` every 2 minutes and promotes `origin/master` when it moves (`git merge --ff-only` → `docker compose up -d --build` → wait for every healthcheck → prune images older than 72h).
+
+- **Pull-based on purpose.** The repo is public, and GitHub warns that "forks of your public repository can potentially run dangerous code on your self-hosted runner machine" ([docs.github.com](https://docs.github.com/en/actions/how-tos/manage-runners/self-hosted-runners/manage-access)) — so no self-hosted runner, and no inbound webhook to expose. Polling needs no credential and no open port.
+- **Schema changes stop the deploy.** `bun db:push` is manual and can drop columns, so the script refuses any revision where `apps/backend/src/db/schema.ts` differs. Apply the push by hand, then `systemctl --user start aubesonore-deploy`.
+- Install once: symlink `scripts/systemd/*` into `~/.config/systemd/user/`, then `systemctl --user enable --now aubesonore-deploy.timer`. Requires user lingering (already on). Logs: `journalctl --user -u aubesonore-deploy`.
+
+### Database backups
+
+`scripts/backup-db.sh` runs nightly at 03:30 from `aubesonore-backup.timer` and writes a `pg_dump -Fc` archive to `/media/plex/.backups/aubesonore`, retained 14 days. That path is a **physically separate disk** (`sda1`) from the NVMe holding the Docker volume — a single-disk failure must not take both.
+
+- The script refuses to dump unless the container reports `healthy`, and deletes any archive `pg_restore --list` cannot read: a corrupt dump is worse than none, because it looks like a backup.
+- Dumps are `chmod 600` in a `700` directory — they carry user emails and auth rows, on a box shared with other services.
+- To restore: `docker exec -i aubesonore-db pg_restore -U aubesonore -d <db> < <dump>`. Rehearse into a throwaway database, never straight over production.
+
 ## Quick map
 
 ```
