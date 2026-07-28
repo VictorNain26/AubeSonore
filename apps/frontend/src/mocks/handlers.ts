@@ -51,19 +51,6 @@ export const handlers = [
     HttpResponse.json({ preferences: { id: 'p1', userId: 'u1', preferredPlatform: 'spotify' } })
   ),
 
-  // Artist info
-  http.get(`${API}/api/artist`, ({ request }) => {
-    const url = new URL(request.url);
-    const name = url.searchParams.get('name');
-    if (name === 'Unknown') return new HttpResponse(null, { status: 404 });
-    return HttpResponse.json({
-      bio: `Bio for ${name ?? 'unknown'}`,
-      tags: ['rock', 'indie'],
-      similarArtists: ['Artist A', 'Artist B'],
-      listeners: 12345,
-    });
-  }),
-
   http.get(`${API}/api/artist/resolve`, ({ request }) => {
     const name = new URL(request.url).searchParams.get('name');
     if (!name || name === 'Unknown') return new HttpResponse(null, { status: 404 });

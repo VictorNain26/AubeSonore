@@ -4,7 +4,6 @@ import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
 import { useArtistNavigation } from '../useArtistNavigation';
-import { resolveArtistPath } from '../../lib/artistProfile';
 import * as m from '@/paraglide/messages.js';
 
 // Encapsulates the like / unlike flow used by both TrackArtwork (current
@@ -64,21 +63,17 @@ export function useLikeAction(): UseLikeAction {
             requestData.artworkUrl = artworkUrl;
           }
           await likeTrack(requestData);
-          // Resolving up front keeps the toast action honest: no "discover"
-          // button for an artist that has no page to land on.
-          const artistPath = await resolveArtistPath(artist);
-          if (artistPath) {
-            toast.success(m.toast_added_to_library(), {
-              action: {
-                label: m.toast_discover_artist({ artist }),
-                onClick: () => {
-                  void goToArtist(artist);
-                },
+          // Every played artist resolves to a page — resolveArtist persists a
+          // row even when no external source knows the name — so the action is
+          // always offered rather than gated behind an extra round trip here.
+          toast.success(m.toast_added_to_library(), {
+            action: {
+              label: m.toast_discover_artist({ artist }),
+              onClick: () => {
+                void goToArtist(artist);
               },
-            });
-          } else {
-            toast.success(m.toast_added_to_library());
-          }
+            },
+          });
         }
       } finally {
         setLikingTrackId(null);

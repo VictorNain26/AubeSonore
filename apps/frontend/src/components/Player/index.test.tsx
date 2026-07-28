@@ -5,7 +5,6 @@ import { renderWithProviders } from '../../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
-import { useArtistInfo } from '../../hooks/useArtistInfo';
 import Player from './index';
 
 vi.mock('./TrackArtwork', () => ({
@@ -37,24 +36,9 @@ vi.mock('./SecondaryControls', () => ({
   SecondaryControls: () => <div data-testid="secondary">Secondary</div>,
 }));
 
-vi.mock('./ArtistBio', () => ({
-  ArtistBio: ({ onOpenPanel }: { onOpenPanel?: () => void }) => (
-    <div data-testid="artist-bio">
-      Bio
-      {onOpenPanel && <button onClick={onOpenPanel}>Open</button>}
-    </div>
-  ),
-}));
-
 vi.mock('./RecentTracks', () => ({
   RecentTracks: () => <div data-testid="recent-tracks">Recent Tracks</div>,
 }));
-
-vi.mock('../../hooks/useArtistInfo', () => ({
-  useArtistInfo: vi.fn(() => ({ data: null, isLoading: false })),
-}));
-
-const mockedUseArtistInfo = vi.mocked(useArtistInfo);
 
 function LocationProbe() {
   const { pathname } = useLocation();
@@ -68,7 +52,6 @@ beforeEach(() => {
     error: null,
   });
   usePlayer.setState({ isPlaying: false });
-  mockedUseArtistInfo.mockReturnValue({ data: null, isLoading: false });
 });
 
 describe('Player', () => {
@@ -149,15 +132,10 @@ describe('Player', () => {
     expect(screen.getByTestId('meta')).toBeInTheDocument();
     expect(screen.getByTestId('controls')).toBeInTheDocument();
     expect(screen.getByTestId('secondary')).toBeInTheDocument();
-    expect(screen.getByTestId('artist-bio')).toBeInTheDocument();
     expect(screen.getByTestId('recent-tracks')).toBeInTheDocument();
   });
 
-  it('navigates to the artist page from TrackMeta when a bio exists', async () => {
-    mockedUseArtistInfo.mockReturnValue({
-      data: { bio: 'A biography.', tags: [], similarArtists: [], listeners: 0 },
-      isLoading: false,
-    });
+  it('navigates to the artist page from the track meta', async () => {
     const mockData = {
       now_playing: {
         sh_id: 1,

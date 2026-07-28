@@ -136,7 +136,7 @@ describe('GET /t', () => {
   });
 
   it('keeps the restrictive CSP on JSON routes', async () => {
-    const res = await app.handle(new Request('http://localhost/api/artist/'));
+    const res = await app.handle(new Request('http://localhost/api/artist/resolve'));
 
     expect(res.status).toBe(400);
     expect(res.headers.get('content-security-policy')).toBe(

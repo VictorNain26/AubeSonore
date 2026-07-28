@@ -95,6 +95,7 @@ The artist page at `/artist/:id/:slug` composes four sources; each is isolated, 
 - Every service uses `TtlCache` + a circuit breaker + `createSingleFlight`, so a cold popular page triggers one upstream call, not one per listener.
 - **OG tags**: nginx proxies `/artist/*` documents to `artistPage.routes`, which fetches the deployed `index.html` from the frontend container and injects meta via `HTMLRewriter`. `og:image` is restricted to an allowlist of Deezer CDN hosts. nginx resolves the backend through a variable so the static site survives an API outage — don't turn it back into a literal upstream.
 - Deezer images are **hotlinked, never re-hosted**.
+- **One enrichment path only.** The old `GET /api/artist?name=`, its `lib/artistInfo.ts` client cache and the in-player bio panel are gone — a second, Last.fm-only pipeline with its own cache and failure modes. Artist links go through `resolveArtistPath` → `/artist/:id/:slug`. Don't reintroduce a by-name lookup: `resolveArtist` persists a row even when no external source knows the name, so every played artist has a page and the link never needs gating.
 
 ## SSRF, headers, and other security baselines
 

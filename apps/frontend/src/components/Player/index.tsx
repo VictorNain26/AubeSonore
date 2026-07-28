@@ -1,6 +1,5 @@
 import * as m from 'motion/react-m';
 import { useNowPlayingStore } from '../../lib/azuracast';
-import { useArtistInfo } from '../../hooks/useArtistInfo';
 import { useArtistNavigation } from '../../hooks/useArtistNavigation';
 import { pageEntry } from '../../lib/motion';
 
@@ -10,7 +9,6 @@ import { Antenna } from './Antenna';
 import { PlaybackControls } from './PlaybackControls';
 import { TrackActions } from './TrackActions';
 import { SecondaryControls } from './SecondaryControls';
-import { ArtistBio } from './ArtistBio';
 import { RecentTracks } from './RecentTracks';
 
 const NOW =
@@ -23,7 +21,6 @@ const ACTIONS = 'flex items-center gap-2 justify-center lg:justify-start';
 export default function Player() {
   const hasData = useNowPlayingStore((s) => s.data !== null);
   const artistName = useNowPlayingStore((s) => s.data?.now_playing?.song.artist);
-  const { data } = useArtistInfo(artistName);
   const goToArtist = useArtistNavigation();
 
   if (!hasData) {
@@ -64,7 +61,7 @@ export default function Player() {
           <div className={META}>
             <TrackMeta
               onArtistInfo={
-                data?.bio && artistName
+                artistName
                   ? () => {
                       void goToArtist(artistName);
                     }
@@ -80,13 +77,6 @@ export default function Player() {
             <div className={ACTIONS}>
               <TrackActions />
               <SecondaryControls />
-            </div>
-            <div className="hidden lg:block">
-              <ArtistBio
-                onOpenPanel={() => {
-                  if (artistName) void goToArtist(artistName);
-                }}
-              />
             </div>
           </div>
         </div>

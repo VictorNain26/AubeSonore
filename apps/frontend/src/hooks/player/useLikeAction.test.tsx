@@ -54,12 +54,19 @@ describe('useLikeAction', () => {
     );
   });
 
-  it('shows a plain toast when the artist has no page to land on', async () => {
+  it('leaves the listener in place when the artist cannot be resolved', async () => {
     const { result } = renderHook(() => useLikeAction(), { wrapper: Wrapper });
 
     await act(() => result.current.toggleLike('Test Track', 'Unknown'));
 
     await waitFor(() => expect(mockedToastSuccess).toHaveBeenCalled());
-    expect(mockedToastSuccess).toHaveBeenCalledWith('Ajouté à votre bibliothèque');
+    const [, options] = mockedToastSuccess.mock.calls[0] as [
+      string,
+      { action: { label: string; onClick: () => void } },
+    ];
+
+    act(() => options.action.onClick());
+    await waitFor(() => expect(screen.getByTestId('path')).toHaveTextContent('/'));
+    expect(screen.getByTestId('path')).not.toHaveTextContent('/artist');
   });
 });

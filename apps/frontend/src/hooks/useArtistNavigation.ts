@@ -13,7 +13,9 @@ export function useArtistNavigation(): (name: string) => Promise<void> {
 
   return useCallback(
     async (name: string) => {
-      const path = await resolveArtistPath(name);
+      // Callers fire this from a click handler, so a network hiccup must not
+      // surface as an unhandled rejection — staying put is the right failure.
+      const path = await resolveArtistPath(name).catch(() => null);
       if (path) await navigate(path);
     },
     [navigate]
