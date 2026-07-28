@@ -45,6 +45,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - pg_certs:/certs:ro
+    # This box is a shared homelab running ~22 containers; a runaway here must
+    # not take Plex down with it. The ceilings sit ~20x above observed steady
+    # state, so they cap accidents without throttling normal work.
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aubesonore}"]
       interval: 10s
@@ -88,6 +96,11 @@ services:
       - pg_certs:/certs:ro
     ports:
       - "127.0.0.1:3001:3000"
+    cpus: 2.0
+    mem_limit: 1g
+    pids_limit: 512
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
       interval: 30s
@@ -111,6 +124,11 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:3002:80"
+    cpus: 0.5
+    mem_limit: 128m
+    pids_limit: 128
+    security_opt:
+      - no-new-privileges:true
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
       interval: 30s
