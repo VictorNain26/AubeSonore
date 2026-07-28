@@ -108,6 +108,12 @@ const server = app.listen({ port: env.PORT, hostname: '0.0.0.0' });
 
 logger.info('listening', { port: env.PORT, env: env.NODE_ENV });
 
+if (env.IS_PROD && env.DISABLE_EMAILS) {
+  logger.error('email.disabled_in_production', {
+    impact: 'verification and password-reset mails are dropped, so only OAuth sign-up works',
+  });
+}
+
 if (!env.AZURACAST_BASE_URL || !env.AZURACAST_API_KEY) {
   console.warn(
     '/api/radio/history will return 502 until AZURACAST_BASE_URL and AZURACAST_API_KEY are set'

@@ -161,3 +161,11 @@ if (env.VAPID_PRIVATE_KEY && !env.VAPID_PUBLIC_KEY) {
 if (env.SMTP_HOST && (!env.SMTP_USER || !env.SMTP_PASSWORD)) {
   throw new Error('SMTP_HOST set but SMTP_USER or SMTP_PASSWORD missing');
 }
+// Signing up requires a verified email (lib/auth `requireEmailVerification`),
+// so a production deploy with no mail transport locks every new account out
+// while every request still answers 200. Refuse to start instead.
+if (env.IS_PROD && !env.DISABLE_EMAILS && !env.SMTP_HOST) {
+  throw new Error(
+    'SMTP_HOST is required in production: without it email verification silently fails and nobody can register. Set DISABLE_EMAILS=true to accept that explicitly.'
+  );
+}
