@@ -87,6 +87,11 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-AubeSonore <noreply@aubesonore.fr>}
       DISABLE_EMAILS: ${DISABLE_EMAILS:-false}
       ENABLE_CRON: ${ENABLE_CRON:-false}
       AZURACAST_BASE_URL: ${AZURACAST_BASE_URL:-http://host.docker.internal:8080}
