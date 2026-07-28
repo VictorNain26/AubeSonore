@@ -47,7 +47,7 @@ const preview: Preview = {
         }
       }, [theme]);
       return (
-        <div className="min-h-screen bg-surface p-8 font-sans text-text">
+        <div className="bg-surface text-text min-h-screen p-8 font-sans">
           <Story />
         </div>
       );
