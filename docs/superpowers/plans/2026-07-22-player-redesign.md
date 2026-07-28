@@ -44,10 +44,10 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
       onClick={onTogglePlay}
       transition={toggleTransition}
       className={cn(
-        'size-14 rounded-full flex items-center justify-center shrink-0 cursor-pointer',
-        'bg-accent text-on-accent transition duration-200 ease-out-quart',
+        'flex size-14 shrink-0 cursor-pointer items-center justify-center rounded-full',
+        'bg-accent text-on-accent ease-out-quart transition duration-200',
         'hover:opacity-90 active:opacity-80 motion-safe:hover:scale-105 motion-safe:active:scale-95',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
+        'focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2'
       )}
       aria-label={isPlaying ? 'Arrêter la lecture' : 'Lancer la lecture'}
       aria-pressed={isPlaying}
@@ -71,7 +71,7 @@ export function PlaybackControlsView({ isPlaying, onTogglePlay }: PlaybackContro
             exit={{ opacity: 0, scale: 0.8 }}
             transition={toggleTransition}
           >
-            <Play className="size-6 ml-0.5 fill-current" strokeWidth={0} />
+            <Play className="ml-0.5 size-6 fill-current" strokeWidth={0} />
           </m.span>
         )}
       </AnimatePresence>
@@ -156,7 +156,7 @@ Expected: FAIL (pas d'attribut `title`, pas de classe `line-clamp-2`).
   key={shId ?? 'waiting'}
   {...inkFlip}
   title={title || undefined}
-  className="font-display text-title lg:text-display font-medium text-text [text-wrap:balance] line-clamp-2"
+  className="font-display text-title lg:text-display text-text line-clamp-2 font-medium [text-wrap:balance]"
 >
   {title || 'Chargement du direct'}
 </m.h2>
@@ -314,7 +314,7 @@ Conserver tout le reste (rAF, refs, dpr/ResizeObserver, `strokeStyle` par état,
 Dans `src/design/organisms/WaveformCanvas.tsx`, passer la classe du canvas de `h-8` à `h-10` :
 
 ```tsx
-return <canvas ref={canvasRef} className="w-full max-w-full h-10" aria-hidden="true" />;
+return <canvas ref={canvasRef} className="h-10 w-full max-w-full" aria-hidden="true" />;
 ```
 
 - [ ] **Step 7: Typecheck + lint + test**
@@ -509,7 +509,7 @@ export function TrackMetaView({ inkFlip, title, artist, shId, onArtistInfo }: Tr
           key={shId ?? 'waiting'}
           {...inkFlip}
           title={title || undefined}
-          className="font-display text-title lg:text-display font-medium text-text [text-wrap:balance] line-clamp-2"
+          className="font-display text-title lg:text-display text-text line-clamp-2 font-medium [text-wrap:balance]"
         >
           {title || 'Chargement du direct'}
         </m.h2>
@@ -518,12 +518,12 @@ export function TrackMetaView({ inkFlip, title, artist, shId, onArtistInfo }: Tr
         <m.p
           key={artist ?? 'waiting'}
           {...inkFlip}
-          className="mt-1 lg:mt-2 text-lead text-text-muted"
+          className="text-lead text-text-muted mt-1 lg:mt-2"
         >
           {onArtistInfo && artist ? (
             <button
               onClick={onArtistInfo}
-              className="cursor-pointer underline decoration-border underline-offset-4 hover:decoration-text focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent rounded-sm transition-colors"
+              className="decoration-border hover:decoration-text focus-visible:outline-accent cursor-pointer rounded-sm underline underline-offset-4 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {artist}
             </button>
@@ -645,14 +645,14 @@ export default function Player() {
         <div className="flex min-h-0 min-w-0 flex-col items-center justify-center px-6 py-4">
           <div className={NOW}>
             <div className="artwork-size shrink-0">
-              <div className="aspect-square rounded-md animate-pulse bg-surface-raised" />
+              <div className="bg-surface-raised aspect-square animate-pulse rounded-md" />
             </div>
             <div className={META}>
-              <div className="h-9 w-3/4 animate-pulse rounded-sm bg-surface-raised" />
-              <div className="h-5 w-1/3 animate-pulse rounded-sm bg-surface-raised" />
+              <div className="bg-surface-raised h-9 w-3/4 animate-pulse rounded-sm" />
+              <div className="bg-surface-raised h-5 w-1/3 animate-pulse rounded-sm" />
               <div className={TRANSPORT}>
-                <div className="size-14 shrink-0 animate-pulse rounded-full bg-surface-raised" />
-                <div className="h-10 flex-1 animate-pulse rounded-sm bg-surface-raised" />
+                <div className="bg-surface-raised size-14 shrink-0 animate-pulse rounded-full" />
+                <div className="bg-surface-raised h-10 flex-1 animate-pulse rounded-sm" />
               </div>
             </div>
           </div>
