@@ -146,6 +146,25 @@ jobs:
       - name: Build (backend + frontend)
         run: pnpm turbo build --filter=@aubesonore/backend --filter=@aubesonore/frontend
 
-# Deployment is manual on the self-hosted server (frontend + backend + Postgres
-# in a single compose project): `git pull && docker compose up -d --build`.
-# See the "Déploiement" section of the README.
+      # The workspace build above never touches the Dockerfiles, so a broken
+      # image shipped to master unnoticed (a COPY of a directory deleted months
+      # earlier). Deployment builds these images, so CI must too.
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/frontend/Dockerfile
+          push: false
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max
