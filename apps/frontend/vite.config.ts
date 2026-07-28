@@ -13,7 +13,7 @@ export default defineConfig(({ mode }) => {
   const analyze = env.ANALYZE === 'true';
 
   return {
-    base: './',
+    base: '/',
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
