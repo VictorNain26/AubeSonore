@@ -25,10 +25,13 @@ mkdir -p "$DEST"
 chmod 700 "$DEST"
 
 # --ignore-failed-read serait une erreur ici : une config absente doit se voir.
+# .git porte les guides (CLAUDE.md, RUNBOOK.md) et l'historique des décisions
+# d'infrastructure : 48 Ko qui évitent de les réécrire de mémoire.
 tar -czf "$TARGET" -C "$SRC" \
     docker-compose.yml \
     .env \
-    azuracast.env
+    azuracast.env \
+    .git
 chmod 600 "$TARGET"
 
 # Une archive illisible est pire que pas d'archive : elle ressemble à une sauvegarde.
