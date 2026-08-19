@@ -13,11 +13,19 @@ reconstruire seule depuis un dépôt public.
 | `docker-compose.yml`, `.env.example` | ce dépôt | oui | rien ne redémarre |
 | `azuracast.env` (dont `MYSQL_PASSWORD`) | hors git | non — sauvegarde | base inaccessible |
 | `.env` | hors git | non — voir `.env.example` | ports par défaut, collisions |
-| `stations/` (média, config station) | disque local | non — sauvegarde | catalogue perdu |
-| Base MariaDB | volume Docker | non — sauvegarde AzuraCast | métadonnées, comptes, playlists |
+| `stations/` (média) | NVMe uniquement | **aucune sauvegarde** | catalogue perdu, sans recours |
+| `stations/*/config/` | NVMe | inclus dans la sauvegarde AzuraCast | station à reconfigurer |
+| Base MariaDB | volume Docker | sauvegarde AzuraCast quotidienne | métadonnées, comptes, playlists |
 
-`scripts/backup-config.sh` copie les fichiers de configuration (dont les secrets)
-hors du NVMe. Les médias et la base ont leurs propres sauvegardes.
+`scripts/backup-config.sh` copie la configuration et les secrets hors du NVMe.
+La base a sa propre sauvegarde quotidienne (~2 Mo, sur un disque distinct).
+
+**Les médias n'ont délibérément aucune sauvegarde** (décision d'août 2026). La
+perte du NVMe signifie donc : la base se restaure, mais elle référencera des
+fichiers qui n'existent plus. Le rattrapage consiste à laisser le pipeline
+reconstituer une bibliothèque — ce ne seront pas les mêmes morceaux. Si cet
+arbitrage change, la sauvegarde à écrire est une copie de `stations/*/media`
+vers un disque distinct ; sans elle, ce tableau reste la vérité.
 
 ## 1. AzuraCast
 
