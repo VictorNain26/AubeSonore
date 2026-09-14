@@ -9,7 +9,6 @@ from array import array
 
 Weights = dict[tuple[str, str], float]
 
-_RECIPROCAL_NEAREST_NEIGHBOURS = 2
 _MIN_SIZE_FOR_LINKAGE = 3
 
 
@@ -40,7 +39,7 @@ def _linkage(
             chain = [min(active, key=lambda i: key[i])]
         a = chain[-1]
         b = min((i for i in active if i != a), key=lambda i: (d[a * size + i], key[i]))
-        if len(chain) >= _RECIPROCAL_NEAREST_NEIGHBOURS and chain[-2] == b:
+        if len(chain) > 1 and chain[-2] == b:
             chain.pop()
             chain.pop()
             left, right = (a, b) if key[a] < key[b] else (b, a)
