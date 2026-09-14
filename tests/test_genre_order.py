@@ -1,13 +1,10 @@
-import duckdb
-
-
-def test_cooccurrence_pairs_are_unordered_and_unique(con: duckdb.DuckDBPyConnection) -> None:
+def test_cooccurrence_pairs_are_unordered_and_unique(con):
     row = con.execute("SELECT count(*) FROM genre_cooccurrence WHERE genre_a >= genre_b").fetchone()
     assert row is not None
     assert row[0] == 0
 
 
-def test_cooccurrence_counts_the_bands_two_genres_share(con: duckdb.DuckDBPyConnection) -> None:
+def test_cooccurrence_counts_the_bands_two_genres_share(con):
     # The witnesses are small enough to state the answer independently: this
     # recomputes the count from bands rather than from the table under test.
     rows = con.execute(
@@ -21,7 +18,7 @@ def test_cooccurrence_counts_the_bands_two_genres_share(con: duckdb.DuckDBPyConn
     assert all(n == recomputed for _, _, n, recomputed in rows)
 
 
-def test_cosine_is_the_shared_count_over_the_geometric_mean(con: duckdb.DuckDBPyConnection) -> None:
+def test_cosine_is_the_shared_count_over_the_geometric_mean(con):
     row = con.execute(
         "SELECT count(*) FROM genre_cooccurrence co "
         "WHERE abs(co.cosine - co.n_bands / sqrt("
