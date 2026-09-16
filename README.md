@@ -103,7 +103,7 @@ Le déploiement est automatique et _pull-based_ : merger sur `master` suffit. Su
 
 Aucun runner self-hosted ni webhook entrant : le dépôt est public, et le polling ne demande ni credential ni port ouvert. Un changement de `apps/backend/src/db/schema.ts` bloque le déploiement, car `bun db:push` reste manuel (il peut supprimer des colonnes) : appliquer le push à la main, puis relancer `systemctl --user start aubesonore-deploy`.
 
-Installation, une fois, sur le serveur (unités et script supposent le checkout dans `~/AubeSonore` ; ailleurs, ajuster `ExecStart` et définir `REPO_DIR`) :
+Installation, une fois, sur le serveur (unités et script supposent le checkout dans `~/radio/aubesonore` ; ailleurs, ajuster `ExecStart` et définir `REPO_DIR`) :
 
 ```bash
 ln -s <checkout>/scripts/systemd/* ~/.config/systemd/user/
