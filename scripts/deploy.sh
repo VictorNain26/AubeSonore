@@ -19,18 +19,15 @@ if [ "$current" = "$target" ]; then
 fi
 
 git fetch --quiet origin master
+target=$(git rev-parse origin/master)
 
-# Comparer deux SHA ne suffit pas : dès que HEAD porte un commit local non
-# poussé, il ne peut plus jamais égaler origin/master. Le script se croyait
-# alors en retard à chaque passage, `git merge --ff-only` répondait "Already
-# up to date." avec un code 0 sans bouger HEAD, et `docker compose up --build`
-# repartait — toutes les 2,5 minutes, indéfiniment. Observé le 2026-08-19 :
-# 103 déploiements inutiles en trois heures.
-#
-# La bonne question n'est pas "HEAD vaut-il origin/master ?" mais "origin/master
-# est-il déjà contenu dans HEAD ?".
+# Comparing SHAs is not enough: once HEAD carries an unpushed local commit it
+# can never equal origin/master, so every run saw itself behind, `git merge
+# --ff-only` answered "Already up to date." with exit 0, and `docker compose up
+# --build` ran again every 2.5 minutes (103 useless deploys in three hours on
+# 2026-08-19). The real question is whether origin/master is already in HEAD.
 if git merge-base --is-ancestor "$target" HEAD; then
-  echo "origin/master (${target:0:8}) déjà contenu dans HEAD (${current:0:8}) — rien à promouvoir"
+  echo "origin/master (${target:0:8}) already in HEAD (${current:0:8}), nothing to promote"
   exit 0
 fi
 
