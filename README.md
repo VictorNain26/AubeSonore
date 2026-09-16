@@ -1,6 +1,6 @@
 # musilogy
 
-Couche 0 : transforme deux dumps JSON MusicBrainz en cinq tables reproductibles et testées. Ce dépôt ne contient aucune interface — la frise chronologique qui consommera ces tables (couche 1) n'existe pas encore.
+Couche 0 : transforme deux dumps JSON MusicBrainz en cinq tables reproductibles et testées, et projette la frise chronologique en trois blobs binaires. La couche 1, la frise elle-même, n'en est qu'aux fondations : `web/` contient les décodeurs de ces blobs, testés contre la livraison versionnée, mais aucune interface — `web/index.html` a encore un `<body>` vide.
 
 ## Principe directeur
 
@@ -60,7 +60,11 @@ Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la n
 
 - **`60_density` — Densité.** Délibérément plus étroite que la population : type `Group`, `y0` connu, au moins un genre, **et un genre `density_eligible`** — la règle est matérialisée dans `55_genre_reliability`, ce fichier ne fait que l'appliquer. Un groupe compte dans chacun de ses genres ; les totaux par genre ne s'additionnent pas.
 
+- **`70_frieze` — Projection de la frise.** Une ligne par groupe dessinable, groupe pour groupe exactement la population de `density` : un groupe absent de `density` n'aurait aucune cellule où se placer. Paire par paire, elle est plus large, et délibérément : un groupe entre par un genre `density_eligible`, puis le blob porte tous les genres qu'il déclare ; les masquer revient au rendu. Chaque ligne reçoit un rang `i`, dans l'ordre `(y0, mbid)`, qui sert d'identité dans les blobs à la place du `mbid`. `y_end_is_declared` voyage à côté de `y1` (`y_presence_end`) pour que la frise ne dessine pas une fin que la source n'a jamais déclarée ; `n_albums`, plafonné à 255, est la clé de tri — un nombre que la source porte, là où un score de notoriété serait inventé.
+
 - **`80_members` — Membres.** Les relations `member of band`, dédoublonnées, avec leurs années lues par la même macro stricte que partout ailleurs.
+
+- **`85_lineage` — Filiation.** Deux groupes de la frise sont liés quand ils partagent au moins un musicien ; `shared` compte ces musiciens, plafonné à 255. **Ce n'est pas de l'influence** : MusicBrainz ne porte aucune relation d'influence, et la propriété P737 de Wikidata ne couvre que 624 groupes sur 682 447. L'arête va du groupe formé le plus tôt vers le plus tard ; à année de formation égale, la paire est écartée plutôt qu'orientée arbitrairement. Les deux extrémités appartiennent à `frieze` : une arête vers un groupe non dessinable n'aurait nulle part où arriver.
 
 - **`90_invariants` — Contrôles.** Des vues qui doivent toutes renvoyer zéro ligne ; le nom de la vue *est* le nom de l'invariant. Chacune **recalcule indépendamment** ce qu'elle vérifie : une revue a montré qu'un invariant réutilisant la formule de production restait muet sur 265 violations réelles. Les bornes contractuelles y sont codées en dur, aux deux extrémités, sans relire les variables de session de la production ; changer de dump impose donc une modification délibérée de ce fichier — c'est l'intention.
 
@@ -150,11 +154,26 @@ Deux niveaux de test :
 La suite passe depuis n'importe quel répertoire : tous les chemins sont ancrés sur le paquet (`musilogy.paths`), jamais sur le répertoire courant.
 
 ```bash
-uv run musilogy run             # fetch → extract → transform → validate → publish
-uv run musilogy make-fixtures   # régénère les témoins depuis les extractions
+uv run musilogy run                 # fetch → extract → transform → validate → publish
+uv run musilogy make-fixtures       # régénère les témoins depuis les extractions
+uv run musilogy make-web-fixtures   # régénère les blobs témoins lus par les tests de web/
+uv run musilogy sync-web            # copie la livraison courante dans web/public/data/
 ```
 
-Qualité : `uv run ruff check`, `uv run ruff format --check`, `uv run mypy`. La CI (`.github/workflows/ci.yml`) passe ces trois contrôles plus la suite rapide ; la suite lente exige le dump et reste manuelle.
+`web/public/data/` est la seule sortie versionnée : `tests/test_delivery.py` vérifie chaque fichier contre les empreintes du manifeste livré avec lui.
+
+Qualité : `uv run ruff check`, `uv run ruff format --check`, `uv run mypy`. Côté `web/` (Node et pnpm, versions fixées par `web/.nvmrc` et `packageManager`) :
+
+```bash
+cd web
+pnpm install
+pnpm run check   # biome ci
+pnpm run types   # tsc --noEmit
+pnpm run test    # vitest
+pnpm run build   # vite build
+```
+
+La CI (`.github/workflows/ci.yml`) passe les trois contrôles Python plus la suite rapide, et ces quatre commandes dans `web/` ; la suite lente exige le dump et reste manuelle.
 
 ## Structure du dépôt
 
@@ -164,7 +183,7 @@ src/musilogy/
   extract.py             projette les enregistrements bruts en flux, sans logique métier
   build.py               enchaîne les fichiers SQL, applique les corrections, vérifie les invariants
   publish.py             écrit Parquet, JSON colonnaire scindé et manifest.json
-  cli.py                 les deux commandes
+  cli.py                 les quatre commandes
   paths.py               chemins ancrés sur le paquet
   corrections.csv        corrections manuelles, versionné
   reference/             empreintes officielles des archives
@@ -173,6 +192,12 @@ tests/
   conftest.py            fixtures partagées
   fixtures/              témoins réels versionnés
   test_*.py              une suite par règle, plus test_baseline.py (suite lente)
+web/
+  src/blob/              décodeurs des trois blobs et du gzip, sans interface
+  tests/                 tests vitest, sur des blobs témoins et sur la livraison
+  public/data/           livraison versionnée : blobs, genres, densité, manifeste
+  index.html             page vide, en attente de la couche 1
+docs/superpowers/specs/  spécification de la frise, dont les formats binaires
 ```
 
 ## Licence et attribution
