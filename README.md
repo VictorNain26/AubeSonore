@@ -82,9 +82,11 @@ pnpm --filter @aubesonore/backend test           # bun test
 
 Détails par app : [backend](apps/backend/README.md) · [frontend](apps/frontend/README.md).
 
-## Dépendances (Renovate)
+## Dépendances
 
-Les mises à jour sont gérées par **Renovate** (`renovate.json`, source de vérité de la policy). Les updates sûres (patch/minor des devDependencies, patches runtime stables, GitHub Actions) sont **auto-mergées après CI verte** ; majors et images Docker passent en **revue manuelle**. Les alertes de sécurité restent gérées par Dependabot. Le _Dependency Dashboard_ (issue GitHub) liste ce qui est en attente.
+Les PR de dépendances viennent des **mises à jour de sécurité Dependabot** (alertes et correctifs automatiques activés dans les réglages du dépôt, sans `.github/dependabot.yml`, donc sans mises à jour de version planifiées). Elles passent la CI et sont mergées **à la main** : aucune n'est auto-mergée. Les autres montées de version se font manuellement.
+
+`renovate.json` décrit une policy Renovate (auto-merge des updates sûres, revue manuelle des majors), mais Renovate n'a jamais ouvert de PR ni de _Dependency Dashboard_ sur ce dépôt : cette configuration n'est pas active.
 
 ## Déploiement
 
