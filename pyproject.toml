@@ -1,0 +1,52 @@
+[project]
+name = "aubesonore-radio"
+version = "3.0.0"
+description = "AubeSonore — goût et découverte"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "typer>=0.27",
+    "pydantic>=2.13",
+    "pydantic-settings>=2.15",
+    "requests>=2.34",
+    "stamina>=26.1",
+    "pyrate-limiter>=4.5,<5",
+    "plexapi>=4.18",
+]
+
+[project.scripts]
+radio = "radio.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1",
+    "responses>=0.25",
+    "mypy>=2.3",
+    "ruff>=0.16",
+    "types-requests",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["radio"]
+artifacts = ["radio/core/migrations/*.sql"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests_radio"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+include = ["radio/**/*.py", "tests_radio/**/*.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["radio"]
+strict = true
+plugins = ["pydantic.mypy"]
+untyped_calls_exclude = ["plexapi"]

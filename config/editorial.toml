@@ -1,0 +1,5 @@
+# Réglages éditoriaux AubeSonore v3 — validés au chargement (radio/core/config.py).
+
+[library]
+# Écart maximal de durée (secondes) entre le titre Plex et le titre Deezer rapproché.
+duration_tolerance_s = 3

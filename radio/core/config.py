@@ -1,0 +1,41 @@
+"""Configuration : secrets et chemins depuis .env, réglages éditoriaux depuis un TOML validé."""
+
+import tomllib
+from pathlib import Path
+
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=REPO_ROOT / ".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+    plex_url: str = "http://127.0.0.1:32400"
+    # repr=False : exclure du repr, pas seulement masquer la valeur — le nom du champ
+    # « plex_token » contient lui-même la sous-chaîne du secret dans les tests.
+    plex_token: SecretStr | None = Field(default=None, repr=False)
+    plex_music_section: str | None = None
+    # Seule racine dont on accepte les chemins de section renvoyés par Plex.
+    plex_music_root: Path = Path("/media/plex/Musique")
+    lastfm_api_key: SecretStr | None = Field(default=None, repr=False)
+    data_dir: Path = Field(default=REPO_ROOT / "data", validation_alias="RADIO_DATA_DIR")
+    config_dir: Path = Field(default=REPO_ROOT / "config", validation_alias="RADIO_CONFIG_DIR")
+
+
+class LibraryConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    duration_tolerance_s: int = Field(default=3, ge=0, le=10)
+
+
+class Editorial(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    library: LibraryConfig = LibraryConfig()
+
+
+def load_editorial(path: Path) -> Editorial:
+    with path.open("rb") as f:
+        return Editorial.model_validate(tomllib.load(f))

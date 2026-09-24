@@ -47,3 +47,6 @@ scripts/.cache
 
 # System
 .DS_Store
+
+# v3
+.superpowers/
