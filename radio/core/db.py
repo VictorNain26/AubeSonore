@@ -22,6 +22,13 @@ def _migrate(conn: sqlite3.Connection) -> None:
         version = int(script.name.split("_", 1)[0])
         if version <= current:
             continue
-        with conn:
-            conn.executescript(script.read_text(encoding="utf-8"))
-            conn.execute(f"PRAGMA user_version = {version}")
+        sql = script.read_text(encoding="utf-8")
+        # Un seul script : le schéma et user_version (transactionnel) passent ensemble ou pas du
+        # tout. Un executescript nu validerait chaque instruction une à une.
+        try:
+            conn.executescript(f"BEGIN;\n{sql}\nPRAGMA user_version = {version};\nCOMMIT;")
+        except sqlite3.Error:
+            # executescript s'arrête sur l'erreur sans annuler : la transaction resterait ouverte
+            # et garderait le verrou d'écriture.
+            conn.rollback()
+            raise

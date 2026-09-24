@@ -24,6 +24,32 @@ def test_connect_is_idempotent(tmp_path: Path) -> None:
     assert conn.execute("PRAGMA user_version").fetchone()[0] == 1
 
 
+def test_failed_migration_leaves_nothing_behind(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    migrations = tmp_path / "migrations"
+    migrations.mkdir()
+    script = migrations / "001_test.sql"
+    script.write_text("CREATE TABLE partial (x INTEGER);\nINSERT INTO missing VALUES (1);\n")
+    monkeypatch.setattr("radio.core.db.MIGRATIONS", migrations)
+    db = tmp_path / "radio.db"
+
+    with pytest.raises(sqlite3.OperationalError):
+        connect(db)
+
+    check = sqlite3.connect(db)
+    names = {r[0] for r in check.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert "partial" not in names
+    assert check.execute("PRAGMA user_version").fetchone()[0] == 0
+    check.close()
+
+    script.write_text("CREATE TABLE partial (x INTEGER);\nINSERT INTO partial VALUES (1);\n")
+    conn = connect(db)
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 1
+    assert [tuple(r) for r in conn.execute("SELECT x FROM partial")] == [(1,)]
+    conn.close()
+
+
 def test_match_row_consistency_is_enforced(tmp_path: Path) -> None:
     conn = connect(tmp_path / "radio.db")
     conn.execute(
