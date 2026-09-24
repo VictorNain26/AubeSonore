@@ -61,7 +61,7 @@ def _pct(a: int, b: int) -> str:
 def _match_line(rep: MatchReport) -> str:
     n_un = sum(rep.unmatched.values())
     details = ", ".join(
-        f"{label} {rep.unmatched[k]}" for k, label in _REASONS if rep.unmatched.get(k)
+        f"{label} {_n(rep.unmatched[k])}" for k, label in _REASONS if rep.unmatched.get(k)
     )
     un = f"{_n(n_un)} non trouvés" + (f" ({details})" if details else "")
     return (
@@ -81,6 +81,8 @@ def library_sync() -> None:
     logging.basicConfig(
         level=logging.INFO, stream=sys.stderr, format="%(asctime)s %(levelname)s %(message)s"
     )
+    # À WARNING, urllib3 peut journaliser l'URL complète, clé Last.fm comprise.
+    logging.getLogger("urllib3").setLevel(logging.ERROR)
     settings = _settings()
     editorial = load_editorial(settings.config_dir / "editorial.toml")
     now = datetime.now(UTC).isoformat()
@@ -90,7 +92,7 @@ def library_sync() -> None:
     except LibraryGuardError as e:
         _fail(f"Bibliothèque refusée : {e}", 2)
     except (requests.RequestException, PlexApiException) as e:
-        _fail(f"Plex injoignable ({type(e).__name__})", 1)
+        _fail(f"Plex en erreur ({type(e).__name__})", 1)
     conn = connect(settings.data_dir / "radio.db")
     try:
         sync = sync_library(conn, tracks, now)

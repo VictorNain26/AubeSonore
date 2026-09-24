@@ -1,12 +1,17 @@
+import logging
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
+import requests
+from plexapi.exceptions import Unauthorized
 from typer.testing import CliRunner
 
 import radio.cli as cli
 from radio.core.config import Settings
+from radio.library.match import MatchReport
 from radio.sources.deezer import DeezerTrack, DeezerUnavailable
-from radio.sources.plex import PlexTrack
+from radio.sources.plex import LibraryGuardError, PlexTrack
 
 runner = CliRunner()
 
@@ -87,3 +92,68 @@ def test_deezer_unavailable_exits_1(env: Path, monkeypatch: pytest.MonkeyPatch) 
 def test_thousands_are_formatted_in_french() -> None:
     assert cli._n(3424) == "3\u202f424"
     assert cli._pct(2900, 3424) == "84,7 %"
+
+
+def _raise(exc: Exception) -> Callable[[Settings], FakePlex]:
+    def plex(settings: Settings) -> FakePlex:
+        raise exc
+
+    return plex
+
+
+def test_library_guard_error_exits_2(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli, "_plex", _raise(LibraryGuardError("section interdite : X")))
+    res = runner.invoke(cli.app, ["library-sync"])
+    assert res.exit_code == 2
+    assert "Bibliothèque refusée : section interdite : X" in res.output
+
+
+def test_plex_error_exits_1_with_type_name(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli, "_plex", _raise(Unauthorized("(401) unauthorized")))
+    res = runner.invoke(cli.app, ["library-sync"])
+    assert res.exit_code == 1
+    assert "Plex en erreur (Unauthorized)" in res.output
+
+
+def test_empty_library_exits_1(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cli, "_plex", lambda s: FakePlex([]))
+    monkeypatch.setattr(cli, "_deezer", lambda: FakeDeezer())
+    res = runner.invoke(cli.app, ["library-sync"])
+    assert res.exit_code == 1
+    assert "Plex n'a renvoyé aucun titre" in res.output
+
+
+def test_plex_token_never_leaks(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    settings = Settings(
+        _env_file=None,
+        plex_token="tok-SECRET-123",
+        plex_music_section="Musique",
+        RADIO_DATA_DIR=env / "data",
+        RADIO_CONFIG_DIR=env / "config",
+    )
+    monkeypatch.setattr(cli, "_settings", lambda: settings)
+    exc = requests.ConnectionError("http://plex?X-Plex-Token=tok-SECRET-123")
+    monkeypatch.setattr(cli, "_plex", _raise(exc))
+    res = runner.invoke(cli.app, ["library-sync"])
+    assert res.exit_code == 1
+    assert "Plex en erreur (ConnectionError)" in res.output
+    assert "tok-SECRET-123" not in res.output
+
+
+def test_urllib3_logs_are_silenced(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # urllib3 à WARNING peut journaliser l'URL complète, clé Last.fm comprise.
+    urllib3_logger = logging.getLogger("urllib3")
+    monkeypatch.setattr(urllib3_logger, "level", logging.NOTSET)
+    monkeypatch.setattr(cli, "_plex", lambda s: FakePlex([]))
+    runner.invoke(cli.app, ["library-sync"])
+    assert urllib3_logger.level == logging.ERROR
+
+
+def test_match_line_formats_reason_counts() -> None:
+    rep = MatchReport(
+        n_todo=5000, n_matched=2000, unmatched={"no_result": 1234, "no_exact_match": 1766}
+    )
+    assert cli._match_line(rep) == (
+        "Rapprochement Deezer : 5\u202f000 à traiter → 2\u202f000 trouvés, 3\u202f000 non trouvés "
+        "(sans résultat 1\u202f234, sans correspondance exacte 1\u202f766), 0 en erreur"
+    )
