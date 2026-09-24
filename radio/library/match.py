@@ -95,19 +95,42 @@ def normalize(s: str) -> str:
 
 
 def search_query(artist: str, title: str) -> str:
-    def repl(m: re.Match[str]) -> str:
-        content = m.group(1) if m.group(1) is not None else m.group(2)
-        return "" if _is_harmless(content) else m.group(0)
+    """Requête Deezer SIMPLE (pas de syntaxe avancée `artist:"..." track:"..."`) : le filtre
+    `artist:` est cassé côté Deezer, constaté le 2026-09-25 (`q=artist:"Aloe Blacc"` renvoie un
+    résultat d'un autre artiste, `q=artist:"daft punk"` n'en renvoie aucun). pick_match reste seul
+    juge : cette requête ne fait que ramener des candidats.
+    """
 
-    no_brackets = _BRACKETS.sub(repl, title)
-    m = _DASH_SUFFIX.search(no_brackets)
-    cleaned = no_brackets[: m.start()] if m and _is_harmless(m.group(1)) else no_brackets
-    t = _SPACES.sub(" ", cleaned.replace('"', "")).strip()
+    def clean(s: str) -> str:
+        return _SPACES.sub(" ", s.replace('"', "")).strip()
+
+    def strip_feat(s: str) -> str:
+        return _FEAT.sub(" ", s)
+
+    def debracket_search(s: str) -> str:
+        def repl(m: re.Match[str]) -> str:
+            content = m.group(1) if m.group(1) is not None else m.group(2)
+            return "" if _is_harmless(content) else m.group(0)
+
+        return _BRACKETS.sub(repl, s)
+
+    def de_dash_search(s: str) -> str:
+        m = _DASH_SUFFIX.search(s)
+        return s[: m.start()] if m and _is_harmless(m.group(1)) else s
+
+    # Même ordre que normalize() : feat. d'abord, puis crochets, puis suffixe tiret, pour que
+    # "Song feat. X (Live)" donne "Song (Live)" (le qualificatif non inoffensif est conservé).
+    # _FEAT travaille ici sur le texte brut (pas de _base au préalable) : il ne dépend pas des
+    # accents, seulement de la ponctuation autour de "feat."/"featuring".
+    t = clean(de_dash_search(debracket_search(strip_feat(title))))
     if not t:
-        # Repli sur le titre brut : la requête n'a jamais track:"".
-        t = _SPACES.sub(" ", title.replace('"', "")).strip()
-    a = _SPACES.sub(" ", artist.replace('"', "")).strip()
-    return f'artist:"{a}" track:"{t}"'
+        t = clean(title)  # repli sur le titre brut : la requête n'a jamais un titre vide.
+
+    a = clean(strip_feat(artist))
+    if not a:
+        a = clean(artist)  # repli sur l'artiste brut : la requête n'a jamais un artiste vide.
+
+    return f"{a} {t}"
 
 
 def pick_match(
