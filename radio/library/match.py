@@ -24,13 +24,21 @@ _HARMLESS = re.compile(
     r"|(?:album|single|lp)\s+version"
     r"|original\s+mix"
     r"|bonus\s+track"
-    r"|(?:feat\.?|ft\.?|featuring)\s.+"
+    # feat. : s'arrête avant un tiret (simple, demi-cadratin, cadratin) précédé d'une espace,
+    # « : » ou « / », pour ne pas avaler « (feat. X - Live) ».
+    r"|(?:feat\.?|ft\.?|featuring)\s(?:(?!\s[-\u2013\u2014]|[:/]).)+"
 )
 _BRACKETS = re.compile(r"\(([^)]*)\)|\[([^\]]*)\]")
-_DASH_SUFFIX = re.compile(r"\s-\s(.*)$")
-# S'arrête au premier "(", "[" ou " - " qui suit, pour ne jamais avaler un qualificatif gardé
-# (ex. "Song feat. X (Live)" -> seul "feat. X" est retiré, "(Live)" reste pour _debracket).
-_FEAT = re.compile(r"\s(?:feat\.|featuring)\s[^()\[\]]*?(?=\s*(?:[(\[]|\s-\s|$))")
+# Tiret, demi-cadratin ou cadratin : seul un suffixe inoffensif est retiré ensuite.
+_DASH_SUFFIX = re.compile(r"\s[-\u2013\u2014]\s(.*)$")
+# S'arrête au premier "(", "[", ":", "/", demi-cadratin, cadratin ou " -" qui suit, pour ne
+# jamais avaler un qualificatif gardé (ex. "Song feat. X (Live)" -> seul "feat. X" est retiré,
+# "(Live)" reste pour _debracket). Un tiret collé ("Jay-Z") ne coupe pas : il faut une espace
+# devant.
+_FEAT = re.compile(
+    r"\s(?:feat\.|featuring)\s[^()\[\]:/\u2013\u2014]*?"
+    r"(?=\s*(?:[(\[:/\u2013\u2014]|\s-\s?|$))"
+)
 _PUNCT = re.compile(r"[^\w\s]|_")
 _SPACES = re.compile(r"\s+")
 _LATIN_MAX = 0x250  # au-delà : pas un alphabet latin, on ne touche pas aux marques combinantes.

@@ -43,6 +43,16 @@ def dz(
         ("!!!", ""),
         ("Song feat. X (Live)", "song live"),
         ("Song feat. X [Instrumental]", "song instrumental"),
+        ("Song feat. X \u2013 Live", "song live"),
+        ("Song feat. X \u2014 Live", "song live"),
+        ("Song feat. X / Live", "song live"),
+        ("Song feat. X -Live", "song live"),
+        ("Song feat. X: Live", "song live"),
+        ("Song feat. Jay-Z", "song"),
+        ("Song feat. Jay-Z - Live", "song live"),
+        ("Song - 2007 Remaster", "song"),
+        ("Song \u2013 2007 Remaster", "song"),
+        ("Song \u2014 Remastered", "song"),
     ],
 )
 def test_normalize(raw: str, norm: str) -> None:
@@ -89,6 +99,12 @@ def test_pick_rejects_wrong_artist_title_or_duration() -> None:
         ("Song feat. X (Live)", "Song"),
         ("Song feat. X - Part 1", "Song feat. X - Part 2"),
         ("Song", "Song (with Strings)"),
+        ("Song", "Song feat. X \u2013 Live"),
+        ("Song", "Song feat. X \u2014 Live"),
+        ("Song", "Song feat. X: Live Version"),
+        ("Song", "Song feat. X / Live"),
+        ("Song", "Song feat. X -Live"),
+        ("Song", "Song (feat. X - Live)"),
     ],
 )
 def test_pick_rejects_false_matches(lib_title: str, dz_title: str) -> None:
