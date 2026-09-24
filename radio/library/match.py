@@ -12,20 +12,25 @@ from radio.sources.deezer import DeezerClient, DeezerError, DeezerTrack
 logger = logging.getLogger(__name__)
 
 # Qualificatifs qui désignent le MÊME enregistrement (tout leur contenu doit correspondre) :
-# années/remaster, explicit, version album/single/lp, original, bonus track, feat./ft./with.
-# Tout le reste (live, remix, mix, edit, instrumental, acoustic, demo, mono, version X, part N)
-# est conservé : un faux rapprochement est pire qu'un titre manqué (spec §5.1).
+# années/remaster, explicit, version album/single/lp, original mix, bonus track, feat./ft.
+# « with » est exclu : « (with Strings) »/« (with the LSO) » peuvent désigner une autre version.
+# « original » seul ou « original version » aussi : ils s'opposent à un réenregistrement, seul
+# « Original Mix » est inoffensif. Tout le reste (live, remix, mix, edit, instrumental, acoustic,
+# demo, mono, version X, part N) est conservé : un faux rapprochement est pire qu'un titre manqué
+# (spec §5.1).
 _HARMLESS = re.compile(
     r"(?:\d{4}\s+)?(?:digital(?:ly)?\s+)?remaster(?:ed)?(?:\s+(?:version|edition))?(?:\s+\d{4})?"
     r"|explicit(?:\s+version)?"
     r"|(?:album|single|lp)\s+version"
-    r"|original(?:\s+(?:mix|version))?"
+    r"|original\s+mix"
     r"|bonus\s+track"
-    r"|(?:feat\.?|ft\.?|featuring|with)\s.+"
+    r"|(?:feat\.?|ft\.?|featuring)\s.+"
 )
 _BRACKETS = re.compile(r"\(([^)]*)\)|\[([^\]]*)\]")
 _DASH_SUFFIX = re.compile(r"\s-\s(.*)$")
-_FEAT = re.compile(r"\s(?:feat\.|featuring)\s.*$")
+# S'arrête au premier "(", "[" ou " - " qui suit, pour ne jamais avaler un qualificatif gardé
+# (ex. "Song feat. X (Live)" -> seul "feat. X" est retiré, "(Live)" reste pour _debracket).
+_FEAT = re.compile(r"\s(?:feat\.|featuring)\s[^()\[\]]*?(?=\s*(?:[(\[]|\s-\s|$))")
 _PUNCT = re.compile(r"[^\w\s]|_")
 _SPACES = re.compile(r"\s+")
 _LATIN_MAX = 0x250  # au-delà : pas un alphabet latin, on ne touche pas aux marques combinantes.
@@ -75,10 +80,10 @@ def _de_dash(s: str) -> str:
 
 def normalize(s: str) -> str:
     base = _base(s)
-    no_brackets = _debracket(base)
+    no_feat = _FEAT.sub(" ", base)
+    no_brackets = _debracket(no_feat)
     no_dash = _de_dash(no_brackets)
-    no_feat = _FEAT.sub(" ", no_dash)
-    return _finish(no_feat)
+    return _finish(no_dash)
 
 
 def search_query(artist: str, title: str) -> str:

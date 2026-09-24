@@ -41,6 +41,8 @@ def dz(
         ("Ten Ft. Tall", "ten ft tall"),
         ("A Feat of Strength", "a feat of strength"),
         ("!!!", ""),
+        ("Song feat. X (Live)", "song live"),
+        ("Song feat. X [Instrumental]", "song instrumental"),
     ],
 )
 def test_normalize(raw: str, norm: str) -> None:
@@ -83,6 +85,10 @@ def test_pick_rejects_wrong_artist_title_or_duration() -> None:
         ("Song (Part 1)", "Song (Part 2)"),
         ("Crazy", "Crazy (Remix)"),
         ("Hey Jude", "Hey Jude - Mono"),
+        ("Song", "Song feat. X (Live)"),
+        ("Song feat. X (Live)", "Song"),
+        ("Song feat. X - Part 1", "Song feat. X - Part 2"),
+        ("Song", "Song (with Strings)"),
     ],
 )
 def test_pick_rejects_false_matches(lib_title: str, dz_title: str) -> None:
@@ -198,21 +204,36 @@ def test_unavailable_commits_done_work_then_raises(tmp_path: Path) -> None:
     assert row[0] == "matched"
 
 
+class BatchProbeDeezer:
+    """Sonde, par sa PROPRE connexion SQLite, que le lot précédent est déjà sur
+    disque au moment où le second titre échoue — donc pendant l'exécution de
+    match_library, avant même que l'exception ne remonte. Sans le flush en
+    cours de boucle (batch=1), la ligne du titre 1 ne serait pas encore visible
+    ici et le test échouerait."""
+
+    def __init__(self, db_path: Path) -> None:
+        self.db_path = db_path
+        self.queries: list[str] = []
+
+    def search_tracks(self, query: str, limit: int = 10) -> list[DeezerTrack]:
+        self.queries.append(query)
+        if query == search_query("Wire", "Mannequin"):
+            return [dz(7, "Wire", "Mannequin", 157)]
+        if query == search_query("Wire", "Unknown Song"):
+            reader = sqlite3.connect(self.db_path)
+            try:
+                row = reader.execute(
+                    "SELECT status FROM deezer_matches WHERE plex_key='1'"
+                ).fetchone()
+            finally:
+                reader.close()
+            assert row is not None and row[0] == "matched"
+            raise DeezerUnavailable("code 4")
+        raise AssertionError(f"unexpected query: {query}")
+
+
 def test_unavailable_with_batch_one_flushes_mid_loop(tmp_path: Path) -> None:
     conn = setup(tmp_path)
-    fake = FakeDeezer(
-        {
-            search_query("Wire", "Mannequin"): [dz(7, "Wire", "Mannequin", 157)],
-            search_query("Wire", "Unknown Song"): DeezerUnavailable("code 4"),
-        }
-    )
+    fake = BatchProbeDeezer(tmp_path / "db")
     with pytest.raises(DeezerUnavailable):
         match_library(conn, fake, 3, "d1", batch=1)  # type: ignore[arg-type]
-    # batch=1 : le premier titre est déjà validé (flush en cours de boucle) avant
-    # que le second lève DeezerUnavailable.
-    reader = sqlite3.connect(tmp_path / "db")
-    try:
-        row = reader.execute("SELECT status FROM deezer_matches WHERE plex_key='1'").fetchone()
-    finally:
-        reader.close()
-    assert row[0] == "matched"
