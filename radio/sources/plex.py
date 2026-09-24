@@ -4,6 +4,7 @@ Le verrou ne touche jamais au système de fichiers : il ne compare que des chemi
 """
 
 import logging
+import os
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import PurePosixPath
@@ -62,6 +63,11 @@ class PlexSource:
         self._section = section
 
     def tracks(self) -> list[PlexTrack]:
+        # plexapi recharge l'objet entier (GET /library/metadata/{clé}) dès qu'un attribut lu vaut
+        # None, par exemple originalTitle sur la plupart des titres : environ 3 400 requêtes pour
+        # une lecture complète. L'interrupteur documenté plexapi.autoreload le coupe ; plexapi le
+        # relit à chaque création d'objet (base.py, PlexObject.__init__), donc le poser ici suffit.
+        os.environ.setdefault("PLEXAPI_PLEXAPI_AUTORELOAD", "false")
         out = [
             PlexTrack(
                 key=str(t.ratingKey),

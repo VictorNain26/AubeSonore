@@ -1,7 +1,10 @@
 from dataclasses import dataclass, field
 from pathlib import PurePosixPath
+from typing import Any
+from xml.etree import ElementTree
 
 import pytest
+from plexapi.audio import Track
 
 from radio.sources.plex import LibraryGuardError, PlexSource, PlexTrack, check_section
 
@@ -93,3 +96,40 @@ def test_bad_roots_are_refused(root: str) -> None:
 
 def test_sub_location_is_accepted() -> None:
     check_section("Musique", ["/media/plex/Musique/Rock"], ROOT)
+
+
+_TRACK_XML = (
+    '<MediaContainer><Track ratingKey="1" key="/library/metadata/1" type="track" '
+    'title="Mannequin" grandparentTitle="Wire" parentTitle="Pink Flag" duration="157000"/>'
+    "</MediaContainer>"
+)
+
+
+class CountingServer:
+    """Faux serveur : compte les requêtes qu'un rechargement automatique ferait."""
+
+    def __init__(self) -> None:
+        self.queries: list[str] = []
+
+    def query(self, key: str) -> ElementTree.Element:
+        self.queries.append(key)
+        return ElementTree.fromstring(_TRACK_XML)
+
+
+@dataclass
+class RealTrackSection(FakeSection):
+    server: CountingServer = field(default_factory=CountingServer)
+
+    def searchTracks(self, container_size: int) -> list[Any]:
+        # Les objets sont créés au moment de la lecture, comme dans plexapi.
+        data = ElementTree.fromstring(_TRACK_XML)
+        return [Track(self.server, elem, "/library/sections/1/all?type=10") for elem in data]
+
+
+def test_real_plexapi_tracks_trigger_no_reload(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Part d'un environnement sans l'interrupteur, et le retire après le test.
+    monkeypatch.setenv("PLEXAPI_PLEXAPI_AUTORELOAD", "true")
+    monkeypatch.delenv("PLEXAPI_PLEXAPI_AUTORELOAD")
+    sec = RealTrackSection()
+    assert source(sec).tracks() == [PlexTrack("1", "Wire", "Mannequin", "Pink Flag", 157000, 0)]
+    assert sec.server.queries == []
