@@ -11,17 +11,44 @@ from radio.sources.deezer import DeezerClient, DeezerError, DeezerTrack
 
 logger = logging.getLogger(__name__)
 
-_BRACKETS = re.compile(r"\([^)]*\)|\[[^\]]*\]")
-_DASH_SUFFIX = re.compile(r"\s+-\s.*$")
-_FEAT = re.compile(r"\s(?:feat\.?|ft\.?|featuring)\s.*$")
+# Qualificatifs qui désignent le MÊME enregistrement (tout leur contenu doit correspondre) :
+# années/remaster, explicit, version album/single/lp, original, bonus track, feat./ft./with.
+# Tout le reste (live, remix, mix, edit, instrumental, acoustic, demo, mono, version X, part N)
+# est conservé : un faux rapprochement est pire qu'un titre manqué (spec §5.1).
+_HARMLESS = re.compile(
+    r"(?:\d{4}\s+)?(?:digital(?:ly)?\s+)?remaster(?:ed)?(?:\s+(?:version|edition))?(?:\s+\d{4})?"
+    r"|explicit(?:\s+version)?"
+    r"|(?:album|single|lp)\s+version"
+    r"|original(?:\s+(?:mix|version))?"
+    r"|bonus\s+track"
+    r"|(?:feat\.?|ft\.?|featuring|with)\s.+"
+)
+_BRACKETS = re.compile(r"\(([^)]*)\)|\[([^\]]*)\]")
+_DASH_SUFFIX = re.compile(r"\s-\s(.*)$")
+_FEAT = re.compile(r"\s(?:feat\.|featuring)\s.*$")
 _PUNCT = re.compile(r"[^\w\s]|_")
 _SPACES = re.compile(r"\s+")
+_LATIN_MAX = 0x250  # au-delà : pas un alphabet latin, on ne touche pas aux marques combinantes.
 
 
 def _base(s: str) -> str:
-    s = unicodedata.normalize("NFKD", s)
-    s = "".join(c for c in s if not unicodedata.combining(c))
-    return s.casefold().replace("&", " and ")
+    decomposed = unicodedata.normalize("NFKD", s)
+    kept: list[str] = []
+    latin_base = False
+    for ch in decomposed:
+        if unicodedata.combining(ch):
+            if latin_base:
+                continue  # accent retiré : la lettre de base est latine
+            kept.append(ch)  # marque combinante conservée : base non latine
+        else:
+            kept.append(ch)
+            latin_base = ord(ch) < _LATIN_MAX
+    recomposed = unicodedata.normalize("NFC", "".join(kept))
+    return recomposed.casefold().replace("&", " and ")
+
+
+def _is_harmless(content: str) -> bool:
+    return _HARMLESS.fullmatch(_base(content).strip()) is not None
 
 
 def _finish(s: str) -> str:
@@ -29,16 +56,44 @@ def _finish(s: str) -> str:
     return s[4:] if s.startswith("the ") else s
 
 
+def _debracket(s: str) -> str:
+    def repl(m: re.Match[str]) -> str:
+        content = m.group(1) if m.group(1) is not None else m.group(2)
+        if _is_harmless(content):
+            return " "
+        return " " + content.strip() + " "
+
+    return _BRACKETS.sub(repl, s)
+
+
+def _de_dash(s: str) -> str:
+    m = _DASH_SUFFIX.search(s)
+    if m and _is_harmless(m.group(1)):
+        return s[: m.start()]
+    return s
+
+
 def normalize(s: str) -> str:
     base = _base(s)
-    stripped = _FEAT.sub(" ", _DASH_SUFFIX.sub(" ", _BRACKETS.sub(" ", base)))
-    return _finish(stripped) or _finish(base)
+    no_brackets = _debracket(base)
+    no_dash = _de_dash(no_brackets)
+    no_feat = _FEAT.sub(" ", no_dash)
+    return _finish(no_feat)
 
 
 def search_query(artist: str, title: str) -> str:
-    clean_title = _DASH_SUFFIX.sub("", _BRACKETS.sub(" ", title))
+    def repl(m: re.Match[str]) -> str:
+        content = m.group(1) if m.group(1) is not None else m.group(2)
+        return "" if _is_harmless(content) else m.group(0)
+
+    no_brackets = _BRACKETS.sub(repl, title)
+    m = _DASH_SUFFIX.search(no_brackets)
+    cleaned = no_brackets[: m.start()] if m and _is_harmless(m.group(1)) else no_brackets
+    t = _SPACES.sub(" ", cleaned.replace('"', "")).strip()
+    if not t:
+        # Repli sur le titre brut : la requête n'a jamais track:"".
+        t = _SPACES.sub(" ", title.replace('"', "")).strip()
     a = _SPACES.sub(" ", artist.replace('"', "")).strip()
-    t = _SPACES.sub(" ", clean_title.replace('"', "")).strip()
     return f'artist:"{a}" track:"{t}"'
 
 
@@ -46,11 +101,13 @@ def pick_match(
     artist: str, title: str, duration_ms: int, results: list[DeezerTrack], tolerance_s: int
 ) -> DeezerTrack | None:
     na, nt = normalize(artist), normalize(title)
+    if not na or not nt:
+        return None
     ok = [
         r
         for r in results
         if normalize(r.artist_name) == na
-        and nt in (normalize(r.title_short), normalize(r.title))
+        and normalize(r.title) == nt
         and abs(r.duration_s * 1000 - duration_ms) <= tolerance_s * 1000
     ]
     if not ok:

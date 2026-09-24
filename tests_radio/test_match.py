@@ -28,12 +28,19 @@ def dz(
     [
         ("Love Like Blood - 2007 Remaster", "love like blood"),
         ("Mannequin (2006 Remastered Version)", "mannequin"),
-        ("Café Del Mar [Energy 52 Mix]", "cafe del mar"),
+        ("Café Del Mar [Energy 52 Mix]", "cafe del mar energy 52 mix"),
         ("Sorry for Laughing feat. Someone", "sorry for laughing"),
         ("Simon & Garfunkel", "simon and garfunkel"),
         ("The Feelies", "feelies"),
         ("(Interlude)", "interlude"),
         ("  Hey,   Boy!  ", "hey boy"),
+        ("Love Story (Taylor's Version)", "love story taylor s version"),
+        ("Mannequin - Live", "mannequin live"),
+        ("Song (feat. X)", "song"),
+        ("Hey Jude (Remastered 2015)", "hey jude"),
+        ("Ten Ft. Tall", "ten ft tall"),
+        ("A Feat of Strength", "a feat of strength"),
+        ("!!!", ""),
     ],
 )
 def test_normalize(raw: str, norm: str) -> None:
@@ -42,8 +49,12 @@ def test_normalize(raw: str, norm: str) -> None:
 
 def test_search_query_strips_quotes_and_decorations() -> None:
     assert search_query('Say "Hi"', "Mannequin (Remastered) - Live") == (
-        'artist:"Say Hi" track:"Mannequin"'
+        'artist:"Say Hi" track:"Mannequin - Live"'
     )
+
+
+def test_search_query_keeps_non_harmless_bracket_group() -> None:
+    assert search_query("Wire", "(Interlude)") == 'artist:"Wire" track:"(Interlude)"'
 
 
 def test_pick_exact_prefers_preview_then_duration_then_rank() -> None:
@@ -61,6 +72,42 @@ def test_pick_rejects_wrong_artist_title_or_duration() -> None:
     assert pick_match("Wire", "Mannequin", 157000, [dz(1, "Wired", "Mannequin", 157)], 3) is None
     assert pick_match("Wire", "Mannequin", 157000, [dz(1, "Wire", "Manequin", 157)], 3) is None
     assert pick_match("Wire", "Mannequin", 157000, [dz(1, "Wire", "Mannequin", 161)], 3) is None
+
+
+@pytest.mark.parametrize(
+    ("lib_title", "dz_title"),
+    [
+        ("Love Story", "Love Story (Taylor's Version)"),
+        ("Accordion", "Accordion (Instrumental)"),
+        ("Mannequin", "Mannequin - Live"),
+        ("Song (Part 1)", "Song (Part 2)"),
+        ("Crazy", "Crazy (Remix)"),
+        ("Hey Jude", "Hey Jude - Mono"),
+    ],
+)
+def test_pick_rejects_false_matches(lib_title: str, dz_title: str) -> None:
+    assert pick_match("Artist", lib_title, 180000, [dz(1, "Artist", dz_title, 180)], 3) is None
+
+
+def test_pick_ignores_title_short() -> None:
+    # title_short="X" ressemblerait à "X" côté bibliothèque ; seul title (complet) compte.
+    track = DeezerTrack(1, "X (Live)", "X", 180, 0, 101, "Artist", True)
+    assert pick_match("Artist", "X", 180000, [track], 3) is None
+
+
+def test_pick_matches_harmless_remaster_qualifier() -> None:
+    got = pick_match(
+        "Wire",
+        "Mannequin (2006 Remastered Version)",
+        157000,
+        [dz(7, "Wire", "Mannequin", 157)],
+        3,
+    )
+    assert got is not None and got.id == 7
+
+
+def test_pick_never_matches_empty_normalized_artist() -> None:
+    assert pick_match("!!!", "Song", 120000, [dz(1, "!!!", "Song", 120)], 3) is None
 
 
 class FakeDeezer:
@@ -142,7 +189,30 @@ def test_unavailable_commits_done_work_then_raises(tmp_path: Path) -> None:
     )
     with pytest.raises(DeezerUnavailable):
         match_library(conn, fake, 3, "d1", batch=50)  # type: ignore[arg-type]
-    assert (
-        conn.execute("SELECT status FROM deezer_matches WHERE plex_key='1'").fetchone()[0]
-        == "matched"
+    # Seconde connexion : prouve que la validation a bien été écrite sur disque.
+    reader = sqlite3.connect(tmp_path / "db")
+    try:
+        row = reader.execute("SELECT status FROM deezer_matches WHERE plex_key='1'").fetchone()
+    finally:
+        reader.close()
+    assert row[0] == "matched"
+
+
+def test_unavailable_with_batch_one_flushes_mid_loop(tmp_path: Path) -> None:
+    conn = setup(tmp_path)
+    fake = FakeDeezer(
+        {
+            search_query("Wire", "Mannequin"): [dz(7, "Wire", "Mannequin", 157)],
+            search_query("Wire", "Unknown Song"): DeezerUnavailable("code 4"),
+        }
     )
+    with pytest.raises(DeezerUnavailable):
+        match_library(conn, fake, 3, "d1", batch=1)  # type: ignore[arg-type]
+    # batch=1 : le premier titre est déjà validé (flush en cours de boucle) avant
+    # que le second lève DeezerUnavailable.
+    reader = sqlite3.connect(tmp_path / "db")
+    try:
+        row = reader.execute("SELECT status FROM deezer_matches WHERE plex_key='1'").fetchone()
+    finally:
+        reader.close()
+    assert row[0] == "matched"
