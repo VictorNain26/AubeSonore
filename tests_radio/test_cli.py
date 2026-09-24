@@ -85,5 +85,5 @@ def test_deezer_unavailable_exits_1(env: Path, monkeypatch: pytest.MonkeyPatch) 
 
 
 def test_thousands_are_formatted_in_french() -> None:
-    assert cli._n(3424) == "3 424"
+    assert cli._n(3424) == "3\u202f424"
     assert cli._pct(2900, 3424) == "84,7 %"

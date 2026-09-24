@@ -51,7 +51,7 @@ def _fail(message: str, code: int) -> NoReturn:
 
 
 def _n(x: int) -> str:
-    return f"{x:,}".replace(",", " ")
+    return f"{x:,}".replace(",", "\u202f")  # espace insécable fine (U+202F)
 
 
 def _pct(a: int, b: int) -> str:
