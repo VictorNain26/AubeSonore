@@ -41,6 +41,7 @@ def test_status_measures_the_serving_model_on_exam_votes(tmp_path: Path) -> None
     assert st.last_exam_vote == "2026-09-25T09:00:00+00:00"
     assert st.recent_votes == 13
     assert st.pending == 0 and st.last_selection is None and st.batch is None
+    assert st.stale_selection_days is None
 
 
 def test_status_without_a_model_still_counts_votes_and_ballots(tmp_path: Path) -> None:
@@ -56,3 +57,4 @@ def test_status_without_a_model_still_counts_votes_and_ballots(tmp_path: Path) -
     assert st.last_selection == NOW
     assert st.batch == (2, 48, 24)
     assert st.recent_votes == 0 and st.last_exam_vote is None
+    assert st.stale_selection_days == 1  # NOW (25/09 minuit) -> LATER (26/09 minuit)

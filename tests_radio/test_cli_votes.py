@@ -46,6 +46,7 @@ def _st(**kw: Any) -> Status:
         "last_exam_vote": "2026-09-20T10:00:00+00:00",
         "pending": 20,
         "last_selection": "2026-09-27T03:40:00+00:00",
+        "stale_selection_days": 0,
         "recent_votes": 12,
         "batch": (7, 400, 60),
     }
@@ -74,6 +75,25 @@ def test_reminder_counts_waiting_titles_and_raises_alerts() -> None:
     assert "ALERTE : taux de oui" not in text
     assert "Dernière fournée (passe n°7) : 5,0 % acceptés — ALERTE : sous 10,0 %" in text
     assert "Aucun modèle en service" in cli._reminder(_st(model_id=None, exam=None), ed, "u", True)
+
+
+def test_status_lines_alert_when_the_weekly_pass_seems_to_have_failed() -> None:
+    ed = Editorial()  # quiet_days = 7
+
+    stale = cli._status_lines(_st(pending=0, stale_selection_days=8), ed)
+    assert any(
+        "ALERTE : aucune sélection depuis 8 jours (passe hebdomadaire en échec ?)" in line
+        for line in stale
+    )
+
+    fresh = cli._status_lines(_st(pending=0, stale_selection_days=2), ed)
+    assert not any("ALERTE : aucune sélection" in line for line in fresh)
+
+    never = cli._status_lines(_st(pending=0, last_selection=None, stale_selection_days=None), ed)
+    assert "ALERTE : aucune sélection encore tirée (passe hebdomadaire en échec ?)" in never
+
+    waiting = cli._status_lines(_st(pending=20, stale_selection_days=8), ed)
+    assert not any("ALERTE : aucune sélection" in line for line in waiting)
 
 
 def test_votes_select_draws_then_waits(full: Path) -> None:

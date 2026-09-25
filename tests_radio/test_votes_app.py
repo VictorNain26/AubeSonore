@@ -81,6 +81,14 @@ def test_page_shows_next_ballot_blind(db: Path) -> None:
         assert hidden not in r.text
 
 
+def test_page_shows_a_hint_when_the_preview_fails_to_play(db: Path) -> None:
+    r = _client(db).get("/", headers=OK)
+    assert '<p class="indispo" hidden>Extrait indisponible : choisir « Passer ».</p>' in r.text
+    assert 'onerror="this.nextElementSibling.hidden=false"' in r.text
+    for hidden in ("exam", "lesson", "leçon"):  # à l'aveugle, même côté indisponibilité
+        assert hidden not in r.text
+
+
 def test_vote_is_recorded_and_page_moves_on(db: Path) -> None:
     b = _first(db)
     c = _client(db)

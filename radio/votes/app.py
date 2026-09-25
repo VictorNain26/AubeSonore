@@ -106,7 +106,9 @@ def _page(ballots: list[Ballot]) -> str:
         f'<p class="reste">{len(ballots)} à écouter</p>'
         f"<h1>{html.escape(b.title)}</h1>"
         f'<p class="artiste">{html.escape(b.artist)}</p>'
-        f'<audio controls autoplay preload="auto" src="/extrait/{b.deezer_track_id}"></audio>'
+        f'<audio controls autoplay preload="auto" src="/extrait/{b.deezer_track_id}" '
+        'onerror="this.nextElementSibling.hidden=false"></audio>'
+        '<p class="indispo" hidden>Extrait indisponible : choisir « Passer ».</p>'
         '<p class="question">À sa place sur AubeSonore ?</p>'
         '<form method="post" action="/vote">'
         f'<input type="hidden" name="tid" value="{b.deezer_track_id}">{buttons}</form>'

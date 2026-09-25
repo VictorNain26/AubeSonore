@@ -48,3 +48,10 @@ def test_batch_work_yields_to_the_broadcast() -> None:
     text = (UNITS / "radio-weekly.service").read_text(encoding="utf-8")
     for line in ("Type=oneshot", "Nice=19", "CPUWeight=20", "IOSchedulingClass=idle"):
         assert line in text
+
+
+def test_reminder_waits_for_the_weekly_pass_but_is_not_blocked_by_it() -> None:
+    text = (UNITS / "radio-remind.service").read_text(encoding="utf-8")
+    assert "After=radio-weekly.service" in text
+    assert "Requires=radio-weekly" not in text
+    assert "Wants=radio-weekly" not in text

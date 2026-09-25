@@ -23,6 +23,7 @@ class Status:
     last_exam_vote: str | None
     pending: int
     last_selection: str | None
+    stale_selection_days: int | None  # âge de `last_selection` par rapport à `now` (spec §8)
     recent_votes: int  # votes des `quiet_days` derniers jours
     batch: tuple[int, int, int] | None  # dernière fournée : passe, notés, acceptés
 
@@ -47,12 +48,16 @@ def load_status(
     since = (now - timedelta(days=quiet_days)).isoformat()
     recent = conn.execute("SELECT COUNT(*) FROM votes WHERE voted_at >= ?", (since,)).fetchone()[0]
     last_selection = conn.execute("SELECT MAX(selected_at) FROM selections").fetchone()[0]
+    stale_selection_days = (
+        None if last_selection is None else (now - datetime.fromisoformat(last_selection)).days
+    )
     return Status(
         model_id=None if serving is None else serving.model_id,
         exam=exam,
         last_exam_vote=last_exam,
         pending=len(pending_ballots(conn)),
         last_selection=last_selection,
+        stale_selection_days=stale_selection_days,
         recent_votes=int(recent),
         batch=batch_acceptance(conn),
     )

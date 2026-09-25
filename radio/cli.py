@@ -577,6 +577,14 @@ def _status_lines(st: Status, editorial: Editorial) -> list[str]:
         f"Titres en attente de vote : {_n(st.pending)} "
         f"(dernière sélection : {st.last_selection or 'aucune'})"
     )
+    if st.pending == 0:
+        if st.last_selection is None:
+            lines.append("ALERTE : aucune sélection encore tirée (passe hebdomadaire en échec ?)")
+        elif st.stale_selection_days is not None and st.stale_selection_days > v.quiet_days:
+            lines.append(
+                f"ALERTE : aucune sélection depuis {_n(st.stale_selection_days)} jours "
+                "(passe hebdomadaire en échec ?)"
+            )
     if st.batch is not None:
         lines.append(_batch_line(st.batch, editorial.model))
     return lines
