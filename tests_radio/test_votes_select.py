@@ -76,6 +76,19 @@ def test_small_pool_gives_what_there_is(tmp_path: Path) -> None:
     assert len(sel.exam) == 24 and sel.lesson == []
 
 
+def test_lesson_takes_at_most_one_title_per_artist(tmp_path: Path) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    # 200001 (artiste 2000, k=1) devient plus incertain que 200000 (k=0, même artiste) : sans la
+    # garde par artiste, les deux seraient pris.
+    conn.execute("UPDATE scores SET score = 0.51 WHERE deezer_track_id = 200001")
+    conn.commit()
+    sel = select_batch(conn, _rng(), 0, 10, NOW)
+    assert 200001 in sel.lesson
+    assert 200000 not in sel.lesson
+    assert sum(1 for t in sel.lesson if t // 100 == 2000) == 1
+
+
 def test_needs_a_serving_model_and_its_scores(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     with pytest.raises(NoServingModelError):
