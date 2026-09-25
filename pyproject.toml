@@ -13,6 +13,9 @@ dependencies = [
     "plexapi>=4.18",
     "numpy>=2.0",
     "essentia-tensorflow==2.1b6.dev1389",
+    "scikit-learn>=1.9",
+    "scipy>=1.18",
+    "joblib>=1.6",
 ]
 
 [project.scripts]
@@ -54,5 +57,5 @@ plugins = ["pydantic.mypy"]
 untyped_calls_exclude = ["plexapi"]
 
 [[tool.mypy.overrides]]
-module = ["essentia", "essentia.*"]
+module = ["essentia", "essentia.*", "sklearn", "sklearn.*", "scipy", "scipy.*", "joblib"]
 ignore_missing_imports = true

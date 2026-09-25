@@ -22,7 +22,7 @@ def add_track(conn: sqlite3.Connection, tid: int, origin: str = "candidate") -> 
 
 def test_migration_002_creates_tables(tmp_path: Path) -> None:
     conn = connect(tmp_path / "radio.db")
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 2
+    assert conn.execute("PRAGMA user_version").fetchone()[0] >= 2
     names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {
         "artists",

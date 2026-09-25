@@ -17,3 +17,17 @@ lastfm_similar_limit = 100
 [signals]
 # Taille du vocabulaire de tags Last.fm (signal culture).
 culture_vocabulary = 200
+
+[model]
+# Précision visée sur les votes de leçon : fixe le seuil d'acceptation.
+target_precision = 0.90
+# Garde-fou : part minimale des titres de la bibliothèque acceptés (artiste retiré).
+library_acceptance_min = 0.80
+# Alerte si une fournée de candidats est acceptée sous ce taux.
+candidate_acceptance_alert = 0.10
+# Nombre de derniers votes d'examen qui jugent le modèle.
+exam_window = 60
+# Minimum de « oui » et de « non » de leçon pour choisir un seuil et promouvoir un modèle.
+min_votes_per_class = 10
+# Plis de la validation croisée groupée par artiste.
+folds = 5
