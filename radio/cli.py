@@ -11,7 +11,7 @@ from typing import Annotated, NoReturn
 import numpy as np
 import requests
 import typer
-import uvicorn as uvicorn  # réexport explicite : test monkeypatché sur cli.uvicorn.run
+import uvicorn
 from plexapi.exceptions import PlexApiException
 from pydantic import ValidationError
 
@@ -595,6 +595,7 @@ def _reminder(st: Status, editorial: Editorial, url: str, page_ok: bool) -> str:
 
 
 def _page_ok(settings: Settings) -> bool:
+    """Sonde le serveur local seulement : tunnel ou règle Access en panne non détectés."""
     try:
         r = requests.get(f"http://{settings.votes_host}:{settings.votes_port}/sante", timeout=5)
     except requests.RequestException:

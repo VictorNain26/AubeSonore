@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+import uvicorn
 from typer.testing import CliRunner
 
 import radio.cli as cli
@@ -117,7 +118,7 @@ def test_votes_serve_runs_uvicorn_on_loopback(full: Path, monkeypatch: pytest.Mo
     def fake_run(app: Any, host: str, port: int) -> None:
         seen.update(app=app, host=host, port=port)
 
-    monkeypatch.setattr(cli.uvicorn, "run", fake_run)
+    monkeypatch.setattr(uvicorn, "run", fake_run)
     res = runner.invoke(cli.app, ["votes-serve"])
     assert res.exit_code == 0, res.output
     assert (seen["host"], seen["port"]) == ("127.0.0.1", 8040)
