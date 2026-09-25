@@ -57,7 +57,12 @@ def bench(tmp_path: Path, votes: dict[str, str]) -> tuple[Path, Path]:
     d = tmp_path / "votes"
     d.mkdir()
     for tid, v in votes.items():
-        (d / f"{tid}.json").write_text(json.dumps({"vote": v, "at": f"2026-09-24T16:{tid[-2:]}Z"}))
+        # % 60 : l'id 560 se termine par "60", une minute invalide (l'ancien stockage verbatim
+        # ne la validait pas).
+        minute = int(tid[-2:]) % 60
+        (d / f"{tid}.json").write_text(
+            json.dumps({"vote": v, "at": f"2026-09-24T16:{minute:02d}Z"})
+        )
     return d, series
 
 
@@ -80,7 +85,7 @@ def test_load_bench(tmp_path: Path) -> None:
         (558, "lesson", "non"),
     ]
     assert votes[1].label == "Jul - Bande organisée"
-    assert votes[0].voted_at == "2026-09-24T16:01Z"
+    assert votes[0].voted_at == "2026-09-24T16:01:00+00:00"  # ...Z sans secondes -> UTC explicite
 
 
 def test_load_bench_refuses_an_unknown_vote(tmp_path: Path) -> None:
@@ -93,6 +98,20 @@ def test_load_bench_refuses_a_vote_outside_the_series(tmp_path: Path) -> None:
         load_bench(*bench(tmp_path, {"999": "oui"}))
 
 
+def test_load_bench_refuses_a_naive_date(tmp_path: Path) -> None:
+    votes_dir, series = bench(tmp_path, VOTES)
+    (votes_dir / "101.json").write_text(json.dumps({"vote": "oui", "at": "2026-09-24T16:01:00"}))
+    with pytest.raises(ValueError, match="date sans fuseau"):
+        load_bench(votes_dir, series)
+
+
+def test_load_bench_refuses_an_unparsable_date(tmp_path: Path) -> None:
+    votes_dir, series = bench(tmp_path, VOTES)
+    (votes_dir / "101.json").write_text(json.dumps({"vote": "oui", "at": "pas une date"}))
+    with pytest.raises(ValueError, match="date illisible"):
+        load_bench(votes_dir, series)
+
+
 def test_import_votes(tmp_path: Path) -> None:
     conn = db(tmp_path)
     deezer = FakeDeezer()
@@ -103,9 +122,9 @@ def test_import_votes(tmp_path: Path) -> None:
     assert rep.skipped == ["Err - Broken (code 12)"]
     rows = conn.execute("SELECT * FROM votes ORDER BY deezer_track_id").fetchall()
     assert [tuple(r) for r in rows] == [
-        (101, "lesson", "oui", "2026-09-24T16:01Z", "banc"),
-        (103, "lesson", "passer", "2026-09-24T16:56Z", "banc"),
-        (555, "exam", "non", "2026-09-24T16:55Z", "banc"),
+        (101, "lesson", "oui", "2026-09-24T16:01:00+00:00", "banc"),
+        (103, "lesson", "passer", "2026-09-24T16:56:00+00:00", "banc"),
+        (555, "exam", "non", "2026-09-24T16:55:00+00:00", "banc"),
     ]
     added = conn.execute("SELECT origin, deezer_artist_id FROM tracks WHERE deezer_track_id = 555")
     assert tuple(added.fetchone()) == ("candidate", 9)

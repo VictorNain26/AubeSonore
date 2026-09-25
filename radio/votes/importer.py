@@ -8,6 +8,7 @@ import json
 import sqlite3
 from collections import Counter, defaultdict
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
 
@@ -56,8 +57,22 @@ def load_bench(votes_dir: Path, series_path: Path) -> list[BenchVote]:
         if doc.get("vote") not in _VOTES:
             raise ValueError(f"vote inconnu pour {path.stem} : {doc.get('vote')!r}")
         kind, label = where[path.stem]
-        out.append(BenchVote(int(path.stem), label, kind, _VOTES[doc["vote"]], str(doc["at"])))
+        out.append(
+            BenchVote(int(path.stem), label, kind, _VOTES[doc["vote"]], _normalize(doc, path))
+        )
     return out
+
+
+def _normalize(doc: dict[str, object], path: Path) -> str:
+    """Ramène une date du banc (JS : `...Z`, parfois sans secondes) au format des votes de la
+    page (`datetime.now(UTC).isoformat()`), pour que `voted_at` se compare comme une chaîne."""
+    try:
+        at = datetime.fromisoformat(str(doc["at"]))
+    except ValueError as e:
+        raise ValueError(f"date illisible pour {path.stem} : {doc['at']!r}") from e
+    if at.tzinfo is None:
+        raise ValueError(f"date sans fuseau pour {path.stem} : {doc['at']!r}")
+    return at.astimezone(UTC).isoformat()
 
 
 def _known(conn: sqlite3.Connection, track_id: int) -> bool:
