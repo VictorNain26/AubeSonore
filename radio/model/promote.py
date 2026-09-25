@@ -137,6 +137,24 @@ def _metrics(result: TrainResult, exam: ExamMetrics) -> dict[str, Any]:
     }
 
 
+def votes_seen(conn: sqlite3.Connection) -> dict[str, Any]:
+    """Empreinte des votes qui comptent (« passer » exclu) : nombre et date du dernier."""
+    row = conn.execute(
+        "SELECT COUNT(*), MAX(voted_at) FROM votes WHERE vote != 'passer'"
+    ).fetchone()
+    return {"n": int(row[0]), "last": row[1]}
+
+
+def last_votes_seen(conn: sqlite3.Connection) -> dict[str, Any] | None:
+    """Les votes vus par le dernier entraînement, promu ou non. None avant le premier modèle,
+    ou pour un modèle antérieur à l'empreinte."""
+    row = conn.execute("SELECT params FROM models ORDER BY model_id DESC LIMIT 1").fetchone()
+    if row is None:
+        return None
+    seen = json.loads(row[0]).get("votes")
+    return seen if isinstance(seen, dict) else None
+
+
 def save_model(
     conn: sqlite3.Connection,
     models_dir: Path,
@@ -145,6 +163,7 @@ def save_model(
     decision: Decision,
     cfg: ModelConfig,
     now: str,
+    votes: dict[str, Any],
 ) -> int:
     models_dir.mkdir(parents=True, exist_ok=True)
     with conn:
@@ -158,7 +177,7 @@ def save_model(
                 result.threshold,
                 int(decision.promoted),
                 " ; ".join(decision.reasons),
-                json.dumps(_params(result, cfg)),
+                json.dumps({**_params(result, cfg), "votes": votes}),
                 json.dumps(_metrics(result, exam)),
             ),
         )

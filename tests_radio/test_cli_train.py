@@ -54,6 +54,10 @@ def test_train_promotes_then_compares(env: Path) -> None:
     assert "Examen (nouveau modèle) : 3 votes, AUC 1,000" in res.output
     assert "Candidats notés par le modèle n°1 : " in res.output
 
+    conn = connect(env / "data" / "radio.db")
+    add_vote(conn, 200500, "lesson", "oui")
+    conn.close()
+
     res = runner.invoke(cli.app, ["train"])
     assert res.exit_code == 0, res.output
     assert "Examen (modèle en service) : 3 votes" in res.output
@@ -79,6 +83,10 @@ def test_signals_changed_during_load_fails(env: Path, monkeypatch: pytest.Monkey
 
     res = runner.invoke(cli.app, ["train"])
     assert res.exit_code == 0, res.output  # premier modèle, mis en service
+
+    conn = connect(env / "data" / "radio.db")
+    add_vote(conn, 200500, "lesson", "oui")
+    conn.close()
 
     db = env / "data" / "radio.db"
     before = connect(db).execute("SELECT COUNT(*) FROM models").fetchone()[0]
@@ -111,3 +119,40 @@ def test_unreadable_serving_model_exits_2(env: Path) -> None:
     res = runner.invoke(cli.app, ["train"])
     assert res.exit_code == 2
     assert "Modèle en service illisible : FileNotFoundError" in res.output
+
+
+def test_no_retraining_without_new_votes_but_candidates_rescored(env: Path) -> None:
+    conn = make_model_db(env / "data")
+    for a in range(5):
+        add_vote(conn, (2000 + a) * 100, "lesson", "oui")
+        add_vote(conn, (3000 + a) * 100, "lesson", "non")
+    conn.close()
+    assert runner.invoke(cli.app, ["train"]).exit_code == 0
+    conn = connect(env / "data" / "radio.db")
+    conn.execute("DELETE FROM scores")
+    conn.commit()
+    conn.close()
+
+    res = runner.invoke(cli.app, ["train"])
+    assert res.exit_code == 0, res.output
+    assert (
+        "Aucun nouveau vote depuis le dernier entraînement (10 votes) : pas de réentraînement"
+        in res.output
+    )
+    assert "Candidats notés par le modèle n°1 : " in res.output
+    conn = connect(env / "data" / "radio.db")
+    assert conn.execute("SELECT COUNT(*) FROM models").fetchone()[0] == 1
+    assert conn.execute("SELECT COUNT(*) FROM scores").fetchone()[0] > 0
+    conn.close()
+
+
+def test_cold_start_without_votes_trains_once(env: Path) -> None:
+    make_model_db(env / "data").close()
+    assert runner.invoke(cli.app, ["train"]).exit_code == 0
+    res = runner.invoke(cli.app, ["train"])
+    assert res.exit_code == 0, res.output
+    assert "Aucun nouveau vote depuis le dernier entraînement (0 votes)" in res.output
+    assert "Aucun modèle en service : candidats non notés" in res.output
+    conn = connect(env / "data" / "radio.db")
+    assert conn.execute("SELECT COUNT(*) FROM models").fetchone()[0] == 1
+    conn.close()

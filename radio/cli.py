@@ -1,6 +1,7 @@
 """Commandes AubeSonore v3."""
 
 import logging
+import sqlite3
 import sys
 from collections import Counter
 from datetime import UTC, datetime
@@ -30,7 +31,9 @@ from radio.model.promote import (
     current_model,
     decide,
     exam_metrics,
+    last_votes_seen,
     save_model,
+    votes_seen,
     write_scores,
 )
 from radio.model.train import TrainResult, train_model
@@ -368,6 +371,14 @@ def _exam_line(label: str, e: ExamMetrics) -> str:
     return f"{label} : {_n(e.n)} votes, AUC {_dec(e.auc)}, {_yes(e.yes)}"
 
 
+def _batch_line(batch: tuple[int, int, int], cfg: ModelConfig) -> str:
+    run_id, n, acc = batch
+    alert = n > 0 and acc / n < cfg.candidate_acceptance_alert
+    return f"Dernière fournée (passe n°{run_id}) : {_pct(acc, n)} acceptés" + (
+        f" — ALERTE : sous {_rate(cfg.candidate_acceptance_alert)}" if alert else ""
+    )
+
+
 def _train_lines(
     r: TrainResult,
     labels: Labels,
@@ -438,12 +449,30 @@ def _train_lines(
             f"Candidats notés par le modèle n°{sid} : {_n(n)}, {_n(acc)} acceptés ({_pct(acc, n)})"
         )
     if batch is not None:
-        run_id, n, acc = batch
-        alert = n > 0 and acc / n < cfg.candidate_acceptance_alert
-        lines.append(
-            f"Dernière fournée (passe n°{run_id}) : {_pct(acc, n)} acceptés"
-            + (f" — ALERTE : sous {_rate(cfg.candidate_acceptance_alert)}" if alert else "")
-        )
+        lines.append(_batch_line(batch, cfg))
+    return lines
+
+
+def _rescore_lines(
+    conn: sqlite3.Connection, models_dir: Path, size: int, cfg: ModelConfig
+) -> list[str]:
+    """Sans nouveau vote : pas de réentraînement (spec §8), mais les candidats de la semaine
+    sont notés par le modèle en service."""
+    try:
+        current = current_model(conn, models_dir)
+    except (OSError, ValueError, EOFError) as e:
+        _fail(f"Modèle en service illisible : {type(e).__name__}", 2)
+    if current is None:
+        return ["Aucun modèle en service : candidats non notés"]
+    table = load_signals(conn, size, vocabulary=current.stack.vocabulary)
+    n, acc = write_scores(conn, current, table)
+    lines = [
+        f"Candidats notés par le modèle n°{current.model_id} : {_n(n)}, {_n(acc)} acceptés "
+        f"({_pct(acc, n)})"
+    ]
+    batch = batch_acceptance(conn)
+    if batch is not None:
+        lines.append(_batch_line(batch, cfg))
     return lines
 
 
@@ -458,6 +487,16 @@ def train() -> None:
     models_dir = settings.data_dir / "models"
     conn = connect(settings.data_dir / "radio.db")
     try:
+        seen = votes_seen(conn)
+        if seen == last_votes_seen(conn):
+            lines = [
+                f"Aucun nouveau vote depuis le dernier entraînement ({_n(seen['n'])} votes) : "
+                "pas de réentraînement",
+                *_rescore_lines(conn, models_dir, size, cfg),
+            ]
+            for line in lines:
+                typer.echo(line)
+            return
         table = load_signals(conn, size)
         labels = build_labels(conn, table, cfg.exam_window)
         try:
@@ -483,7 +522,7 @@ def train() -> None:
             cur_exam = exam_metrics(current.stack, current.threshold, cur_table, labels.exam)
         decision = decide(result, new_exam, cur_exam, cfg)
         now = datetime.now(UTC).isoformat()
-        model_id = save_model(conn, models_dir, result, new_exam, decision, cfg, now)
+        model_id = save_model(conn, models_dir, result, new_exam, decision, cfg, now, seen)
         serving, serving_table = current, cur_table
         if decision.promoted and result.threshold is not None:
             serving, serving_table = Serving(model_id, result.stack, result.threshold), table

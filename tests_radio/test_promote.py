@@ -18,7 +18,9 @@ from radio.model.promote import (
     current_model,
     decide,
     exam_metrics,
+    last_votes_seen,
     save_model,
+    votes_seen,
     write_scores,
 )
 from radio.model.stack import Stack
@@ -107,9 +109,13 @@ def test_history_and_serving_model(tmp_path: Path) -> None:
     exam = exam_metrics(r.stack, r.threshold, table, labels.exam)
     assert exam.n == 2 and exam.auc == 1.0
     models = tmp_path / "models"
-    first = save_model(conn, models, r, exam, Decision(False, ["x"]), CFG, "d1")
+    first = save_model(
+        conn, models, r, exam, Decision(False, ["x"]), CFG, "d1", {"n": 0, "last": None}
+    )
     assert current_model(conn, models) is None
-    second = save_model(conn, models, r, exam, Decision(True, ["premier modèle"]), CFG, "d2")
+    second = save_model(
+        conn, models, r, exam, Decision(True, ["premier modèle"]), CFG, "d2", {"n": 0, "last": None}
+    )
     assert (first, second) == (1, 2)
     serving = current_model(conn, models)
     assert serving is not None and serving.model_id == 2
@@ -137,7 +143,14 @@ def test_write_scores_and_batch_acceptance(tmp_path: Path) -> None:
     conn.execute("INSERT INTO candidates VALUES (300700, 2, 1000, 3007)")
     conn.commit()
     model_id = save_model(
-        conn, tmp_path / "m", r, ExamMetrics(0, None, None), Decision(True, ["p"]), CFG, "d"
+        conn,
+        tmp_path / "m",
+        r,
+        ExamMetrics(0, None, None),
+        Decision(True, ["p"]),
+        CFG,
+        "d",
+        {"n": 0, "last": None},
     )
     n, accepted = write_scores(conn, Serving(model_id, r.stack, r.threshold), table)
     n_candidates = conn.execute(
@@ -171,3 +184,22 @@ def test_current_model_file_must_be_a_stack(tmp_path: Path) -> None:
     conn.commit()
     with pytest.raises(ValueError, match="n'est pas un modèle"):
         current_model(conn, models)
+
+
+def test_votes_fingerprint_is_stored_with_each_model(tmp_path: Path) -> None:
+    conn = make_model_db(tmp_path)
+    assert last_votes_seen(conn) is None
+    assert votes_seen(conn) == {"n": 0, "last": None}
+    add_vote(conn, 200000, "lesson", "oui", at="2026-09-20T10:00:00+00:00")
+    add_vote(conn, 300000, "lesson", "passer", at="2026-09-21T10:00:00+00:00")
+    seen = votes_seen(conn)
+    assert seen == {"n": 1, "last": "2026-09-20T10:00:00+00:00"}  # « passer » ne compte pas
+    conn.execute("INSERT INTO models VALUES (1, 'd', 'f', NULL, 0, 'v', '{}', '{}')")
+    conn.commit()
+    assert last_votes_seen(conn) is None  # modèle antérieur à l'empreinte
+    conn.execute(
+        "INSERT INTO models VALUES (2, 'd', 'f', NULL, 0, 'v', ?, '{}')",
+        (json.dumps({"votes": seen}),),
+    )
+    conn.commit()
+    assert last_votes_seen(conn) == seen
