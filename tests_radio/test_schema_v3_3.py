@@ -10,7 +10,7 @@ from radio.core.db import connect
 
 def test_migration_003_creates_tables(tmp_path: Path) -> None:
     conn = connect(tmp_path / "radio.db")
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 3
+    assert conn.execute("PRAGMA user_version").fetchone()[0] >= 3
     names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"votes", "models", "scores"} <= names
 

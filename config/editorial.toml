@@ -31,3 +31,13 @@ exam_window = 60
 min_votes_per_class = 10
 # Plis de la validation croisée groupée par artiste.
 folds = 5
+
+[votes]
+# Titres d'examen par sélection hebdomadaire, tirés au hasard parmi les retenus.
+exam_per_selection = 10
+# Titres de leçon par sélection : les plus incertains, un par artiste.
+lesson_per_selection = 10
+# Alerte WhatsApp si le taux de oui d'examen passe sous ce seuil.
+yes_rate_alert = 0.90
+# Signaler l'absence de vote depuis ce nombre de jours.
+quiet_days = 7
