@@ -24,6 +24,10 @@ class Settings(BaseSettings):
     lastfm_api_key: SecretStr | None = Field(default=None, repr=False)
     data_dir: Path = Field(default=REPO_ROOT / "data", validation_alias="RADIO_DATA_DIR")
     config_dir: Path = Field(default=REPO_ROOT / "config", validation_alias="RADIO_CONFIG_DIR")
+    effnet_model: Path = Field(
+        default=REPO_ROOT / "models" / "discogs-effnet-bs64-1.pb",
+        validation_alias="RADIO_EFFNET_MODEL",
+    )
 
 
 class LibraryConfig(BaseModel):
