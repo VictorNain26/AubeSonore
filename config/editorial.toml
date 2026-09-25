@@ -3,3 +3,17 @@
 [library]
 # Écart maximal de durée (secondes) entre le titre Plex et le titre Deezer rapproché.
 duration_tolerance_s = 3
+
+[discover]
+# Artistes de la bibliothèque tirés comme graines à chaque passe de découverte.
+seeds_per_run = 15
+# Une graine n'est pas retirée avant ce délai (jours) après une passe réussie.
+seed_cooldown_days = 30
+# Titres lus par voisin (Deezer artist/{id}/top), et par artiste négatif.
+tracks_per_neighbour = 10
+# Similaires demandés à Last.fm pour chaque artiste.
+lastfm_similar_limit = 100
+
+[signals]
+# Taille du vocabulaire de tags Last.fm (signal culture).
+culture_vocabulary = 200

@@ -22,6 +22,7 @@ def _migrate(conn: sqlite3.Connection) -> None:
         version = int(script.name.split("_", 1)[0])
         if version <= current:
             continue
+        # Un script de migration ne contient ni BEGIN ni COMMIT : il est enveloppé ci-dessous.
         sql = script.read_text(encoding="utf-8")
         # Un seul script : le schéma et user_version (transactionnel) passent ensemble ou pas du
         # tout. Un executescript nu validerait chaque instruction une à une.

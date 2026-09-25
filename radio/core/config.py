@@ -31,9 +31,24 @@ class LibraryConfig(BaseModel):
     duration_tolerance_s: int = Field(default=3, ge=0, le=10)
 
 
+class DiscoverConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    seeds_per_run: int = Field(default=15, ge=1, le=200)
+    seed_cooldown_days: int = Field(default=30, ge=0, le=365)
+    tracks_per_neighbour: int = Field(default=10, ge=1, le=100)
+    lastfm_similar_limit: int = Field(default=100, ge=1, le=250)
+
+
+class SignalsConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    culture_vocabulary: int = Field(default=200, ge=10, le=2000)
+
+
 class Editorial(BaseModel):
     model_config = ConfigDict(extra="forbid")
     library: LibraryConfig = LibraryConfig()
+    discover: DiscoverConfig = DiscoverConfig()
+    signals: SignalsConfig = SignalsConfig()
 
 
 def load_editorial(path: Path) -> Editorial:

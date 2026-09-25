@@ -1,0 +1,14 @@
+"""Poids tirés des écoutes Plex (spec §5.1) : 1 + log(1 + écoutes), plafonné à 4.
+
+Tout artiste ou titre garde un poids d'au moins 1 : les coins peu écoutés comptent aussi.
+"""
+
+import math
+
+WEIGHT_CAP = 4.0
+
+
+def play_weight(plays: int) -> float:
+    if plays < 0:
+        raise ValueError("plays must be >= 0")
+    return min(1.0 + math.log1p(plays), WEIGHT_CAP)
