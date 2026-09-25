@@ -13,13 +13,27 @@ import typer
 from plexapi.exceptions import PlexApiException
 from pydantic import ValidationError
 
-from radio.core.config import Settings, load_editorial
+from radio.core.config import ModelConfig, Settings, load_editorial
 from radio.core.db import connect
 from radio.discover.negatives import import_negatives, load_negatives
 from radio.discover.run import DiscoverReport, NoLibraryArtistsError, discover_pass
 from radio.library.artists import RegisterReport, register_library
 from radio.library.match import MatchReport, coverage, match_library
 from radio.library.sync import EmptyLibraryError, sync_library
+from radio.model.dataset import Labels, MissingExamplesError, build_labels
+from radio.model.evaluate import YesRate
+from radio.model.promote import (
+    Decision,
+    ExamMetrics,
+    Serving,
+    batch_acceptance,
+    current_model,
+    decide,
+    exam_metrics,
+    save_model,
+    write_scores,
+)
+from radio.model.train import TrainResult, train_model
 from radio.signals.artists import FetchReport, fetch_artists
 from radio.signals.audio import EffnetEmbedder, ModelError
 from radio.signals.measure import MeasureReport, measure_tracks
@@ -332,3 +346,152 @@ def votes_import(
     )
     if rep.n_added:
         typer.echo(f"{_n(rep.n_added)} nouveaux titres à mesurer : lancer radio signals")
+
+
+def _dec(x: float | None, digits: int = 3) -> str:
+    return "—" if x is None else f"{x:.{digits}f}".replace(".", ",")
+
+
+def _opt_rate(x: float | None) -> str:
+    return "—" if x is None else _rate(x)
+
+
+def _yes(y: YesRate | None) -> str:
+    if y is None:
+        return "aucun titre accepté"
+    return f"taux de oui {_rate(y.rate)} [{_rate(y.low)} - {_rate(y.high)}] sur {_n(y.n)} acceptés"
+
+
+def _exam_line(label: str, e: ExamMetrics) -> str:
+    if e.n == 0:
+        return f"{label} : aucun vote d'examen"
+    return f"{label} : {_n(e.n)} votes, AUC {_dec(e.auc)}, {_yes(e.yes)}"
+
+
+def _train_lines(
+    r: TrainResult,
+    labels: Labels,
+    table: SignalTable,
+    new: ExamMetrics,
+    cur: ExamMetrics | None,
+    decision: Decision,
+    model_id: int,
+    scored: tuple[int, int, int] | None,
+    batch: tuple[int, int, int] | None,
+    cfg: ModelConfig,
+) -> list[str]:
+    c = r.counts
+    lines = [
+        f"Exemples : bibliothèque {_n(c['library'])}, oui {_n(c['vote_yes'])}, "
+        f"non {_n(c['vote_no'])}, négatifs faibles {_n(c['weak'])} "
+        f"({_n(labels.n_weak_excluded)} écartés) ; examen {_n(len(labels.exam.rows))} "
+        f"(dernier vote : {labels.exam.last_vote or 'aucun'}) ; "
+        f"{_n(labels.n_votes_unmeasured)} votes sans signaux",
+        *_missing_lines(table),
+    ]
+    m = r.missing_votes
+    if any(m.values()):
+        lines.append(
+            f"Votes de leçon insuffisants : il manque {_n(m['oui'])} « oui » et {_n(m['non'])} "
+            f"« non » ; négatifs faibles maintenus (poids {_dec(r.weak_weight, 1)}), "
+            "ni seuil ni ablation"
+        )
+    lines.append(
+        "Poids des négatifs faibles : "
+        + " ; ".join(f"{_dec(k, 1)} → AUC {_dec(v)}" for k, v in r.weak_weight_aucs.items())
+        + f" ; retenu {_dec(r.weak_weight, 1)}"
+    )
+    for a in r.ablation:
+        verdict = "gardé" if a.kept else "retiré"
+        lines.append(
+            f"  sans {a.removed} : AUC {_dec(a.auc)}, précision {_opt_rate(a.precision)} "
+            f"→ {verdict}"
+        )
+    lines.append("Signaux gardés : " + ", ".join(("son", *r.stack.groups)))
+    if r.threshold is None:
+        lines.append(
+            f"Leçon (hors pli) : AUC {_dec(r.lesson_auc)}, aucun seuil "
+            f"(précision visée {_rate(cfg.target_precision)})"
+        )
+    else:
+        lines.append(
+            f"Leçon (hors pli) : AUC {_dec(r.lesson_auc)}, seuil {_dec(r.threshold)} → "
+            f"{_yes(r.lesson_yes)}, {_opt_rate(r.lesson_acceptance)} des votes acceptés"
+        )
+        lines.append(
+            f"Garde-fou : bibliothèque acceptée {_opt_rate(r.library_acceptance)} (artiste "
+            f"retiré), {_opt_rate(r.library_acceptance_complete)} sur "
+            f"{_n(r.n_library_complete)} titres aux signaux complets ; minimum "
+            f"{_rate(cfg.library_acceptance_min)}"
+        )
+    lines.append(_exam_line("Examen (nouveau modèle)", new))
+    if cur is not None:
+        lines.append(_exam_line("Examen (modèle en service)", cur))
+    verdict = "promu" if decision.promoted else "non promu"
+    lines.append(f"Modèle n°{model_id} : {verdict} — " + " ; ".join(decision.reasons))
+    if scored is None:
+        lines.append("Aucun modèle en service : candidats non notés")
+    else:
+        sid, n, acc = scored
+        lines.append(
+            f"Candidats notés par le modèle n°{sid} : {_n(n)}, {_n(acc)} acceptés ({_pct(acc, n)})"
+        )
+    if batch is not None:
+        run_id, n, acc = batch
+        alert = n > 0 and acc / n < cfg.candidate_acceptance_alert
+        lines.append(
+            f"Dernière fournée (passe n°{run_id}) : {_pct(acc, n)} acceptés"
+            + (f" — ALERTE : sous {_rate(cfg.candidate_acceptance_alert)}" if alert else "")
+        )
+    return lines
+
+
+@app.command()
+def train() -> None:
+    """Entraîne le modèle, le compare au modèle en service et note les candidats."""
+    _logging()
+    settings = _settings()
+    editorial = load_editorial(settings.config_dir / "editorial.toml")
+    cfg = editorial.model
+    size = editorial.signals.culture_vocabulary
+    models_dir = settings.data_dir / "models"
+    conn = connect(settings.data_dir / "radio.db")
+    try:
+        table = load_signals(conn, size)
+        labels = build_labels(conn, table, cfg.exam_window)
+        try:
+            current = current_model(conn, models_dir)
+        except (OSError, ValueError, EOFError) as e:
+            _fail(f"Modèle en service illisible : {type(e).__name__}", 2)
+        result = train_model(table, labels, cfg)
+        new_exam = exam_metrics(result.stack, result.threshold, table, labels.exam)
+        cur_exam = None
+        cur_table = None
+        if current is not None:
+            # Même ensemble de lignes que `table` : seul le vocabulaire (colonnes) change.
+            cur_table = load_signals(conn, size, vocabulary=current.stack.vocabulary)
+            cur_exam = exam_metrics(current.stack, current.threshold, cur_table, labels.exam)
+        decision = decide(result, new_exam, cur_exam, cfg)
+        now = datetime.now(UTC).isoformat()
+        model_id = save_model(conn, models_dir, result, new_exam, decision, cfg, now)
+        serving, serving_table = current, cur_table
+        if decision.promoted and result.threshold is not None:
+            serving, serving_table = Serving(model_id, result.stack, result.threshold), table
+        scored = None
+        batch = None
+        if serving is not None and serving_table is not None:
+            n, acc = write_scores(conn, serving, serving_table)
+            scored = (serving.model_id, n, acc)
+            batch = batch_acceptance(conn)
+    except MissingExamplesError:
+        _fail(
+            "Exemples insuffisants (il faut des titres de la bibliothèque et des négatifs "
+            "mesurés) : lancer radio negatives-sync puis radio signals",
+            1,
+        )
+    finally:
+        conn.close()
+    for line in _train_lines(
+        result, labels, table, new_exam, cur_exam, decision, model_id, scored, batch, cfg
+    ):
+        typer.echo(line)
