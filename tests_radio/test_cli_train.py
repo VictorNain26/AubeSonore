@@ -1,3 +1,4 @@
+import dataclasses
 import json
 from pathlib import Path
 
@@ -6,6 +7,8 @@ from typer.testing import CliRunner
 
 import radio.cli as cli
 from radio.core.config import Settings
+from radio.core.db import connect
+from radio.signals.table import load_signals as real_load_signals
 from tests_radio.model_factory import add_vote, make_model_db
 
 runner = CliRunner()
@@ -65,6 +68,36 @@ def test_train_without_negatives_exits_1(env: Path) -> None:
     res = runner.invoke(cli.app, ["train"])
     assert res.exit_code == 1
     assert "Exemples insuffisants" in res.output
+
+
+def test_signals_changed_during_load_fails(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    conn = make_model_db(env / "data")
+    for a in range(5):
+        add_vote(conn, (2000 + a) * 100, "lesson", "oui")
+        add_vote(conn, (3000 + a) * 100, "lesson", "non")
+    conn.close()
+
+    res = runner.invoke(cli.app, ["train"])
+    assert res.exit_code == 0, res.output  # premier modèle, mis en service
+
+    db = env / "data" / "radio.db"
+    before = connect(db).execute("SELECT COUNT(*) FROM models").fetchone()[0]
+
+    def fake_load_signals(conn, size, vocabulary=None):  # type: ignore[no-untyped-def]
+        table = real_load_signals(conn, size, vocabulary=vocabulary)
+        if vocabulary is None:
+            return table
+        # Simule un `radio signals` qui commite entre les deux chargements de `radio train`.
+        return dataclasses.replace(table, track_ids=table.track_ids + 1)
+
+    monkeypatch.setattr(cli, "load_signals", fake_load_signals)
+
+    res = runner.invoke(cli.app, ["train"])
+    assert res.exit_code == 1
+    assert "Signaux modifiés" in res.output
+
+    after = connect(db).execute("SELECT COUNT(*) FROM models").fetchone()[0]
+    assert after == before
 
 
 def test_unreadable_serving_model_exits_2(env: Path) -> None:

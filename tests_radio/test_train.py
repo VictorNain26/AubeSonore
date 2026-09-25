@@ -1,7 +1,11 @@
 from pathlib import Path
 
+import numpy as np
+import pytest
+
 from radio.core.config import ModelConfig
-from radio.model.dataset import build_labels
+from radio.model.dataset import LIBRARY, VOTE_NO, VOTE_YES, build_labels
+from radio.model.evaluate import acceptance, threshold_for_precision
 from radio.model.stack import GROUPS
 from radio.model.train import WEAK_WEIGHTS, train_model
 from radio.signals.table import load_signals
@@ -39,3 +43,32 @@ def test_training_with_enough_votes(tmp_path: Path) -> None:
     assert r.lesson_yes is not None and r.lesson_yes.rate >= 0.9
     assert r.library_acceptance is not None and r.library_acceptance > 0.5
     assert 0 <= r.n_library_complete <= r.counts["library"]
+
+
+def test_threshold_and_guardrail_use_out_of_fold_scores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    conn = make_model_db(tmp_path)
+    for a in range(6):
+        add_vote(conn, (2000 + a) * 100, "lesson", "oui")
+        add_vote(conn, (3000 + a) * 100, "lesson", "non")
+    table = load_signals(conn, 10)
+    labels = build_labels(conn, table, 60)
+    ds = labels.train
+    votes = np.isin(ds.categories, [VOTE_YES, VOTE_NO])
+    fixed = np.random.default_rng(1).random(len(ds.labels))
+    # garantit un seuil, avec des notes distinctes de ce qu'ajusterait le modèle
+    fixed[votes & (ds.labels == 1)] += 1.0
+
+    def fake(table, ds, w, folds, sets):  # type: ignore[no-untyped-def]
+        return [fixed.copy() for _ in sets]
+
+    monkeypatch.setattr("radio.model.train.nested_scores", fake)
+
+    r = train_model(table, labels, CFG)
+
+    thr = threshold_for_precision(ds.labels[votes], fixed[votes], CFG.target_precision)
+    assert thr is not None
+    assert r.threshold == thr
+    lib = ds.categories == LIBRARY
+    assert r.library_acceptance == acceptance(fixed[lib], thr)

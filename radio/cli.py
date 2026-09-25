@@ -415,8 +415,9 @@ def _train_lines(
         )
     else:
         lines.append(
-            f"Leçon (hors pli) : AUC {_dec(r.lesson_auc)}, seuil {_dec(r.threshold)} → "
-            f"{_yes(r.lesson_yes)}, {_opt_rate(r.lesson_acceptance)} des votes acceptés"
+            f"Leçon (hors pli, seuil choisi sur ces votes) : AUC {_dec(r.lesson_auc)}, "
+            f"seuil {_dec(r.threshold)} → {_yes(r.lesson_yes)}, "
+            f"{_opt_rate(r.lesson_acceptance)} des votes acceptés"
         )
         lines.append(
             f"Garde-fou : bibliothèque acceptée {_opt_rate(r.library_acceptance)} (artiste "
@@ -463,13 +464,22 @@ def train() -> None:
             current = current_model(conn, models_dir)
         except (OSError, ValueError, EOFError) as e:
             _fail(f"Modèle en service illisible : {type(e).__name__}", 2)
+        cur_table = None
+        if current is not None:
+            # Même ensemble de lignes que `table` (vérifié juste après) : seul le vocabulaire
+            # (colonnes) change.
+            cur_table = load_signals(conn, size, vocabulary=current.stack.vocabulary)
+            if not np.array_equal(cur_table.track_ids, table.track_ids):
+                _fail(
+                    "Signaux modifiés pendant le chargement (radio signals en cours ?) : "
+                    "relancer radio train",
+                    1,
+                )
         result = train_model(table, labels, cfg)
         new_exam = exam_metrics(result.stack, result.threshold, table, labels.exam)
         cur_exam = None
-        cur_table = None
         if current is not None:
-            # Même ensemble de lignes que `table` : seul le vocabulaire (colonnes) change.
-            cur_table = load_signals(conn, size, vocabulary=current.stack.vocabulary)
+            assert cur_table is not None
             cur_exam = exam_metrics(current.stack, current.threshold, cur_table, labels.exam)
         decision = decide(result, new_exam, cur_exam, cfg)
         now = datetime.now(UTC).isoformat()
