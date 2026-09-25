@@ -37,6 +37,13 @@ class DeezerTrack:
     has_preview: bool
 
 
+@dataclass(frozen=True)
+class DeezerArtist:
+    id: int
+    name: str
+    nb_fan: int
+
+
 def _track(d: Any) -> DeezerTrack:
     try:
         return DeezerTrack(
@@ -53,6 +60,13 @@ def _track(d: Any) -> DeezerTrack:
         raise DeezerError("malformed track") from None
 
 
+def _artist(d: Any) -> DeezerArtist:
+    try:
+        return DeezerArtist(id=int(d["id"]), name=str(d["name"]), nb_fan=int(d["nb_fan"]))
+    except (KeyError, TypeError, ValueError):
+        raise DeezerError("malformed artist") from None
+
+
 class DeezerClient:
     def __init__(
         self, session: requests.Session | None = None, limiter: Limiter | None = None
@@ -63,6 +77,39 @@ class DeezerClient:
     def search_tracks(self, query: str, limit: int = 10) -> list[DeezerTrack]:
         body = self._get("/search/track", {"q": query, "limit": limit})
         return [_track(d) for d in body.get("data") or []]
+
+    def artist(self, artist_id: int) -> DeezerArtist | None:
+        body = self._get(f"/artist/{artist_id}", {})
+        return _artist(body) if "id" in body else None
+
+    def related(self, artist_id: int) -> list[DeezerArtist]:
+        body = self._get(f"/artist/{artist_id}/related", {})
+        return [_artist(d) for d in body.get("data") or []]
+
+    def top(self, artist_id: int, limit: int = 10) -> list[DeezerTrack]:
+        body = self._get(f"/artist/{artist_id}/top", {"limit": limit})
+        return [_track(d) for d in body.get("data") or []]
+
+    def track(self, track_id: int) -> tuple[DeezerTrack, str | None] | None:
+        """Le titre et une URL d'extrait fraîche. L'URL est signée et expire : ne jamais la
+        stocker, la journaliser ni la mettre dans un message."""
+        body = self._get(f"/track/{track_id}", {})
+        if "id" not in body:
+            return None
+        preview = body.get("preview")
+        return _track(body), (str(preview) if preview else None)
+
+    @stamina.retry(on=DeezerUnavailable, attempts=5, wait_initial=1.0, wait_max=30.0)
+    def download_preview(self, url: str) -> bytes:
+        try:
+            r = self._session.get(url, timeout=30)
+        except requests.RequestException as e:
+            raise DeezerUnavailable(type(e).__name__) from None
+        if r.status_code == 429 or r.status_code >= 500:
+            raise DeezerUnavailable(f"preview HTTP {r.status_code}")
+        if r.status_code >= 400 or not r.content:
+            raise DeezerError(f"preview HTTP {r.status_code}")
+        return r.content
 
     @stamina.retry(on=DeezerUnavailable, attempts=5, wait_initial=1.0, wait_max=30.0)
     def _get(self, path: str, params: dict[str, Any]) -> dict[str, Any]:

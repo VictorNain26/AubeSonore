@@ -1,9 +1,17 @@
+import logging
+
 import pytest
 import requests
 import responses
 from pyrate_limiter import Duration, Limiter, Rate
 
-from radio.sources.deezer import DeezerClient, DeezerError, DeezerTrack, DeezerUnavailable
+from radio.sources.deezer import (
+    DeezerArtist,
+    DeezerClient,
+    DeezerError,
+    DeezerTrack,
+    DeezerUnavailable,
+)
 
 URL = "https://api.deezer.com/search/track"
 
@@ -112,3 +120,85 @@ def test_malformed_item_is_definitive() -> None:
 
 def test_unavailable_is_not_a_deezer_error() -> None:
     assert not issubclass(DeezerUnavailable, DeezerError)
+
+
+API = "https://api.deezer.com"
+PREVIEW = "https://cdnt-preview.dzcdn.net/api/1/1/x.mp3?hdnea=SIGNED-SECRET"
+
+
+@responses.activate
+def test_artist() -> None:
+    responses.get(API + "/artist/27", json={"id": 27, "name": "Daft Punk", "nb_fan": 5210804})
+    assert client().artist(27) == DeezerArtist(27, "Daft Punk", 5210804)
+
+
+@responses.activate
+def test_unknown_artist_is_none() -> None:
+    responses.get(API + "/artist/27", json={"error": {"type": "DataException", "code": 800}})
+    assert client().artist(27) is None
+
+
+@responses.activate
+def test_related() -> None:
+    responses.get(
+        API + "/artist/27/related",
+        json={"data": [{"id": 1, "name": "Justice", "nb_fan": 10}], "total": 1},
+    )
+    assert client().related(27) == [DeezerArtist(1, "Justice", 10)]
+
+
+@responses.activate
+def test_top_passes_limit() -> None:
+    responses.get(API + "/artist/27/top", json={"data": [item()], "total": 100})
+    assert [t.id for t in client().top(27, limit=10)] == [3135556]
+    assert responses.calls[0].request.params == {"limit": "10"}
+
+
+@responses.activate
+def test_track_returns_fresh_preview_url() -> None:
+    responses.get(API + "/track/3135556", json=item())
+    got = client().track(3135556)
+    assert got is not None
+    track, url = got
+    assert (track.id, track.rank) == (3135556, 850000)
+    assert url == "https://cdnt-preview.dzcdn.net/signed"
+
+
+@responses.activate
+def test_track_without_preview() -> None:
+    responses.get(API + "/track/1", json=item(id=1, preview=""))
+    got = client().track(1)
+    assert got is not None and got[1] is None
+
+
+@responses.activate
+def test_gone_track_is_none() -> None:
+    responses.get(API + "/track/1", json={"error": {"type": "DataException", "code": 800}})
+    assert client().track(1) is None
+
+
+@responses.activate
+def test_download_preview() -> None:
+    responses.get(PREVIEW, body=b"ID3data")
+    assert client().download_preview(PREVIEW) == b"ID3data"
+
+
+@responses.activate
+def test_preview_server_error_is_retried() -> None:
+    responses.get(PREVIEW, status=503)
+    with pytest.raises(DeezerUnavailable):
+        client().download_preview(PREVIEW)
+    assert len(responses.calls) == 3
+
+
+@responses.activate
+def test_preview_errors_never_carry_the_signed_url(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level(logging.DEBUG)
+    responses.get(PREVIEW, status=404)
+    with pytest.raises(DeezerError) as definitive:
+        client().download_preview(PREVIEW)
+    responses.replace(responses.GET, PREVIEW, body=requests.ConnectionError(PREVIEW))
+    with pytest.raises(DeezerUnavailable) as transient:
+        client().download_preview(PREVIEW)
+    for text in (str(definitive.value), str(transient.value), caplog.text):
+        assert "SIGNED-SECRET" not in text
