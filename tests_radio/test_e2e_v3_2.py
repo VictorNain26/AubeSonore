@@ -141,6 +141,7 @@ def test_end_to_end(world: Path, caplog: pytest.LogCaptureFixture) -> None:
     assert "Artistes : 5 à lire → 5 lus, 0 introuvables sur Deezer, 0 sautés" in out
     assert "Titres : 6 à mesurer → 5 mesurés, 1 sans extrait" in out
     assert "Signaux prêts : 5 titres (bibliothèque 2, candidats 2, négatifs 1)" in out
+    assert "Valeurs absentes (bibliothèque) : " in out
     conn = sqlite3.connect(world / "data" / "radio.db")
     candidates_from_library = conn.execute(
         "SELECT COUNT(*) FROM tracks WHERE origin = 'candidate' AND deezer_artist_id IN (83, 70)"

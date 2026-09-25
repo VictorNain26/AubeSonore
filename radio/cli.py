@@ -222,6 +222,17 @@ def _rate(x: float) -> str:
     return f"{100 * x:.1f} %".replace(".", ",")
 
 
+_ORIGINS = {"library": "bibliothèque", "candidate": "candidats", "negative": "négatifs"}
+
+
+def _missing_lines(table: SignalTable) -> list[str]:
+    return [
+        f"Valeurs absentes ({_ORIGINS.get(origin, origin)}) : "
+        + ", ".join(f"{k} {_rate(v)}" for k, v in rates.items())
+        for origin, rates in table.missing_rates_by_origin().items()
+    ]
+
+
 def _signals_lines(
     reg: RegisterReport, fetch: FetchReport, meas: MeasureReport, table: SignalTable
 ) -> list[str]:
@@ -243,9 +254,7 @@ def _signals_lines(
         f"{_n(by_origin['library'])}, candidats {_n(by_origin['candidate'])}, négatifs "
         f"{_n(by_origin['negative'])})"
     )
-    rates = table.missing_rates()
-    if rates:
-        lines.append("Valeurs absentes : " + ", ".join(f"{k} {_rate(v)}" for k, v in rates.items()))
+    lines += _missing_lines(table)
     return lines
 
 

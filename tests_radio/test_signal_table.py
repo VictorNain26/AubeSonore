@@ -96,6 +96,7 @@ def test_load_signals(tmp_path: Path) -> None:
     assert t.popularity[jul, 0] == 0.0
     assert np.isnan(t.popularity[jul, 1:]).all()
     assert np.isnan(t.culture[jul]).all() and np.isnan(t.proximity[jul]).all()
+    assert t.artist_keys == ["knife", "jul", "m83"]
 
 
 def test_load_signals_ignores_a_track_measured_with_another_model(tmp_path: Path) -> None:
@@ -115,3 +116,25 @@ def test_missing_rates(tmp_path: Path) -> None:
     assert math.isclose(rates["auditeurs Last.fm"], 2 / 3)
     assert math.isclose(rates["culture"], 1 / 3)
     assert math.isclose(rates["match Last.fm"], 1 / 3)
+
+
+def test_load_signals_with_a_frozen_vocabulary(tmp_path: Path) -> None:
+    t = load_signals(build(tmp_path), 10, vocabulary=["swedish", "rock"])
+    assert t.vocabulary == ["swedish", "rock"]
+    assert t.culture[0].tolist() == [0.2, 0.0]
+    assert np.isnan(t.culture[1]).all()
+
+
+def test_artist_key_falls_back_to_the_id(tmp_path: Path) -> None:
+    conn = build(tmp_path)
+    conn.execute("UPDATE artists SET name = '!!!' WHERE deezer_artist_id = 9")
+    conn.commit()
+    assert load_signals(conn, 10).artist_keys[1] == "#9"
+
+
+def test_missing_rates_by_origin(tmp_path: Path) -> None:
+    rates = load_signals(build(tmp_path), 10).missing_rates_by_origin()
+    assert list(rates) == ["candidate", "library", "negative"]
+    assert rates["candidate"]["auditeurs Last.fm"] == 1.0
+    assert rates["library"]["auditeurs Last.fm"] == 0.0
+    assert rates["negative"]["culture"] == 1.0
