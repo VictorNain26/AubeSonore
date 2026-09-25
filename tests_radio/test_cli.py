@@ -2,6 +2,7 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
+import numpy as np
 import pytest
 import requests
 from plexapi.exceptions import Unauthorized
@@ -10,8 +11,10 @@ from typer.testing import CliRunner
 import radio.cli as cli
 from radio.core.config import Settings
 from radio.library.match import MatchReport
-from radio.sources.deezer import DeezerTrack, DeezerUnavailable
+from radio.sources.deezer import DeezerArtist, DeezerTrack, DeezerUnavailable
+from radio.sources.lastfm import LastfmUnavailable, SimilarArtist
 from radio.sources.plex import LibraryGuardError, PlexTrack
+from tests_radio.factories import make_library
 
 runner = CliRunner()
 
@@ -157,3 +160,58 @@ def test_match_line_formats_reason_counts() -> None:
         "Rapprochement Deezer : 5\u202f000 à traiter → 2\u202f000 trouvés, 3\u202f000 non trouvés "
         "(sans résultat 1\u202f234, sans correspondance exacte 1\u202f766), 0 en erreur"
     )
+
+
+class DiscoverFakes:
+    def __init__(self, fail: bool = False) -> None:
+        self.fail = fail
+
+    def related(self, artist_id: int) -> list[DeezerArtist]:
+        return [DeezerArtist(1, "Knife", 10)] if artist_id == 83 else []
+
+    def top(self, artist_id: int, limit: int = 10) -> list[DeezerTrack]:
+        return [DeezerTrack(11, "Heartbeats", "Heartbeats", 200, 1000, 1, "Knife", True)]
+
+    def similar_artists(self, artist: str, limit: int = 100) -> list[SimilarArtist]:
+        if self.fail:
+            raise LastfmUnavailable("code 29")
+        return [SimilarArtist("The Knife", 0.9)]
+
+
+def _discover_env(monkeypatch: pytest.MonkeyPatch, env: Path, fakes: DiscoverFakes) -> None:
+    make_library(env / "data").close()
+    monkeypatch.setattr(cli, "_deezer", lambda: fakes)
+    monkeypatch.setattr(cli, "_lastfm", lambda s: fakes)
+    monkeypatch.setattr(cli, "_rng", lambda: np.random.default_rng(0))
+
+
+def test_discover_command(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _discover_env(monkeypatch, env, DiscoverFakes())
+    res = runner.invoke(cli.app, ["discover"])
+    assert res.exit_code == 0, res.output
+    assert (
+        "Découverte : passe n°1 (nouvelle), 2 graines → 1 voisins, 1 titres vus → 1 ajoutés, "
+        "0 doublons, 0 écartés (pas l'artiste principal ou sans extrait), 0 sautés"
+    ) in res.stdout
+
+
+def test_discover_unavailable_exits_1(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _discover_env(monkeypatch, env, DiscoverFakes(fail=True))
+    res = runner.invoke(cli.app, ["discover"])
+    assert res.exit_code == 1
+    assert "Last.fm indisponible (code 29) : le travail fait est gardé" in res.output
+
+
+def test_discover_without_lastfm_key_exits_2(env: Path) -> None:
+    res = runner.invoke(cli.app, ["discover"])
+    assert res.exit_code == 2
+    assert "LASTFM_API_KEY" in res.output
+
+
+def test_discover_without_library_exits_1(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    fakes = DiscoverFakes()
+    monkeypatch.setattr(cli, "_deezer", lambda: fakes)
+    monkeypatch.setattr(cli, "_lastfm", lambda s: fakes)
+    res = runner.invoke(cli.app, ["discover"])
+    assert res.exit_code == 1
+    assert "radio library-sync" in res.output

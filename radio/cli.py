@@ -6,15 +6,18 @@ from datetime import UTC, datetime
 from pathlib import PurePosixPath
 from typing import NoReturn
 
+import numpy as np
 import requests
 import typer
 from plexapi.exceptions import PlexApiException
 
 from radio.core.config import Settings, load_editorial
 from radio.core.db import connect
+from radio.discover.run import DiscoverReport, NoLibraryArtistsError, discover_pass
 from radio.library.match import MatchReport, coverage, match_library
 from radio.library.sync import EmptyLibraryError, sync_library
 from radio.sources.deezer import DeezerClient, DeezerUnavailable
+from radio.sources.lastfm import LastfmClient, LastfmUnavailable
 from radio.sources.plex import LibraryGuardError, PlexSource
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
@@ -43,6 +46,45 @@ def _plex(settings: Settings) -> PlexSource:
 
 def _deezer() -> DeezerClient:
     return DeezerClient()
+
+
+def _lastfm(settings: Settings) -> LastfmClient:
+    if settings.lastfm_api_key is None:
+        _fail("LASTFM_API_KEY doit être défini dans .env", 2)
+    return LastfmClient(settings.lastfm_api_key.get_secret_value())
+
+
+def _rng() -> np.random.Generator:
+    return np.random.default_rng()
+
+
+def _logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO, stream=sys.stderr, format="%(asctime)s %(levelname)s %(message)s"
+    )
+    # À WARNING, urllib3 peut journaliser l'URL complète, clé Last.fm comprise.
+    logging.getLogger("urllib3").setLevel(logging.ERROR)
+
+
+def _unavailable(e: Exception) -> str:
+    source = "Deezer" if isinstance(e, DeezerUnavailable) else "Last.fm"
+    return f"{source} indisponible ({e}) : le travail fait est gardé, relancer plus tard"
+
+
+def _discover_lines(rep: DiscoverReport) -> list[str]:
+    kind = "reprise" if rep.resumed else "nouvelle"
+    lines = [
+        f"Découverte : passe n°{rep.run_id} ({kind}), {_n(rep.n_seeds)} graines → "
+        f"{_n(rep.n_neighbours)} voisins, {_n(rep.n_seen)} titres vus → {_n(rep.n_added)} "
+        f"ajoutés, {_n(rep.n_duplicates)} doublons, {_n(rep.n_filtered)} écartés (pas "
+        f"l'artiste principal ou sans extrait), {_n(len(rep.skipped))} sautés"
+    ]
+    if rep.n_dropped:
+        lines.append(
+            f"  {_n(rep.n_dropped)} graines de la passe reprise ont quitté la bibliothèque"
+        )
+    lines += [f"  sauté : {s}" for s in rep.skipped]
+    return lines
 
 
 def _fail(message: str, code: int) -> NoReturn:
@@ -78,11 +120,7 @@ def main() -> None:
 @app.command("library-sync")
 def library_sync() -> None:
     """Lit la bibliothèque Plex et la rapproche de Deezer."""
-    logging.basicConfig(
-        level=logging.INFO, stream=sys.stderr, format="%(asctime)s %(levelname)s %(message)s"
-    )
-    # À WARNING, urllib3 peut journaliser l'URL complète, clé Last.fm comprise.
-    logging.getLogger("urllib3").setLevel(logging.ERROR)
+    _logging()
     settings = _settings()
     editorial = load_editorial(settings.config_dir / "editorial.toml")
     now = datetime.now(UTC).isoformat()
@@ -105,10 +143,30 @@ def library_sync() -> None:
     except EmptyLibraryError:
         _fail("Plex n'a renvoyé aucun titre : rien n'a été modifié", 1)
     except DeezerUnavailable as e:
-        _fail(f"Deezer indisponible ({e}) : le travail fait est gardé, relancer plus tard", 1)
+        _fail(_unavailable(e), 1)
     finally:
         conn.close()
     typer.echo(_match_line(rep))
     for err in rep.errors:
         typer.echo(f"  erreur : {err}")
     typer.echo(f"Couverture : {_n(done)} / {_n(total)} titres rapprochés ({_pct(done, total)})")
+
+
+@app.command()
+def discover() -> None:
+    """Tire des graines dans la bibliothèque et découvre des titres candidats."""
+    _logging()
+    settings = _settings()
+    editorial = load_editorial(settings.config_dir / "editorial.toml")
+    lastfm = _lastfm(settings)
+    conn = connect(settings.data_dir / "radio.db")
+    try:
+        rep = discover_pass(conn, _deezer(), lastfm, editorial.discover, datetime.now(UTC), _rng())
+    except NoLibraryArtistsError:
+        _fail("Aucun artiste de la bibliothèque rapproché : lancer d'abord radio library-sync", 1)
+    except (DeezerUnavailable, LastfmUnavailable) as e:
+        _fail(_unavailable(e), 1)
+    finally:
+        conn.close()
+    for line in _discover_lines(rep):
+        typer.echo(line)

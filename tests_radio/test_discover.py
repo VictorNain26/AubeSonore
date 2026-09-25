@@ -1,0 +1,112 @@
+import sqlite3
+from datetime import UTC, datetime
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from radio.core.config import DiscoverConfig
+from radio.core.db import connect
+from radio.discover.run import NoLibraryArtistsError, discover_pass
+from radio.discover.seeds import recently_used
+from radio.sources.deezer import DeezerArtist, DeezerError, DeezerTrack
+from radio.sources.lastfm import LastfmUnavailable, SimilarArtist
+from tests_radio.factories import make_library
+
+NOW = datetime(2026, 9, 25, tzinfo=UTC)
+CFG = DiscoverConfig()
+
+
+def dt(tid: int, aid: int, title: str, preview: bool = True) -> DeezerTrack:
+    return DeezerTrack(tid, title, title, 200, 1000, aid, "x", preview)
+
+
+class FakeDeezer:
+    def __init__(self) -> None:
+        self._related = {
+            83: [DeezerArtist(1, "Knife", 10), DeezerArtist(70, "Wire", 5)],
+            70: [DeezerArtist(1, "Knife", 10), DeezerArtist(2, "The Fall", 3)],
+        }
+        self.top_: dict[int, list[DeezerTrack] | Exception] = {
+            1: [
+                dt(11, 1, "Heartbeats"),
+                dt(13, 1, "Heartbeats (Remastered)"),
+                dt(14, 99, "Collab"),
+                dt(15, 1, "No Preview", preview=False),
+            ],
+            2: [dt(21, 2, "Totally Wired")],
+        }
+        self.top_calls: list[int] = []
+
+    def related(self, artist_id: int) -> list[DeezerArtist]:
+        return self._related.get(artist_id, [])
+
+    def top(self, artist_id: int, limit: int = 10) -> list[DeezerTrack]:
+        self.top_calls.append(artist_id)
+        v = self.top_[artist_id]
+        if isinstance(v, Exception):
+            raise v
+        return v
+
+
+class FakeLastfm:
+    def __init__(self) -> None:
+        self.similar: dict[str, list[SimilarArtist] | Exception] = {
+            "M83": [SimilarArtist("The Knife", 0.9), SimilarArtist("Wire", 0.5)],
+            "Wire": [SimilarArtist("Knife", 0.5), SimilarArtist("Fall", 0.8)],
+        }
+
+    def similar_artists(self, artist: str, limit: int = 100) -> list[SimilarArtist]:
+        v = self.similar[artist]
+        if isinstance(v, Exception):
+            raise v
+        return v
+
+
+def status(conn: sqlite3.Connection) -> str:
+    return str(conn.execute("SELECT status FROM discover_runs").fetchone()[0])
+
+
+def test_discover_pass(tmp_path: Path) -> None:
+    conn = make_library(tmp_path)
+    dz, lf = FakeDeezer(), FakeLastfm()
+    rep = discover_pass(conn, dz, lf, CFG, NOW, np.random.default_rng(0))
+    assert (rep.run_id, rep.resumed, rep.n_seeds, rep.n_dropped) == (1, False, 2, 0)
+    assert (rep.n_neighbours, rep.n_seen, rep.n_added) == (2, 5, 2)
+    assert (rep.n_duplicates, rep.n_filtered, rep.skipped) == (1, 2, [])
+    assert sorted(dz.top_calls) == [1, 2]
+    rows = conn.execute(
+        "SELECT deezer_track_id, run_id, neighbour_artist_id FROM candidates ORDER BY 1"
+    ).fetchall()
+    assert [(r[0], r[1], r[2]) for r in rows] == [(11, 1, 1), (21, 1, 2)]
+    assert status(conn) == "done"
+    assert recently_used(conn, NOW, 30) == {70, 83}
+
+
+def test_definitive_error_skips_and_names(tmp_path: Path) -> None:
+    conn = make_library(tmp_path)
+    dz = FakeDeezer()
+    dz.top_[2] = DeezerError("code 501")
+    rep = discover_pass(conn, dz, FakeLastfm(), CFG, NOW, np.random.default_rng(0))
+    assert rep.skipped == ["The Fall (DeezerError)"]
+    assert status(conn) == "done"
+
+
+def test_unavailable_keeps_work_and_resumes_same_run(tmp_path: Path) -> None:
+    conn = make_library(tmp_path)
+    dz, lf = FakeDeezer(), FakeLastfm()
+    lf.similar["Wire"] = LastfmUnavailable("code 29")
+    with pytest.raises(LastfmUnavailable):
+        discover_pass(conn, dz, lf, CFG, NOW, np.random.default_rng(0))
+    assert status(conn) == "running"
+    assert recently_used(conn, NOW, 30) == set()
+    lf = FakeLastfm()
+    rep = discover_pass(conn, dz, lf, CFG, NOW, np.random.default_rng(1))
+    assert rep.resumed and rep.run_id == 1
+    assert status(conn) == "done"
+
+
+def test_no_library_artist(tmp_path: Path) -> None:
+    conn = connect(tmp_path / "radio.db")
+    with pytest.raises(NoLibraryArtistsError):
+        discover_pass(conn, FakeDeezer(), FakeLastfm(), CFG, NOW, np.random.default_rng(0))
