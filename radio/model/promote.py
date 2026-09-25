@@ -6,6 +6,7 @@ Chaque entraînement est historisé (table `models`, fichier joblib), promu ou n
 """
 
 import dataclasses
+import hashlib
 import json
 import sqlite3
 from dataclasses import dataclass
@@ -138,11 +139,17 @@ def _metrics(result: TrainResult, exam: ExamMetrics) -> dict[str, Any]:
 
 
 def votes_seen(conn: sqlite3.Connection) -> dict[str, Any]:
-    """Empreinte des votes qui comptent (« passer » exclu) : nombre et date du dernier."""
-    row = conn.execute(
-        "SELECT COUNT(*), MAX(voted_at) FROM votes WHERE vote != 'passer'"
-    ).fetchone()
-    return {"n": int(row[0]), "last": row[1]}
+    """Empreinte des votes qui comptent (« passer » exclu) : nombre et condensat du contenu
+    (id, sorte, valeur), pour détecter un vote modifié en place (réimport d'un banc corrigé) et
+    pas seulement un vote ajouté."""
+    rows = conn.execute(
+        "SELECT deezer_track_id, kind, vote FROM votes WHERE vote != 'passer' "
+        "ORDER BY deezer_track_id"
+    ).fetchall()
+    digest = hashlib.sha256()
+    for tid, kind, vote in rows:
+        digest.update(f"{tid}|{kind}|{vote}\n".encode())
+    return {"n": len(rows), "digest": digest.hexdigest()}
 
 
 def last_votes_seen(conn: sqlite3.Connection) -> dict[str, Any] | None:

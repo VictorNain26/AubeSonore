@@ -379,6 +379,12 @@ def _batch_line(batch: tuple[int, int, int], cfg: ModelConfig) -> str:
     )
 
 
+def _scored_line(model_id: int, n: int, acc: int) -> str:
+    return (
+        f"Candidats notés par le modèle n°{model_id} : {_n(n)}, {_n(acc)} acceptés ({_pct(acc, n)})"
+    )
+
+
 def _train_lines(
     r: TrainResult,
     labels: Labels,
@@ -445,9 +451,7 @@ def _train_lines(
         lines.append("Aucun modèle en service : candidats non notés")
     else:
         sid, n, acc = scored
-        lines.append(
-            f"Candidats notés par le modèle n°{sid} : {_n(n)}, {_n(acc)} acceptés ({_pct(acc, n)})"
-        )
+        lines.append(_scored_line(sid, n, acc))
     if batch is not None:
         lines.append(_batch_line(batch, cfg))
     return lines
@@ -466,10 +470,7 @@ def _rescore_lines(
         return ["Aucun modèle en service : candidats non notés"]
     table = load_signals(conn, size, vocabulary=current.stack.vocabulary)
     n, acc = write_scores(conn, current, table)
-    lines = [
-        f"Candidats notés par le modèle n°{current.model_id} : {_n(n)}, {_n(acc)} acceptés "
-        f"({_pct(acc, n)})"
-    ]
+    lines = [_scored_line(current.model_id, n, acc)]
     batch = batch_acceptance(conn)
     if batch is not None:
         lines.append(_batch_line(batch, cfg))

@@ -1,4 +1,5 @@
 import dataclasses
+import hashlib
 import json
 from pathlib import Path
 from typing import cast
@@ -189,17 +190,34 @@ def test_current_model_file_must_be_a_stack(tmp_path: Path) -> None:
 def test_votes_fingerprint_is_stored_with_each_model(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     assert last_votes_seen(conn) is None
-    assert votes_seen(conn) == {"n": 0, "last": None}
+    empty = votes_seen(conn)
+    assert empty == {"n": 0, "digest": hashlib.sha256(b"").hexdigest()}
     add_vote(conn, 200000, "lesson", "oui", at="2026-09-20T10:00:00+00:00")
     add_vote(conn, 300000, "lesson", "passer", at="2026-09-21T10:00:00+00:00")
     seen = votes_seen(conn)
-    assert seen == {"n": 1, "last": "2026-09-20T10:00:00+00:00"}  # « passer » ne compte pas
+    assert seen["n"] == 1  # « passer » ne compte pas
+    assert seen != empty
+
+    # Un vote modifié en place (réimport d'un banc corrigé), même date : détecté par le condensat.
+    conn.execute("UPDATE votes SET vote = 'non' WHERE deezer_track_id = 200000")
+    conn.commit()
+    changed = votes_seen(conn)
+    assert changed["n"] == 1
+    assert changed["digest"] != seen["digest"]
+
+    # Un vote « passer », même modifié, ne compte pas dans l'empreinte.
+    conn.execute(
+        "UPDATE votes SET voted_at = '2026-09-22T10:00:00+00:00' WHERE deezer_track_id = 300000"
+    )
+    conn.commit()
+    assert votes_seen(conn) == changed
+
     conn.execute("INSERT INTO models VALUES (1, 'd', 'f', NULL, 0, 'v', '{}', '{}')")
     conn.commit()
     assert last_votes_seen(conn) is None  # modèle antérieur à l'empreinte
     conn.execute(
         "INSERT INTO models VALUES (2, 'd', 'f', NULL, 0, 'v', ?, '{}')",
-        (json.dumps({"votes": seen}),),
+        (json.dumps({"votes": changed}),),
     )
     conn.commit()
-    assert last_votes_seen(conn) == seen
+    assert last_votes_seen(conn) == changed

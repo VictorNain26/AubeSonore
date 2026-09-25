@@ -146,6 +146,43 @@ def test_no_retraining_without_new_votes_but_candidates_rescored(env: Path) -> N
     conn.close()
 
 
+def test_vote_changed_in_place_triggers_retraining(env: Path) -> None:
+    conn = make_model_db(env / "data")
+    for a in range(5):
+        add_vote(conn, (2000 + a) * 100, "lesson", "oui")
+        add_vote(conn, (3000 + a) * 100, "lesson", "non")
+    conn.close()
+    assert runner.invoke(cli.app, ["train"]).exit_code == 0
+
+    # Réimport d'un banc corrigé : même date, valeur changée.
+    conn = connect(env / "data" / "radio.db")
+    conn.execute("UPDATE votes SET vote = 'non' WHERE deezer_track_id = 200000")
+    conn.commit()
+    conn.close()
+
+    res = runner.invoke(cli.app, ["train"])
+    assert res.exit_code == 0, res.output
+    assert "Aucun nouveau vote" not in res.output
+    conn = connect(env / "data" / "radio.db")
+    assert conn.execute("SELECT COUNT(*) FROM models").fetchone()[0] == 2
+    conn.close()
+
+
+def test_unreadable_serving_model_on_skip_path_exits_2(env: Path) -> None:
+    conn = make_model_db(env / "data")
+    for a in range(5):
+        add_vote(conn, (2000 + a) * 100, "lesson", "oui")
+        add_vote(conn, (3000 + a) * 100, "lesson", "non")
+    conn.close()
+    assert runner.invoke(cli.app, ["train"]).exit_code == 0
+
+    (env / "data" / "models" / "modele-0001.joblib").unlink()
+
+    res = runner.invoke(cli.app, ["train"])
+    assert res.exit_code == 2
+    assert "Modèle en service illisible : FileNotFoundError" in res.output
+
+
 def test_cold_start_without_votes_trains_once(env: Path) -> None:
     make_model_db(env / "data").close()
     assert runner.invoke(cli.app, ["train"]).exit_code == 0
