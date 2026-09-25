@@ -11,10 +11,11 @@ from typing import Annotated, NoReturn
 import numpy as np
 import requests
 import typer
+import uvicorn as uvicorn  # réexport explicite : test monkeypatché sur cli.uvicorn.run
 from plexapi.exceptions import PlexApiException
 from pydantic import ValidationError
 
-from radio.core.config import ModelConfig, Settings, load_editorial
+from radio.core.config import Editorial, ModelConfig, Settings, load_editorial
 from radio.core.db import connect
 from radio.discover.negatives import import_negatives, load_negatives
 from radio.discover.run import DiscoverReport, NoLibraryArtistsError, discover_pass
@@ -37,6 +38,7 @@ from radio.model.promote import (
     write_scores,
 )
 from radio.model.train import TrainResult, train_model
+from radio.notify.whatsapp import WhatsAppError, send_whatsapp
 from radio.signals.artists import FetchReport, fetch_artists
 from radio.signals.audio import EffnetEmbedder, ModelError
 from radio.signals.measure import MeasureReport, measure_tracks
@@ -44,7 +46,16 @@ from radio.signals.table import SignalTable, load_signals
 from radio.sources.deezer import DeezerClient, DeezerUnavailable
 from radio.sources.lastfm import LastfmClient, LastfmUnavailable
 from radio.sources.plex import LibraryGuardError, PlexSource
+from radio.votes.access import AccessVerifier
+from radio.votes.app import create_app
 from radio.votes.importer import import_votes, load_bench, vote_counts
+from radio.votes.select import (
+    NoScoresError,
+    NoServingModelError,
+    PendingBallotsError,
+    select_batch,
+)
+from radio.votes.status import Status, load_status
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -545,3 +556,158 @@ def train() -> None:
         result, labels, table, new_exam, cur_exam, decision, model_id, scored, batch, cfg
     ):
         typer.echo(line)
+
+
+def _status_lines(st: Status, editorial: Editorial) -> list[str]:
+    v = editorial.votes
+    lines = []
+    if st.model_id is None or st.exam is None:
+        lines.append("Aucun modèle en service")
+    else:
+        line = _exam_line(f"Examen (modèle n°{st.model_id})", st.exam)
+        if st.exam.yes is not None and st.exam.yes.rate < v.yes_rate_alert:
+            line += f" — ALERTE : taux de oui sous {_rate(v.yes_rate_alert)}"
+        lines.append(line)
+    lines.append(f"Dernier vote d'examen : {st.last_exam_vote or 'aucun'}")
+    lines.append(
+        f"Votes des {v.quiet_days} derniers jours : {_n(st.recent_votes)}"
+        + ("" if st.recent_votes else " — pas de réentraînement")
+    )
+    lines.append(
+        f"Titres en attente de vote : {_n(st.pending)} "
+        f"(dernière sélection : {st.last_selection or 'aucune'})"
+    )
+    if st.batch is not None:
+        lines.append(_batch_line(st.batch, editorial.model))
+    return lines
+
+
+def _reminder(st: Status, editorial: Editorial, url: str, page_ok: bool) -> str:
+    head = (
+        f"AubeSonore : {_n(st.pending)} titres à écouter — {url}"
+        if st.pending
+        else "AubeSonore : aucun titre en attente de vote"
+    )
+    lines = [head]
+    if not page_ok:
+        lines.append("Page de vote injoignable")
+    return "\n".join(lines + _status_lines(st, editorial))
+
+
+def _page_ok(settings: Settings) -> bool:
+    try:
+        r = requests.get(f"http://{settings.votes_host}:{settings.votes_port}/sante", timeout=5)
+    except requests.RequestException:
+        return False
+    return r.status_code == 200
+
+
+def _status(settings: Settings, editorial: Editorial) -> Status:
+    conn = connect(settings.data_dir / "radio.db")
+    try:
+        return load_status(
+            conn,
+            settings.data_dir / "models",
+            editorial.signals.culture_vocabulary,
+            editorial.model,
+            editorial.votes.quiet_days,
+            datetime.now(UTC),
+        )
+    except (OSError, ValueError, EOFError) as e:
+        _fail(f"Modèle en service illisible : {type(e).__name__}", 2)
+    finally:
+        conn.close()
+
+
+@app.command()
+def report() -> None:
+    """État du goût : examen du modèle en service, votes, sélection, dernière fournée."""
+    _logging()
+    settings = _settings()
+    editorial = load_editorial(settings.config_dir / "editorial.toml")
+    for line in _status_lines(_status(settings, editorial), editorial):
+        typer.echo(line)
+
+
+@app.command("votes-select")
+def votes_select() -> None:
+    """Tire la sélection de la semaine : examen au hasard parmi les retenus, leçon par
+    incertitude."""
+    _logging()
+    settings = _settings()
+    editorial = load_editorial(settings.config_dir / "editorial.toml")
+    v = editorial.votes
+    conn = connect(settings.data_dir / "radio.db")
+    try:
+        sel = select_batch(
+            conn,
+            _rng(),
+            v.exam_per_selection,
+            v.lesson_per_selection,
+            datetime.now(UTC).isoformat(),
+        )
+    except PendingBallotsError as e:
+        typer.echo(f"{_n(e.n)} titres encore en attente de vote : pas de nouvelle sélection")
+        return
+    except NoServingModelError:
+        _fail(
+            "Aucun modèle en service : voter sur le banc, lancer radio votes-import puis "
+            "radio train",
+            1,
+        )
+    except NoScoresError:
+        _fail("Le modèle en service n'a noté aucun candidat : lancer radio train", 1)
+    finally:
+        conn.close()
+    if sel.selection_id is None:
+        typer.echo("Rien à présenter : tous les candidats notés ont déjà été présentés")
+        return
+    typer.echo(
+        f"Sélection n°{sel.selection_id} (modèle n°{sel.model_id}, fournée n°{sel.run_id}) : "
+        f"{_n(len(sel.exam))} d'examen parmi {_n(sel.n_retained)} retenus, "
+        f"{_n(len(sel.lesson))} de leçon"
+    )
+    if len(sel.exam) < v.exam_per_selection:
+        typer.echo(
+            f"  examen incomplet : {_n(sel.n_retained)} titres retenus non présentés dans la "
+            "dernière fournée"
+        )
+
+
+@app.command("votes-serve")
+def votes_serve() -> None:
+    """Sert la page de vote en local ; le tunnel Cloudflare la publie derrière Access."""
+    _logging()
+    settings = _settings()
+    team, aud = settings.cf_access_team_domain, settings.cf_access_aud
+    if not team or not aud:
+        _fail("CF_ACCESS_TEAM_DOMAIN et CF_ACCESS_AUD doivent être définis dans .env", 2)
+    if "/" in team or not team.endswith(".cloudflareaccess.com"):
+        _fail("CF_ACCESS_TEAM_DOMAIN attend la forme <équipe>.cloudflareaccess.com", 2)
+    web = create_app(settings.data_dir / "radio.db", _deezer(), AccessVerifier(team, aud))
+    uvicorn.run(web, host=settings.votes_host, port=settings.votes_port)
+
+
+@app.command("votes-remind")
+def votes_remind() -> None:
+    """Envoie le rappel WhatsApp : titres en attente, examen, alertes."""
+    _logging()
+    settings = _settings()
+    editorial = load_editorial(settings.config_dir / "editorial.toml")
+    if settings.whatsapp_phone is None or settings.callmebot_apikey is None:
+        _fail("WHATSAPP_PHONE et CALLMEBOT_APIKEY doivent être définis dans .env", 2)
+    if not settings.votes_url:
+        _fail("RADIO_VOTES_URL doit être défini dans .env", 2)
+    text = _reminder(
+        _status(settings, editorial), editorial, settings.votes_url, _page_ok(settings)
+    )
+    typer.echo(text)
+    try:
+        send_whatsapp(
+            settings.whatsapp_phone.get_secret_value(),
+            settings.callmebot_apikey.get_secret_value(),
+            text,
+        )
+    except WhatsAppError as e:
+        _fail(f"Rappel WhatsApp non envoyé : {e}", 1)
+    typer.echo("Rappel WhatsApp envoyé")
