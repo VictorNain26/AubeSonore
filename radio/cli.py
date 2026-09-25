@@ -10,9 +10,11 @@ import numpy as np
 import requests
 import typer
 from plexapi.exceptions import PlexApiException
+from pydantic import ValidationError
 
 from radio.core.config import Settings, load_editorial
 from radio.core.db import connect
+from radio.discover.negatives import import_negatives, load_negatives
 from radio.discover.run import DiscoverReport, NoLibraryArtistsError, discover_pass
 from radio.library.match import MatchReport, coverage, match_library
 from radio.library.sync import EmptyLibraryError, sync_library
@@ -170,3 +172,37 @@ def discover() -> None:
         conn.close()
     for line in _discover_lines(rep):
         typer.echo(line)
+
+
+@app.command("negatives-sync")
+def negatives_sync() -> None:
+    """Importe les titres des artistes négatifs de démarrage (config/negatives.toml)."""
+    _logging()
+    settings = _settings()
+    editorial = load_editorial(settings.config_dir / "editorial.toml")
+    try:
+        negatives = load_negatives(settings.config_dir / "negatives.toml")
+    except ValidationError as e:
+        _fail(f"negatives.toml invalide : {e.error_count()} erreurs", 2)
+    except ValueError as e:
+        _fail(f"negatives.toml invalide : {e}", 2)
+    conn = connect(settings.data_dir / "radio.db")
+    try:
+        rep = import_negatives(
+            conn,
+            _deezer(),
+            negatives,
+            editorial.discover.tracks_per_neighbour,
+            datetime.now(UTC).isoformat(),
+        )
+    except DeezerUnavailable as e:
+        _fail(_unavailable(e), 1)
+    finally:
+        conn.close()
+    typer.echo(
+        f"Négatifs : {_n(rep.n_artists)} artistes ({_n(rep.n_already)} déjà importés) → "
+        f"{_n(rep.n_added)} titres ajoutés, {_n(rep.n_duplicates)} doublons, "
+        f"{_n(rep.n_filtered)} écartés, {_n(len(rep.skipped))} sautés"
+    )
+    for s in rep.skipped:
+        typer.echo(f"  sauté : {s}")

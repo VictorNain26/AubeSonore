@@ -215,3 +215,28 @@ def test_discover_without_library_exits_1(env: Path, monkeypatch: pytest.MonkeyP
     res = runner.invoke(cli.app, ["discover"])
     assert res.exit_code == 1
     assert "radio library-sync" in res.output
+
+
+def test_negatives_sync_command(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    (env / "config" / "negatives.toml").write_text(
+        '[[artist]]\nname = "Jul"\ndeezer_id = 900\ncategory = "commercial_fr"\n'
+    )
+
+    class Top:
+        def top(self, artist_id: int, limit: int = 10) -> list[DeezerTrack]:
+            return [DeezerTrack(1, "Tchikita", "Tchikita", 200, 1000, 900, "Jul", True)]
+
+    monkeypatch.setattr(cli, "_deezer", lambda: Top())
+    res = runner.invoke(cli.app, ["negatives-sync"])
+    assert res.exit_code == 0, res.output
+    assert (
+        "Négatifs : 1 artistes (0 déjà importés) → 1 titres ajoutés, 0 doublons, 0 écartés, "
+        "0 sautés"
+    ) in res.stdout
+
+
+def test_negatives_sync_invalid_file_exits_2(env: Path) -> None:
+    (env / "config" / "negatives.toml").write_text('[[artist]]\nname = "X"\n')
+    res = runner.invoke(cli.app, ["negatives-sync"])
+    assert res.exit_code == 2
+    assert "negatives.toml invalide" in res.output
