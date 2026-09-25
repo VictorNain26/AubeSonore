@@ -105,3 +105,14 @@ def test_unavailable_commits_work_done(tmp_path: Path) -> None:
     with pytest.raises(DeezerUnavailable):
         measure_tracks(conn, dz, FakeEmbedder(), "d")
     assert set(rows(conn)) == {1, 2}
+
+
+def test_transient_error_logs_track_and_propagates(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.WARNING)
+    conn = db(tmp_path, n=3)
+    dz = FakeDeezer({1: (dt(1), URL), 2: (dt(2), None), 3: DeezerUnavailable("code 4")})
+    with pytest.raises(DeezerUnavailable):
+        measure_tracks(conn, dz, FakeEmbedder(), "d")
+    assert "T" in caplog.text and "3" in caplog.text

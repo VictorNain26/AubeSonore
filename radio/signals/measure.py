@@ -15,7 +15,7 @@ import numpy as np
 import numpy.typing as npt
 
 from radio.signals.audio import MODEL_TAG, to_blob
-from radio.sources.deezer import DeezerClient, DeezerError
+from radio.sources.deezer import DeezerClient, DeezerError, DeezerUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +80,9 @@ def measure_tracks(
                             vec = None
                         status = "ok" if vec is not None else "audio_failed"
                         blob = to_blob(vec) if vec is not None else None
+            except DeezerUnavailable:
+                logger.warning("measure: stopped at track %s (%d)", r["title"], r["tid"])
+                raise
             except DeezerError as e:
                 rep.errors.append(f"{r['name']} — {r['title']} ({type(e).__name__})")
                 continue

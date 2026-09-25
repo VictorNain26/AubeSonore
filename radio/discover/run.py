@@ -17,8 +17,8 @@ from radio.discover.candidates import add_tracks, keep_tracks
 from radio.discover.neighbours import neighbours
 from radio.discover.seeds import finish_run, start_run
 from radio.library.artists import library_artists, library_names
-from radio.sources.deezer import DeezerClient, DeezerError
-from radio.sources.lastfm import LastfmClient, LastfmError
+from radio.sources.deezer import DeezerClient, DeezerError, DeezerUnavailable
+from radio.sources.lastfm import LastfmClient, LastfmError, LastfmUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +64,9 @@ def discover_pass(
             found = neighbours(
                 seed, deezer, lastfm, cfg.lastfm_similar_limit, exclude_ids, exclude_names
             )
+        except (DeezerUnavailable, LastfmUnavailable):
+            logger.warning("discover: stopped at seed %s (%d)", seed.name, seed.deezer_artist_id)
+            raise
         except (DeezerError, LastfmError) as e:
             rep.skipped.append(f"{seed.name} ({type(e).__name__})")
             continue
@@ -74,6 +77,9 @@ def discover_pass(
             rep.n_neighbours += 1
             try:
                 top = deezer.top(n.id, cfg.tracks_per_neighbour)
+            except DeezerUnavailable:
+                logger.warning("discover: stopped at neighbour %s (%d)", n.name, n.id)
+                raise
             except DeezerError as e:
                 rep.skipped.append(f"{n.name} ({type(e).__name__})")
                 continue

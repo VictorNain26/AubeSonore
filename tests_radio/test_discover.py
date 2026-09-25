@@ -1,3 +1,4 @@
+import logging
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
@@ -9,7 +10,7 @@ from radio.core.config import DiscoverConfig
 from radio.core.db import connect
 from radio.discover.run import NoLibraryArtistsError, discover_pass
 from radio.discover.seeds import recently_used
-from radio.sources.deezer import DeezerArtist, DeezerError, DeezerTrack
+from radio.sources.deezer import DeezerArtist, DeezerError, DeezerTrack, DeezerUnavailable
 from radio.sources.lastfm import LastfmUnavailable, SimilarArtist
 from tests_radio.factories import make_library
 
@@ -104,6 +105,30 @@ def test_unavailable_keeps_work_and_resumes_same_run(tmp_path: Path) -> None:
     rep = discover_pass(conn, dz, lf, CFG, NOW, np.random.default_rng(1))
     assert rep.resumed and rep.run_id == 1
     assert status(conn) == "done"
+
+
+def test_transient_error_logs_seed_and_propagates(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.WARNING)
+    conn = make_library(tmp_path)
+    dz, lf = FakeDeezer(), FakeLastfm()
+    lf.similar["Wire"] = LastfmUnavailable("code 29")
+    with pytest.raises(LastfmUnavailable):
+        discover_pass(conn, dz, lf, CFG, NOW, np.random.default_rng(0))
+    assert "Wire" in caplog.text and "70" in caplog.text
+
+
+def test_transient_error_logs_neighbour_and_propagates(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.WARNING)
+    conn = make_library(tmp_path)
+    dz, lf = FakeDeezer(), FakeLastfm()
+    dz.top_[1] = DeezerUnavailable("code 4")
+    with pytest.raises(DeezerUnavailable):
+        discover_pass(conn, dz, lf, CFG, NOW, np.random.default_rng(0))
+    assert "Knife" in caplog.text and "1" in caplog.text
 
 
 def test_no_library_artist(tmp_path: Path) -> None:

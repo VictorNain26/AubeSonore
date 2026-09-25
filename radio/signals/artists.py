@@ -10,8 +10,8 @@ import logging
 import sqlite3
 from dataclasses import dataclass, field
 
-from radio.sources.deezer import DeezerClient, DeezerError
-from radio.sources.lastfm import LastfmClient, LastfmError
+from radio.sources.deezer import DeezerClient, DeezerError, DeezerUnavailable
+from radio.sources.lastfm import LastfmClient, LastfmError, LastfmUnavailable
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,9 @@ def fetch_artists(
                 if info is not None
                 else None
             )
+        except (DeezerUnavailable, LastfmUnavailable):
+            logger.warning("fetch_artists: stopped at artist %s (%d)", r["name"], r["aid"])
+            raise
         except (DeezerError, LastfmError) as e:
             rep.skipped.append(f"{r['name']} ({type(e).__name__})")
             continue

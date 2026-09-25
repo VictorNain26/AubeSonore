@@ -265,8 +265,10 @@ def signals() -> None:
     conn = connect(settings.data_dir / "radio.db")
     try:
         reg = register_library(conn, now)
-        fetch = fetch_artists(conn, deezer, lastfm, editorial.discover.lastfm_similar_limit, now)
+        # La mesure audio ne dépend que de Deezer (~13 h) : elle passe avant Last.fm pour ne
+        # jamais être retardée par une panne Last.fm (F2).
         meas = measure_tracks(conn, deezer, embedder, now)
+        fetch = fetch_artists(conn, deezer, lastfm, editorial.discover.lastfm_similar_limit, now)
         table = load_signals(conn, editorial.signals.culture_vocabulary)
     except (DeezerUnavailable, LastfmUnavailable) as e:
         _fail(_unavailable(e), 1)

@@ -1,4 +1,5 @@
 import json
+import logging
 import sqlite3
 from pathlib import Path
 
@@ -96,3 +97,15 @@ def test_unavailable_keeps_fetched_artists(tmp_path: Path) -> None:
         fetch_artists(conn, dz, lf, 50, "d2")
     row = conn.execute("SELECT fetched_at FROM artists WHERE deezer_artist_id = 1").fetchone()
     assert row[0] == "d2"
+
+
+def test_transient_error_logs_artist_and_propagates(
+    tmp_path: Path, caplog: pytest.LogCaptureFixture
+) -> None:
+    caplog.set_level(logging.WARNING)
+    conn = db(tmp_path)
+    dz = FakeDeezer({1: DeezerArtist(1, "The Knife", 900), 2: DeezerUnavailable("code 4")})
+    lf = FakeLastfm({"The Knife": ArtistInfo("The Knife", 1)})
+    with pytest.raises(DeezerUnavailable):
+        fetch_artists(conn, dz, lf, 50, "d2")
+    assert "Jul" in caplog.text and "2" in caplog.text
