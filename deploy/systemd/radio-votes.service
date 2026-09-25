@@ -1,0 +1,12 @@
+[Unit]
+Description=AubeSonore v3 : page de vote (127.0.0.1:8040, publiée par le tunnel Cloudflare derrière Access)
+After=network-online.target
+
+[Service]
+WorkingDirectory=%h/radio/pipeline-v3
+ExecStart=%h/radio/pipeline-v3/.venv/bin/radio votes-serve
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

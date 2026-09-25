@@ -1,0 +1,8 @@
+[Unit]
+Description=AubeSonore v3 : rappel WhatsApp des votes
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/radio/pipeline-v3
+ExecStart=%h/radio/pipeline-v3/.venv/bin/radio votes-remind
