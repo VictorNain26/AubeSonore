@@ -73,10 +73,12 @@ class EffnetEmbedder:
                 return None
         if audio.size == 0:
             return None
-        patches = self._net(audio)
-        if patches.shape[0] == 0:
+        # Un extrait plus court qu'un patch EffNet (~2,05 s) fait renvoyer une liste Python vide
+        # par le réseau, pas un ndarray : convertir avant de vérifier la forme.
+        patches = np.asarray(self._net(audio), dtype=np.float32)
+        if patches.ndim != 2 or patches.shape[0] == 0:
             return None
-        v = np.asarray(patches, dtype=np.float32).mean(axis=0)
+        v = patches.mean(axis=0)
         norm = float(np.linalg.norm(v))
         if not np.isfinite(norm) or norm == 0.0:
             return None

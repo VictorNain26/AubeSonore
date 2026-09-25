@@ -57,3 +57,8 @@ def test_effnet_embeds_audio(effnet: EffnetEmbedder) -> None:
 @needs_model
 def test_effnet_rejects_garbage(effnet: EffnetEmbedder) -> None:
     assert effnet.embed(b"not audio at all") is None
+
+
+@needs_model
+def test_effnet_rejects_too_short(effnet: EffnetEmbedder) -> None:
+    assert effnet.embed(sine_wav(seconds=1.0), suffix=".wav") is None
