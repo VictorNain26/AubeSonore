@@ -57,3 +57,16 @@ def test_proximity_without_link_or_data() -> None:
     assert math.isnan(best) and n == 1.0
     best, n = proximity(1, {"knife"}, [], [], LIB_IDS, LIB_NAMES)
     assert math.isnan(best) and n == 0.0
+
+
+def test_proximity_excludes_a_duplicate_deezer_page() -> None:
+    # A2 (84, même nom « M83 ») est une seconde page Deezer du même artiste bibliothèque que
+    # A1 (83) : ce n'est pas un lien vers un AUTRE artiste de la bibliothèque (F1).
+    _, sources = proximity(83, {"m83"}, [], [(84, "M83")], {83, 84}, frozenset({"m83"}))
+    assert sources == 0.0
+
+
+def test_proximity_still_counts_a_genuinely_different_neighbour() -> None:
+    # Cas témoin : un voisin de bibliothèque réellement distinct (nom différent) compte toujours.
+    _, sources = proximity(83, {"m83"}, [], [(70, "Wire")], {83, 70}, frozenset({"m83", "wire"}))
+    assert sources == 1.0

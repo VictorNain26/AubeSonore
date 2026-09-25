@@ -25,5 +25,7 @@ def proximity(
     ids = library_ids - {self_id}
     matches = [m for n, m in similar or [] if normalize(n) in names]
     best = (max(matches) if matches else 0.0) if similar else math.nan
-    deezer_link = any(i in ids for i, _ in related or [])
+    # Une page Deezer dupliquée du même artiste (même nom normalisé) n'est pas un AUTRE lien
+    # bibliothèque : sinon un artiste rapproché à deux pages Deezer se compterait lui-même.
+    deezer_link = any(i in ids and normalize(n) not in self_names for i, n in related or [])
     return best, float(int(deezer_link) + int(bool(matches)))
