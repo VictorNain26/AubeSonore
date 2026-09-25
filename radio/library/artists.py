@@ -51,6 +51,12 @@ def library_artists(conn: sqlite3.Connection) -> list[LibraryArtist]:
 
 
 def library_names(conn: sqlite3.Connection) -> frozenset[str]:
+    """Noms normalisés de tous les artistes Plex et Deezer rapprochés.
+
+    Les noms Deezer ne couvrent que les artistes déjà enregistrés dans la table `artists`
+    (ce qui survient après la lecture Deezer en tâche ultérieure) ; la garantie primaire est
+    l'exclusion par id Deezer ET par noms normalisés Plex (rapprochés ou non).
+    """
     names = {normalize(r[0]) for r in conn.execute("SELECT DISTINCT artist FROM library_tracks")}
     names |= {
         normalize(r[0])
@@ -104,7 +110,8 @@ def register_library(conn: sqlite3.Connection, now: str) -> RegisterReport:
             INSERT INTO tracks (deezer_track_id, deezer_artist_id, title, origin, dedupe_key,
                                 added_at)
             VALUES (?, ?, ?, 'library', ?, ?)
-            ON CONFLICT (deezer_track_id) DO UPDATE SET origin = 'library'
+            ON CONFLICT (deezer_track_id) DO UPDATE SET origin = 'library', title = excluded.title,
+                dedupe_key = excluded.dedupe_key
             """,
             [(tid, aid, titles[tid], key, now) for tid, (aid, key) in sorted(first.items())],
         )

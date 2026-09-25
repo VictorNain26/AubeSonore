@@ -43,8 +43,12 @@ def test_register_claims_candidates_and_drops_lost_matches(tmp_path: Path) -> No
     conn.execute("INSERT INTO artists (deezer_artist_id, name) VALUES (70, 'Wire')")
     conn.execute("INSERT INTO tracks VALUES (104, 70, 'Mannequin', 'candidate', 'wire|m', 'd0')")
     register_library(conn, "d2")
-    origin = conn.execute("SELECT origin FROM tracks WHERE deezer_track_id = 104").fetchone()[0]
-    assert origin == "library"
+    row = conn.execute(
+        "SELECT origin, title, dedupe_key FROM tracks WHERE deezer_track_id = 104"
+    ).fetchone()
+    assert row["origin"] == "library"
+    assert row["title"] == "Mannequin"
+    assert row["dedupe_key"] == "wire|mannequin"
     conn.execute("DELETE FROM deezer_matches WHERE plex_key = '4'")
     conn.commit()
     assert register_library(conn, "d3").n_removed == 1
