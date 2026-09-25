@@ -4,8 +4,8 @@ import logging
 import sys
 from collections import Counter
 from datetime import UTC, datetime
-from pathlib import PurePosixPath
-from typing import NoReturn
+from pathlib import Path, PurePosixPath
+from typing import Annotated, NoReturn
 
 import numpy as np
 import requests
@@ -27,6 +27,7 @@ from radio.signals.table import SignalTable, load_signals
 from radio.sources.deezer import DeezerClient, DeezerUnavailable
 from radio.sources.lastfm import LastfmClient, LastfmUnavailable
 from radio.sources.plex import LibraryGuardError, PlexSource
+from radio.votes.importer import import_votes, load_bench, vote_counts
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -285,3 +286,49 @@ def signals() -> None:
         conn.close()
     for line in _signals_lines(reg, fetch, meas, table):
         typer.echo(line)
+
+
+@app.command("votes-import")
+def votes_import(
+    votes_dir: Annotated[Path, typer.Argument(help="Dossier des votes du banc, un JSON par titre")],
+    series: Annotated[Path, typer.Argument(help="series.json du banc : s1 examen, s2 leçon")],
+    source: Annotated[str, typer.Option(help="Origine des votes, gardée en base")] = (
+        "banc-2026-09-24"
+    ),
+) -> None:
+    """Importe les votes du banc d'écoute (série 1 → examen, série 2 → leçon)."""
+    _logging()
+    settings = _settings()
+    try:
+        votes = load_bench(votes_dir, series)
+    except (OSError, KeyError, TypeError, ValueError) as e:
+        _fail(f"Banc d'écoute illisible : {type(e).__name__} {e}", 2)
+    conn = connect(settings.data_dir / "radio.db")
+    try:
+        rep = import_votes(conn, _deezer(), votes, source, datetime.now(UTC).isoformat())
+        counts = vote_counts(conn)
+    except DeezerUnavailable as e:
+        _fail(_unavailable(e), 1)
+    finally:
+        conn.close()
+    typer.echo(
+        f"Votes du banc : {_n(rep.n_votes)} lus → {_n(rep.n_recorded)} enregistrés, "
+        f"{_n(rep.n_added)} titres ajoutés, {_n(rep.n_mapped)} rattachés à un titre connu, "
+        f"{_n(len(rep.not_found))} introuvables sur Deezer, {_n(len(rep.skipped))} sautés"
+    )
+    for x in rep.not_found:
+        typer.echo(f"  introuvable : {x}")
+    for x in rep.skipped:
+        typer.echo(f"  sauté : {x}")
+    kinds = (("exam", "examen"), ("lesson", "leçon"))
+    typer.echo(
+        "Votes en base : "
+        + ", ".join(
+            f"{label} {_n(sum(counts.get(k, {}).values()))} ("
+            + ", ".join(f"{v} {_n(counts.get(k, {}).get(v, 0))}" for v in ("oui", "non", "passer"))
+            + ")"
+            for k, label in kinds
+        )
+    )
+    if rep.n_added:
+        typer.echo(f"{_n(rep.n_added)} nouveaux titres à mesurer : lancer radio signals")
