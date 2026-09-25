@@ -7,6 +7,7 @@ from radio.core.config import REPO_ROOT
 from radio.core.db import connect
 from radio.discover.negatives import NegativeArtist, import_negatives, load_negatives
 from radio.sources.deezer import DeezerError, DeezerTrack, DeezerUnavailable
+from tests_radio.factories import make_library
 
 
 def test_repo_negatives_file() -> None:
@@ -69,6 +70,26 @@ def test_import_negatives(tmp_path: Path) -> None:
     dz.calls.clear()
     rep2 = import_negatives(conn, dz, NEGS, 10, "d")
     assert rep2.n_already == 1 and dz.calls == [901]
+
+
+def test_import_negatives_skips_library_artists(tmp_path: Path) -> None:
+    # M83 (83) est un artiste de bibliothèque (tests_radio.factories.make_library) : un négatif
+    # partageant son deezer_id serait une étiquette empoisonnée (F5).
+    conn = make_library(tmp_path)
+    dz = FakeDeezer({901: [dt(1, 901, "Track")]})
+    negs = [
+        NegativeArtist(name="M83 imposteur", deezer_id=83, category="metal"),
+        NegativeArtist(name="Broken", deezer_id=901, category="metal"),
+    ]
+    rep = import_negatives(conn, dz, negs, 10, "d")
+    assert rep.skipped == ["M83 imposteur (dans la bibliothèque)"]
+    assert (rep.n_added, dz.calls) == (1, [901])
+    assert (
+        conn.execute(
+            "SELECT COUNT(*) FROM negative_artists WHERE deezer_artist_id = 83"
+        ).fetchone()[0]
+        == 0
+    )
 
 
 def test_import_stops_when_deezer_is_unavailable(tmp_path: Path) -> None:

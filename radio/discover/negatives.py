@@ -14,6 +14,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from radio.discover.candidates import add_tracks, keep_tracks
+from radio.library.artists import library_artists
 from radio.sources.deezer import DeezerClient, DeezerError
 
 
@@ -56,10 +57,15 @@ def import_negatives(
     now: str,
 ) -> NegativesReport:
     done = {r[0] for r in conn.execute("SELECT deezer_artist_id FROM negative_artists")}
+    library_ids = {a.deezer_artist_id for a in library_artists(conn)}
     rep = NegativesReport(n_artists=len(negatives))
     for n in negatives:
         if n.deezer_id in done:
             rep.n_already += 1
+            continue
+        if n.deezer_id in library_ids:
+            # Un négatif présent dans la bibliothèque serait une étiquette empoisonnée.
+            rep.skipped.append(f"{n.name} (dans la bibliothèque)")
             continue
         try:
             top = deezer.top(n.deezer_id, per_artist)
