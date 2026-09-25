@@ -2,6 +2,7 @@
 
 import logging
 import sys
+from collections import Counter
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
 from typing import NoReturn
@@ -16,8 +17,13 @@ from radio.core.config import Settings, load_editorial
 from radio.core.db import connect
 from radio.discover.negatives import import_negatives, load_negatives
 from radio.discover.run import DiscoverReport, NoLibraryArtistsError, discover_pass
+from radio.library.artists import RegisterReport, register_library
 from radio.library.match import MatchReport, coverage, match_library
 from radio.library.sync import EmptyLibraryError, sync_library
+from radio.signals.artists import FetchReport, fetch_artists
+from radio.signals.audio import EffnetEmbedder, ModelError
+from radio.signals.measure import MeasureReport, measure_tracks
+from radio.signals.table import SignalTable, load_signals
 from radio.sources.deezer import DeezerClient, DeezerUnavailable
 from radio.sources.lastfm import LastfmClient, LastfmUnavailable
 from radio.sources.plex import LibraryGuardError, PlexSource
@@ -206,3 +212,65 @@ def negatives_sync() -> None:
     )
     for s in rep.skipped:
         typer.echo(f"  sauté : {s}")
+
+
+def _embedder(settings: Settings) -> EffnetEmbedder:
+    return EffnetEmbedder(settings.effnet_model)
+
+
+def _rate(x: float) -> str:
+    return f"{100 * x:.1f} %".replace(".", ",")
+
+
+def _signals_lines(
+    reg: RegisterReport, fetch: FetchReport, meas: MeasureReport, table: SignalTable
+) -> list[str]:
+    lines = [
+        f"Bibliothèque inscrite : {_n(reg.n_tracks)} titres, {_n(reg.n_artists)} artistes "
+        f"({_n(reg.n_removed)} retirés)",
+        f"Artistes : {_n(fetch.n_todo)} à lire → {_n(fetch.n_fetched)} lus, "
+        f"{_n(len(fetch.not_on_deezer))} introuvables sur Deezer, {_n(len(fetch.skipped))} sautés",
+        f"Titres : {_n(meas.n_todo)} à mesurer → {_n(meas.n_ok)} mesurés, "
+        f"{_n(meas.n_no_preview)} sans extrait, {_n(meas.n_audio_failed)} empreinte ratée, "
+        f"{_n(meas.n_gone)} disparus de Deezer, {_n(len(meas.errors))} en erreur",
+    ]
+    lines += [f"  introuvable : {x}" for x in fetch.not_on_deezer]
+    lines += [f"  sauté : {x}" for x in fetch.skipped]
+    lines += [f"  erreur : {x}" for x in meas.errors]
+    by_origin = Counter(table.origins)
+    lines.append(
+        f"Signaux prêts : {_n(len(table.origins))} titres (bibliothèque "
+        f"{_n(by_origin['library'])}, candidats {_n(by_origin['candidate'])}, négatifs "
+        f"{_n(by_origin['negative'])})"
+    )
+    rates = table.missing_rates()
+    if rates:
+        lines.append("Valeurs absentes : " + ", ".join(f"{k} {_rate(v)}" for k, v in rates.items()))
+    return lines
+
+
+@app.command()
+def signals() -> None:
+    """Mesure les signaux de tous les titres connus (bibliothèque, candidats, négatifs)."""
+    _logging()
+    settings = _settings()
+    editorial = load_editorial(settings.config_dir / "editorial.toml")
+    lastfm = _lastfm(settings)
+    try:
+        embedder = _embedder(settings)
+    except ModelError as e:
+        _fail(f"Modèle EffNet refusé : {e}", 2)
+    now = datetime.now(UTC).isoformat()
+    deezer = _deezer()
+    conn = connect(settings.data_dir / "radio.db")
+    try:
+        reg = register_library(conn, now)
+        fetch = fetch_artists(conn, deezer, lastfm, editorial.discover.lastfm_similar_limit, now)
+        meas = measure_tracks(conn, deezer, embedder, now)
+        table = load_signals(conn, editorial.signals.culture_vocabulary)
+    except (DeezerUnavailable, LastfmUnavailable) as e:
+        _fail(_unavailable(e), 1)
+    finally:
+        conn.close()
+    for line in _signals_lines(reg, fetch, meas, table):
+        typer.echo(line)

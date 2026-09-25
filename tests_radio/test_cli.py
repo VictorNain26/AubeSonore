@@ -11,6 +11,7 @@ from typer.testing import CliRunner
 import radio.cli as cli
 from radio.core.config import Settings
 from radio.library.match import MatchReport
+from radio.signals.audio import ModelError
 from radio.sources.deezer import DeezerArtist, DeezerTrack, DeezerUnavailable
 from radio.sources.lastfm import LastfmUnavailable, SimilarArtist
 from radio.sources.plex import LibraryGuardError, PlexTrack
@@ -240,3 +241,14 @@ def test_negatives_sync_invalid_file_exits_2(env: Path) -> None:
     res = runner.invoke(cli.app, ["negatives-sync"])
     assert res.exit_code == 2
     assert "negatives.toml invalide" in res.output
+
+
+def test_signals_refuses_a_bad_model(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def bad(settings: Settings) -> object:
+        raise ModelError("somme de contrôle inattendue : m.pb")
+
+    monkeypatch.setattr(cli, "_lastfm", lambda s: object())
+    monkeypatch.setattr(cli, "_embedder", bad)
+    res = runner.invoke(cli.app, ["signals"])
+    assert res.exit_code == 2
+    assert "Modèle EffNet refusé : somme de contrôle inattendue" in res.output
