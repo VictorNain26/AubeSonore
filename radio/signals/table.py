@@ -13,7 +13,7 @@ import numpy.typing as npt
 
 from radio.library.artists import library_artists, library_names
 from radio.library.match import normalize
-from radio.signals.audio import DIM, from_blob
+from radio.signals.audio import DIM, MODEL_TAG, from_blob
 from radio.signals.culture import culture_vector, vocabulary
 from radio.signals.popularity import popularity
 from radio.signals.proximity import proximity
@@ -73,8 +73,9 @@ def load_signals(conn: sqlite3.Connection, vocab_size: int) -> SignalTable:
         SELECT t.deezer_track_id AS tid, t.deezer_artist_id AS aid, t.origin, m.rank,
                m.embedding
         FROM tracks t JOIN track_measures m USING (deezer_track_id)
-        WHERE m.status = 'ok' ORDER BY t.deezer_track_id
-        """
+        WHERE m.status = 'ok' AND m.model = ? ORDER BY t.deezer_track_id
+        """,
+        (MODEL_TAG,),
     ).fetchall()
     n = len(rows)
     audio = np.zeros((n, DIM), dtype=np.float32)

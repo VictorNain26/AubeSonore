@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from radio.signals.audio import DIM, to_blob
+from radio.signals.audio import DIM, MODEL_TAG, to_blob
 from radio.signals.table import load_signals
 from tests_radio.factories import make_library
 
@@ -69,12 +69,12 @@ def build(tmp_path: Path) -> sqlite3.Connection:
         ],
     )
     conn.executemany(
-        "INSERT INTO track_measures VALUES (?, ?, ?, ?, 'm', 'd')",
+        "INSERT INTO track_measures VALUES (?, ?, ?, ?, ?, 'd')",
         [
-            (101, "ok", 700, to_blob(VEC)),
-            (1, "ok", 50, to_blob(VEC)),
-            (2, "no_preview", 5, None),
-            (9, "ok", 0, to_blob(VEC)),
+            (101, "ok", 700, to_blob(VEC), MODEL_TAG),
+            (1, "ok", 50, to_blob(VEC), MODEL_TAG),
+            (2, "no_preview", 5, None, MODEL_TAG),
+            (9, "ok", 0, to_blob(VEC), MODEL_TAG),
         ],
     )
     conn.commit()
@@ -96,6 +96,17 @@ def test_load_signals(tmp_path: Path) -> None:
     assert t.popularity[jul, 0] == 0.0
     assert np.isnan(t.popularity[jul, 1:]).all()
     assert np.isnan(t.culture[jul]).all() and np.isnan(t.proximity[jul]).all()
+
+
+def test_load_signals_ignores_a_track_measured_with_another_model(tmp_path: Path) -> None:
+    conn = build(tmp_path)
+    conn.execute("INSERT INTO tracks VALUES (3, 1, 'T', 'candidate', 'e', 'd')")
+    conn.execute(
+        "INSERT INTO track_measures VALUES (3, 'ok', 500, ?, 'old-model', 'd')", (to_blob(VEC),)
+    )
+    conn.commit()
+    t = load_signals(conn, 10)
+    assert t.track_ids.tolist() == [1, 9, 101]
 
 
 def test_missing_rates(tmp_path: Path) -> None:
