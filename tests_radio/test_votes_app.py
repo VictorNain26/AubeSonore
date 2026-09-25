@@ -143,3 +143,37 @@ def test_preview_failures(db: Path, deezer: FakeDeezer, status: int) -> None:
     b = _first(db)
     r = _client(db, deezer).get(f"/extrait/{b.deezer_track_id}", headers=OK)
     assert r.status_code == status
+
+
+def test_extrait_supports_byte_ranges(db: Path) -> None:
+    # Safari iOS sonde l'extrait avec `Range: bytes=0-1` avant de le lire (Apple, Safari Web
+    # Content Guide) ; FakeDeezer renvoie b"ID3-mp3", 7 octets.
+    b = _first(db)
+    c = _client(db)
+    tid = b.deezer_track_id
+
+    r = c.get(f"/extrait/{tid}", headers={**OK, "Range": "bytes=0-1"})
+    assert r.status_code == 206
+    assert r.content == b"ID"
+    assert r.headers["content-range"] == "bytes 0-1/7"
+    assert r.headers["accept-ranges"] == "bytes"
+    assert r.headers["cache-control"] == "no-store"
+
+    r = c.get(f"/extrait/{tid}", headers={**OK, "Range": "bytes=3-"})
+    assert r.status_code == 206
+    assert r.content == b"-mp3"
+    assert r.headers["content-range"] == "bytes 3-6/7"
+
+    r = c.get(f"/extrait/{tid}", headers={**OK, "Range": "bytes=-2"})
+    assert r.status_code == 206
+    assert r.content == b"p3"
+    assert r.headers["content-range"] == "bytes 5-6/7"
+
+    r = c.get(f"/extrait/{tid}", headers={**OK, "Range": "bytes=9-"})
+    assert r.status_code == 416
+    assert r.headers["content-range"] == "bytes */7"
+
+    r = c.get(f"/extrait/{tid}", headers=OK)
+    assert r.status_code == 200
+    assert r.content == b"ID3-mp3"
+    assert r.headers["accept-ranges"] == "bytes"

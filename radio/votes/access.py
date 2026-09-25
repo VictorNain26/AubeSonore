@@ -22,7 +22,9 @@ class AccessVerifier:
     def __init__(self, team_domain: str, aud: str, keys: SigningKeys | None = None) -> None:
         self.issuer = f"https://{team_domain}"
         self._aud = aud
-        self._keys = keys or jwt.PyJWKClient(f"{self.issuer}/cdn-cgi/access/certs")
+        self._keys = (
+            keys if keys is not None else jwt.PyJWKClient(f"{self.issuer}/cdn-cgi/access/certs")
+        )
 
     def __call__(self, token: str) -> None:
         """Lève jwt.PyJWTError si le jeton n'est pas un jeton Access valide pour cette page."""

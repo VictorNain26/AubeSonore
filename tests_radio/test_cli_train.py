@@ -148,8 +148,12 @@ def test_no_retraining_without_new_votes_but_candidates_rescored(env: Path) -> N
 
 def test_vote_changed_in_place_triggers_retraining(env: Path) -> None:
     conn = make_model_db(env / "data")
-    for a in range(5):
+    # Un « oui » de plus que de « non » : après le basculement ci-dessous, les deux classes
+    # restent à 5 votes ou plus, pour ne pas dégarnir la validation croisée interne (avertissement
+    # sklearn « least populated class » avec trop peu de membres pour folds = 3).
+    for a in range(6):
         add_vote(conn, (2000 + a) * 100, "lesson", "oui")
+    for a in range(5):
         add_vote(conn, (3000 + a) * 100, "lesson", "non")
     conn.close()
     assert runner.invoke(cli.app, ["train"]).exit_code == 0
