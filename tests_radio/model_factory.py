@@ -2,7 +2,9 @@
 
 Bibliothèque et candidats « aimés » (artistes 2000+) pointent vers LIKED (6 écarts-types, pour
 des tests stables) ; candidats « rejetés »
-(3000+) et négatifs (4000+) vers DISLIKED. Les autres signaux sont identiques pour tous.
+(3000+) et négatifs (4000+) vers DISLIKED. Le bruit est confiné aux 16 premières dimensions : sur
+1280 dimensions, StandardScaler ramènerait sinon les dimensions de pur bruit à variance unitaire et
+noierait les 2 dimensions du signal. Les autres signaux sont identiques pour tous.
 """
 
 import json
@@ -52,7 +54,9 @@ def make_model_db(
         "SELECT deezer_track_id, deezer_artist_id, origin FROM tracks"
     ).fetchall():
         liked = origin == "library" or 2000 <= aid < 3000
-        v = 6 * (LIKED if liked else DISLIKED) + rng.normal(size=DIM)
+        noise = np.zeros(DIM)
+        noise[:16] = rng.normal(size=16)
+        v = 6 * (LIKED if liked else DISLIKED) + noise
         blob = to_blob((v / np.linalg.norm(v)).astype(np.float32))
         rank = int(rng.integers(0, 1000))
         conn.execute(
