@@ -83,3 +83,27 @@ def add_vote(
 ) -> None:
     conn.execute("INSERT INTO votes VALUES (?, ?, ?, ?, 'test')", (track_id, kind, vote, at))
     conn.commit()
+
+
+def serve_scores(conn: sqlite3.Connection) -> None:
+    """Un modèle promu (seuil 0,5) et des notes exactes en binaire pour tous les candidats.
+
+    Fournée 1 : artistes a < 6 ; fournée 2 (la dernière) : a >= 6. Aimé k -> 0,5 + 0,0625(k+1)
+    (retenu), rejeté k -> 0,5 - 0,0625(k+1). Les plus incertains sont les k = 0.
+    """
+    conn.execute("INSERT INTO discover_runs VALUES (1, 'd', 'd', 'done'), (2, 'd', 'd', 'done')")
+    conn.execute(
+        "INSERT INTO models VALUES (1, 'd', 'modele-0001.joblib', 0.5, 1, 'premier modèle', "
+        "'{}', '{}')"
+    )
+    rows = conn.execute(
+        "SELECT deezer_track_id, deezer_artist_id FROM tracks WHERE origin = 'candidate'"
+    ).fetchall()
+    for tid, aid in rows:
+        step = 0.0625 * (tid % 100 + 1)
+        score = 0.5 + step if aid < 3000 else 0.5 - step
+        conn.execute(
+            "INSERT INTO candidates VALUES (?, ?, 1000, ?)", (tid, 2 if aid % 100 >= 6 else 1, aid)
+        )
+        conn.execute("INSERT INTO scores VALUES (?, 1, ?, ?)", (tid, score, int(score >= 0.5)))
+    conn.commit()
