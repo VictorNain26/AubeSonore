@@ -1629,7 +1629,7 @@ from tests_radio.model_factory import make_model_db
 
 
 def setup(tmp_path: Path):  # type: ignore[no-untyped-def]
-    conn = make_model_db(tmp_path, n_artists=8, per_artist=3)
+    conn = make_model_db(tmp_path)
     table = load_signals(conn, 10)
     ds = build_labels(conn, table, 60).train
     return table, ds, weights(ds, 0.3)
@@ -1666,7 +1666,7 @@ def test_fit_stack_learns_the_taste(tmp_path: Path) -> None:
 def test_predict_refuses_another_vocabulary(tmp_path: Path) -> None:
     table, ds, w = setup(tmp_path)
     stack = fit_stack(table, ds, w, 3, GROUPS)
-    conn = make_model_db(tmp_path / "autre", n_artists=8, per_artist=3)
+    conn = make_model_db(tmp_path / "autre")
     other = load_signals(conn, 10, vocabulary=["jazz"])
     with pytest.raises(ValueError, match="vocabulaire"):
         stack.predict(other, np.arange(3))
@@ -1916,7 +1916,7 @@ CFG = ModelConfig(min_votes_per_class=4, folds=3)
 
 
 def test_cold_start_without_votes(tmp_path: Path) -> None:
-    conn = make_model_db(tmp_path, n_artists=8, per_artist=3)
+    conn = make_model_db(tmp_path)
     table = load_signals(conn, 10)
     r = train_model(table, build_labels(conn, table, 60), CFG)
     assert r.missing_votes == {"oui": 4, "non": 4}
@@ -1928,7 +1928,7 @@ def test_cold_start_without_votes(tmp_path: Path) -> None:
 
 
 def test_training_with_enough_votes(tmp_path: Path) -> None:
-    conn = make_model_db(tmp_path, n_artists=8, per_artist=3)
+    conn = make_model_db(tmp_path)
     for a in range(6):
         add_vote(conn, (2000 + a) * 100, "lesson", "oui")
         add_vote(conn, (3000 + a) * 100, "lesson", "non")
@@ -2253,7 +2253,7 @@ def test_as_good_as_current_is_promoted() -> None:
 
 
 def trained(tmp_path: Path):  # type: ignore[no-untyped-def]
-    conn = make_model_db(tmp_path, n_artists=8, per_artist=3)
+    conn = make_model_db(tmp_path)
     for a in range(5):
         add_vote(conn, (2000 + a) * 100, "lesson", "oui")
         add_vote(conn, (3000 + a) * 100, "lesson", "non")
@@ -2643,11 +2643,11 @@ def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 
 
 def test_cold_start_trains_but_does_not_promote(env: Path) -> None:
-    make_model_db(env / "data", n_artists=8, per_artist=3).close()
+    make_model_db(env / "data").close()
     res = runner.invoke(cli.app, ["train"])
     assert res.exit_code == 0, res.output
     out = res.output
-    assert "Exemples : bibliothèque 24, oui 0, non 0, négatifs faibles 24" in out
+    assert "Exemples : bibliothèque 48, oui 0, non 0, négatifs faibles 48" in out
     assert "Valeurs absentes (candidats) : " in out
     assert "Votes de leçon insuffisants : il manque 4 « oui » et 4 « non »" in out
     assert "Modèle n°1 : non promu — votes de leçon insuffisants" in out
@@ -2656,7 +2656,7 @@ def test_cold_start_trains_but_does_not_promote(env: Path) -> None:
 
 
 def test_train_promotes_then_compares(env: Path) -> None:
-    conn = make_model_db(env / "data", n_artists=8, per_artist=3)
+    conn = make_model_db(env / "data")
     for a in range(5):
         add_vote(conn, (2000 + a) * 100, "lesson", "oui")
         add_vote(conn, (3000 + a) * 100, "lesson", "non")
