@@ -75,7 +75,11 @@ class EffnetEmbedder:
             return None
         # Un extrait plus court qu'un patch EffNet (~2,05 s) fait renvoyer une liste Python vide
         # par le réseau, pas un ndarray : convertir avant de vérifier la forme.
-        patches = np.asarray(self._net(audio), dtype=np.float32)
+        try:
+            raw = self._net(audio)
+        except RuntimeError:
+            return None
+        patches = np.asarray(raw, dtype=np.float32)
         if patches.ndim != 2 or patches.shape[0] == 0:
             return None
         v = patches.mean(axis=0)

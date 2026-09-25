@@ -30,6 +30,28 @@ def test_blob_round_trip() -> None:
     assert np.array_equal(from_blob(b), v)
 
 
+class _FakeLoader:
+    def configure(self, **kwargs: object) -> None:
+        pass
+
+    def __call__(self) -> np.ndarray:
+        return np.ones(32000, dtype=np.float32)
+
+
+class _FakeNetRaising:
+    def __call__(self, audio: np.ndarray) -> np.ndarray:
+        raise RuntimeError("boom")
+
+
+def test_effnet_returns_none_when_net_raises_runtime_error() -> None:
+    # Réseau EffNet factice (aucun modèle réel requis) : une RuntimeError du graphe TensorFlow
+    # doit être comptée « empreinte ratée », pas bloquer `signals` (F3).
+    emb = object.__new__(EffnetEmbedder)
+    emb._loader = _FakeLoader()  # type: ignore[attr-defined]
+    emb._net = _FakeNetRaising()  # type: ignore[attr-defined]
+    assert emb.embed(b"whatever bytes") is None
+
+
 @pytest.fixture(scope="module")
 def effnet() -> EffnetEmbedder:
     return EffnetEmbedder(MODEL)
