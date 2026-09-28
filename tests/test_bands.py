@@ -95,15 +95,38 @@ def test_month_precision_is_reduced_to_the_year(con):
     ) == [(1978, 1980)]
 
 
-def test_group_without_genre_is_in_bands_but_carries_no_vocabulary(con):
-    # The Belle Stars: Group, begin=1980, end=1986, no genre — kept in
-    # `bands` (population is complete) with a real y0, but its empty genre
-    # list means it can never be joined into density (UNNEST of an empty
-    # list produces no row for any genre).
-    belle_stars = "62f7a211-0056-45fe-934a-37a388a7356f"
+def test_group_without_any_genre_is_in_bands_but_carries_no_vocabulary(con):
+    # Thunder Jolt: Group, dated, and neither it nor its albums carry a genre —
+    # kept in `bands` (population is complete), but its empty genre list means
+    # it can never be joined into density.
+    thunder_jolt = "d36b0fad-abd7-44e4-88fa-f638bbf8c9a6"
     assert con.execute(
-        "SELECT y0, len(genres) FROM bands WHERE mbid = ?", [belle_stars]
-    ).fetchone() == (1980, 0)
+        "SELECT y0, len(genres), genre_source FROM bands WHERE mbid = ?", [thunder_jolt]
+    ).fetchone() == (1970, 0, None)
+
+
+def test_a_band_that_declares_no_genre_takes_its_albums(con):
+    # The Belle Stars declare none; their albums carry four, which the band is
+    # now found by, labelled as coming from the albums.
+    belle_stars = "62f7a211-0056-45fe-934a-37a388a7356f"
+    row = con.execute(
+        "SELECT len(genres_declared), genre_source, genres = genres_from_albums, len(genres) "
+        "FROM bands WHERE mbid = ?",
+        [belle_stars],
+    ).fetchone()
+    assert row == (0, "albums", True, 4)
+
+
+def test_declared_genres_win_over_album_genres(con):
+    # Joy Division declares four genres and its albums carry five: the band is
+    # found by its own four, never by a union in which albums could outvote it.
+    joy_division = "9a58fda3-f4ed-4080-a3a5-f457aac9fcdd"
+    row = con.execute(
+        "SELECT genre_source, genres = genres_declared, len(genres_from_albums) "
+        "FROM bands WHERE mbid = ?",
+        [joy_division],
+    ).fetchone()
+    assert row == ("declared", True, 5)
 
 
 def test_declared_begin_before_the_lower_bound_is_not_evidence(con):

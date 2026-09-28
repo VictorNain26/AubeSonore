@@ -53,6 +53,10 @@ def reduce_release_group(rec: dict[str, Any]) -> dict[str, Any] | None:
         "date": rec.get("first-release-date"),
         "secondary": rec.get("secondary-types") or [],
         "artists": [(c.get("artist") or {}).get("id") for c in (rec.get("artist-credit") or [])],
+        "genres": [
+            {"mbid": g.get("id"), "name": g.get("name"), "votes": g["count"]}
+            for g in (rec.get("genres") or [])
+        ],
     }
 
 

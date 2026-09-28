@@ -58,6 +58,9 @@ def test_web_export_carries_what_a_consumer_needs_to_join_and_to_audit(con, tmp_
         "mbid",
         "name",
         "genres",
+        "genre_source",
+        "genres_declared",
+        "genres_from_albums",
         "y0",
         "y0_source",
         "y0_declared",
@@ -368,12 +371,12 @@ def test_manifest_says_so_when_the_extraction_path_does_not_exist(con, tmp_path)
 
 
 def test_manifest_says_extraction_matches_rows_loaded_when_counts_agree(con, tmp_path):
-    # 28 artists and 3628 release-groups are what the fixtures actually load
+    # 29 artists and 3632 release-groups are what the fixtures actually load
     # (test_manifest_counts_the_rows_that_fed_the_build): a sidecar claiming
     # exactly those counts is the case the discrepancy check must let through.
     sidecar = tmp_path / "extraction.json"
     sidecar.write_text(
-        json.dumps({"artists_kept": 28, "release_groups_kept": 3628}), encoding="utf-8"
+        json.dumps({"artists_kept": 29, "release_groups_kept": 3632}), encoding="utf-8"
     )
     manifest = publish(con, tmp_path / "out", DUMP, None, sidecar)
     assert manifest["inputs"]["extraction_matches_rows_loaded"] is True

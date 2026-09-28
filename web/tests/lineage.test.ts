@@ -12,9 +12,9 @@ describe("readLineage", () => {
   it("reads the one edge the witnesses carry", async () => {
     const lineage = await witness();
     expect(lineage.count).toBe(1);
-    // Joy Division (row 6) to New Order (row 7), three shared musicians.
+    // Joy Division (row 6) to New Order (row 8), three shared musicians.
     expect(lineage.src[0]).toBe(6);
-    expect(lineage.dst[0]).toBe(7);
+    expect(lineage.dst[0]).toBe(8);
     expect(lineage.shared[0]).toBe(3);
   });
 

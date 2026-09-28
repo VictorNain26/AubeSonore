@@ -88,6 +88,26 @@ def test_reduce_release_group_keeps_duplicate_credits():
     assert reduced["artists"] == ["a", "a"]
 
 
+def test_reduce_release_group_keeps_genre_mbid_and_votes():
+    rec = {
+        "id": "rg",
+        "primary-type": "Album",
+        "genres": [
+            {"id": "eacfa027-2fad-413f-a2f1-80fa43674f0b", "name": "death metal", "count": 2}
+        ],
+    }
+    reduced = reduce_release_group(rec)
+    assert reduced is not None
+    assert reduced["genres"] == [
+        {"mbid": "eacfa027-2fad-413f-a2f1-80fa43674f0b", "name": "death metal", "votes": 2}
+    ]
+
+
+def test_reduce_release_group_refuses_a_genre_without_a_vote_count():
+    with pytest.raises(KeyError):
+        reduce_release_group({"id": "r", "primary-type": "Album", "genres": [{"id": "g"}]})
+
+
 def test_reduce_release_group_drops_singles():
     assert reduce_release_group({"id": "r", "primary-type": "Single"}) is None
 

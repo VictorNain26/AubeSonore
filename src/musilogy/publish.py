@@ -38,6 +38,9 @@ BANDS_WEB_COLUMNS = [
     "country",
     "begin_area",
     "genres",
+    "genre_source",
+    "genres_declared",
+    "genres_from_albums",
 ]
 # A delivery has to come out in a fixed order, or the same code on the same
 # extraction writes different bytes: the tables are built by parallel joins and

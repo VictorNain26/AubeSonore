@@ -73,14 +73,43 @@ CREATE OR REPLACE VIEW album_extra_secondary_type AS
   WHERE len(list_filter(coalesce(r.secondary, []), s -> s NOT IN ('Soundtrack', 'Demo'))) > 0;
 -- Independent of the sort applied at construction time (10_bands.sql):
 -- compares each adjacent pair, does not reuse bands' sort formula.
+-- Both raw lists are checked; `genres` is one of them, which
+-- genre_source_mismatch pins.
 CREATE OR REPLACE VIEW band_genres_out_of_order AS
-  SELECT mbid FROM bands
-  WHERE len(genres) > 1
+  SELECT mbid FROM bands, (SELECT unnest([genres_declared, genres_from_albums]) AS l) AS t
+  WHERE len(t.l) > 1
     AND EXISTS (
-      SELECT 1 FROM range(1, len(genres)) AS t(i)
-      WHERE genres[i + 1].votes > genres[i].votes
-         OR (genres[i + 1].votes = genres[i].votes AND genres[i + 1].name < genres[i].name)
+      SELECT 1 FROM range(1, len(t.l)) AS r(i)
+      WHERE t.l[i + 1].votes > t.l[i].votes
+         OR (t.l[i + 1].votes = t.l[i].votes AND t.l[i + 1].name < t.l[i].name)
     );
+-- 25_band_genres.sql: genre_source is non-NULL exactly when a band has
+-- genres, and it names the list `genres` was copied from; `albums` only
+-- ever stands in for a band that declares nothing.
+CREATE OR REPLACE VIEW genre_source_mismatch AS
+  SELECT mbid FROM bands
+  WHERE (len(genres) = 0) <> (genre_source IS NULL)
+     OR (genre_source = 'declared' AND genres IS DISTINCT FROM genres_declared)
+     OR (genre_source = 'albums'
+         AND (genres IS DISTINCT FROM genres_from_albums OR len(genres_declared) > 0))
+     OR (genre_source IS NOT NULL AND genre_source NOT IN ('declared', 'albums'));
+-- Recomputed from the release-groups themselves, with the votes summed by a
+-- GROUP BY rather than read back from band_album_genres.
+CREATE OR REPLACE VIEW genres_from_albums_mismatch AS
+  WITH expected AS (
+    SELECT band_mbid AS mbid, list_sort(list({'mbid': genre, 'votes': votes})) AS l
+    FROM (
+      SELECT a.band_mbid, t.g.mbid AS genre, sum(t.g.votes)::INTEGER AS votes
+      FROM albums a
+      JOIN raw_release_groups r ON r.mbid = a.rg_mbid,
+           UNNEST(coalesce(r.genres, [])) AS t(g)
+      GROUP BY ALL
+    )
+    GROUP BY band_mbid
+  )
+  SELECT b.mbid FROM bands b LEFT JOIN expected e USING (mbid)
+  WHERE list_sort(list_transform(b.genres_from_albums, x -> {'mbid': x.mbid, 'votes': x.votes}))
+        IS DISTINCT FROM coalesce(e.l, []);
 -- NOT EXISTS, not NOT IN: see album_without_band above, same NULL trap.
 CREATE OR REPLACE VIEW unknown_genre AS
   SELECT t.g.mbid FROM (SELECT unnest(genres) AS g FROM bands) t

@@ -61,6 +61,7 @@ WITNESSES = [
     "35ddcb29-4c16-4af6-b6f8-32143ee24a6c",  # Handel and Haydn Society
     "d36b0fad-abd7-44e4-88fa-f638bbf8c9a6",  # Thunder Jolt
     "03c2e506-e8bb-4bd6-9693-5aa97c8eea1c",  # Inspiral Carpets
+    "7b7f9365-45fc-43b0-a8c3-83f7451ddbd5",  # $.99 Dreams: its genres come from its albums
 ]
 
 
