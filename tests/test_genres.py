@@ -9,7 +9,7 @@ def test_genres_are_sorted_by_votes_then_name(con):
     assert names[1:5] == ["crunkcore", "electronic", "electropop", "pop"]
 
 
-def test_genres_table_counts_bands(con):
+def test_genres_table_counts_artists(con):
     assert (
         con.execute("""
         SELECT g.n_artists = (SELECT count(*) FROM artists b

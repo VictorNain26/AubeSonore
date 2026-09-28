@@ -107,3 +107,49 @@ def test_the_exclusion_counter_leaves_out_the_persons_density_never_counted(tmp_
     )
     c = build_synthetic(tmp_path, [*artists, composer], release_groups)
     assert c.execute("SELECT * FROM density_exclusions").fetchone() == (1, 2)
+
+
+def person_edges(tmp_path, begin, end, album_years):
+    c = build_synthetic(
+        tmp_path,
+        [synthetic_artist(BAND_CLEAN, begin, end, kind="Person")],
+        [synthetic_release_group(f"rg-{y}", BAND_CLEAN, str(y)) for y in album_years],
+    )
+    row = c.execute(
+        "SELECT y_birth, y0, y_end FROM artists WHERE mbid = ?", [BAND_CLEAN]
+    ).fetchone()
+    result = c.execute("SELECT * FROM neutralised_inferences")
+    counters = dict(zip([d[0] for d in result.description], result.fetchone(), strict=True))
+    return row, counters
+
+
+def test_a_person_born_before_min_year_takes_no_start_from_albums(tmp_path):
+    # Robert Ballard, born 1575, no recorded death, one album in 2019: without
+    # the guard his activity would start 444 years after his birth.
+    row, counters = person_edges(tmp_path, "1575", None, [2019])
+    assert row == (1575, None, 2019)
+    assert counters["first_album_with_birth_below_min_year"] == 1
+
+
+def test_albums_before_a_birth_date_neither_edge(tmp_path):
+    # The source contradicts itself: born 2012, albums in 2010 and 2011. Each
+    # guard refuses its own edge and counts it.
+    row, counters = person_edges(tmp_path, "2012", None, [2010, 2011])
+    assert row == (2012, None, None)
+    assert counters["first_album_before_birth"] == 1
+    assert counters["last_album_before_birth"] == 1
+
+
+def test_a_first_album_before_birth_leaves_a_later_last_album_standing(tmp_path):
+    row, counters = person_edges(tmp_path, "1978", None, [1924, 2020])
+    assert row == (1978, None, 2020)
+    assert counters["first_album_before_birth"] == 1
+    assert counters["last_album_before_birth"] == 0
+
+
+def test_a_person_without_a_birth_still_takes_both_edges_from_albums(tmp_path):
+    # Most persons carry no birth. A guard that read an absent birth as NULL
+    # instead of false refused the albums of all of them — 119 947 persons on
+    # the reference dump before this test existed.
+    row, _ = person_edges(tmp_path, None, None, [1990, 2000])
+    assert row == (None, 1990, 2000)

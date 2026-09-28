@@ -21,19 +21,29 @@ SELECT
   -- whose recordings would otherwise start his activity in 1961. The end is
   -- neutralised in 10_bands.sql, which is why its flag is read here rather
   -- than y_end_declared.
+  --
+  -- A person's birth bounds the albums the same way: a first album before it
+  -- contradicts it, and a birth below min_year says the person predates every
+  -- album the window admits, as a group's early begin does — Robert Ballard,
+  -- born 1575, would otherwise start in 2019.
   b.y_first_album IS NOT NULL
     AND (b.y_end_declared IS NULL OR b.y_first_album <= b.y_end_declared)
     AND NOT d.begin_below_min_year
-    AND NOT d.end_below_min_year AS first_album_is_evidence,
+    AND NOT d.end_below_min_year
+    AND NOT d.birth_below_min_year
+    AND (b.y_birth IS NULL OR b.y_first_album >= b.y_birth) AS first_album_is_evidence,
   -- Mirror guard: a last album predating a declared begin would close a life
   -- that had not started. The inference is dropped, y_end and y_end_source
   -- both stay NULL.
   --
   -- Same refusal as above for an end below min_year: a last album after the
   -- end is no evidence of when the activity stopped.
+  --
+  -- And a last album before a person's birth closes nothing that happened.
   b.y_last_album IS NOT NULL
     AND (b.y0_declared IS NULL OR b.y_last_album >= b.y0_declared)
-    AND NOT d.end_below_min_year AS last_album_is_evidence
+    AND NOT d.end_below_min_year
+    AND (b.y_birth IS NULL OR b.y_last_album >= b.y_birth) AS last_album_is_evidence
 FROM artists b JOIN dated d USING (mbid);
 
 CREATE OR REPLACE TABLE neutralised_inferences AS
@@ -52,7 +62,16 @@ SELECT
   ) AS first_album_with_begin_below_min_year,
   count(*) FILTER (
     WHERE b.y_first_album IS NOT NULL AND d.end_below_min_year
-  ) AS album_with_end_below_min_year
+  ) AS album_with_end_below_min_year,
+  count(*) FILTER (
+    WHERE b.y_first_album IS NOT NULL AND d.birth_below_min_year
+  ) AS first_album_with_birth_below_min_year,
+  count(*) FILTER (
+    WHERE b.y_first_album IS NOT NULL AND b.y_first_album < b.y_birth
+  ) AS first_album_before_birth,
+  count(*) FILTER (
+    WHERE b.y_last_album IS NOT NULL AND b.y_last_album < b.y_birth
+  ) AS last_album_before_birth
 FROM artists b JOIN dated d USING (mbid);
 
 ALTER TABLE artists ADD COLUMN y0 INTEGER;

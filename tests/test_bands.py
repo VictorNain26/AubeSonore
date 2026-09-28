@@ -5,7 +5,7 @@ def rows(con, q):
     return con.execute(q).fetchall()
 
 
-def test_orchestra_is_in_bands_but_excluded_from_density(con):
+def test_orchestra_is_in_artists_but_excluded_from_density(con):
     # Wiener Philharmoniker: type Orchestra, carrier of "classical" in the
     # fixtures alongside Bach, a person — no group carries it, so density must
     # show no row for that genre, since density is restricted to type = 'Group'.
@@ -52,7 +52,7 @@ def test_future_begin_falls_back_to_first_album(con):
     ) == [(None, 2016, "first_album")]
 
 
-def test_homonyms_without_date_or_genre_stay_in_bands_with_no_y0(con):
+def test_homonyms_without_date_or_genre_stay_in_artists_with_no_y0(con):
     assert rows(
         con,
         """
@@ -99,7 +99,7 @@ def test_month_precision_is_reduced_to_the_year(con):
     ) == [(1978, 1980)]
 
 
-def test_group_without_any_genre_is_in_bands_but_carries_no_vocabulary(con):
+def test_group_without_any_genre_is_in_artists_but_carries_no_vocabulary(con):
     # Thunder Jolt: Group, dated, and neither it nor its albums carry a genre —
     # kept in `artists` (population is complete), but its empty genre list means
     # it can never be joined into density.

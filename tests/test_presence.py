@@ -42,7 +42,7 @@ def test_no_band_is_present_after_its_declared_end(con):
     """).fetchall() == [(0,)]
 
 
-def test_presence_end_is_published_on_bands(con):
+def test_presence_end_is_published_on_artists(con):
     assert con.execute("""
         SELECT count(*) FROM artists b JOIN presence p USING (mbid)
         WHERE b.y_presence_end IS DISTINCT FROM p.y_presence_end

@@ -212,12 +212,16 @@ CREATE OR REPLACE VIEW density_missing_cell AS
     AND NOT EXISTS (
       SELECT 1 FROM density d WHERE d.genre_mbid = t.g.mbid AND d.year = y.year
     );
--- 80_members.sql. The band side is a local reference and must resolve; the
--- person side is deliberately not checked, it points outside this pipeline.
+-- 80_members.sql. The band side is a local reference and must resolve to an
+-- artist that is not a person: the dump carries each relation on the person
+-- too, where it names the band as its target, and reading it there would
+-- publish the person as the band. The person side is not required to
+-- resolve: a member may be of a type this pipeline does not extract.
 -- NOT EXISTS, not NOT IN: see album_without_artist above, same NULL trap.
 CREATE OR REPLACE VIEW member_without_band AS
   SELECT band_mbid FROM members m
-  WHERE NOT EXISTS (SELECT 1 FROM artists b WHERE b.mbid = m.band_mbid);
+  WHERE NOT EXISTS (
+    SELECT 1 FROM artists b WHERE b.mbid = m.band_mbid AND b.type <> 'Person');
 -- A relation whose person is NULL points at nothing and must never be
 -- published. Stated on the published column, not on the WHERE clause that
 -- produced it.
@@ -252,12 +256,16 @@ CREATE OR REPLACE VIEW artist_unexpected_type AS
   SELECT mbid FROM artists
   WHERE type IS NULL OR type NOT IN ('Group', 'Orchestra', 'Choir', 'Person');
 -- 10_bands.sql: a person's begin is a birth. It must land in y_birth and never
--- in y0_declared, and no other type carries a y_birth. Stated on the published
--- columns, so a CASE that swapped its two branches fails here.
+-- in y0_declared, and no other type carries a y_birth. The readable birth is
+-- read back from raw_artists, with 2026 hardcoded like every contractual
+-- bound, so a y_birth that is dropped fails here as well as one that leaks.
 CREATE OR REPLACE VIEW birth_misread AS
-  SELECT mbid FROM artists
-  WHERE (type = 'Person' AND y0_declared IS NOT NULL)
-     OR (type <> 'Person' AND y_birth IS NOT NULL);
+  SELECT a.mbid FROM artists a JOIN raw_artists r USING (mbid)
+  WHERE (a.type = 'Person' AND a.y0_declared IS NOT NULL)
+     OR (a.type <> 'Person' AND a.y_birth IS NOT NULL)
+     OR (a.type = 'Person'
+         AND a.y_birth IS DISTINCT FROM
+             CASE WHEN yr(r.begin) <= 2026 THEN yr(r.begin) END);
 -- apply_corrections runs UPDATE ... FROM corrections: two rows for the same
 -- (mbid, field) make the applied value depend on scan order. The file is empty
 -- today, which is exactly when the contract is cheap to state.

@@ -3,11 +3,11 @@
 -- partly derived from albums (30_bands_lifespan.sql), so it cannot be used
 -- here without creating a cycle.
 --
--- Demo is accepted: among the groups owning both a demo and a studio album,
--- 67.5% released the demo first, a median of 3 years earlier — a demo is
+-- Demo is accepted: among the artists owning both a demo and a studio album,
+-- 61.7% released the demo first, a median of 3 years earlier — a demo is
 -- contemporaneous evidence of early activity.
 -- Live stays excluded on purpose: MusicBrainz dates a live release by its
--- publication, not by the performance (710 artists carry a live release dated
+-- publication, not by the performance (914 artists carry a live release dated
 -- more than 20 years after their last studio album; titles such as "Live in
 -- Paris (1966)" published in 2024). DJ-mix, Compilation and Remix stay
 -- excluded too. Both figures are contractual, in tests/test_baseline.py.

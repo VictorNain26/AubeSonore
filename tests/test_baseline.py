@@ -37,14 +37,14 @@ MULTI_ARTIST_DROP = {
     "rock": (37_870, 1.8),
     "alternative metal": (3_006, 0.6),
 }
-Y0_SOURCE_BREAKDOWN = {"declared": 235_246, "first_album": 346_479, None: 1_699_966}
-Y_END_SOURCE_BREAKDOWN = {"declared": 147_025, "last_album": 438_817, None: 1_695_849}
+Y0_SOURCE_BREAKDOWN = {"declared": 235_246, "first_album": 346_442, None: 1_700_003}
+Y_END_SOURCE_BREAKDOWN = {"declared": 147_025, "last_album": 438_801, None: 1_695_865}
 # 25_band_genres.sql: the declared genres win, the albums take over. Every
 # count below that moved when it landed splits exactly along this column —
 # restricted to 'declared' artists, density, present and the excluded pairs give
 # back their previous values (52 201, 1 972 825 and 1 554).
 GENRE_SOURCE_BREAKDOWN = {"declared": 199_611, "albums": 153_624, None: 1_928_456}
-PLACEABLE = 581_725
+PLACEABLE = 581_688
 DENSITY_PRESENT = 4_242_411
 # The date readings the dump loses, and the album inferences the guards of
 # 30_bands_lifespan.sql refuse. Frozen here too: a guard that stops firing is
@@ -57,12 +57,17 @@ DATE_ANOMALIES = {
     "begin_below_min_year": 258,
     "end_below_min_year": 6_493,
     "end_before_begin": 3,
+    "birth_illegible": 8_962,
+    "birth_future": 2,
 }
 NEUTRALISED_INFERENCES = {
     "first_album_after_declared_end": 2_000,
     "last_album_before_declared_begin": 271,
     "first_album_with_begin_below_min_year": 73,
     "album_with_end_below_min_year": 235,
+    "first_album_with_birth_below_min_year": 326,
+    "first_album_before_birth": 32,
+    "last_album_before_birth": 17,
 }
 # The measurements that argue for a rule of 20_albums.sql rather than describe
 # an output: accepting Demo and excluding Live are decisions these numbers

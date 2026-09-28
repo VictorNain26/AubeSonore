@@ -188,10 +188,12 @@ def test_manifest_carries_r2_anomaly_counters(con, tmp_path):
         # as a formation.
         "end_below_min_year": 1,
         "end_before_begin": 1,
+        "birth_illegible": 0,
+        "birth_future": 0,
     }
 
 
-def test_manifest_carries_the_four_neutralised_inference_counters(con, tmp_path):
+def test_manifest_carries_the_seven_neutralised_inference_counters(con, tmp_path):
     # One counter per guard of 30_bands_lifespan.sql. On the witnesses:
     # Polska Radio One (formed 2015, last album 2014) for the end, Wiener
     # Philharmoniker and Handel and Haydn Society (begins below 1850) for the
@@ -203,6 +205,10 @@ def test_manifest_carries_the_four_neutralised_inference_counters(con, tmp_path)
         "last_album_before_declared_begin": 1,
         "first_album_with_begin_below_min_year": 2,
         "album_with_end_below_min_year": 1,
+        # Bach again: born in 1685, as well as dead before 1850.
+        "first_album_with_birth_below_min_year": 1,
+        "first_album_before_birth": 0,
+        "last_album_before_birth": 0,
     }
 
 
@@ -253,6 +259,14 @@ def test_r2_anomaly_counters_are_not_mismapped_between_subrules(tmp_path):
         + [synthetic_artist(f"end-before-begin-{i}", "2010-01-01", "2005-01-01") for i in range(6)]
         + [synthetic_artist(f"begin-below-min-{i}", "0742", None) for i in range(7)]
         + [synthetic_artist(f"end-below-min-{i}", None, "1700-01-01") for i in range(8)]
+        + [
+            synthetic_artist(f"birth-illegible-{i}", "????-03-01", None, kind="Person")
+            for i in range(9)
+        ]
+        + [synthetic_artist(f"birth-future-{i}", "2090", None, kind="Person") for i in range(10)]
+        # A person's begin never feeds the begin counters: these must stay out
+        # of begin_illegible, begin_future and begin_below_min_year.
+        + [synthetic_artist(f"birth-early-{i}", "1685", None, kind="Person") for i in range(11)]
     )
     c = build_synthetic(tmp_path, records)
     manifest = publish(c, tmp_path / "out", DUMP, None)
@@ -265,6 +279,8 @@ def test_r2_anomaly_counters_are_not_mismapped_between_subrules(tmp_path):
         "begin_below_min_year": 7,
         "end_below_min_year": 8,
         "end_before_begin": 6,
+        "birth_illegible": 9,
+        "birth_future": 10,
     }
 
 

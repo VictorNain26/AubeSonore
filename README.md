@@ -36,7 +36,7 @@ Colonnes réelles (voir `src/musilogy/sql/`) :
 
 Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la numérotation est un ordre topologique de dépendance**, pas un rang dans une liste, et avance par pas de dix pour qu'une règle s'insère sans renumérotation — `55_` en est un exemple vivant.
 
-- **`10_bands` — Population et lecture des dates.** Tout artiste extrait — groupe, orchestre, chœur ou personne — entre dans `artists` : aucun filtre de date ou de genre. Les personnages, les « autres » et les artistes sans type ne sont pas extraits : ces derniers, 674 240 sur le dump de référence, ne portent presque aucun lien (2,6 %), contre un tiers des personnes. **Le `begin` d'une personne est une naissance, pas un début d'activité** : il est publié dans `y_birth` et ne devient jamais `y0_declared`. Son `end`, un décès, clôt bien l'activité et se lit comme toute autre fin. La lecture des dates est déterministe : l'année tient sur les quatre premiers caractères, sinon elle est **absente**, pas devinée. Une date hors de `[1850, année du dump]` — aux deux bords — et une fin antérieure au début sont neutralisées, et **chaque neutralisation alimente un compteur** dans `manifest.json`. Tous les genres sont conservés, triés explicitement par votes décroissants puis par nom.
+- **`10_bands` — Population et lecture des dates.** Tout artiste extrait — groupe, orchestre, chœur ou personne — entre dans `artists` : aucun filtre de date ou de genre. Les personnages, les « autres » et les artistes sans type ne sont pas extraits : ces derniers, 674 240 sur le dump de référence, ne portent presque aucun lien (2,6 %), contre un tiers des personnes. **Le `begin` d'une personne est une naissance, pas un début d'activité** : il est publié dans `y_birth` et ne devient jamais `y0_declared` ; une naissance illisible (8 962) ou future (2) est perdue et comptée comme toute autre date. Son `end`, un décès, clôt bien l'activité et se lit comme toute autre fin. La lecture des dates est déterministe : l'année tient sur les quatre premiers caractères, sinon elle est **absente**, pas devinée. Une date hors de `[1850, année du dump]` — aux deux bords — et une fin antérieure au début sont neutralisées, et **chaque neutralisation alimente un compteur** dans `manifest.json`. Tous les genres sont conservés, triés explicitement par votes décroissants puis par nom.
 
 - **`20_albums` — Albums.** Un release-group compte comme album s'il est de type primaire `Album` (filtré dès l'extraction), crédité à un **seul artiste distinct** présent dans `artists`, daté dans `[1850, année du dump]`, et dont les types secondaires sont vides ou inclus dans `{Soundtrack, Demo}`.
 
@@ -46,7 +46,7 @@ Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la n
 
 - **`30_bands_lifespan` — Ligne de vie et provenance.** Aux deux bords, **la preuve déclarée l'emporte, l'album prend le relais** : `y0` vaut l'année déclarée, sinon celle du premier album ; `y_end` la fin déclarée, sinon celle du dernier album. `y0_source` et `y_end_source` nomment la branche qui a produit la valeur. Les preuves brutes restent publiées à côté.
 
-  **Une preuve issue d'un album n'est retenue à un bord que si elle ne contredit pas la preuve déclarée à l'autre bord.** Quatre garde-fous, chacun compté :
+  **Une preuve issue d'un album n'est retenue à un bord que si elle ne contredit pas la preuve déclarée à l'autre bord.** Sept garde-fous, chacun compté :
 
   | garde-fou | cas | compte |
   |---|---|---|
@@ -54,6 +54,9 @@ Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la n
   | `last_album_before_declared_begin` | dernier album antérieur à un début déclaré — symétrique, il produisait une fin étiquetée `last_album` qui valait en réalité l'année de début | 271 |
   | `first_album_with_begin_below_min_year` | début déclaré sous 1850 donc neutralisé : la source affirme que le groupe précède l'album | 73 |
   | `album_with_end_below_min_year` | fin déclarée sous 1850 : tout album lui est postérieur, aucun bord ne s'en déduit — Bach, mort en 1750, enregistré à partir de 1961 | 235 |
+  | `first_album_with_birth_below_min_year` | personne née avant 1850 : elle précède tout album de la fenêtre — Robert Ballard, né en 1575, commencerait en 2019 | 326 |
+  | `first_album_before_birth` | premier album antérieur à la naissance : la source se contredit, le début ne s'en déduit pas | 32 |
+  | `last_album_before_birth` | dernier album antérieur à la naissance : symétrique, la fin ne s'en déduit pas | 17 |
 
 - **`40_presence` — Présence.** Seuls les artistes dont `y0` est connu. `y_presence_end` borne `y_end` à l'année du dump.
 
@@ -100,7 +103,7 @@ Chaque ligne porte son `mbid` — la clé de jointure vers `density`, `members` 
 
 **Deux sujets restent ouverts pour la couche 1.** Le poids : 41,3 Mo gzip pour `artists_timeline` et 56,2 Mo pour `artists_rest` ; un chargement initial complet n'est pas réaliste sur mobile, et le format de lecture lui revient. Et l'absence de hiérarchie : les 1 729 genres sont **plats**, sans regroupement possible, faute de source fiable — parcourir cette liste à la main n'est pas une interface.
 
-`manifest.json` porte les empreintes des archives **et celles des neuf fichiers livrés** — cinq Parquet, quatre `.json.gz` — (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les quatre compteurs de neutralisation, les exclusions de densité, le commit et l'empreinte des corrections.
+`manifest.json` porte les empreintes des archives **et celles des neuf fichiers livrés** — cinq Parquet, quatre `.json.gz` — (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les sept compteurs de neutralisation, les exclusions de densité, le commit et l'empreinte des corrections.
 
 Ces empreintes de sortie sont opposables parce que la livraison est reproductible : à dump et code identiques, deux exécutions écrivent les mêmes octets. L'ordre des lignes est fixé par une clé totale sur chaque table et le gzip ne porte pas d'horodatage. Un consommateur distingue donc une livraison inchangée d'une nouvelle par sa seule empreinte, sans retélécharger.
 
@@ -108,14 +111,14 @@ Ces empreintes de sortie sont opposables parce que la livraison est reproductibl
 
 Le **contrat exécutable** est `tests/test_baseline.py` : il confronte le pipeline entier au dump de référence et compare exactement les comptes, la somme des cellules de densité et la répartition des provenances. Les chiffres cités ici sont descriptifs ; en cas de divergence, c'est le test qui fait foi.
 
-Deux situations, deux conduites, à ne pas confondre. **Sur le dump de référence, un écart signale une règle mal implémentée** — jamais un prétexte pour ajuster la ligne de base. **Sur un nouveau dump, tous les chiffres bougent légitimement**, et la ligne de base se régénère : les cinq comptes, les trois répartitions de provenance, les sept compteurs d'anomalies, les quatre de neutralisation et les exclusions de densité. Il faut alors aussi mettre à jour `REFERENCE_DUMP`, la valeur par défaut de `dump_year`, ajouter le `reference/<dump>.SHA256SUMS` correspondant, et modifier à la main les bornes codées en dur dans les vues de `90_invariants.sql` — cette dernière opération est délibérément manuelle, c'est ce qui empêche une mauvaise variable de satisfaire à la fois la règle et son contrôle. Les extractions vivant dans `data/work/<dump>/`, changer `REFERENCE_DUMP` suffit à repartir d'une extraction neuve, sans rien vider à la main ; le manifeste porte déjà les paramètres du run (section précédente).
+Deux situations, deux conduites, à ne pas confondre. **Sur le dump de référence, un écart signale une règle mal implémentée** — jamais un prétexte pour ajuster la ligne de base. **Sur un nouveau dump, tous les chiffres bougent légitimement**, et la ligne de base se régénère : les cinq comptes, les trois répartitions de provenance, les neuf compteurs d'anomalies, les sept de neutralisation et les exclusions de densité. Il faut alors aussi mettre à jour `REFERENCE_DUMP`, la valeur par défaut de `dump_year`, ajouter le `reference/<dump>.SHA256SUMS` correspondant, et modifier à la main les bornes codées en dur dans les vues de `90_invariants.sql` — cette dernière opération est délibérément manuelle, c'est ce qui empêche une mauvaise variable de satisfaire à la fois la règle et son contrôle. Les extractions vivant dans `data/work/<dump>/`, changer `REFERENCE_DUMP` suffit à repartir d'une extraction neuve, sans rien vider à la main ; le manifeste porte déjà les paramètres du run (section précédente).
 
 Provenance des bords, sur le dump de référence :
 
 | | `declared` | dérivé des albums | inconnu |
 |---|---|---|---|
-| début (`y0_source`) | 235 246 | 346 479 | 1 699 966 |
-| fin (`y_end_source`) | 147 025 | 438 817 | 1 695 849 |
+| début (`y0_source`) | 235 246 | 346 442 | 1 700 003 |
+| fin (`y_end_source`) | 147 025 | 438 801 | 1 695 865 |
 | genres (`genre_source`) | 199 611 | 153 624 | 1 928 456 |
 
 Pour une personne, le début n'est jamais `declared` (sa déclaration est une naissance) et une fin `declared` est un décès.
@@ -130,7 +133,7 @@ Pour une personne, le début n'est jamais `declared` (sa déclaration est une na
 
 - **`density` ignore les orchestres, les chœurs et les personnes**, faute d'un modèle de ligne de vie comparable — orchestres et chœurs écartaient déjà 21,4 % des groupes du répertoire savant avant toute mesure. Tous restent dans `artists`, `albums` et `members`.
 
-- **78,9 % des artistes n'ont aucun album** qui passe les règles, et 1 699 966 n'ont aucun début exploitable. La base est complète par choix : la couche 1 filtre, la couche 0 ne jette pas.
+- **78,9 % des artistes n'ont aucun album** qui passe les règles, et 1 700 003 n'ont aucun début exploitable. La base est complète par choix : la couche 1 filtre, la couche 0 ne jette pas.
 
 ## Installation, tests, exécution
 

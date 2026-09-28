@@ -59,7 +59,7 @@ def test_a_broken_invariant_is_reported(con):
     assert violations.get("album_without_artist") == 1
 
 
-def test_album_without_band_survives_a_null_mbid_in_bands(con):
+def test_album_without_artist_survives_a_null_mbid_in_artists(con):
     # NOT IN used to go silent here: a single NULL mbid in the `artists`
     # subquery makes `x NOT IN (subquery)` never true, whatever x is, so a
     # real violation would go unreported. NOT EXISTS is NULL-safe.
@@ -111,7 +111,7 @@ def test_duplicate_artist_catches_null_mbid(con):
     assert violations.get("duplicate_artist") == 1
 
 
-def test_band_out_of_window_is_reported(con):
+def test_artist_out_of_window_is_reported(con):
     mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
     original = con.execute("SELECT y0 FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
     with restored(con, ("UPDATE artists SET y0 = ? WHERE mbid = ?", [original, mbid])):
@@ -305,7 +305,7 @@ def test_density_population_mismatch_is_reported(con):
     assert violations.get("density_population_mismatch") == 1
 
 
-def test_band_genres_out_of_order_is_reported(con):
+def test_artist_genres_out_of_order_is_reported(con):
     mbid = con.execute(
         "SELECT mbid FROM artists WHERE len(genres) > 1 AND genre_source = 'declared' LIMIT 1"
     ).fetchone()[0]
@@ -530,7 +530,7 @@ def test_member_without_band_is_reported(con):
     assert violations.get("member_without_band") == 1
 
 
-def test_member_without_band_survives_a_null_mbid_in_bands(con):
+def test_member_without_band_survives_a_null_mbid_in_artists(con):
     # Same NULL trap as album_without_artist: a single NULL mbid in the `artists`
     # subquery makes `x NOT IN (subquery)` never true, whatever x is, so the
     # invariant would go silent on every real violation. NOT EXISTS is NULL-safe.
@@ -654,6 +654,26 @@ def test_birth_misread_is_reported_on_both_sides(con):
         assert dict(check_invariants(con, SQL)).get("birth_misread") == 1
 
 
+def test_birth_misread_catches_a_birth_that_never_reached_y_birth(con):
+    # The other failure of the same CASE: a readable birth dropped on the way.
+    person = con.execute(
+        "SELECT mbid FROM artists WHERE type = 'Person' AND y_birth IS NOT NULL LIMIT 1"
+    ).fetchone()[0]
+    birth = con.execute("SELECT y_birth FROM artists WHERE mbid = ?", [person]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET y_birth = ? WHERE mbid = ?", [birth, person])):
+        con.execute("UPDATE artists SET y_birth = NULL WHERE mbid = ?", [person])
+        assert dict(check_invariants(con, SQL)).get("birth_misread") == 1
+
+
+def test_member_without_band_refuses_a_person_on_the_band_side(con):
+    # The membership read from the person's own record: the person would be
+    # published as the band. The rule of 80_members.sql is checked here.
+    person = con.execute("SELECT mbid FROM artists WHERE type = 'Person' LIMIT 1").fetchone()[0]
+    with restored(con, ("DELETE FROM members WHERE band_mbid = ?", [person])):
+        con.execute("INSERT INTO members VALUES (?, 'someone', 1999, NULL)", [person])
+        assert dict(check_invariants(con, SQL)).get("member_without_band") == 1
+
+
 def test_artist_unexpected_type_is_reported(con):
     # extract.py keeps {Group, Orchestra, Choir, Person} and nothing states that
     # contract in SQL, while 60_density.sql depends on type = 'Group'. A change
@@ -666,7 +686,7 @@ def test_artist_unexpected_type_is_reported(con):
     assert violations.get("artist_unexpected_type") == 1
 
 
-def test_band_unexpected_type_catches_a_null_type(con):
+def test_artist_unexpected_type_catches_a_null_type(con):
     mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
     original = con.execute("SELECT type FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
     with restored(con, ("UPDATE artists SET type = ? WHERE mbid = ?", [original, mbid])):
