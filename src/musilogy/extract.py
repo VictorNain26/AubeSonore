@@ -32,14 +32,16 @@ def reduce_artist(rec: dict[str, Any]) -> dict[str, Any] | None:
             {"mbid": g.get("id"), "name": g.get("name"), "votes": g["count"]}
             for g in (rec.get("genres") or [])
         ],
-        "members": [
+        "relations": [
             {
+                "type": r.get("type"),
+                "direction": r.get("direction"),
                 "mbid": (r.get("artist") or {}).get("id"),
                 "begin": r.get("begin"),
                 "end": r.get("end"),
             }
             for r in (rec.get("relations") or [])
-            if r.get("type") == "member of band"
+            if r.get("target-type") == "artist"
         ],
     }
 

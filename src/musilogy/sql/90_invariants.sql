@@ -212,27 +212,37 @@ CREATE OR REPLACE VIEW density_missing_cell AS
     AND NOT EXISTS (
       SELECT 1 FROM density d WHERE d.genre_mbid = t.g.mbid AND d.year = y.year
     );
--- 80_members.sql. The band side is a local reference and must resolve to an
--- artist that is not a person: the dump carries each relation on the person
--- too, where it names the band as its target, and reading it there would
--- publish the person as the band. The person side is not required to
--- resolve: a member may be of a type this pipeline does not extract.
+-- 80_links.sql. Both ends must be artists of this pipeline.
 -- NOT EXISTS, not NOT IN: see album_without_artist above, same NULL trap.
-CREATE OR REPLACE VIEW member_without_band AS
-  SELECT band_mbid FROM members m
-  WHERE NOT EXISTS (
-    SELECT 1 FROM artists b WHERE b.mbid = m.band_mbid AND b.type <> 'Person');
--- A relation whose person is NULL points at nothing and must never be
--- published. Stated on the published column, not on the WHERE clause that
--- produced it.
-CREATE OR REPLACE VIEW member_without_person AS
-  SELECT band_mbid FROM members WHERE person_mbid IS NULL;
+CREATE OR REPLACE VIEW link_endpoint_missing AS
+  SELECT src_mbid, dst_mbid, type FROM links l
+  WHERE NOT EXISTS (SELECT 1 FROM artists a WHERE a.mbid = l.src_mbid)
+     OR NOT EXISTS (SELECT 1 FROM artists a WHERE a.mbid = l.dst_mbid);
+-- A link names two artists and what relates them; none of the three may be
+-- absent. Stated on the published columns, not on the WHERE that filtered.
+CREATE OR REPLACE VIEW link_incomplete AS
+  SELECT src_mbid, dst_mbid, type FROM links
+  WHERE src_mbid IS NULL OR dst_mbid IS NULL OR type IS NULL;
 -- The de-duplication restated as a contract on the published rows, counting
 -- them instead of reapplying the DISTINCT that produced them. NULL years group
 -- together here exactly as DISTINCT collapses them.
-CREATE OR REPLACE VIEW duplicate_member AS
-  SELECT band_mbid, person_mbid, y_begin, y_end FROM members
+CREATE OR REPLACE VIEW duplicate_link AS
+  SELECT src_mbid, dst_mbid, type, y_begin, y_end FROM links
   GROUP BY ALL HAVING count(*) > 1;
+-- The orientation, checked as an existence rather than by the CASE that
+-- produced it: a link src -> dst must be read forward on src or backward on
+-- dst. A swapped CASE publishes every link reversed, which passes the three
+-- views above and fails here.
+CREATE OR REPLACE VIEW link_misoriented AS
+  SELECT l.src_mbid, l.dst_mbid, l.type FROM links l
+  WHERE NOT EXISTS (
+      SELECT 1 FROM raw_artists r, UNNEST(r.relations) AS t(x)
+      WHERE r.mbid = l.src_mbid AND t.x.mbid = l.dst_mbid
+        AND t.x.type = l.type AND t.x.direction = 'forward')
+    AND NOT EXISTS (
+      SELECT 1 FROM raw_artists r, UNNEST(r.relations) AS t(x)
+      WHERE r.mbid = l.dst_mbid AND t.x.mbid = l.src_mbid
+        AND t.x.type = l.type AND t.x.direction = 'backward');
 -- corrections.csv holds at most 50 rows; materialized even empty
 -- by apply_corrections, so available without depending on the dump.
 CREATE OR REPLACE VIEW corrections_file_too_large AS

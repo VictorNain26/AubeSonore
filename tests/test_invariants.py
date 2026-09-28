@@ -523,14 +523,15 @@ def test_density_above_band_count_is_reported(con):
     assert violations.get("density_above_band_count") == 1
 
 
-def test_member_without_band_is_reported(con):
-    with restored(con, ("DELETE FROM members WHERE band_mbid = 'inconnu'", [])):
-        con.execute("INSERT INTO members VALUES ('inconnu', 'person', 1999, NULL)")
+def test_link_endpoint_missing_is_reported(con):
+    artist = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    with restored(con, ("DELETE FROM links WHERE dst_mbid = 'inconnu'", [])):
+        con.execute("INSERT INTO links VALUES (?, 'inconnu', 'tribute', NULL, NULL)", [artist])
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("member_without_band") == 1
+    assert violations.get("link_endpoint_missing") == 1
 
 
-def test_member_without_band_survives_a_null_mbid_in_artists(con):
+def test_link_endpoint_missing_survives_a_null_mbid_in_artists(con):
     # Same NULL trap as album_without_artist: a single NULL mbid in the `artists`
     # subquery makes `x NOT IN (subquery)` never true, whatever x is, so the
     # invariant would go silent on every real violation. NOT EXISTS is NULL-safe.
@@ -541,37 +542,60 @@ def test_member_without_band_survives_a_null_mbid_in_artists(con):
     placeholders = ", ".join("?" for _ in cols)
     with restored(
         con,
-        ("DELETE FROM members WHERE band_mbid = 'inconnu-null-poison'", []),
+        ("DELETE FROM links WHERE dst_mbid = 'inconnu-null-poison'", []),
         ("DELETE FROM artists WHERE mbid IS NULL", []),
     ):
-        con.execute("INSERT INTO members VALUES ('inconnu-null-poison', 'person', 1999, NULL)")
+        con.execute(
+            "INSERT INTO links VALUES (?, 'inconnu-null-poison', 'tribute', NULL, NULL)", [row[0]]
+        )
         con.execute(f"INSERT INTO artists VALUES ({placeholders})", values)
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("member_without_band") == 1
+    assert violations.get("link_endpoint_missing") == 1
 
 
-def test_member_without_person_is_reported(con):
-    band_mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
-    with restored(con, ("DELETE FROM members WHERE person_mbid IS NULL", [])):
-        con.execute("INSERT INTO members VALUES (?, NULL, 1999, NULL)", [band_mbid])
+def test_link_incomplete_is_reported(con):
+    artist = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    with restored(con, ("DELETE FROM links WHERE type IS NULL", [])):
+        con.execute("INSERT INTO links VALUES (?, ?, NULL, 1999, NULL)", [artist, artist])
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("member_without_person") == 1
+    assert violations.get("link_incomplete") == 1
 
 
-def test_duplicate_member_is_reported(con):
-    # NULL years on purpose: a duplicate must be caught on the pair alone,
+def test_duplicate_link_is_reported(con):
+    # NULL years on purpose: a duplicate must be caught on the triple alone,
     # and GROUP BY has to treat two NULL edges as the same relation, exactly
-    # as the DISTINCT of 80_members.sql collapses them.
-    row = con.execute("SELECT * FROM members LIMIT 1").fetchone()
-    placeholders = ", ".join("?" for _ in row)
-    with restored(con, ("DELETE FROM members WHERE person_mbid = 'duplicate-person'", [])):
+    # as the DISTINCT of 80_links.sql collapses them.
+    src, dst = con.execute("SELECT src_mbid, dst_mbid FROM links LIMIT 1").fetchone()
+    with restored(con, ("DELETE FROM links WHERE type = 'duplicate'", [])):
         for _ in range(2):
-            con.execute(
-                f"INSERT INTO members VALUES ({placeholders})",
-                [row[0], "duplicate-person", None, None],
-            )
+            con.execute("INSERT INTO links VALUES (?, ?, 'duplicate', NULL, NULL)", [src, dst])
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("duplicate_member") == 1
+    assert violations.get("duplicate_link") == 1
+
+
+def test_link_misoriented_catches_a_reversed_link(con):
+    # A link swapped end for end keeps both ends among the artists and stays
+    # unique: only the orientation check can tell.
+    # One row for its triple and no reverse already published, so that the
+    # undo below restores exactly what was there.
+    row = con.execute(
+        "SELECT * FROM links l WHERE src_mbid <> dst_mbid AND NOT EXISTS ("
+        "  SELECT 1 FROM links r WHERE r.src_mbid = l.dst_mbid AND r.dst_mbid = l.src_mbid"
+        "    AND r.type = l.type)"
+        " QUALIFY count(*) OVER (PARTITION BY src_mbid, dst_mbid, type) = 1 LIMIT 1"
+    ).fetchone()
+    src, dst, kind, y_begin, y_end = row
+    with restored(
+        con,
+        ("DELETE FROM links WHERE src_mbid = ? AND dst_mbid = ? AND type = ?", [dst, src, kind]),
+        ("INSERT INTO links VALUES (?, ?, ?, ?, ?)", list(row)),
+    ):
+        con.execute(
+            "DELETE FROM links WHERE src_mbid = ? AND dst_mbid = ? AND type = ?", [src, dst, kind]
+        )
+        con.execute("INSERT INTO links VALUES (?, ?, ?, ?, ?)", [dst, src, kind, y_begin, y_end])
+        violations = dict(check_invariants(con, SQL))
+    assert violations.get("link_misoriented")
 
 
 def test_corrections_file_too_large_is_reported(con):
@@ -663,15 +687,6 @@ def test_birth_misread_catches_a_birth_that_never_reached_y_birth(con):
     with restored(con, ("UPDATE artists SET y_birth = ? WHERE mbid = ?", [birth, person])):
         con.execute("UPDATE artists SET y_birth = NULL WHERE mbid = ?", [person])
         assert dict(check_invariants(con, SQL)).get("birth_misread") == 1
-
-
-def test_member_without_band_refuses_a_person_on_the_band_side(con):
-    # The membership read from the person's own record: the person would be
-    # published as the band. The rule of 80_members.sql is checked here.
-    person = con.execute("SELECT mbid FROM artists WHERE type = 'Person' LIMIT 1").fetchone()[0]
-    with restored(con, ("DELETE FROM members WHERE band_mbid = ?", [person])):
-        con.execute("INSERT INTO members VALUES (?, 'someone', 1999, NULL)", [person])
-        assert dict(check_invariants(con, SQL)).get("member_without_band") == 1
 
 
 def test_artist_unexpected_type_is_reported(con):

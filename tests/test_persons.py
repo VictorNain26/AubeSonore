@@ -42,20 +42,21 @@ def test_an_artist_dead_before_min_year_takes_no_date_from_recordings(con):
     assert edges(con, BACH) == (1685, None, None, None, None, None)
 
 
-def test_a_membership_is_read_once_from_the_band_side(con):
-    # The dump carries the relation on Bernard Sumner's record too, pointing
-    # at the band: read from both sides it would publish him as a band whose
-    # members are Joy Division and New Order.
-    bands = {
-        band
-        for (band,) in con.execute(
-            "SELECT band_mbid FROM members WHERE person_mbid = ?", [SUMNER]
+def test_a_membership_is_one_link_from_the_member_to_the_band(con):
+    # The dump carries the relation on Bernard Sumner's record and on each
+    # band's: read from both sides, oriented forward, it must land once, from
+    # him to the band.
+    rows = dict(
+        con.execute(
+            "SELECT dst_mbid, count(*) FROM links WHERE src_mbid = ? AND type = 'member of band' "
+            "GROUP BY dst_mbid",
+            [SUMNER],
         ).fetchall()
-    }
-    assert {JOY_DIVISION, NEW_ORDER} <= bands
-    assert con.execute("SELECT count(*) FROM members WHERE band_mbid = ?", [SUMNER]).fetchone() == (
-        0,
     )
+    assert rows[JOY_DIVISION] == rows[NEW_ORDER] == 1
+    assert con.execute(
+        "SELECT count(*) FROM links WHERE dst_mbid = ? AND type = 'member of band'", [SUMNER]
+    ).fetchone() == (0,)
 
 
 def test_a_group_ended_before_min_year_takes_no_date_from_albums_either(tmp_path):

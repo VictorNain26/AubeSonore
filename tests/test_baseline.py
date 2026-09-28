@@ -5,10 +5,6 @@ from musilogy import REFERENCE_DUMP
 from musilogy.build import build, check_invariants
 from musilogy.paths import SQL_DIR, work_dir
 
-# members: 646 620 relations extracted, of which 44 795 are byte-identical
-# rows (the dump emits one relation per set of attributes) and 66 more collapse
-# once the dates are read as years. No relation is lost to a NULL person: the
-# reference dump carries none.
 # artists: 682 447 groups, orchestras and choirs, plus 1 599 244 persons. Every
 # count the persons moved splits along type: restricted to the other types, the
 # source breakdowns, placeable, the anomalies, the demo and live measurements and
@@ -18,11 +14,41 @@ BASELINE = {
     "albums": 1_290_584,
     "genres": 1_729,
     "density": 58_767,
-    "members": 601_759,
+    "links": 771_147,
 }
+# links: every artist-to-artist relation, oriented source -> target and
+# de-duplicated across the two artists that carry it. Memberships replace the
+# former `members` table (601 759 rows), which read them from the band's side:
+# it kept members that are not artists of this pipeline, now cut and counted,
+# and published 2 397 group-in-group memberships reversed.
+LINK_TYPE_BREAKDOWN = {
+    "member of band": 588_501,
+    "is person": 68_334,
+    "teacher": 29_242,
+    "parent": 15_520,
+    "sibling": 14_961,
+    "married": 9_719,
+    "collaboration": 8_176,
+    "founder": 7_328,
+    "conductor position": 7_062,
+    "instrumental supporting musician": 5_487,
+    "subgroup": 3_424,
+    "tribute": 2_780,
+    "supporting musician": 2_512,
+    "vocal supporting musician": 2_138,
+    "artist rename": 1_847,
+    "involved with": 1_770,
+    "artistic director": 1_212,
+    "named after artist": 666,
+    "voice actor": 235,
+    "composer-in-residence": 227,
+    "artist-in-residence": 6,
+}
+# Links with an end outside `artists` (characters, untyped artists...).
+LINK_EXCLUSIONS = {"to_unextracted_artist": 38_442}
 # What the density exclusion rule (55_genre_reliability.sql) costs: 13 genres,
 # 4 311 (band, genre) pairs, 1 011 cells and 37 138 band-years. artists, albums,
-# genres and members keep every one of them — population and projection are
+# genres and links keep every one of them — population and projection are
 # different things, and only the projection narrows.
 DENSITY_EXCLUSIONS = {"genres": 13, "artist_genre_pairs": 4_311}
 # Witness measurements of the multi-artist bias, from both extremes: classical
@@ -130,6 +156,10 @@ def test_reference_dump_matches_the_baseline():
     assert single_row(con, "r2_anomalies") == DATE_ANOMALIES
     assert single_row(con, "neutralised_inferences") == NEUTRALISED_INFERENCES
     assert single_row(con, "density_exclusions") == DENSITY_EXCLUSIONS
+    assert single_row(con, "link_exclusions") == LINK_EXCLUSIONS
+    assert dict(con.execute("SELECT type, count(*) FROM links GROUP BY type").fetchall()) == (
+        LINK_TYPE_BREAKDOWN
+    )
 
     for name, expected_measure in MULTI_ARTIST_DROP.items():
         row = con.execute(

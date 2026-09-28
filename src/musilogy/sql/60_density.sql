@@ -10,7 +10,7 @@ JOIN artists b USING (mbid),
 WHERE b.type = 'Group'
   AND y.year BETWEEN p.y0 AND p.y_presence_end
   -- Genres the multi-artist rule of 20_albums.sql mostly destroys are dropped
-  -- here and only here: artists, albums, genres and members keep every one of
+  -- here and only here: artists, albums, genres and links keep every one of
   -- them, because population and projection are two different things. The rule
   -- is measured and materialized in 55_genre_reliability.sql and published on
   -- `genres`, so this file applies it and layer 1 reads it — neither restates it.

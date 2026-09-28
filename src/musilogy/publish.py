@@ -14,7 +14,7 @@ import duckdb
 from musilogy.fetch import expected_sums, sha256_file
 from musilogy.paths import PACKAGE_DIR, REFERENCE_DIR
 
-TABLES = ("artists", "albums", "genres", "density", "members")
+TABLES = ("artists", "albums", "genres", "density", "links")
 ARTISTS_WEB_COLUMNS = [
     # mbid first: it is the only key layer 1 can join on — against
     # web/genres.json.gz, against density, against anything. `name` is not an
@@ -46,7 +46,7 @@ ARTISTS_WEB_COLUMNS = [
 # extraction writes different bytes: the tables are built by parallel joins and
 # aggregates, so their insertion order is whatever the threads produced. Each
 # key below is total — the uniqueness invariants of 90_invariants.sql are what
-# make it one. NULLS LAST is spelled out because members' key is NULL on most
+# make it one. NULLS LAST is spelled out because links' key is NULL on most
 # of its rows and DuckDB's placement is a session setting (default_null_order),
 # not a property of the query.
 ORDER_BY = {
@@ -54,7 +54,7 @@ ORDER_BY = {
     "albums": "rg_mbid",
     "genres": "genre_mbid",
     "density": "genre_mbid, year",
-    "members": "band_mbid, person_mbid, y_begin NULLS LAST, y_end NULLS LAST",
+    "links": "src_mbid, dst_mbid, type, y_begin NULLS LAST, y_end NULLS LAST",
 }
 WEB_COLUMNS = {
     # density_eligible carries the exclusion rule of 60_density.sql itself:
@@ -287,6 +287,7 @@ def publish(
         "r2_anomalies": _counters(con, "r2_anomalies"),
         "neutralised_inferences": _counters(con, "neutralised_inferences"),
         "density_exclusions": _counters(con, "density_exclusions"),
+        "link_exclusions": _counters(con, "link_exclusions"),
         "git_sha": _git_sha(),
         "corrections_sha256": sha256_file(corrections) if corrections else None,
     }
