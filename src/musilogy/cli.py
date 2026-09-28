@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import shutil
-import tempfile
 from pathlib import Path
 
 import duckdb
@@ -20,8 +18,6 @@ from musilogy.paths import (
     RAW_DIR,
     REFERENCE_DIR,
     SQL_DIR,
-    WEB_DATA_DIR,
-    WEB_FIXTURES_DIR,
     out_dir,
     work_dir,
 )
@@ -155,68 +151,17 @@ def make_fixtures() -> None:
     print("missing:", missing or "none")
 
 
-def make_web_fixtures() -> None:
-    """Publishes the witness blobs the TypeScript reader tests read."""
-    con = duckdb.connect(":memory:")
-    build(con, SQL_DIR, FIXTURES_DIR / "artists.jsonl", FIXTURES_DIR / "release_groups.jsonl", None)
-    WEB_FIXTURES_DIR.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory() as tmp:
-        out = Path(tmp)
-        publish(con, out, DUMP, None)
-        for name in ("frieze.bin.gz", "lineage.bin.gz", "frieze_ids.bin", "genres.json.gz"):
-            shutil.copyfile(out / "web" / name, WEB_FIXTURES_DIR / name)
-    print("web fixtures written to", WEB_FIXTURES_DIR)
-
-
-DELIVERED_TO_WEB = (
-    "frieze.bin.gz",
-    "lineage.bin.gz",
-    "frieze_ids.bin",
-    "genres.json.gz",
-    "density.json.gz",
-)
-
-
-def sync_web() -> None:
-    """Copies the current delivery into the versioned web/public/data/."""
-    source = out_dir(DUMP) / "web"
-    manifest = out_dir(DUMP) / "manifest.json"
-    if not manifest.exists():
-        raise SystemExit(f"no delivery at {manifest}: run `musilogy run` first")
-    WEB_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    for name in DELIVERED_TO_WEB:
-        shutil.copyfile(source / name, WEB_DATA_DIR / name)
-    shutil.copyfile(manifest, WEB_DATA_DIR / "manifest.json")
-
-    # A file that leaves DELIVERED_TO_WEB must not survive the sync: it would
-    # stay versioned, get served and never be covered by a manifest digest.
-    kept = {*DELIVERED_TO_WEB, "manifest.json"}
-    for stale in WEB_DATA_DIR.iterdir():
-        if stale.is_file() and stale.name not in kept:
-            stale.unlink()
-
-    print("delivery copied to", WEB_DATA_DIR)
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(prog="musilogy")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("run", help="fetch → extract → transform → validate → publish")
     subparsers.add_parser("make-fixtures", help="extract witness records for the test fixtures")
-    subparsers.add_parser(
-        "make-web-fixtures", help="publish the witness blobs the web reader tests read"
-    )
-    subparsers.add_parser("sync-web", help="copy the current delivery into web/public/data/")
 
     args = parser.parse_args()
     if args.command == "run":
         run()
     elif args.command == "make-fixtures":
         make_fixtures()
-    elif args.command == "make-web-fixtures":
-        make_web_fixtures()
-    elif args.command == "sync-web":
-        sync_web()
 
 
 if __name__ == "__main__":

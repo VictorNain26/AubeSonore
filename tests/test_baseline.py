@@ -37,9 +37,9 @@ Y0_SOURCE_BREAKDOWN = {"declared": 235_246, "first_album": 145_620, None: 301_58
 Y_END_SOURCE_BREAKDOWN = {"declared": 48_842, "last_album": 251_514, None: 382_091}
 # 25_band_genres.sql: the declared genres win, the albums take over. Every
 # count below that moved when it landed splits exactly along this column —
-# restricted to 'declared' bands, frieze, density, present, lineage and the
-# excluded pairs give back their previous values (84 262, 52 201, 1 972 825,
-# 37 136 and 1 554), and the 94 new genres are reachable only through albums.
+# restricted to 'declared' bands, density, present and the excluded pairs give
+# back their previous values (52 201, 1 972 825 and 1 554), and the 94 new
+# genres are reachable only through albums.
 GENRE_SOURCE_BREAKDOWN = {"declared": 103_221, "albums": 91_519, None: 487_707}
 PLACEABLE = 380_866
 DENSITY_PRESENT = 4_242_411
@@ -69,13 +69,6 @@ DEMO_BEFORE_STUDIO = (3_174, 2_144, 3.0)
 # album: the reason a live date is not evidence of activity.
 LIVE_LONG_AFTER_LAST_STUDIO = 710
 BANDS_WITHOUT_ALBUM = 404_925
-# The frieze projection and its lineage graph. FRIEZE is density's population
-# seen band by band: if it diverges from the density population, one of the two
-# is wrong, and the frieze_population_mismatch invariant says which. Of the
-# 175 403 dated groups carrying a genre, 887 carry only excluded genres.
-FRIEZE = 174_516
-LINEAGE = 104_859
-LINEAGE_STRONG = 13_209
 WORK = work_dir(REFERENCE_DUMP)
 
 
@@ -199,15 +192,3 @@ def test_reference_dump_matches_the_baseline():
     ).fetchone()
     assert row is not None
     assert row[0] == BANDS_WITHOUT_ALBUM
-
-    row = con.execute("SELECT count(*) FROM frieze").fetchone()
-    assert row is not None
-    assert row[0] == FRIEZE
-
-    row = con.execute("SELECT count(*) FROM lineage").fetchone()
-    assert row is not None
-    assert row[0] == LINEAGE
-
-    row = con.execute("SELECT count(*) FROM lineage WHERE shared >= 2").fetchone()
-    assert row is not None
-    assert row[0] == LINEAGE_STRONG

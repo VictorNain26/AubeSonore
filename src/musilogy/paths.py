@@ -13,9 +13,6 @@ REPO_ROOT = PACKAGE_DIR.parents[1]
 DATA_DIR = REPO_ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 FIXTURES_DIR = REPO_ROOT / "tests" / "fixtures"
-WEB_DIR = REPO_ROOT / "web"
-WEB_FIXTURES_DIR = WEB_DIR / "tests" / "fixtures"
-WEB_DATA_DIR = WEB_DIR / "public" / "data"
 
 
 def work_dir(dump: str) -> Path:

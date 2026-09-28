@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import gzip
 import json
-import struct
 import subprocess
 from decimal import Decimal
 from pathlib import Path
@@ -71,7 +70,7 @@ WEB_COLUMNS = {
         "n_candidate_credits",
         "multi_artist_drop_pct",
     ],
-    # Published too, so the frieze reads the aggregate rather than rebuilding
+    # Published too, so a consumer reads the aggregate rather than rebuilding
     # it: a consumer that recomputes it reimplements a rule, and reimplementing
     # is where the exclusion gets lost.
     "density": ["genre_mbid", "year", "present"],
@@ -96,107 +95,6 @@ def _columnar(con: duckdb.DuckDBPyConnection, table: str, columns: list[str]) ->
         f"SELECT {', '.join(columns)} FROM {table} ORDER BY {ORDER_BY[table]}"
     ).fetchall()
     return {c: [r[i] for r in rows] for i, c in enumerate(columns)}
-
-
-FRIEZE_MAGIC = b"MFZ1"
-FRIEZE_VERSION = 1
-
-
-def write_frieze_blob(con: duckdb.DuckDBPyConnection, path: Path) -> int:
-    """Serialises `frieze` as typed arrays. Sections are laid out so each one
-    starts at a multiple of its element size: a TypedArray built on a
-    misaligned byteOffset throws RangeError in the browser."""
-    rows = con.execute(
-        "SELECT f.i, f.name, f.y0, f.y1, f.ended, f.y_end_is_declared, f.n_albums, "
-        "  coalesce(list_transform(b.genres, g -> g.mbid), []) AS genre_mbids "
-        "FROM frieze f JOIN bands b ON b.mbid = f.mbid ORDER BY f.i"
-    ).fetchall()
-    vocabulary = {
-        mbid: index
-        for index, (mbid,) in enumerate(
-            con.execute("SELECT genre_mbid FROM genres ORDER BY genre_mbid").fetchall()
-        )
-    }
-
-    names = bytearray()
-    name_offsets = [0]
-    genre_offsets = [0]
-    spans: list[int] = []
-    genre_ids: list[int] = []
-    albums: list[int] = []
-    for _, name, y0, y1, ended, declared, n_albums, genre_mbids in rows:
-        names += name.encode() + b"\n"
-        name_offsets.append(len(names))
-        spans += [y0 | (int(ended) << 15), y1 | (int(declared) << 15)]
-        albums.append(n_albums)
-        genre_ids += [vocabulary[m] for m in genre_mbids]
-        genre_offsets.append(len(genre_ids))
-
-    n = len(rows)
-    blob = b"".join(
-        (
-            FRIEZE_MAGIC,
-            struct.pack("<HH", FRIEZE_VERSION, 0),
-            struct.pack("<II", n, len(genre_ids)),
-            struct.pack(f"<{n + 1}I", *name_offsets),
-            struct.pack(f"<{n + 1}I", *genre_offsets),
-            struct.pack(f"<{2 * n}H", *spans),
-            struct.pack(f"<{len(genre_ids)}H", *genre_ids),
-            struct.pack(f"<{n}B", *albums),
-            bytes(names),
-        )
-    )
-    path.write_bytes(gzip.compress(blob, 9, mtime=0))
-    return n
-
-
-LINEAGE_MAGIC = b"MLN1"
-LINEAGE_VERSION = 1
-
-
-def write_lineage_blob(con: duckdb.DuckDBPyConnection, path: Path) -> int:
-    """Serialises `lineage` as one array per field — src, dst as u32 row
-    indices of `frieze`, then the shared-musician count as u8 — behind the same
-    kind of header as frieze.bin. Interleaved 9-byte records put src and dst at
-    offsets 9k, never 4-aligned, so no Uint32Array was constructible over them
-    and a reader had to decode field by field, which is the decode speed this
-    format exists for. Sorted by (src, dst), which groups a band's edges
-    without a separate index."""
-    edges = con.execute("SELECT src, dst, shared FROM lineage ORDER BY src, dst").fetchall()
-    n = len(edges)
-    blob = b"".join(
-        (
-            LINEAGE_MAGIC,
-            struct.pack("<HH", LINEAGE_VERSION, 0),
-            struct.pack("<I", n),
-            struct.pack(f"<{n}I", *(e[0] for e in edges)),
-            struct.pack(f"<{n}I", *(e[1] for e in edges)),
-            struct.pack(f"<{n}B", *(e[2] for e in edges)),
-        )
-    )
-    path.write_bytes(gzip.compress(blob, 9, mtime=0))
-    return n
-
-
-IDS_MAGIC = b"MID1"
-IDS_VERSION = 1
-
-
-def write_frieze_ids(con: duckdb.DuckDBPyConnection, path: Path) -> int:
-    """Raw 16-byte mbids in frieze row order, so the join back to frieze.bin
-    needs no key. Written uncompressed: UUIDs are incompressible, and gzip here
-    would only add a header.
-
-    The magic and version are what let a reader refuse a stale cached file:
-    without them this blob could say nothing about itself, and an old copy
-    re-paired silently with a fresh frieze.bin misattributes every name. The
-    header is padded to 16 bytes so record k still starts at 16(k + 1)."""
-    rows = con.execute("SELECT mbid FROM frieze ORDER BY i").fetchall()
-    header = (
-        IDS_MAGIC + struct.pack("<HH", IDS_VERSION, 0) + struct.pack("<I", len(rows)) + bytes(4)
-    )
-    path.write_bytes(header + b"".join(bytes.fromhex(mbid.replace("-", "")) for (mbid,) in rows))
-    return len(rows)
 
 
 def _counters(con: duckdb.DuckDBPyConnection, table: str) -> dict[str, int]:
@@ -323,9 +221,9 @@ def publish(
         (web_dir / f"{table}.json.gz").write_bytes(gzip.compress(payload, 9, mtime=0))
         written.add(f"{table}.json.gz")
 
-    # Split in two: layer 1's frieze only needs the timeline-eligible bands
-    # (y0 IS NOT NULL); pulling in the rest would double the payload for no
-    # benefit to that consumer.
+    # Split in two: a timeline only needs the bands it can place (y0 IS NOT
+    # NULL); pulling in the rest would double the payload for no benefit to
+    # that consumer.
     for name, condition in (
         ("bands_timeline", "y0 IS NOT NULL"),
         ("bands_rest", "y0 IS NULL"),
@@ -341,19 +239,6 @@ def publish(
         ).encode()
         (web_dir / f"{name}.json.gz").write_bytes(gzip.compress(payload, 9, mtime=0))
         written.add(f"{name}.json.gz")
-
-    # The counts come back from the serialisers rather than from a fresh
-    # SELECT: what the manifest reports is then what the bytes contain. The two
-    # band counts are written by two independent queries over `frieze`, and
-    # frieze_ids.bin is joined to frieze.bin by row position alone — a
-    # disagreement means every name after the first divergence is misattributed,
-    # which nothing downstream could detect.
-    counts["frieze"] = write_frieze_blob(con, web_dir / "frieze.bin.gz")
-    counts["lineage"] = write_lineage_blob(con, web_dir / "lineage.bin.gz")
-    n_ids = write_frieze_ids(con, web_dir / "frieze_ids.bin")
-    written |= {"frieze.bin.gz", "lineage.bin.gz", "frieze_ids.bin"}
-    if n_ids != counts["frieze"]:
-        raise ValueError(f"frieze.bin.gz holds {counts['frieze']} bands, frieze_ids.bin {n_ids}")
 
     # Prune what this run did not write. Without it an export dropped from a
     # previous schema survives in the delivered directory: a consumer globbing

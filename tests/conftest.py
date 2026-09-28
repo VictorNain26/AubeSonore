@@ -73,9 +73,6 @@ def build_synthetic(tmp_path, artists, release_groups=(), **build_kwargs):
     return c
 
 
-# Valid UUIDs rather than readable labels: publish() writes raw 16-byte mbids
-# to frieze_ids.bin, so a witness that is not a UUID is not a witness of
-# anything this pipeline can deliver.
 BAND_EXCLUDED = "00000000-0000-4000-8000-000000000001"
 BAND_EXCLUDED_2 = "00000000-0000-4000-8000-000000000002"
 BAND_SMALL = "00000000-0000-4000-8000-000000000003"

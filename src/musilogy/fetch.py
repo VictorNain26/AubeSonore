@@ -21,11 +21,8 @@ class DownloadError(Exception):
 
 
 def sha256_file(path: Path) -> str:
-    h = hashlib.sha256()
     with path.open("rb") as fh:
-        for chunk in iter(lambda: fh.read(1 << 20), b""):
-            h.update(chunk)
-    return h.hexdigest()
+        return hashlib.file_digest(fh, "sha256").hexdigest()
 
 
 def expected_sums(sums_path: Path) -> dict[str, str]:

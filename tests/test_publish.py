@@ -1,16 +1,14 @@
 import gzip
 import json
-import struct
 import subprocess
 
 import pytest
 from conftest import build_synthetic, synthetic_artist, unreliable_genre_records
 
-import musilogy.publish
 from musilogy import REFERENCE_DUMP as DUMP
 from musilogy.fetch import expected_sums, sha256_file
 from musilogy.paths import PACKAGE_DIR, REFERENCE_DIR
-from musilogy.publish import publish, write_frieze_blob, write_frieze_ids, write_lineage_blob
+from musilogy.publish import publish
 
 REF_SUMS = REFERENCE_DIR / f"{DUMP}.SHA256SUMS"
 
@@ -49,7 +47,7 @@ def test_web_export_is_columnar_and_gzipped(con, tmp_path):
 def test_web_export_carries_what_a_consumer_needs_to_join_and_to_audit(con, tmp_path):
     # The join key and the genres first: without mbid, the 380k timeline rows
     # can be joined to nothing — not to web/genres.json.gz, not to density —
-    # and without genres the frieze cannot filter. Then both edges' raw
+    # and without genres a consumer cannot filter. Then both edges' raw
     # evidence, not just the right one: a derived value is verifiable only if
     # what it derives from travels with it.
     publish(con, tmp_path, DUMP, None)
@@ -489,173 +487,6 @@ def test_manifest_carries_the_digest_of_every_delivered_file(con, tmp_path):
         assert digest == sha256_file(tmp_path / name)
 
 
-def read_frieze_blob(raw):
-    """Mirrors what the browser does: a header, then typed-array views."""
-    assert raw[:4] == b"MFZ1"
-    n, pairs = struct.unpack_from("<II", raw, 8)
-    o = 16
-    name_offsets = struct.unpack_from(f"<{n + 1}I", raw, o)
-    o += 4 * (n + 1)
-    genre_offsets = struct.unpack_from(f"<{n + 1}I", raw, o)
-    o += 4 * (n + 1)
-    spans = struct.unpack_from(f"<{2 * n}H", raw, o)
-    o += 4 * n
-    genre_ids = struct.unpack_from(f"<{pairs}H", raw, o)
-    o += 2 * pairs
-    albums = struct.unpack_from(f"<{n}B", raw, o)
-    o += n
-    names = raw[o:]
-    return {
-        "n": n,
-        "pairs": pairs,
-        "spans": spans,
-        "albums": albums,
-        "genre_ids": genre_ids,
-        "genre_offsets": genre_offsets,
-        "names": [names[name_offsets[i] : name_offsets[i + 1] - 1].decode() for i in range(n)],
-    }
-
-
-def test_frieze_blob_round_trips_every_band(con, tmp_path):
-    path = tmp_path / "frieze.bin.gz"
-    written = write_frieze_blob(con, path)
-    blob = read_frieze_blob(gzip.decompress(path.read_bytes()))
-    expected = con.execute(
-        "SELECT name, y0, y1, ended, y_end_is_declared, n_albums FROM frieze ORDER BY i"
-    ).fetchall()
-    assert written == blob["n"] == len(expected)
-    assert blob["names"] == [r[0] for r in expected]
-    for i, (_, y0, y1, ended, declared, n_albums) in enumerate(expected):
-        assert blob["spans"][2 * i] & 0x7FFF == y0
-        assert blob["spans"][2 * i + 1] & 0x7FFF == y1
-        assert bool(blob["spans"][2 * i] >> 15) == ended
-        assert bool(blob["spans"][2 * i + 1] >> 15) == declared
-        assert blob["albums"][i] == n_albums
-
-
-def test_frieze_blob_genre_ids_round_trip_through_the_published_vocabulary(con, tmp_path):
-    # genre_ids stores indices into web/genres.json.gz's row order, not mbids:
-    # if the vocabulary were ever built in a different order on either side,
-    # every genre in the blob would silently point at the wrong name.
-    # The delivered file is read back as the expected vocabulary, never the
-    # SELECT write_frieze_blob itself uses: the two orders are fixed by two
-    # independent literals — a local one in publish.py, ORDER_BY["genres"] for
-    # the JSON — and re-deriving one of them here would compare it to itself.
-    publish(con, tmp_path, DUMP, None)
-    blob = read_frieze_blob(gzip.decompress((tmp_path / "web" / "frieze.bin.gz").read_bytes()))
-    vocabulary = read_web(tmp_path, "genres")["genre_mbid"]
-    expected = con.execute(
-        "SELECT f.i, coalesce(list_transform(b.genres, g -> g.mbid), []) "
-        "FROM frieze f JOIN bands b ON b.mbid = f.mbid ORDER BY f.i"
-    ).fetchall()
-    for i, genre_mbids in expected:
-        start, end = blob["genre_offsets"][i], blob["genre_offsets"][i + 1]
-        decoded = {vocabulary[gid] for gid in blob["genre_ids"][start:end]}
-        assert decoded == set(genre_mbids)
-
-
-def test_frieze_blob_sections_are_aligned_for_typed_arrays(con, tmp_path):
-    # A TypedArray whose byteOffset is not a multiple of its element size throws
-    # RangeError in the browser, so the offsets are asserted rather than hoped
-    # for. Computed the way a reader computes them, from the header alone.
-    path = tmp_path / "frieze.bin.gz"
-    write_frieze_blob(con, path)
-    raw = gzip.decompress(path.read_bytes())
-    n, pairs = struct.unpack_from("<II", raw, 8)
-    name_offsets_at = 16
-    genre_offsets_at = name_offsets_at + 4 * (n + 1)
-    spans_at = genre_offsets_at + 4 * (n + 1)
-    genre_ids_at = spans_at + 4 * n
-    albums_at = genre_ids_at + 2 * pairs
-    assert name_offsets_at % 4 == 0
-    assert genre_offsets_at % 4 == 0
-    assert spans_at % 2 == 0
-    assert genre_ids_at % 2 == 0
-    assert albums_at + n <= len(raw)
-
-
-def test_frieze_blob_carries_no_timestamp(con, tmp_path):
-    path = tmp_path / "frieze.bin.gz"
-    write_frieze_blob(con, path)
-    assert int.from_bytes(path.read_bytes()[4:8], "little") == 0
-
-
-def test_lineage_blob_round_trips_every_edge(con, tmp_path):
-    # Read the way a browser reads it: three typed-array views over one buffer,
-    # each at an offset the reader derives from the header alone.
-    path = tmp_path / "lineage.bin.gz"
-    written = write_lineage_blob(con, path)
-    raw = gzip.decompress(path.read_bytes())
-    assert raw[:4] == b"MLN1"
-    assert struct.unpack_from("<H", raw, 4)[0] == 1
-    n = struct.unpack_from("<I", raw, 8)[0]
-    assert n == written
-    src_at, dst_at = 12, 12 + 4 * n
-    shared_at = dst_at + 4 * n
-    assert src_at % 4 == 0
-    assert dst_at % 4 == 0
-    assert len(raw) == shared_at + n
-    src = struct.unpack_from(f"<{n}I", raw, src_at)
-    dst = struct.unpack_from(f"<{n}I", raw, dst_at)
-    shared = struct.unpack_from(f"<{n}B", raw, shared_at)
-    assert (
-        list(zip(src, dst, shared, strict=True))
-        == con.execute("SELECT src, dst, shared FROM lineage ORDER BY src, dst").fetchall()
-    )
-
-
-def test_lineage_blob_carries_no_timestamp(con, tmp_path):
-    path = tmp_path / "lineage.bin.gz"
-    write_lineage_blob(con, path)
-    assert int.from_bytes(path.read_bytes()[4:8], "little") == 0
-
-
-def test_frieze_ids_are_raw_sixteen_byte_uuids_in_row_order(con, tmp_path):
-    # Published without gzip: UUIDs do not compress, and the row order is what
-    # makes the join to frieze.bin implicit. The header is what lets a reader
-    # refuse a stale cached copy: paired with a fresh frieze.bin it would
-    # misattribute every name, and only frieze.bin could say what it was.
-    path = tmp_path / "frieze_ids.bin"
-    written = write_frieze_ids(con, path)
-    raw = path.read_bytes()
-    assert raw[:4] == b"MID1"
-    assert struct.unpack_from("<H", raw, 4)[0] == 1
-    assert struct.unpack_from("<I", raw, 8)[0] == written
-    assert len(raw) == 16 + written * 16
-    got = [raw[16 * (k + 1) : 16 * (k + 2)].hex() for k in range(written)]
-    expected = con.execute("SELECT mbid FROM frieze ORDER BY i").fetchall()
-    assert got == [mbid.replace("-", "") for (mbid,) in expected]
-
-
-def test_manifest_counts_the_blobs_from_what_was_written(con, tmp_path):
-    manifest = publish(con, tmp_path, DUMP, None)
-    assert manifest["counts"]["frieze"] == con.execute("SELECT count(*) FROM frieze").fetchone()[0]
-    assert (
-        manifest["counts"]["lineage"] == con.execute("SELECT count(*) FROM lineage").fetchone()[0]
-    )
-
-
-def test_publish_refuses_to_deliver_blobs_that_disagree_on_the_band_count(
-    con, tmp_path, monkeypatch
-):
-    # frieze.bin.gz and frieze_ids.bin are joined by row position and nothing
-    # else, so a count that drifts between the two shifts every name after the
-    # divergence with no other symptom. The serialisers' return values are the
-    # only place that can be seen, which is why they are no longer discarded.
-    monkeypatch.setattr(
-        musilogy.publish, "write_frieze_ids", lambda con, path: write_frieze_ids(con, path) - 1
-    )
-    with pytest.raises(ValueError, match=r"frieze_ids\.bin"):
-        publish(con, tmp_path, DUMP, None)
-
-
-def test_publish_delivers_the_three_blobs_and_digests_them(con, tmp_path):
-    manifest = publish(con, tmp_path, DUMP, None)
-    for name in ("web/frieze.bin.gz", "web/lineage.bin.gz", "web/frieze_ids.bin"):
-        assert (tmp_path / name).exists()
-        assert name in manifest["output_sha256"]
-
-
 def test_publish_prunes_a_stale_file_left_in_a_subdirectory_of_web(con, tmp_path):
     # The pruning loop and the digest walk must agree on what web/ contains:
     # with iterdir the nested file survived pruning and was digested as
@@ -669,16 +500,13 @@ def test_publish_prunes_a_stale_file_left_in_a_subdirectory_of_web(con, tmp_path
     assert "web/old/bands_timeline.json.gz" not in manifest["output_sha256"]
 
 
-def test_publish_prunes_a_stale_blob_but_keeps_the_ones_it_just_wrote(con, tmp_path):
-    # The widened pruning loop walks every file in web/, not just *.json.gz:
-    # this fails if the three blob names are missing from `written`, since the
-    # loop would then delete the very files write_frieze_blob and friends just
-    # wrote.
+def test_publish_prunes_a_stale_binary_but_keeps_the_exports_it_just_wrote(con, tmp_path):
+    # The pruning loop walks every file in web/, not just *.json.gz: a binary
+    # left by an older schema goes, the exports this run wrote stay.
     web = tmp_path / "web"
     web.mkdir(parents=True)
-    stale = web / "old.bin"
+    stale = web / "frieze.bin.gz"
     stale.write_bytes(b"stale")
     publish(con, tmp_path, DUMP, None)
     assert not stale.exists()
-    for name in ("frieze.bin.gz", "lineage.bin.gz", "frieze_ids.bin"):
-        assert (web / name).exists()
+    assert (web / "bands_timeline.json.gz").exists()

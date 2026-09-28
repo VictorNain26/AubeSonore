@@ -55,9 +55,7 @@ d'acceptation se donne en nombre ou en code de sortie. « `density` doit valoir
 ## Dépôt
 
 - Les sorties du pipeline (`data/`) ne sont pas versionnées — seules les
-  empreintes et les fixtures le sont. La livraison web (`web/public/data/`)
-  fait exception : elle est versionnée, et `tests/test_delivery.py` la garde
-  contre son manifeste.
+  empreintes et les fixtures le sont.
 - La CI passe le lint, les types et la suite rapide ; la suite lente exige le
   dump et tourne à la demande.
 
@@ -70,17 +68,6 @@ uv run pytest                 # suite rapide, sur les témoins
 uv run pytest -m slow         # ligne de base sur le dump réel, exige data/work/
 uv run musilogy run           # fetch → extract → transform → validate → publish
 uv run musilogy make-fixtures
-uv run musilogy make-web-fixtures
-uv run musilogy sync-web      # copie la livraison courante dans web/public/data/
-```
-
-Avant de pousser, la CI exige aussi le gate web, à lancer depuis `web/` :
-
-```bash
-pnpm install
-pnpm run check
-pnpm run types
-pnpm run test
 ```
 
 ## Licence
