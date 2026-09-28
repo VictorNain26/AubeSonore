@@ -30,11 +30,12 @@ def synthetic_artist(
     members: list[dict[str, Any]] | None = None,
     genres: list[dict[str, Any]] | None = None,
     name: str | None = None,
+    kind: str = "Group",
 ) -> dict[str, Any]:
     return {
         "mbid": mbid,
         "name": name or mbid,
-        "type": "Group",
+        "type": kind,
         "begin": begin,
         "end": end,
         "ended": end is not None,

@@ -19,7 +19,7 @@ def read_web(out_dir, name):
 
 def test_publish_writes_every_table(con, tmp_path):
     manifest = publish(con, tmp_path, DUMP, None)
-    for name in ("bands", "albums", "genres", "density", "members"):
+    for name in ("artists", "albums", "genres", "density", "members"):
         assert (tmp_path / f"{name}.parquet").exists()
         assert name in manifest["counts"]
     assert manifest["dump"] == DUMP
@@ -38,7 +38,7 @@ def test_members_is_archived_but_stays_out_of_the_web_export(con, tmp_path):
 
 def test_web_export_is_columnar_and_gzipped(con, tmp_path):
     publish(con, tmp_path, DUMP, None)
-    raw = (tmp_path / "web" / "bands_timeline.json.gz").read_bytes()
+    raw = (tmp_path / "web" / "artists_timeline.json.gz").read_bytes()
     assert raw[:2] == b"\x1f\x8b"
     data = json.loads(gzip.decompress(raw))
     assert len(data["name"]) == len(data["y0"])
@@ -51,7 +51,7 @@ def test_web_export_carries_what_a_consumer_needs_to_join_and_to_audit(con, tmp_
     # evidence, not just the right one: a derived value is verifiable only if
     # what it derives from travels with it.
     publish(con, tmp_path, DUMP, None)
-    data = read_web(tmp_path, "bands_timeline")
+    data = read_web(tmp_path, "artists_timeline")
     assert set(data) >= {
         "mbid",
         "name",
@@ -80,7 +80,7 @@ def test_web_export_carries_what_a_consumer_needs_to_join_and_to_audit(con, tmp_
 
 def test_web_artifacts_alone_reproduce_the_published_density(tmp_path):
     # The regression that matters. A web-only consumer applies the rule of
-    # 60_density.sql to bands_timeline + genres. The rule now travels as a
+    # 60_density.sql to artists_timeline + genres. The rule now travels as a
     # column, `density_eligible`, so this test reads that column instead of
     # recomposing the two bounds it stands for; the two measurements stay
     # published alongside it for whoever wants to audit the rule rather than
@@ -103,7 +103,7 @@ def test_web_artifacts_alone_reproduce_the_published_density(tmp_path):
     }
     assert excluded, "the scenario must exercise at least one excluded genre"
 
-    timeline = read_web(out, "bands_timeline")
+    timeline = read_web(out, "artists_timeline")
     rebuilt = set()
     for i, kind in enumerate(timeline["type"]):
         y0, end = timeline["y0"][i], timeline["y_presence_end"][i]
@@ -129,7 +129,7 @@ def test_publish_removes_a_parquet_it_no_longer_writes(con, tmp_path):
     manifest = publish(con, tmp_path, DUMP, None)
     assert not stale.exists()
     assert "genre_parents" not in manifest["counts"]
-    assert (tmp_path / "bands.parquet").exists()
+    assert (tmp_path / "artists.parquet").exists()
 
 
 def test_publish_removes_a_web_export_it_no_longer_writes(con, tmp_path):
@@ -138,29 +138,29 @@ def test_publish_removes_a_web_export_it_no_longer_writes(con, tmp_path):
     # the delivered directory next to the current ones.
     web = tmp_path / "web"
     web.mkdir(parents=True)
-    stale = web / "bands.json.gz"
+    stale = web / "artists.json.gz"
     stale.write_bytes(gzip.compress(b'{"name":[]}'))
     publish(con, tmp_path, DUMP, None)
     assert not stale.exists()
-    assert (web / "bands_timeline.json.gz").exists()
+    assert (web / "artists_timeline.json.gz").exists()
 
 
 def test_name_is_not_an_identity_in_the_web_export(con, tmp_path):
     # Three homonym witnesses: keyed by `name`, layer 1 would merge distinct
     # artists. This is why the export carries mbid.
     publish(con, tmp_path, DUMP, None)
-    rest = read_web(tmp_path, "bands_rest")
+    rest = read_web(tmp_path, "artists_rest")
     assert len(set(rest["name"])) < len(rest["name"])
     assert len(set(rest["mbid"])) == len(rest["mbid"])
 
 
 def test_web_export_is_split_between_timeline_eligible_and_the_rest(con, tmp_path):
     publish(con, tmp_path, DUMP, None)
-    timeline = read_web(tmp_path, "bands_timeline")
-    rest = read_web(tmp_path, "bands_rest")
+    timeline = read_web(tmp_path, "artists_timeline")
+    rest = read_web(tmp_path, "artists_rest")
     assert all(y0 is not None for y0 in timeline["y0"])
     assert all(y0 is None for y0 in rest["y0"])
-    total = con.execute("SELECT count(*) FROM bands").fetchone()[0]
+    total = con.execute("SELECT count(*) FROM artists").fetchone()[0]
     assert len(timeline["name"]) + len(rest["name"]) == total
 
 
@@ -184,32 +184,42 @@ def test_manifest_carries_r2_anomaly_counters(con, tmp_path):
         "begin_future": 1,
         "end_future": 1,
         "begin_below_min_year": 2,
-        "end_below_min_year": 0,
+        # Bach, dead in 1750. Births never count: a person's begin is not read
+        # as a formation.
+        "end_below_min_year": 1,
         "end_before_begin": 1,
+        "birth_illegible": 0,
+        "birth_future": 0,
     }
 
 
-def test_manifest_carries_the_three_neutralised_inference_counters(con, tmp_path):
+def test_manifest_carries_the_seven_neutralised_inference_counters(con, tmp_path):
     # One counter per guard of 30_bands_lifespan.sql. On the witnesses:
     # Polska Radio One (formed 2015, last album 2014) for the end, Wiener
     # Philharmoniker and Handel and Haydn Society (begins below 1850) for the
-    # begin. A neutralised anomaly stays visible instead of being absorbed.
+    # begin, Bach (dead in 1750, recorded from 1961) for an end below 1850. A
+    # neutralised anomaly stays visible instead of being absorbed.
     manifest = publish(con, tmp_path, DUMP, None)
     assert manifest["neutralised_inferences"] == {
         "first_album_after_declared_end": 0,
         "last_album_before_declared_begin": 1,
         "first_album_with_begin_below_min_year": 2,
+        "album_with_end_below_min_year": 1,
+        # Bach again: born in 1685, as well as dead before 1850.
+        "first_album_with_birth_below_min_year": 1,
+        "first_album_before_birth": 0,
+        "last_album_before_birth": 0,
     }
 
 
 def test_manifest_counts_what_the_density_exclusion_rule_removes(tmp_path):
     # A rule that removes data must leave a visible trace. The two numbers
-    # differ on purpose (one genre, carried by two bands): a counter reporting
+    # differ on purpose (one genre, carried by two artists): a counter reporting
     # the genre count in both slots would pass on a scenario where they match.
     artists, release_groups = unreliable_genre_records()
     c = build_synthetic(tmp_path, artists, release_groups)
     manifest = publish(c, tmp_path / "out", DUMP, None)
-    assert manifest["density_exclusions"] == {"genres": 1, "band_genre_pairs": 2}
+    assert manifest["density_exclusions"] == {"genres": 1, "artist_genre_pairs": 2}
 
 
 def test_manifest_carries_git_sha(con, tmp_path):
@@ -249,6 +259,14 @@ def test_r2_anomaly_counters_are_not_mismapped_between_subrules(tmp_path):
         + [synthetic_artist(f"end-before-begin-{i}", "2010-01-01", "2005-01-01") for i in range(6)]
         + [synthetic_artist(f"begin-below-min-{i}", "0742", None) for i in range(7)]
         + [synthetic_artist(f"end-below-min-{i}", None, "1700-01-01") for i in range(8)]
+        + [
+            synthetic_artist(f"birth-illegible-{i}", "????-03-01", None, kind="Person")
+            for i in range(9)
+        ]
+        + [synthetic_artist(f"birth-future-{i}", "2090", None, kind="Person") for i in range(10)]
+        # A person's begin never feeds the begin counters: these must stay out
+        # of begin_illegible, begin_future and begin_below_min_year.
+        + [synthetic_artist(f"birth-early-{i}", "1685", None, kind="Person") for i in range(11)]
     )
     c = build_synthetic(tmp_path, records)
     manifest = publish(c, tmp_path / "out", DUMP, None)
@@ -261,12 +279,14 @@ def test_r2_anomaly_counters_are_not_mismapped_between_subrules(tmp_path):
         "begin_below_min_year": 7,
         "end_below_min_year": 8,
         "end_before_begin": 6,
+        "birth_illegible": 9,
+        "birth_future": 10,
     }
 
 
 def test_parquet_archives_are_zstd_compressed(con, tmp_path):
     publish(con, tmp_path, DUMP, None)
-    parquet_path = (tmp_path / "bands.parquet").as_posix()
+    parquet_path = (tmp_path / "artists.parquet").as_posix()
     codecs = con.execute(
         f"SELECT DISTINCT compression FROM parquet_metadata('{parquet_path}')"
     ).fetchall()
@@ -369,12 +389,12 @@ def test_manifest_says_so_when_the_extraction_path_does_not_exist(con, tmp_path)
 
 
 def test_manifest_says_extraction_matches_rows_loaded_when_counts_agree(con, tmp_path):
-    # 29 artists and 3632 release-groups are what the fixtures actually load
+    # 33 artists and 10277 release-groups are what the fixtures actually load
     # (test_manifest_counts_the_rows_that_fed_the_build): a sidecar claiming
     # exactly those counts is the case the discrepancy check must let through.
     sidecar = tmp_path / "extraction.json"
     sidecar.write_text(
-        json.dumps({"artists_kept": 29, "release_groups_kept": 3632}), encoding="utf-8"
+        json.dumps({"artists_kept": 33, "release_groups_kept": 10277}), encoding="utf-8"
     )
     manifest = publish(con, tmp_path / "out", DUMP, None, sidecar)
     assert manifest["inputs"]["extraction_matches_rows_loaded"] is True
@@ -418,7 +438,7 @@ def test_manifest_extraction_match_is_none_when_a_count_key_is_missing(con, tmp_
 # parallel joins and aggregates, so insertion order is whatever the threads
 # produced — publishing has to impose the order itself.
 PARQUET_KEYS = {
-    "bands": ["mbid"],
+    "artists": ["mbid"],
     "albums": ["rg_mbid"],
     "genres": ["genre_mbid"],
     "density": ["genre_mbid", "year"],
@@ -427,8 +447,8 @@ PARQUET_KEYS = {
 WEB_KEYS = {
     "genres": ["genre_mbid"],
     "density": ["genre_mbid", "year"],
-    "bands_timeline": ["mbid"],
-    "bands_rest": ["mbid"],
+    "artists_timeline": ["mbid"],
+    "artists_rest": ["mbid"],
 }
 
 
@@ -493,11 +513,11 @@ def test_publish_prunes_a_stale_file_left_in_a_subdirectory_of_web(con, tmp_path
     # delivered, so the manifest announced a file no run had written.
     nested = tmp_path / "web" / "old"
     nested.mkdir(parents=True)
-    stale = nested / "bands_timeline.json.gz"
+    stale = nested / "artists_timeline.json.gz"
     stale.write_bytes(b"stale")
     manifest = publish(con, tmp_path, DUMP, None)
     assert not stale.exists()
-    assert "web/old/bands_timeline.json.gz" not in manifest["output_sha256"]
+    assert "web/old/artists_timeline.json.gz" not in manifest["output_sha256"]
 
 
 def test_publish_prunes_a_stale_binary_but_keeps_the_exports_it_just_wrote(con, tmp_path):
@@ -509,4 +529,4 @@ def test_publish_prunes_a_stale_binary_but_keeps_the_exports_it_just_wrote(con, 
     stale.write_bytes(b"stale")
     publish(con, tmp_path, DUMP, None)
     assert not stale.exists()
-    assert (web / "bands_timeline.json.gz").exists()
+    assert (web / "artists_timeline.json.gz").exists()

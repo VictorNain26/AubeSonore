@@ -44,7 +44,7 @@ def test_the_rate_is_measured_on_raw_release_groups_not_on_the_albums_table(c):
     # from `albums` would read 0% (or no row at all) on a genre that in fact
     # loses everything.
     assert c.execute(
-        "SELECT count(*) FROM albums WHERE band_mbid = ?", [BAND_EXCLUDED]
+        "SELECT count(*) FROM albums WHERE artist_mbid = ?", [BAND_EXCLUDED]
     ).fetchone() == (0,)
     assert measurement(c, "g-excluded") == (250, 100.0)
 
@@ -65,7 +65,7 @@ def test_a_genre_over_the_rate_but_under_the_sample_minimum_keeps_its_density(c)
 def test_a_genre_over_both_bounds_leaves_density_but_stays_in_the_vocabulary(c):
     assert density_rows(c, "g-excluded") == 0
     assert c.execute(
-        "SELECT name, n_bands FROM genres WHERE genre_mbid = 'g-excluded'"
+        "SELECT name, n_artists FROM genres WHERE genre_mbid = 'g-excluded'"
     ).fetchone() == ("excluded", 2)
     # Control: the rule removes that genre, not the projection as a whole.
     assert density_rows(c, "g-clean") > 0
@@ -75,10 +75,10 @@ def test_the_excluded_genre_stays_on_every_population_table(c):
     # Population and projection are different things: the exclusion belongs to
     # density alone. A rule applied one file too early would empty these.
     assert c.execute(
-        "SELECT count(*) FROM bands b, UNNEST(b.genres) AS t(g) WHERE t.g.mbid = 'g-excluded'"
+        "SELECT count(*) FROM artists b, UNNEST(b.genres) AS t(g) WHERE t.g.mbid = 'g-excluded'"
     ).fetchone() == (2,)
     assert c.execute(
-        "SELECT count(*) FROM bands WHERE mbid IN (?, ?)", [BAND_EXCLUDED, BAND_EXCLUDED_2]
+        "SELECT count(*) FROM artists WHERE mbid IN (?, ?)", [BAND_EXCLUDED, BAND_EXCLUDED_2]
     ).fetchone() == (2,)
 
 
@@ -141,7 +141,7 @@ def test_the_rate_ignores_genres_a_band_only_takes_from_its_albums(tmp_path):
         ),
     ]
     c = build_synthetic(tmp_path, artists, release_groups)
-    assert c.execute("SELECT genre_source FROM bands WHERE mbid = ?", [BAND_CLEAN]).fetchone() == (
-        "albums",
-    )
+    assert c.execute(
+        "SELECT genre_source FROM artists WHERE mbid = ?", [BAND_CLEAN]
+    ).fetchone() == ("albums",)
     assert measurement(c, "g-album") == (0, None)

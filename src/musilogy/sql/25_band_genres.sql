@@ -1,4 +1,4 @@
--- The genres a band is found by. Most bands declare none — 77 % of the dated
+-- The genres a band is found by. Most artists declare none — 77 % of the dated
 -- groups on the reference dump — while their albums often do, so the rule is
 -- the one 30_bands_lifespan.sql applies to dates: the declared evidence wins,
 -- the albums take over. genre_source names the branch; both raw lists stay
@@ -8,15 +8,15 @@
 -- kept, so they rest on exactly the releases the rest of the layer counts. A
 -- band that declares genres never mixes in its albums': the two are votes on
 -- different things, and a union would let one album outvote the band.
-CREATE OR REPLACE TABLE band_album_genres AS
-SELECT a.band_mbid AS mbid, t.g.mbid AS genre_mbid, any_value(t.g.name) AS name,
+CREATE OR REPLACE TABLE artist_album_genres AS
+SELECT a.artist_mbid AS mbid, t.g.mbid AS genre_mbid, any_value(t.g.name) AS name,
   sum(t.g.votes)::INTEGER AS votes
 FROM albums a
 JOIN raw_release_groups r ON r.mbid = a.rg_mbid,
      UNNEST(coalesce(r.genres, [])) AS t(g)
-GROUP BY a.band_mbid, t.g.mbid;
+GROUP BY a.artist_mbid, t.g.mbid;
 
-CREATE OR REPLACE TABLE bands AS
+CREATE OR REPLACE TABLE artists AS
 WITH from_albums AS (
   -- Same order as genres_declared (10_bands.sql): votes descending, then name.
   SELECT mbid,
@@ -24,7 +24,7 @@ WITH from_albums AS (
       list_sort(list({'k': [-votes], 'n': name, 'v': {'mbid': genre_mbid, 'name': name, 'votes': votes}})),
       y -> y.v
     ) AS genres_from_albums
-  FROM band_album_genres
+  FROM artist_album_genres
   GROUP BY mbid
 )
 SELECT b.*,
@@ -33,5 +33,5 @@ SELECT b.*,
        ELSE coalesce(f.genres_from_albums, []) END AS genres,
   CASE WHEN len(b.genres_declared) > 0 THEN 'declared'
        WHEN len(f.genres_from_albums) > 0 THEN 'albums' END AS genre_source
-FROM bands b
+FROM artists b
 LEFT JOIN from_albums f USING (mbid);

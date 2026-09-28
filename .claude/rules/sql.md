@@ -27,7 +27,7 @@ la vue est le nom de l'invariant.
 
 **Un invariant recalcule indépendamment ce qu'il vérifie.** Réutiliser la
 formule ou les variables de session de la production revient à comparer une
-valeur à elle-même. `band_out_of_window` code la fenêtre `[1850, 2026]` en dur
+valeur à elle-même. `artist_out_of_window` code la fenêtre `[1850, 2026]` en dur
 aux deux bornes, précisément pour ne pas relire les `min_year`/`dump_year` dont
 dépendent les règles de production : une valeur de variable fausse satisferait
 sinon les deux côtés en silence. Changer de dump impose alors d'éditer ces

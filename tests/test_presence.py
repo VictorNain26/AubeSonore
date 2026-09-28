@@ -30,20 +30,20 @@ def test_an_album_predating_the_declared_begin_is_not_an_end(con):
     # coalesce(y_end, y0), which is the whole point: the false label is gone
     # and the projection is unchanged.
     assert con.execute(
-        "SELECT y0, y_last_album, y_end, y_end_source FROM bands WHERE mbid = ?",
+        "SELECT y0, y_last_album, y_end, y_end_source FROM artists WHERE mbid = ?",
         ["703c4c92-43f7-4268-9f85-0ca6f0cd1a22"],
     ).fetchone() == (2015, 2014, None, None)
 
 
 def test_no_band_is_present_after_its_declared_end(con):
     assert con.execute("""
-        SELECT count(*) FROM presence p JOIN bands b USING (mbid)
+        SELECT count(*) FROM presence p JOIN artists b USING (mbid)
         WHERE b.y_end_declared IS NOT NULL AND p.y_presence_end > b.y_end_declared
     """).fetchall() == [(0,)]
 
 
-def test_presence_end_is_published_on_bands(con):
+def test_presence_end_is_published_on_artists(con):
     assert con.execute("""
-        SELECT count(*) FROM bands b JOIN presence p USING (mbid)
+        SELECT count(*) FROM artists b JOIN presence p USING (mbid)
         WHERE b.y_presence_end IS DISTINCT FROM p.y_presence_end
     """).fetchall() == [(0,)]

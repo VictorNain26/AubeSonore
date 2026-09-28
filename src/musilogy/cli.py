@@ -58,6 +58,10 @@ WITNESSES = [
     "d36b0fad-abd7-44e4-88fa-f638bbf8c9a6",  # Thunder Jolt
     "03c2e506-e8bb-4bd6-9693-5aa97c8eea1c",  # Inspiral Carpets
     "7b7f9365-45fc-43b0-a8c3-83f7451ddbd5",  # $.99 Dreams: its genres come from its albums
+    "87c5dedd-371d-4a53-9f7f-80522fb7f3cb",  # Björk: a living solo artist
+    "5441c29d-3602-4898-b1a1-b77fa23b8e50",  # David Bowie: albums released after his death
+    "24f1766e-9635-4d58-a4d4-9413f9f98a4c",  # Johann Sebastian Bach: dead before min_year
+    "6fa2e161-200e-475a-8492-3755594581f9",  # Bernard Sumner: member of two witness bands
 ]
 
 

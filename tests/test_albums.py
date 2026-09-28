@@ -18,13 +18,13 @@ def test_beatles_albums_are_not_windowed_around_y0(con):
     # 84 = 77 before {Demo} joined the allowed secondary types, plus the
     # group's seven demo-only release groups.
     assert con.execute(
-        "SELECT count(*), min(y), max(y) FROM albums WHERE band_mbid = ?", [BEATLES]
+        "SELECT count(*), min(y), max(y) FROM albums WHERE artist_mbid = ?", [BEATLES]
     ).fetchall() == [(84, 1963, 2023)]
 
 
 def test_soundtracks_are_kept(con):
     n = con.execute(
-        "SELECT count(*) FROM albums WHERE band_mbid = ? AND soundtrack", [BEATLES]
+        "SELECT count(*) FROM albums WHERE artist_mbid = ? AND soundtrack", [BEATLES]
     ).fetchone()[0]
     assert n > 0
 
@@ -34,7 +34,7 @@ def test_demo_is_kept(con):
     # contemporaneous evidence of activity, unlike a live or a compilation
     # whose date is a publication date.
     assert con.execute(
-        "SELECT band_mbid, y FROM albums WHERE rg_mbid = ?", [HOMEGROWN]
+        "SELECT artist_mbid, y FROM albums WHERE rg_mbid = ?", [HOMEGROWN]
     ).fetchall() == [(XTC, 2001)]
 
 
@@ -56,14 +56,14 @@ def test_live_is_dropped(con):
 
 def test_multi_artist_album_is_dropped(con):
     assert con.execute(
-        "SELECT count(*) FROM albums WHERE band_mbid = ? AND rg_mbid = ?",
+        "SELECT count(*) FROM albums WHERE artist_mbid = ? AND rg_mbid = ?",
         [FLEETWOOD, BIGGEST_THING_SINCE_COLOSSUS],
     ).fetchall() == [(0,)]
 
 
 def test_same_artist_credited_twice_is_kept(con):
     assert con.execute(
-        "SELECT count(*) FROM albums WHERE band_mbid = ? AND title = ?",
+        "SELECT count(*) FROM albums WHERE artist_mbid = ? AND title = ?",
         [DEMENTED, "The Day the Earth Spat Blood"],
     ).fetchall() == [(1,)]
 
@@ -72,16 +72,16 @@ def test_album_long_after_declared_end_is_kept(con):
     # Cardiacs: declared end 2020, an album dated 2025 is still kept in
     # `albums` — no window relates album selection to the band's lifespan
     # any more, that is presence's job (30_bands_lifespan.sql/40_presence.sql).
-    assert con.execute("SELECT max(y) FROM albums WHERE band_mbid = ?", [CARDIACS]).fetchall() == [
-        (2025,)
-    ]
+    assert con.execute(
+        "SELECT max(y) FROM albums WHERE artist_mbid = ?", [CARDIACS]
+    ).fetchall() == [(2025,)]
 
 
 def test_album_years_are_not_bounded_by_proximity_to_formation(con):
     # Maroon 5: formed 2001 (declared). An album dated 1994, seven years
     # before formation, is kept: the old +/-5-year margin (which would have
     # excluded anything before 1996) no longer applies.
-    assert con.execute("SELECT min(y) FROM albums WHERE band_mbid = ?", [MAROON]).fetchall() == [
+    assert con.execute("SELECT min(y) FROM albums WHERE artist_mbid = ?", [MAROON]).fetchall() == [
         (1994,)
     ]
 
