@@ -1,6 +1,6 @@
 # musilogy
 
-Couche 0 : transforme deux dumps JSON MusicBrainz en cinq tables reproductibles et testées, et projette la frise chronologique en trois blobs binaires. La couche 1, la frise elle-même, n'en est qu'aux fondations : `web/` contient les décodeurs de ces blobs, testés contre la livraison versionnée, mais aucune interface — `web/index.html` a encore un `<body>` vide.
+Couche 0 : transforme deux dumps JSON MusicBrainz en cinq tables reproductibles et testées, publiées en Parquet et en JSON gzippé. La couche 1, l'interface, n'existe pas encore : elle sera construite sur des briques standard qui lisent ces formats, sans format binaire maison.
 
 ## Principe directeur
 
@@ -62,11 +62,7 @@ Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la n
 
 - **`60_density` — Densité.** Délibérément plus étroite que la population : type `Group`, `y0` connu, au moins un genre, **et un genre `density_eligible`** — la règle est matérialisée dans `55_genre_reliability`, ce fichier ne fait que l'appliquer. Un groupe compte dans chacun de ses genres ; les totaux par genre ne s'additionnent pas.
 
-- **`70_frieze` — Projection de la frise.** Une ligne par groupe dessinable, groupe pour groupe exactement la population de `density` : un groupe absent de `density` n'aurait aucune cellule où se placer. Paire par paire, elle est plus large, et délibérément : un groupe entre par un genre `density_eligible`, puis le blob porte tous les genres qu'il déclare ; les masquer revient au rendu. Chaque ligne reçoit un rang `i`, dans l'ordre `(y0, mbid)`, qui sert d'identité dans les blobs à la place du `mbid`. `y_end_is_declared` voyage à côté de `y1` (`y_presence_end`) pour que la frise ne dessine pas une fin que la source n'a jamais déclarée ; `n_albums`, plafonné à 255, est la clé de tri — un nombre que la source porte, là où un score de notoriété serait inventé.
-
 - **`80_members` — Membres.** Les relations `member of band`, dédoublonnées, avec leurs années lues par la même macro stricte que partout ailleurs.
-
-- **`85_lineage` — Filiation.** Deux groupes de la frise sont liés quand ils partagent au moins un musicien ; `shared` compte ces musiciens, plafonné à 255. **Ce n'est pas de l'influence** : MusicBrainz ne porte aucune relation d'influence, et la propriété P737 de Wikidata ne couvre que 624 groupes sur 682 447. L'arête va du groupe formé le plus tôt vers le plus tard ; à année de formation égale, la paire est écartée plutôt qu'orientée arbitrairement. Les deux extrémités appartiennent à `frieze` : une arête vers un groupe non dessinable n'aurait nulle part où arriver.
 
 - **`90_invariants` — Contrôles.** Des vues qui doivent toutes renvoyer zéro ligne ; le nom de la vue *est* le nom de l'invariant. Chacune **recalcule indépendamment** ce qu'elle vérifie : une revue a montré qu'un invariant réutilisant la formule de production restait muet sur 265 violations réelles. Les bornes contractuelles y sont codées en dur, aux deux extrémités, sans relire les variables de session de la production ; changer de dump impose donc une modification délibérée de ce fichier — c'est l'intention.
 
@@ -95,14 +91,6 @@ Le coût mesuré de la règle est un faux positif, `mincecore` (73,1 % sur 216 c
 - `web/genres.json.gz` — le vocabulaire, avec `density_eligible`, `n_candidate_credits` et `multi_artist_drop_pct` ;
 - `web/density.json.gz` — l'agrégat par genre et par année.
 
-Et trois blobs binaires, la frise elle-même :
-
-- `web/frieze.bin.gz` — un enregistrement par groupe dessinable, en tableaux typés derrière un en-tête `MFZ1` ;
-- `web/lineage.bin.gz` — les arêtes orientées de filiation, `src`/`dst`/`shared` en tableaux séparés derrière `MLN1` ;
-- `web/frieze_ids.bin` — les `mbid` bruts sur 16 octets dans l'ordre des lignes, derrière `MID1`, chargés au premier clic seulement.
-
-Les trois s'indexent par le rang de ligne de `frieze`, pas par `mbid` : c'est ce qui rend la jointure implicite et le décodage immédiat. `docs/superpowers/specs/2026-09-13-layer1-frieze-design.md` décrit les trois formats octet par octet.
-
 `density` est publié plutôt que laissé à recalculer, et `density_eligible` voyage désormais avec le vocabulaire comme une colonne à part entière — la règle elle-même, pas seulement les deux mesures qui la motivent, elles aussi publiées à côté pour qui veut l'auditer plutôt que la croire sur parole. Un consommateur n'a donc plus de seuil à coder en dur : sans cette colonne, reconstruire la densité depuis les seuls artefacts web donne 59 778 cellules au lieu de 58 767 — les 1 011 cellules des treize genres que la couche 0 refuse délibérément de publier. Réimplémenter une règle, c'est là qu'elle se perd.
 
 Chaque ligne porte son `mbid` — la clé de jointure vers `density`, `members` et MusicBrainz — ses `genres`, et les deux bords avec leurs preuves brutes des deux côtés.
@@ -111,7 +99,7 @@ Chaque ligne porte son `mbid` — la clé de jointure vers `density`, `members` 
 
 **Deux sujets restent ouverts pour la couche 1.** Le poids : 24,7 Mo gzip pour `bands_timeline`, dont 10,2 Mo pour les quatre colonnes de genres — `genres` y double l'une des deux listes brutes, par principe de provenance — et 7,8 Mo pour les identifiants eux-mêmes, des UUID de 36 octets qui ne se compressent pas ; un chargement initial complet n'est pas réaliste sur mobile, et le découpage par genre ou par période lui revient. Et l'absence de hiérarchie : les 1 442 genres sont **plats**, sans regroupement possible, faute de source fiable — parcourir cette liste à la main n'est pas une interface.
 
-`manifest.json` porte les empreintes des archives **et celles des douze fichiers livrés** — cinq Parquet, quatre `.json.gz`, trois blobs — (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les trois compteurs de neutralisation, les exclusions de densité, le commit et l'empreinte des corrections.
+`manifest.json` porte les empreintes des archives **et celles des neuf fichiers livrés** — cinq Parquet, quatre `.json.gz` — (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les trois compteurs de neutralisation, les exclusions de densité, le commit et l'empreinte des corrections.
 
 Ces empreintes de sortie sont opposables parce que la livraison est reproductible : à dump et code identiques, deux exécutions écrivent les mêmes octets. L'ordre des lignes est fixé par une clé totale sur chaque table et le gzip ne porte pas d'horodatage. Un consommateur distingue donc une livraison inchangée d'une nouvelle par sa seule empreinte, sans retélécharger.
 
@@ -159,24 +147,11 @@ La suite passe depuis n'importe quel répertoire : tous les chemins sont ancrés
 ```bash
 uv run musilogy run                 # fetch → extract → transform → validate → publish
 uv run musilogy make-fixtures       # régénère les témoins depuis les extractions
-uv run musilogy make-web-fixtures   # régénère les blobs témoins lus par les tests de web/
-uv run musilogy sync-web            # copie la livraison courante dans web/public/data/
 ```
 
-`web/public/data/` est la seule sortie versionnée : `tests/test_delivery.py` vérifie chaque fichier contre les empreintes du manifeste livré avec lui.
+Aucune sortie du pipeline n'est versionnée ; seules les empreintes et les fixtures le sont.
 
-Qualité : `uv run ruff check`, `uv run ruff format --check`, `uv run mypy`. Côté `web/` (Node et pnpm, versions fixées par `web/.nvmrc` et `packageManager`) :
-
-```bash
-cd web
-pnpm install
-pnpm run check   # biome ci
-pnpm run types   # tsc --noEmit
-pnpm run test    # vitest
-pnpm run build   # vite build
-```
-
-La CI (`.github/workflows/ci.yml`) passe les trois contrôles Python plus la suite rapide, et ces quatre commandes dans `web/` ; la suite lente exige le dump et reste manuelle.
+Qualité : `uv run ruff check`, `uv run ruff format --check`, `uv run mypy`. La CI (`.github/workflows/ci.yml`) passe ces trois contrôles plus la suite rapide ; la suite lente exige le dump et reste manuelle.
 
 ## Structure du dépôt
 
@@ -186,7 +161,7 @@ src/musilogy/
   extract.py             projette les enregistrements bruts en flux, sans logique métier
   build.py               enchaîne les fichiers SQL, applique les corrections, vérifie les invariants
   publish.py             écrit Parquet, JSON colonnaire scindé et manifest.json
-  cli.py                 les quatre commandes
+  cli.py                 les deux commandes
   paths.py               chemins ancrés sur le paquet
   corrections.csv        corrections manuelles, versionné
   reference/             empreintes officielles des archives
@@ -195,12 +170,7 @@ tests/
   conftest.py            fixtures partagées
   fixtures/              témoins réels versionnés
   test_*.py              une suite par règle, plus test_baseline.py (suite lente)
-web/
-  src/blob/              décodeurs des trois blobs et du gzip, sans interface
-  tests/                 tests vitest, sur des blobs témoins et sur la livraison
-  public/data/           livraison versionnée : blobs, genres, densité, manifeste
-  index.html             page vide, en attente de la couche 1
-docs/superpowers/specs/  spécification de la frise, dont les formats binaires
+docs/superpowers/       spécifications et plans datés, historiques
 ```
 
 ## Licence et attribution
