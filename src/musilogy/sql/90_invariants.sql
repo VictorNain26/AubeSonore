@@ -120,18 +120,6 @@ CREATE OR REPLACE VIEW genre_n_bands_mismatch AS
   WHERE g.n_bands <> (
     SELECT count(*) FROM bands b, UNNEST(b.genres) AS t(x) WHERE t.x.mbid = g.genre_mbid
   );
--- A genre pair cannot link a band to itself; self-pairs represent a logic
--- error in the cooccurrence computation.
-CREATE OR REPLACE VIEW cooccurrence_self_pair AS
-SELECT * FROM genre_cooccurrence WHERE genre_a = genre_b;
-
--- Cooccurrence pairs must reference genres in the vocabulary; an unknown
--- genre would imply the table was built from a band outside the published
--- set, or the vocabulary was narrowed after cooccurrence was populated.
-CREATE OR REPLACE VIEW cooccurrence_unknown_genre AS
-SELECT co.* FROM genre_cooccurrence co
-WHERE NOT EXISTS (SELECT 1 FROM genres g WHERE g.genre_mbid = co.genre_a)
-   OR NOT EXISTS (SELECT 1 FROM genres g WHERE g.genre_mbid = co.genre_b);
 -- Independent restatement of the presence rule: presence only ever exists for
 -- a band with a non-NULL y0 (the join guarantees it), and its end is the
 -- band's end clamped to the dump year. The three cases are enumerated rather

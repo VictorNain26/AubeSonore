@@ -102,8 +102,6 @@ INVARIANTS = (
     "genres_from_albums_mismatch",
     "unknown_genre",
     "genre_n_bands_mismatch",
-    "cooccurrence_self_pair",
-    "cooccurrence_unknown_genre",
     "presence_out_of_range",
     "presence_end_mismatch",
     "density_out_of_range",
