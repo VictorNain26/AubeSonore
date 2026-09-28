@@ -27,7 +27,7 @@ SELECT
 FROM raw_artists;
 
 -- Date-anomaly counters for manifest.json: population = raw_artists, i.e.
--- every group/orchestra/choir extracted, not just `bands` after filtering.
+-- every group/orchestra/choir extracted, not just `artists` after filtering.
 -- The r2_ prefix is frozen rather than left over: the name is a published
 -- manifest key layer 1 reads, so renaming it would break that contract.
 CREATE OR REPLACE TABLE r2_anomalies AS
@@ -41,7 +41,7 @@ SELECT
   sum(end_before_begin::INTEGER) AS end_before_begin
 FROM dated;
 
-CREATE OR REPLACE TABLE bands AS
+CREATE OR REPLACE TABLE artists AS
 SELECT mbid, name, type, y0_declared, y_end_declared, ended, country, begin_area,
   -- Explicit sort (votes descending, then name), never inherited from
   -- the source (alphabetical). list_sort does not accept a lambda comparator

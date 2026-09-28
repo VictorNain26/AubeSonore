@@ -37,13 +37,13 @@ SELECT
   count(*) AS n_candidate_credits,
   round(100.0 * sum(c.multi::INTEGER) / count(*), 1) AS multi_artist_drop_pct
 FROM credits c
-JOIN bands b ON b.mbid = c.artist_mbid,
+JOIN artists b ON b.mbid = c.artist_mbid,
      UNNEST(b.genres_declared) AS t(g)
 GROUP BY t.g.mbid;
 
 ALTER TABLE genres ADD COLUMN n_candidate_credits BIGINT;
 ALTER TABLE genres ADD COLUMN multi_artist_drop_pct DOUBLE;
--- A genre whose bands credit no candidate release-group has zero candidates —
+-- A genre whose artists credit no candidate release-group has zero candidates —
 -- a measured fact — but no rate at all: the share stays NULL rather than being
 -- published as 0%, which would assert a measurement nobody could make.
 UPDATE genres SET
@@ -76,6 +76,6 @@ UPDATE genres SET density_eligible = NOT coalesce(
 -- would reintroduce the named judgment the measurement exists to avoid, so
 -- that genre is the measured cost of the rule.
 CREATE OR REPLACE TABLE density_exclusions AS
-SELECT count(*) AS genres, coalesce(sum(n_bands), 0) AS band_genre_pairs
+SELECT count(*) AS genres, coalesce(sum(n_artists), 0) AS artist_genre_pairs
 FROM genres
 WHERE NOT density_eligible;

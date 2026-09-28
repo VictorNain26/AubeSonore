@@ -23,7 +23,7 @@ SELECT
   -- both stay NULL.
   b.y_last_album IS NOT NULL
     AND (b.y0_declared IS NULL OR b.y_last_album >= b.y0_declared) AS last_album_is_evidence
-FROM bands b JOIN dated d USING (mbid);
+FROM artists b JOIN dated d USING (mbid);
 
 CREATE OR REPLACE TABLE neutralised_inferences AS
 SELECT
@@ -39,19 +39,19 @@ SELECT
     WHERE b.y0_declared IS NULL AND b.y_first_album IS NOT NULL
       AND d.begin_below_min_year
   ) AS first_album_with_begin_below_min_year
-FROM bands b JOIN dated d USING (mbid);
+FROM artists b JOIN dated d USING (mbid);
 
-ALTER TABLE bands ADD COLUMN y0 INTEGER;
-ALTER TABLE bands ADD COLUMN y0_source VARCHAR;
-ALTER TABLE bands ADD COLUMN y_end INTEGER;
-ALTER TABLE bands ADD COLUMN y_end_source VARCHAR;
+ALTER TABLE artists ADD COLUMN y0 INTEGER;
+ALTER TABLE artists ADD COLUMN y0_source VARCHAR;
+ALTER TABLE artists ADD COLUMN y_end INTEGER;
+ALTER TABLE artists ADD COLUMN y_end_source VARCHAR;
 
 -- y_end >= y0 needs no clamp of its own, and carries none: every surviving
 -- pair is already ordered. y_end_declared >= yr(begin) (10_bands.sql) orders
 -- declared/declared; first_album_is_evidence rules out y_first_album >
 -- y_end_declared; last_album_is_evidence rules out y_last_album < y0_declared;
 -- and max(y) >= min(y) over the same albums orders first_album/last_album.
-UPDATE bands SET
+UPDATE artists SET
   y0 = CASE
     WHEN y0_declared IS NOT NULL THEN y0_declared
     WHEN e.first_album_is_evidence THEN y_first_album
@@ -69,4 +69,4 @@ UPDATE bands SET
     WHEN e.last_album_is_evidence THEN 'last_album'
   END
 FROM lifespan_evidence e
-WHERE e.mbid = bands.mbid;
+WHERE e.mbid = artists.mbid;

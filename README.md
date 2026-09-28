@@ -6,7 +6,7 @@ Couche 0 : transforme deux dumps JSON MusicBrainz en cinq tables reproductibles 
 
 **La sortie n'affirme jamais plus que ce que la source porte.** Une absence reste une absence : elle n'est ni imputée en silence, ni prolongée, ni arbitrée. Quand une valeur est dérivée, elle est publiée avec la colonne qui dit d'où elle vient, pour que le consommateur distingue une donnée déclarée d'une donnée inférée. Quand une mesure est impossible, la colonne vaut NULL — jamais zéro, qui affirmerait une mesure qui n'a pas eu lieu.
 
-**Population et projection sont deux choses distinctes.** `bands`, `albums`, `genres` et `members` portent la population complète ; `density` est une projection délibérément plus étroite, destinée à la frise. Un filtre d'affichage vit dans la projection, jamais dans la population — sinon la donnée écartée devient irrécupérable en aval.
+**Population et projection sont deux choses distinctes.** `artists`, `albums`, `genres` et `members` portent la population complète ; `density` est une projection délibérément plus étroite, destinée à la frise. Un filtre d'affichage vit dans la projection, jamais dans la population — sinon la donnée écartée devient irrécupérable en aval.
 
 C'est le changement le plus lourd par rapport à la première version de ce dépôt, qui appliquait le filtre de la frise à la population et n'en publiait que 63 487 groupes sur 682 447, soit 30 % de la masse d'albums réelle.
 
@@ -16,29 +16,29 @@ Mesurées sur le dump de référence `20260909-001002` :
 
 | Table | Contenu | Lignes |
 |---|---|---|
-| `bands` | un artiste : ses preuves de dates, sa ligne de vie dérivée, ses genres votés | 682 447 |
+| `artists` | un artiste : ses preuves de dates, sa ligne de vie dérivée, ses genres votés | 682 447 |
 | `albums` | un point : une sortie d'album créditée à un seul artiste | 643 403 |
-| `genres` | le vocabulaire porté par `bands`, avec sa fiabilité mesurée | 1 442 |
+| `genres` | le vocabulaire porté par `artists`, avec sa fiabilité mesurée | 1 442 |
 | `members` | un lien : un musicien dans un groupe, avec ses années | 601 759 |
 | `density` | groupes présents par genre et par année | 58 767 cellules |
 
 Colonnes réelles (voir `src/musilogy/sql/`) :
 
-- **`bands`** : `mbid`, `name`, `type`, `y0_declared`, `y_end_declared`, `ended`, `country`, `begin_area`, `genres_declared` et `genres_from_albums` (listes de `{mbid, name, votes}`, triées), `genres`, `genre_source`, `y_first_album`, `y_last_album`, `y0`, `y0_source`, `y_end`, `y_end_source`, `y_presence_end`.
-- **`albums`** : `band_mbid`, `rg_mbid`, `title`, `y`, `soundtrack`.
-- **`genres`** : `genre_mbid`, `name`, `n_bands`, `density_eligible`, `n_candidate_credits`, `multi_artist_drop_pct`.
+- **`artists`** : `mbid`, `name`, `type`, `y0_declared`, `y_end_declared`, `ended`, `country`, `begin_area`, `genres_declared` et `genres_from_albums` (listes de `{mbid, name, votes}`, triées), `genres`, `genre_source`, `y_first_album`, `y_last_album`, `y0`, `y0_source`, `y_end`, `y_end_source`, `y_presence_end`.
+- **`albums`** : `artist_mbid`, `rg_mbid`, `title`, `y`, `soundtrack`.
+- **`genres`** : `genre_mbid`, `name`, `n_artists`, `density_eligible`, `n_candidate_credits`, `multi_artist_drop_pct`.
 - **`members`** : `band_mbid`, `person_mbid`, `y_begin`, `y_end`.
 - **`density`** : `genre_mbid`, `year`, `present`.
 
-`person_mbid` est une référence sortante : la couche 0 n'extrait que les groupes, orchestres et chœurs, donc l'individu désigné n'est pas dans `bands`. Une table intermédiaire, `presence(mbid, y0, y_presence_end)`, est calculée mais non publiée.
+`person_mbid` est une référence sortante : la couche 0 n'extrait que les groupes, orchestres et chœurs, donc l'individu désigné n'est pas dans `artists`. Une table intermédiaire, `presence(mbid, y0, y_presence_end)`, est calculée mais non publiée.
 
 ## Les règles
 
 Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la numérotation est un ordre topologique de dépendance**, pas un rang dans une liste, et avance par pas de dix pour qu'une règle s'insère sans renumérotation — `55_` en est un exemple vivant.
 
-- **`10_bands` — Population et lecture des dates.** Tout artiste extrait entre dans `bands` : aucun filtre de type, de date ou de genre. La lecture des dates est déterministe : l'année tient sur les quatre premiers caractères, sinon elle est **absente**, pas devinée. Une date hors de `[1850, année du dump]` — aux deux bords — et une fin antérieure au début sont neutralisées, et **chaque neutralisation alimente un compteur** dans `manifest.json`. Tous les genres sont conservés, triés explicitement par votes décroissants puis par nom.
+- **`10_bands` — Population et lecture des dates.** Tout artiste extrait entre dans `artists` : aucun filtre de type, de date ou de genre. La lecture des dates est déterministe : l'année tient sur les quatre premiers caractères, sinon elle est **absente**, pas devinée. Une date hors de `[1850, année du dump]` — aux deux bords — et une fin antérieure au début sont neutralisées, et **chaque neutralisation alimente un compteur** dans `manifest.json`. Tous les genres sont conservés, triés explicitement par votes décroissants puis par nom.
 
-- **`20_albums` — Albums.** Un release-group compte comme album s'il est de type primaire `Album` (filtré dès l'extraction), crédité à un **seul artiste distinct** présent dans `bands`, daté dans `[1850, année du dump]`, et dont les types secondaires sont vides ou inclus dans `{Soundtrack, Demo}`.
+- **`20_albums` — Albums.** Un release-group compte comme album s'il est de type primaire `Album` (filtré dès l'extraction), crédité à un **seul artiste distinct** présent dans `artists`, daté dans `[1850, année du dump]`, et dont les types secondaires sont vides ou inclus dans `{Soundtrack, Demo}`.
 
   Les démos sont acceptées parce qu'elles sont une preuve *contemporaine* d'activité précoce : 67,5 % des artistes ayant démo et album studio ont sorti la démo d'abord, 3 ans plus tôt en médiane parmi eux. Les albums live sont exclus pour la raison inverse : **MusicBrainz les date de leur publication, pas du concert** — 710 artistes ont un live daté plus de 20 ans après leur dernier studio, avec des titres qui portent eux-mêmes la vraie date (« Live in Paris (1966) », publié en 2024). Compilations, DJ-mix et remix sont exclus au même titre.
 
@@ -56,7 +56,7 @@ Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la n
 
 - **`40_presence` — Présence.** Seuls les artistes dont `y0` est connu. `y_presence_end` borne `y_end` à l'année du dump.
 
-- **`50_genres` — Vocabulaire.** Les genres effectivement portés par `bands.genres`, y compris ceux qu'aucun groupe ne déclare et que seuls des albums portent.
+- **`50_genres` — Vocabulaire.** Les genres effectivement portés par `artists.genres`, y compris ceux qu'aucun groupe ne déclare et que seuls des albums portent.
 
 - **`55_genre_reliability` — Fiabilité mesurée.** Pour chaque genre, combien de lignes de crédit ses groupes auraient pu porter (`n_candidate_credits`) — une sortie créditée à deux artistes qui portent tous deux le genre compte deux fois, ce qui distingue les 27 199 crédits mesurés pour `classical` de ses 25 465 release-groups distincts — et quelle part la règle du crédit unique en écarte (`multi_artist_drop_pct`). Un genre sans aucun candidat garde NULL, pas 0. La mesure lit `genres_declared`, pas `genres` : un groupe ne reçoit les genres de ses albums que par des sorties créditées à lui seul, donc tous leurs candidats sont mono-artistes et le taux baisserait par construction — `modern classical` passerait de 78,8 % à 38,7 % et sortirait de l'exclusion.
 
@@ -78,7 +78,7 @@ Coder une liste de genres « classiques » serait un jugement arbitraire à main
 
 La règle est donc mesurée, pas nommée : `density` écarte les genres dont **la moitié au moins des albums candidats sont perdus, sur un échantillon d'au moins 200**. Le minimum d'échantillon porte du sens : au seuil seul, 35 genres sortiraient, dont `soukous`, `congolese rumba`, `lovers rock`, `punta` et `huayno` — de la musique populaire dont le taux élevé n'est que du bruit d'échantillon.
 
-Résultat : **13 genres écartés, 4 311 paires groupe-genre sur 511 490.** Sur les 192 809 groupes porteurs d'un genre, 189 993 sont intacts, 1 793 gardent leur place grâce à un autre genre, et **1 023 perdent tout genre publiable** — dont 715 `classical` et 343 `string quartet`. 136 de ces 1 023 n'avaient de toute façon aucun `y0` et n'étaient pas plaçables sur la frise : la perte réelle pour `density` est de **887**. Aucun artiste et aucun album n'est supprimé : `classical` reste dans `genres` avec ses 2 659 artistes dans `bands` et leurs albums dans `albums`.
+Résultat : **13 genres écartés, 4 311 paires groupe-genre sur 511 490.** Sur les 192 809 groupes porteurs d'un genre, 189 993 sont intacts, 1 793 gardent leur place grâce à un autre genre, et **1 023 perdent tout genre publiable** — dont 715 `classical` et 343 `string quartet`. 136 de ces 1 023 n'avaient de toute façon aucun `y0` et n'étaient pas plaçables sur la frise : la perte réelle pour `density` est de **887**. Aucun artiste et aucun album n'est supprimé : `classical` reste dans `genres` avec ses 2 659 artistes dans `artists` et leurs albums dans `albums`.
 
 Le coût mesuré de la règle est un faux positif, `mincecore` (73,1 % sur 216 candidats), un micro-genre de grindcore : sur ses 20 groupes, trois sortent de la frise. Aucune exception n'est codée pour lui — une liste d'exceptions serait l'arbitrage qu'on évite.
 
@@ -86,8 +86,8 @@ Le coût mesuré de la règle est un faux positif, `mincecore` (73,1 % sur 216 c
 
 `data/out/<dump>/` contient les cinq tables en Parquet (archive complète), le manifeste, et un export JSON colonnaire gzippé **scindé** :
 
-- `web/bands_timeline.json.gz` — les artistes dont `y0` est connu, donc plaçables sur une frise (24,7 Mo) ;
-- `web/bands_rest.json.gz` — les autres, chargeables à la demande (9,9 Mo) ;
+- `web/artists_timeline.json.gz` — les artistes dont `y0` est connu, donc plaçables sur une frise (24,7 Mo) ;
+- `web/artists_rest.json.gz` — les autres, chargeables à la demande (9,9 Mo) ;
 - `web/genres.json.gz` — le vocabulaire, avec `density_eligible`, `n_candidate_credits` et `multi_artist_drop_pct` ;
 - `web/density.json.gz` — l'agrégat par genre et par année.
 
@@ -97,7 +97,7 @@ Chaque ligne porte son `mbid` — la clé de jointure vers `density`, `members` 
 
 **Attention à `y_presence_end` quand la fin est inconnue.** La colonne vaut alors `y0` : le groupe se réduit à une barre d'un an. Cela concerne **53 761 groupes sur les 175 403 de type `Group` datés et porteurs d'un genre, soit 30,6 %**, dont 9 850 qui ne sont pas terminés et n'ont aucune preuve de fin. Sur ces 175 403, **174 516 alimentent effectivement une cellule** de `density` ; les 887 autres ne portent que des genres exclus. Un groupe formé en 2026 est donc un point, pas une barre ouverte. Pour rendre cela honnêtement, la couche 1 doit lire `ended` et `y_end_source` plutôt que `y_presence_end` seul : c'est le rendu faux le plus probable d'une première intégration.
 
-**Deux sujets restent ouverts pour la couche 1.** Le poids : 24,7 Mo gzip pour `bands_timeline`, dont 10,2 Mo pour les quatre colonnes de genres — `genres` y double l'une des deux listes brutes, par principe de provenance — et 7,8 Mo pour les identifiants eux-mêmes, des UUID de 36 octets qui ne se compressent pas ; un chargement initial complet n'est pas réaliste sur mobile, et le découpage par genre ou par période lui revient. Et l'absence de hiérarchie : les 1 442 genres sont **plats**, sans regroupement possible, faute de source fiable — parcourir cette liste à la main n'est pas une interface.
+**Deux sujets restent ouverts pour la couche 1.** Le poids : 24,7 Mo gzip pour `artists_timeline`, dont 10,2 Mo pour les quatre colonnes de genres — `genres` y double l'une des deux listes brutes, par principe de provenance — et 7,8 Mo pour les identifiants eux-mêmes, des UUID de 36 octets qui ne se compressent pas ; un chargement initial complet n'est pas réaliste sur mobile, et le découpage par genre ou par période lui revient. Et l'absence de hiérarchie : les 1 442 genres sont **plats**, sans regroupement possible, faute de source fiable — parcourir cette liste à la main n'est pas une interface.
 
 `manifest.json` porte les empreintes des archives **et celles des neuf fichiers livrés** — cinq Parquet, quatre `.json.gz` — (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les trois compteurs de neutralisation, les exclusions de densité, le commit et l'empreinte des corrections.
 
@@ -125,7 +125,7 @@ Provenance des bords, sur le dump de référence :
 
 - **Le genre est un filtre de notoriété communautaire, et il est daté.** Part de **groupes** datés sans aucun genre, par époque de formation, même en prenant ceux des albums : 34,4 % pour 1967-1979, 43,1 % pour 1980-1999, 53,8 % pour 2000-2014, **75,5 % depuis 2023** (69,3 %, 72,6 %, 78,9 % et 82,7 % sur les seuls genres déclarés). La densité près du présent est doublement une borne basse : par la présence, et parce que les groupes récents sont moins tagués. **L'ordre de grandeur est considérable** : la densité totale culmine en 2014 à 150 046 puis tombe à 17 106 en 2026, soit **−89 % en douze ans**, presque entièrement par artefact. La dernière décennie ne se lit pas comme une tendance.
 
-- **`density` ignore les orchestres et chœurs**, faute d'un modèle de ligne de vie comparable — ce qui écartait déjà 21,4 % des artistes du répertoire savant avant toute mesure. Ils restent dans `bands`, `albums` et `members`.
+- **`density` ignore les orchestres et chœurs**, faute d'un modèle de ligne de vie comparable — ce qui écartait déjà 21,4 % des artistes du répertoire savant avant toute mesure. Ils restent dans `artists`, `albums` et `members`.
 
 - **59,3 % des artistes n'ont aucun album** qui passe les règles, et 301 581 n'ont aucun début exploitable. La base est complète par choix : la couche 1 filtre, la couche 0 ne jette pas.
 
@@ -175,6 +175,6 @@ docs/superpowers/       spécifications et plans datés, historiques
 
 ## Licence et attribution
 
-Les données de base MusicBrainz (artistes, dates, albums, relations) sont **CC0**. Les genres et tags sont des données supplémentaires sous **CC-BY-NC-SA 3.0**. Comme `bands` et `genres` en dépendent, **le jeu de données produit par ce pipeline est distribué sous CC-BY-NC-SA 3.0** : attribution à MusicBrainz obligatoire, usage non commercial uniquement, et partage à l'identique imposé à toute redistribution.
+Les données de base MusicBrainz (artistes, dates, albums, relations) sont **CC0**. Les genres et tags sont des données supplémentaires sous **CC-BY-NC-SA 3.0**. Comme `artists` et `genres` en dépendent, **le jeu de données produit par ce pipeline est distribué sous CC-BY-NC-SA 3.0** : attribution à MusicBrainz obligatoire, usage non commercial uniquement, et partage à l'identique imposé à toute redistribution.
 
 Les fixtures versionnées dans `tests/fixtures/` sont des extraits réels du dump MusicBrainz de référence, soumis à la même licence (voir `tests/fixtures/ATTRIBUTION.md`).

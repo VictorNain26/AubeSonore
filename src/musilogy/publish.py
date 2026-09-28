@@ -14,8 +14,8 @@ import duckdb
 from musilogy.fetch import expected_sums, sha256_file
 from musilogy.paths import PACKAGE_DIR, REFERENCE_DIR
 
-TABLES = ("bands", "albums", "genres", "density", "members")
-BANDS_WEB_COLUMNS = [
+TABLES = ("artists", "albums", "genres", "density", "members")
+ARTISTS_WEB_COLUMNS = [
     # mbid first: it is the only key layer 1 can join on — against
     # web/genres.json.gz, against density, against anything. `name` is not an
     # identity, the witnesses alone carry three homonyms.
@@ -49,7 +49,7 @@ BANDS_WEB_COLUMNS = [
 # of its rows and DuckDB's placement is a session setting (default_null_order),
 # not a property of the query.
 ORDER_BY = {
-    "bands": "mbid",
+    "artists": "mbid",
     "albums": "rg_mbid",
     "genres": "genre_mbid",
     "density": "genre_mbid, year",
@@ -58,14 +58,14 @@ ORDER_BY = {
 WEB_COLUMNS = {
     # density_eligible carries the exclusion rule of 60_density.sql itself:
     # without it a web-only consumer cannot apply the rule, recomputes density
-    # from bands_timeline alone, and silently invents the 1 011 cells of the
+    # from artists_timeline alone, and silently invents the 1 011 cells of the
     # art-music genres this layer deliberately withholds. The two measurements
     # stay published alongside it for whoever wants to audit the rule rather
     # than trust it.
     "genres": [
         "genre_mbid",
         "name",
-        "n_bands",
+        "n_artists",
         "density_eligible",
         "n_candidate_credits",
         "multi_artist_drop_pct",
@@ -221,19 +221,19 @@ def publish(
         (web_dir / f"{table}.json.gz").write_bytes(gzip.compress(payload, 9, mtime=0))
         written.add(f"{table}.json.gz")
 
-    # Split in two: a timeline only needs the bands it can place (y0 IS NOT
+    # Split in two: a timeline only needs the artists it can place (y0 IS NOT
     # NULL); pulling in the rest would double the payload for no benefit to
     # that consumer.
     for name, condition in (
-        ("bands_timeline", "y0 IS NOT NULL"),
-        ("bands_rest", "y0 IS NULL"),
+        ("artists_timeline", "y0 IS NOT NULL"),
+        ("artists_rest", "y0 IS NULL"),
     ):
-        columns_sql = ", ".join(BANDS_WEB_COLUMNS)
+        columns_sql = ", ".join(ARTISTS_WEB_COLUMNS)
         rows = con.execute(
-            f"SELECT {columns_sql} FROM bands WHERE {condition} ORDER BY {ORDER_BY['bands']}"
+            f"SELECT {columns_sql} FROM artists WHERE {condition} ORDER BY {ORDER_BY['artists']}"
         ).fetchall()
         payload = json.dumps(
-            {c: [r[i] for r in rows] for i, c in enumerate(BANDS_WEB_COLUMNS)},
+            {c: [r[i] for r in rows] for i, c in enumerate(ARTISTS_WEB_COLUMNS)},
             ensure_ascii=False,
             separators=(",", ":"),
         ).encode()

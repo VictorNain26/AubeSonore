@@ -40,12 +40,12 @@ def test_every_view_defined_in_90_invariants_is_registered_in_invariants():
 def test_build_skips_90_files():
     # Dedicated connection, never passed to check_invariants: on `con`
     # (module-scoped, shared by every test in this file), a previous run of
-    # 90_invariants.sql would already have created duplicate_band, and this
+    # 90_invariants.sql would already have created duplicate_artist, and this
     # test would only depend on its rank within the file.
     c = duckdb.connect(":memory:")
     build(c, SQL, FIX / "artists.jsonl", FIX / "release_groups.jsonl", None)
     with pytest.raises(duckdb.CatalogException):
-        c.execute("SELECT * FROM duplicate_band")
+        c.execute("SELECT * FROM duplicate_artist")
 
 
 def test_fixtures_satisfy_every_invariant(con):
@@ -53,88 +53,90 @@ def test_fixtures_satisfy_every_invariant(con):
 
 
 def test_a_broken_invariant_is_reported(con):
-    with restored(con, ("DELETE FROM albums WHERE band_mbid = 'inconnu'", [])):
+    with restored(con, ("DELETE FROM albums WHERE artist_mbid = 'inconnu'", [])):
         con.execute("INSERT INTO albums VALUES ('inconnu', 'rg', 'T', 1999, false)")
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("album_without_band") == 1
+    assert violations.get("album_without_artist") == 1
 
 
 def test_album_without_band_survives_a_null_mbid_in_bands(con):
-    # NOT IN used to go silent here: a single NULL mbid in the `bands`
+    # NOT IN used to go silent here: a single NULL mbid in the `artists`
     # subquery makes `x NOT IN (subquery)` never true, whatever x is, so a
     # real violation would go unreported. NOT EXISTS is NULL-safe.
-    row = con.execute("SELECT * FROM bands LIMIT 1").fetchone()
+    row = con.execute("SELECT * FROM artists LIMIT 1").fetchone()
     cols = [d[0] for d in con.description]
     values = list(row)
     values[cols.index("mbid")] = None
     placeholders = ", ".join("?" for _ in cols)
     with restored(
         con,
-        ("DELETE FROM albums WHERE band_mbid = 'inconnu-null-poison'", []),
-        ("DELETE FROM bands WHERE mbid IS NULL", []),
+        ("DELETE FROM albums WHERE artist_mbid = 'inconnu-null-poison'", []),
+        ("DELETE FROM artists WHERE mbid IS NULL", []),
     ):
         con.execute(
             "INSERT INTO albums VALUES ('inconnu-null-poison', 'rg-null-poison', 'T', 1999, false)"
         )
-        con.execute(f"INSERT INTO bands VALUES ({placeholders})", values)
+        con.execute(f"INSERT INTO artists VALUES ({placeholders})", values)
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("album_without_band") == 1
+    assert violations.get("album_without_artist") == 1
 
 
-def test_duplicate_band_is_reported(con):
-    row = con.execute("SELECT * FROM bands LIMIT 1").fetchone()
+def test_duplicate_artist_is_reported(con):
+    row = con.execute("SELECT * FROM artists LIMIT 1").fetchone()
     cols = [d[0] for d in con.description]
     placeholders = ", ".join("?" for _ in cols)
     mbid = row[cols.index("mbid")]
     with restored(
         con,
         (
-            "DELETE FROM bands WHERE mbid = ? AND rowid IN "
-            "(SELECT rowid FROM bands WHERE mbid = ? LIMIT 1)",
+            "DELETE FROM artists WHERE mbid = ? AND rowid IN "
+            "(SELECT rowid FROM artists WHERE mbid = ? LIMIT 1)",
             [mbid, mbid],
         ),
     ):
-        con.execute(f"INSERT INTO bands VALUES ({placeholders})", row)
+        con.execute(f"INSERT INTO artists VALUES ({placeholders})", row)
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("duplicate_band") == 1
+    assert violations.get("duplicate_artist") == 1
 
 
-def test_duplicate_band_catches_null_mbid(con):
-    row = con.execute("SELECT * FROM bands LIMIT 1").fetchone()
+def test_duplicate_artist_catches_null_mbid(con):
+    row = con.execute("SELECT * FROM artists LIMIT 1").fetchone()
     cols = [d[0] for d in con.description]
     values = list(row)
     values[cols.index("mbid")] = None
     placeholders = ", ".join("?" for _ in cols)
-    with restored(con, ("DELETE FROM bands WHERE mbid IS NULL", [])):
-        con.execute(f"INSERT INTO bands VALUES ({placeholders})", values)
+    with restored(con, ("DELETE FROM artists WHERE mbid IS NULL", [])):
+        con.execute(f"INSERT INTO artists VALUES ({placeholders})", values)
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("duplicate_band") == 1
+    assert violations.get("duplicate_artist") == 1
 
 
 def test_band_out_of_window_is_reported(con):
-    mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
-    original = con.execute("SELECT y0 FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET y0 = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET y0 = 1700 WHERE mbid = ?", [mbid])
+    mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    original = con.execute("SELECT y0 FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET y0 = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET y0 = 1700 WHERE mbid = ?", [mbid])
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("band_out_of_window") == 1
+    assert violations.get("artist_out_of_window") == 1
 
 
 def test_end_before_begin_is_reported(con):
-    mbid = con.execute("SELECT mbid FROM bands WHERE y0 IS NOT NULL LIMIT 1").fetchone()[0]
-    y0 = con.execute("SELECT y0 FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    original = con.execute("SELECT y_end FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET y_end = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET y_end = ? WHERE mbid = ?", [y0 - 1, mbid])
+    mbid = con.execute("SELECT mbid FROM artists WHERE y0 IS NOT NULL LIMIT 1").fetchone()[0]
+    y0 = con.execute("SELECT y0 FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    original = con.execute("SELECT y_end FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET y_end = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET y_end = ? WHERE mbid = ?", [y0 - 1, mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("end_before_begin") == 1
 
 
 def test_end_after_dump_year_is_reported(con):
-    mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
-    original = con.execute("SELECT y_end_declared FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET y_end_declared = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET y_end_declared = 2100 WHERE mbid = ?", [mbid])
+    mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    original = con.execute("SELECT y_end_declared FROM artists WHERE mbid = ?", [mbid]).fetchone()[
+        0
+    ]
+    with restored(con, ("UPDATE artists SET y_end_declared = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET y_end_declared = 2100 WHERE mbid = ?", [mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("end_after_dump_year") == 1
 
@@ -142,18 +144,18 @@ def test_end_after_dump_year_is_reported(con):
 def test_end_before_min_year_is_reported(con):
     # The end's lower bound, the twin of end_after_dump_year: four artists of
     # the reference dump declare an end in 1537, 1761, 1781 and 1814.
-    mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
+    mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
     original = con.execute(
-        "SELECT y_end_declared, y_end FROM bands WHERE mbid = ?", [mbid]
+        "SELECT y_end_declared, y_end FROM artists WHERE mbid = ?", [mbid]
     ).fetchone()
     with restored(
         con,
         (
-            "UPDATE bands SET y_end_declared = ?, y_end = ? WHERE mbid = ?",
+            "UPDATE artists SET y_end_declared = ?, y_end = ? WHERE mbid = ?",
             [*original, mbid],
         ),
     ):
-        con.execute("UPDATE bands SET y_end_declared = 1537, y_end = 1537 WHERE mbid = ?", [mbid])
+        con.execute("UPDATE artists SET y_end_declared = 1537, y_end = 1537 WHERE mbid = ?", [mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("end_before_min_year") == 1
 
@@ -177,12 +179,12 @@ def test_contractual_bounds_are_not_read_from_the_session_variables():
 
 
 def test_last_album_mismatch_is_reported(con):
-    mbid = con.execute("SELECT mbid FROM bands WHERE y_last_album IS NOT NULL LIMIT 1").fetchone()[
-        0
-    ]
-    original = con.execute("SELECT y_last_album FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET y_last_album = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET y_last_album = ? WHERE mbid = ?", [original - 1, mbid])
+    mbid = con.execute(
+        "SELECT mbid FROM artists WHERE y_last_album IS NOT NULL LIMIT 1"
+    ).fetchone()[0]
+    original = con.execute("SELECT y_last_album FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET y_last_album = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET y_last_album = ? WHERE mbid = ?", [original - 1, mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("last_album_mismatch") == 1
 
@@ -192,7 +194,7 @@ def test_album_out_of_window_is_reported(con):
     original = con.execute("SELECT y FROM albums WHERE rg_mbid = ?", [rg_mbid]).fetchone()[0]
     # 2027: past dump_year (2026) for *any* band, whichever one LIMIT 1
     # returns. 2026 fell within the acceptance window for 133 of the 181
-    # fixture bands and only passed by luck of sort order.
+    # fixture artists and only passed by luck of sort order.
     with restored(con, ("UPDATE albums SET y = ? WHERE rg_mbid = ?", [original, rg_mbid])):
         con.execute("UPDATE albums SET y = 2027 WHERE rg_mbid = ?", [rg_mbid])
         violations = dict(check_invariants(con, SQL))
@@ -214,40 +216,42 @@ def test_album_extra_secondary_type_is_reported(con):
 
 
 def test_first_album_mismatch_is_reported(con):
-    mbid = con.execute("SELECT mbid FROM bands WHERE y_first_album IS NOT NULL LIMIT 1").fetchone()[
-        0
-    ]
-    original = con.execute("SELECT y_first_album FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET y_first_album = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET y_first_album = ? WHERE mbid = ?", [original - 1, mbid])
+    mbid = con.execute(
+        "SELECT mbid FROM artists WHERE y_first_album IS NOT NULL LIMIT 1"
+    ).fetchone()[0]
+    original = con.execute("SELECT y_first_album FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET y_first_album = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET y_first_album = ? WHERE mbid = ?", [original - 1, mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("first_album_mismatch") == 1
 
 
 def test_y0_source_mismatch_is_reported_when_source_disagrees_with_the_value(con):
-    mbid = con.execute("SELECT mbid FROM bands WHERE y0_source = 'declared' LIMIT 1").fetchone()[0]
-    original = con.execute("SELECT y0 FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET y0 = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET y0 = ? WHERE mbid = ?", [original - 1, mbid])
+    mbid = con.execute("SELECT mbid FROM artists WHERE y0_source = 'declared' LIMIT 1").fetchone()[
+        0
+    ]
+    original = con.execute("SELECT y0 FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET y0 = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET y0 = ? WHERE mbid = ?", [original - 1, mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("y0_source_mismatch") == 1
 
 
 def test_y0_source_mismatch_is_reported_when_source_is_null_but_y0_is_not(con):
-    mbid = con.execute("SELECT mbid FROM bands WHERE y0_source IS NULL LIMIT 1").fetchone()[0]
-    with restored(con, ("UPDATE bands SET y0 = NULL, y0_source = NULL WHERE mbid = ?", [mbid])):
-        con.execute("UPDATE bands SET y0 = 1999, y0_source = NULL WHERE mbid = ?", [mbid])
+    mbid = con.execute("SELECT mbid FROM artists WHERE y0_source IS NULL LIMIT 1").fetchone()[0]
+    with restored(con, ("UPDATE artists SET y0 = NULL, y0_source = NULL WHERE mbid = ?", [mbid])):
+        con.execute("UPDATE artists SET y0 = 1999, y0_source = NULL WHERE mbid = ?", [mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("y0_source_mismatch") == 1
 
 
 def test_y_end_source_mismatch_is_reported(con):
-    mbid = con.execute("SELECT mbid FROM bands WHERE y_end_source = 'declared' LIMIT 1").fetchone()[
-        0
-    ]
-    original = con.execute("SELECT y_end FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET y_end = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET y_end = ? WHERE mbid = ?", [original - 1, mbid])
+    mbid = con.execute(
+        "SELECT mbid FROM artists WHERE y_end_source = 'declared' LIMIT 1"
+    ).fetchone()[0]
+    original = con.execute("SELECT y_end FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET y_end = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET y_end = ? WHERE mbid = ?", [original - 1, mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("y_end_source_mismatch") == 1
 
@@ -260,21 +264,21 @@ def test_y_end_source_mismatch_catches_a_last_album_label_naming_another_value(c
     # its own stated contract was violated. Asserted as a contract
     # ('last_album' => y_end = y_last_album), it fires.
     mbid = con.execute(
-        "SELECT mbid FROM bands WHERE y_end_source = 'last_album' LIMIT 1"
+        "SELECT mbid FROM artists WHERE y_end_source = 'last_album' LIMIT 1"
     ).fetchone()[0]
     original = con.execute(
-        "SELECT y0_declared, y_first_album, y_last_album, y_end FROM bands WHERE mbid = ?", [mbid]
+        "SELECT y0_declared, y_first_album, y_last_album, y_end FROM artists WHERE mbid = ?", [mbid]
     ).fetchone()
     with restored(
         con,
         (
-            "UPDATE bands SET y0_declared = ?, y_first_album = ?, y_last_album = ?, y_end = ? "
+            "UPDATE artists SET y0_declared = ?, y_first_album = ?, y_last_album = ?, y_end = ? "
             "WHERE mbid = ?",
             [*original, mbid],
         ),
     ):
         con.execute(
-            "UPDATE bands SET y0_declared = 2005, y_first_album = NULL, y_last_album = 1959, "
+            "UPDATE artists SET y0_declared = 2005, y_first_album = NULL, y_last_album = 1959, "
             "y_end = 2005 WHERE mbid = ?",
             [mbid],
         )
@@ -303,24 +307,24 @@ def test_density_population_mismatch_is_reported(con):
 
 def test_band_genres_out_of_order_is_reported(con):
     mbid = con.execute(
-        "SELECT mbid FROM bands WHERE len(genres) > 1 AND genre_source = 'declared' LIMIT 1"
+        "SELECT mbid FROM artists WHERE len(genres) > 1 AND genre_source = 'declared' LIMIT 1"
     ).fetchone()[0]
-    original = con.execute("SELECT genres FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    restore = "UPDATE bands SET genres = ?, genres_declared = ? WHERE mbid = ?"
+    original = con.execute("SELECT genres FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    restore = "UPDATE artists SET genres = ?, genres_declared = ? WHERE mbid = ?"
     with restored(con, (restore, [original, original, mbid])):
         # Both lists together: reversing `genres` alone is a genre_source_mismatch.
         con.execute(
-            "UPDATE bands SET genres = list_reverse(genres), "
+            "UPDATE artists SET genres = list_reverse(genres), "
             "genres_declared = list_reverse(genres_declared) WHERE mbid = ?",
             [mbid],
         )
-        reversed_genres = con.execute("SELECT genres FROM bands WHERE mbid = ?", [mbid]).fetchone()[
-            0
-        ]
+        reversed_genres = con.execute(
+            "SELECT genres FROM artists WHERE mbid = ?", [mbid]
+        ).fetchone()[0]
         violations = dict(check_invariants(con, SQL))
     assume_effective = reversed_genres != original
     assert assume_effective
-    assert violations.get("band_genres_out_of_order") == 1
+    assert violations.get("artist_genres_out_of_order") == 1
 
 
 def test_a_source_that_does_not_name_the_list_genres_came_from_is_reported(con):
@@ -328,9 +332,9 @@ def test_a_source_that_does_not_name_the_list_genres_came_from_is_reported(con):
     # that list `albums` is the mislabel genre_source exists to prevent.
     joy_division = "9a58fda3-f4ed-4080-a3a5-f457aac9fcdd"
     with restored(
-        con, ("UPDATE bands SET genre_source = 'declared' WHERE mbid = ?", [joy_division])
+        con, ("UPDATE artists SET genre_source = 'declared' WHERE mbid = ?", [joy_division])
     ):
-        con.execute("UPDATE bands SET genre_source = 'albums' WHERE mbid = ?", [joy_division])
+        con.execute("UPDATE artists SET genre_source = 'albums' WHERE mbid = ?", [joy_division])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("genre_source_mismatch") == 1
 
@@ -340,27 +344,27 @@ def test_album_genres_that_disagree_with_the_albums_are_reported(con):
     # of them is a sum the release-groups do not add up to.
     belle_stars = "62f7a211-0056-45fe-934a-37a388a7356f"
     original = con.execute(
-        "SELECT genres_from_albums FROM bands WHERE mbid = ?", [belle_stars]
+        "SELECT genres_from_albums FROM artists WHERE mbid = ?", [belle_stars]
     ).fetchone()[0]
-    restore = "UPDATE bands SET genres_from_albums = ?, genres = ? WHERE mbid = ?"
+    restore = "UPDATE artists SET genres_from_albums = ?, genres = ? WHERE mbid = ?"
     with restored(con, (restore, [original, original, belle_stars])):
         con.execute(
-            "UPDATE bands SET genres_from_albums = list_transform(genres_from_albums, "
+            "UPDATE artists SET genres_from_albums = list_transform(genres_from_albums, "
             "(g, i) -> CASE WHEN i = 1 THEN {'mbid': g.mbid, 'name': g.name, 'votes': g.votes + 1} "
             "ELSE g END) WHERE mbid = ?",
             [belle_stars],
         )
-        con.execute("UPDATE bands SET genres = genres_from_albums WHERE mbid = ?", [belle_stars])
+        con.execute("UPDATE artists SET genres = genres_from_albums WHERE mbid = ?", [belle_stars])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("genres_from_albums_mismatch") == 1
 
 
 def test_unknown_genre_is_reported(con):
-    mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
-    original = con.execute("SELECT genres FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET genres = ? WHERE mbid = ?", [original, mbid])):
+    mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    original = con.execute("SELECT genres FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET genres = ? WHERE mbid = ?", [original, mbid])):
         con.execute(
-            "UPDATE bands SET genres = list_append(genres, "
+            "UPDATE artists SET genres = list_append(genres, "
             "{'mbid': 'inconnu', 'name': 'x', 'votes': 1}) WHERE mbid = ?",
             [mbid],
         )
@@ -369,18 +373,18 @@ def test_unknown_genre_is_reported(con):
 
 
 def test_unknown_genre_survives_a_null_genre_mbid_in_the_vocabulary(con):
-    # Same NULL trap as album_without_band: a NULL genre_mbid in the
+    # Same NULL trap as album_without_artist: a NULL genre_mbid in the
     # `genres` subquery used to make NOT IN never true. Demonstrated in
     # review on this exact invariant.
-    mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
-    original = con.execute("SELECT genres FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
+    mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    original = con.execute("SELECT genres FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
     with restored(
         con,
-        ("UPDATE bands SET genres = ? WHERE mbid = ?", [original, mbid]),
+        ("UPDATE artists SET genres = ? WHERE mbid = ?", [original, mbid]),
         ("DELETE FROM genres WHERE genre_mbid IS NULL", []),
     ):
         con.execute(
-            "UPDATE bands SET genres = list_append(genres, "
+            "UPDATE artists SET genres = list_append(genres, "
             "{'mbid': 'inconnu-null-poison', 'name': 'x', 'votes': 1}) WHERE mbid = ?",
             [mbid],
         )
@@ -388,25 +392,25 @@ def test_unknown_genre_survives_a_null_genre_mbid_in_the_vocabulary(con):
         # with a NULL, and it must not have to be rewritten every time the
         # vocabulary gains a column it says nothing about.
         con.execute(
-            "INSERT INTO genres (genre_mbid, name, n_bands) VALUES (NULL, 'null-poison', 0)"
+            "INSERT INTO genres (genre_mbid, name, n_artists) VALUES (NULL, 'null-poison', 0)"
         )
         violations = dict(check_invariants(con, SQL))
     assert violations.get("unknown_genre") == 1
 
 
-def test_genre_n_bands_mismatch_is_reported(con):
+def test_genre_n_artists_mismatch_is_reported(con):
     genre_mbid = con.execute("SELECT genre_mbid FROM genres LIMIT 1").fetchone()[0]
     original = con.execute(
-        "SELECT n_bands FROM genres WHERE genre_mbid = ?", [genre_mbid]
+        "SELECT n_artists FROM genres WHERE genre_mbid = ?", [genre_mbid]
     ).fetchone()[0]
     with restored(
-        con, ("UPDATE genres SET n_bands = ? WHERE genre_mbid = ?", [original, genre_mbid])
+        con, ("UPDATE genres SET n_artists = ? WHERE genre_mbid = ?", [original, genre_mbid])
     ):
         con.execute(
-            "UPDATE genres SET n_bands = ? WHERE genre_mbid = ?", [original + 1, genre_mbid]
+            "UPDATE genres SET n_artists = ? WHERE genre_mbid = ?", [original + 1, genre_mbid]
         )
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("genre_n_bands_mismatch") == 1
+    assert violations.get("genre_n_artists_mismatch") == 1
 
 
 def test_presence_out_of_range_is_reported(con):
@@ -422,9 +426,11 @@ def test_presence_out_of_range_is_reported(con):
 
 def test_presence_end_mismatch_is_reported(con):
     mbid = con.execute("SELECT mbid FROM presence LIMIT 1").fetchone()[0]
-    original = con.execute("SELECT y_presence_end FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET y_presence_end = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET y_presence_end = ? WHERE mbid = ?", [original - 1, mbid])
+    original = con.execute("SELECT y_presence_end FROM artists WHERE mbid = ?", [mbid]).fetchone()[
+        0
+    ]
+    with restored(con, ("UPDATE artists SET y_presence_end = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET y_presence_end = ? WHERE mbid = ?", [original - 1, mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("presence_end_mismatch") == 1
 
@@ -471,7 +477,7 @@ def test_density_above_band_count_catches_a_genre_absent_from_the_vocabulary(con
 def test_density_excluded_genre_present_is_reported(tmp_path):
     # Own connection, own records: no witness genre reaches 200 candidate
     # release-groups, so the shared fixtures cannot exercise this rule at all.
-    # The view recomputes the rule from raw_release_groups and bands; it must
+    # The view recomputes the rule from raw_release_groups and artists; it must
     # stay empty on a correct build and fire on a smuggled-in row.
     artists, release_groups = unreliable_genre_records()
     c = build_synthetic(tmp_path, artists, release_groups)
@@ -499,8 +505,8 @@ def test_density_above_band_count_is_reported(con):
     genre_mbid, year, original_present = con.execute(
         "SELECT genre_mbid, year, present FROM density LIMIT 1"
     ).fetchone()
-    n_bands = con.execute(
-        "SELECT n_bands FROM genres WHERE genre_mbid = ?", [genre_mbid]
+    n_artists = con.execute(
+        "SELECT n_artists FROM genres WHERE genre_mbid = ?", [genre_mbid]
     ).fetchone()[0]
     with restored(
         con,
@@ -511,7 +517,7 @@ def test_density_above_band_count_is_reported(con):
     ):
         con.execute(
             "UPDATE density SET present = ? WHERE genre_mbid = ? AND year = ?",
-            [n_bands + 1, genre_mbid, year],
+            [n_artists + 1, genre_mbid, year],
         )
         violations = dict(check_invariants(con, SQL))
     assert violations.get("density_above_band_count") == 1
@@ -525,10 +531,10 @@ def test_member_without_band_is_reported(con):
 
 
 def test_member_without_band_survives_a_null_mbid_in_bands(con):
-    # Same NULL trap as album_without_band: a single NULL mbid in the `bands`
+    # Same NULL trap as album_without_artist: a single NULL mbid in the `artists`
     # subquery makes `x NOT IN (subquery)` never true, whatever x is, so the
     # invariant would go silent on every real violation. NOT EXISTS is NULL-safe.
-    row = con.execute("SELECT * FROM bands LIMIT 1").fetchone()
+    row = con.execute("SELECT * FROM artists LIMIT 1").fetchone()
     cols = [d[0] for d in con.description]
     values = list(row)
     values[cols.index("mbid")] = None
@@ -536,16 +542,16 @@ def test_member_without_band_survives_a_null_mbid_in_bands(con):
     with restored(
         con,
         ("DELETE FROM members WHERE band_mbid = 'inconnu-null-poison'", []),
-        ("DELETE FROM bands WHERE mbid IS NULL", []),
+        ("DELETE FROM artists WHERE mbid IS NULL", []),
     ):
         con.execute("INSERT INTO members VALUES ('inconnu-null-poison', 'person', 1999, NULL)")
-        con.execute(f"INSERT INTO bands VALUES ({placeholders})", values)
+        con.execute(f"INSERT INTO artists VALUES ({placeholders})", values)
         violations = dict(check_invariants(con, SQL))
     assert violations.get("member_without_band") == 1
 
 
 def test_member_without_person_is_reported(con):
-    band_mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
+    band_mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
     with restored(con, ("DELETE FROM members WHERE person_mbid IS NULL", [])):
         con.execute("INSERT INTO members VALUES (?, NULL, 1999, NULL)", [band_mbid])
         violations = dict(check_invariants(con, SQL))
@@ -581,7 +587,7 @@ def test_corrections_file_too_large_is_reported(con):
 def test_corrections_invalid_is_reported(con):
     # Three real silent no-ops: an unknown mbid, a misspelled field (typo),
     # and a field unsupported by apply_corrections.
-    mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
+    mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
     with restored(
         con,
         (
@@ -639,25 +645,25 @@ def test_band_unexpected_type_is_reported(con):
     # extract.py keeps {Group, Orchestra, Choir} and nothing states that
     # contract in SQL, while 60_density.sql depends on type = 'Group'. A change
     # to KEPT_TYPES moved both the population and the projection in silence.
-    mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
-    original = con.execute("SELECT type FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET type = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET type = 'Person' WHERE mbid = ?", [mbid])
+    mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    original = con.execute("SELECT type FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET type = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET type = 'Person' WHERE mbid = ?", [mbid])
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("band_unexpected_type") == 1
+    assert violations.get("artist_unexpected_type") == 1
 
 
 def test_band_unexpected_type_catches_a_null_type(con):
-    mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
-    original = con.execute("SELECT type FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET type = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET type = NULL WHERE mbid = ?", [mbid])
+    mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    original = con.execute("SELECT type FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
+    with restored(con, ("UPDATE artists SET type = ? WHERE mbid = ?", [original, mbid])):
+        con.execute("UPDATE artists SET type = NULL WHERE mbid = ?", [mbid])
         violations = dict(check_invariants(con, SQL))
-    assert violations.get("band_unexpected_type") == 1
+    assert violations.get("artist_unexpected_type") == 1
 
 
 def test_corrections_duplicate_is_reported(con):
-    mbid = con.execute("SELECT mbid FROM bands LIMIT 1").fetchone()[0]
+    mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
     with restored(con, ("DELETE FROM corrections WHERE justification = 'dup'", [])):
         con.execute(
             "INSERT INTO corrections VALUES (?, 'begin', '2000', 'dup', 's'), "
@@ -669,7 +675,7 @@ def test_corrections_duplicate_is_reported(con):
 
 
 def test_corrections_invalid_survives_a_null_mbid_in_raw_artists(con):
-    # Same NULL trap as album_without_band and unknown_genre: a NULL mbid
+    # Same NULL trap as album_without_artist and unknown_genre: a NULL mbid
     # in the `raw_artists` subquery used to make NOT IN never true.
     with restored(
         con,

@@ -21,7 +21,7 @@ SELECT DISTINCT
   yr(t.m.begin) AS y_begin,
   yr(t.m."end") AS y_end
 FROM raw_artists r
-JOIN bands b ON b.mbid = r.mbid,
+JOIN artists b ON b.mbid = r.mbid,
      UNNEST(r.members) AS t(m)
 -- A relation without a person points at nothing: dropped. Zero rows on the
 -- reference dump, hence no counter in manifest.json — a counter frozen at 0

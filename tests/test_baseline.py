@@ -10,17 +10,17 @@ from musilogy.paths import SQL_DIR, work_dir
 # once the dates are read as years. No relation is lost to a NULL person: the
 # reference dump carries none.
 BASELINE = {
-    "bands": 682_447,
+    "artists": 682_447,
     "albums": 643_403,
     "genres": 1_442,
     "density": 58_767,
     "members": 601_759,
 }
 # What the density exclusion rule (55_genre_reliability.sql) costs: 13 genres,
-# 4 311 (band, genre) pairs, 1 011 cells and 37 138 band-years. bands, albums,
+# 4 311 (band, genre) pairs, 1 011 cells and 37 138 band-years. artists, albums,
 # genres and members keep every one of them — population and projection are
 # different things, and only the projection narrows.
-DENSITY_EXCLUSIONS = {"genres": 13, "band_genre_pairs": 4_311}
+DENSITY_EXCLUSIONS = {"genres": 13, "artist_genre_pairs": 4_311}
 # Witness measurements of the multi-artist bias, from both extremes: classical
 # loses almost all its candidate credits, alternative metal almost none. A
 # definition computed from `albums` instead of raw_release_groups, or one that
@@ -37,7 +37,7 @@ Y0_SOURCE_BREAKDOWN = {"declared": 235_246, "first_album": 145_620, None: 301_58
 Y_END_SOURCE_BREAKDOWN = {"declared": 48_842, "last_album": 251_514, None: 382_091}
 # 25_band_genres.sql: the declared genres win, the albums take over. Every
 # count below that moved when it landed splits exactly along this column —
-# restricted to 'declared' bands, density, present and the excluded pairs give
+# restricted to 'declared' artists, density, present and the excluded pairs give
 # back their previous values (52 201, 1 972 825 and 1 554), and the 94 new
 # genres are reachable only through albums.
 GENRE_SOURCE_BREAKDOWN = {"declared": 103_221, "albums": 91_519, None: 487_707}
@@ -103,11 +103,11 @@ def test_reference_dump_matches_the_baseline():
         ("genre_source", GENRE_SOURCE_BREAKDOWN),
     ):
         got_breakdown = dict(
-            con.execute(f"SELECT {column}, count(*) FROM bands GROUP BY {column}").fetchall()
+            con.execute(f"SELECT {column}, count(*) FROM artists GROUP BY {column}").fetchall()
         )
         assert got_breakdown == expected_breakdown, column
 
-    row = con.execute("SELECT count(*) FROM bands WHERE y0 IS NOT NULL").fetchone()
+    row = con.execute("SELECT count(*) FROM artists WHERE y0 IS NOT NULL").fetchone()
     assert row is not None
     assert row[0] == PLACEABLE
 
@@ -141,7 +141,7 @@ def test_reference_dump_matches_the_baseline():
     assert row[0] == 1
 
     row = con.execute(
-        "SELECT count(*) FROM bands WHERE y_end IS NOT NULL AND y0 IS NOT NULL AND y_end < y0"
+        "SELECT count(*) FROM artists WHERE y_end IS NOT NULL AND y0 IS NOT NULL AND y_end < y0"
     ).fetchone()
     assert row is not None
     assert row[0] == 0
@@ -149,18 +149,18 @@ def test_reference_dump_matches_the_baseline():
     row = con.execute(
         """
         WITH cred AS (
-          SELECT list_distinct(artists)[1] AS band_mbid, yr(date) AS y,
+          SELECT list_distinct(artists)[1] AS artist_mbid, yr(date) AS y,
                  coalesce(secondary, []) AS sec
           FROM raw_release_groups
           WHERE len(list_distinct(artists)) = 1
             AND yr(date) BETWEEN 1850 AND 2026
         ),
         pairs AS (
-          SELECT c.band_mbid,
+          SELECT c.artist_mbid,
                  min(c.y) FILTER (WHERE list_contains(c.sec, 'Demo')) AS y_demo,
                  min(c.y) FILTER (WHERE len(c.sec) = 0) AS y_studio
-          FROM cred c JOIN bands b ON b.mbid = c.band_mbid
-          GROUP BY c.band_mbid
+          FROM cred c JOIN artists b ON b.mbid = c.artist_mbid
+          GROUP BY c.artist_mbid
           HAVING y_demo IS NOT NULL AND y_studio IS NOT NULL
         )
         SELECT count(*), count(*) FILTER (WHERE y_demo < y_studio),
@@ -172,14 +172,14 @@ def test_reference_dump_matches_the_baseline():
 
     row = con.execute(
         """
-        SELECT count(DISTINCT l.band_mbid) FROM (
-          SELECT list_distinct(artists)[1] AS band_mbid, yr(date) AS y
+        SELECT count(DISTINCT l.artist_mbid) FROM (
+          SELECT list_distinct(artists)[1] AS artist_mbid, yr(date) AS y
           FROM raw_release_groups
           WHERE list_contains(coalesce(secondary, []), 'Live')
             AND len(list_distinct(artists)) = 1
             AND yr(date) IS NOT NULL
             AND yr(date) BETWEEN 1850 AND 2026
-        ) l JOIN bands b ON b.mbid = l.band_mbid
+        ) l JOIN artists b ON b.mbid = l.artist_mbid
         WHERE b.y_last_album IS NOT NULL AND l.y - b.y_last_album > 20
         """
     ).fetchone()
@@ -187,8 +187,8 @@ def test_reference_dump_matches_the_baseline():
     assert row[0] == LIVE_LONG_AFTER_LAST_STUDIO
 
     row = con.execute(
-        "SELECT count(*) FROM bands b WHERE NOT EXISTS "
-        "(SELECT 1 FROM albums a WHERE a.band_mbid = b.mbid)"
+        "SELECT count(*) FROM artists b WHERE NOT EXISTS "
+        "(SELECT 1 FROM albums a WHERE a.artist_mbid = b.mbid)"
     ).fetchone()
     assert row is not None
     assert row[0] == BANDS_WITHOUT_ALBUM

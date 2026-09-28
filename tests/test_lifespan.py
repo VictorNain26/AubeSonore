@@ -16,7 +16,7 @@ def test_first_album_fallback_is_refused_when_it_postdates_a_declared_end(tmp_pa
         [synthetic_release_group("rg-1", mbid, "2022-05-01")],
     )
     row = c.execute(
-        "SELECT y0, y0_source, y_first_album, y_end, y_end_source FROM bands WHERE mbid = ?",
+        "SELECT y0, y0_source, y_first_album, y_end, y_end_source FROM artists WHERE mbid = ?",
         [mbid],
     ).fetchone()
     assert row == (None, None, 2022, 1969, "declared")
@@ -33,7 +33,7 @@ def test_first_album_fallback_is_accepted_when_it_does_not_contradict_a_declared
         [synthetic_release_group("rg-2", mbid, "1965-03-01")],
     )
     row = c.execute(
-        "SELECT y0, y0_source, y_end, y_end_source FROM bands WHERE mbid = ?", [mbid]
+        "SELECT y0, y0_source, y_end, y_end_source FROM artists WHERE mbid = ?", [mbid]
     ).fetchone()
     assert row == (1965, "first_album", 1969, "declared")
     assert counter(c, "first_album_after_declared_end") == 0
@@ -52,7 +52,7 @@ def test_last_album_fallback_is_refused_when_it_predates_a_declared_begin(tmp_pa
         [synthetic_release_group("rg-5", mbid, "1959-06-01")],
     )
     row = c.execute(
-        "SELECT y0, y0_source, y_last_album, y_end, y_end_source FROM bands WHERE mbid = ?",
+        "SELECT y0, y0_source, y_last_album, y_end, y_end_source FROM artists WHERE mbid = ?",
         [mbid],
     ).fetchone()
     assert row == (2005, "declared", 1959, None, None)
@@ -69,7 +69,7 @@ def test_last_album_fallback_is_accepted_when_it_does_not_contradict_a_declared_
         [synthetic_release_group("rg-6", mbid, "2007-06-01")],
     )
     row = c.execute(
-        "SELECT y0, y0_source, y_end, y_end_source FROM bands WHERE mbid = ?", [mbid]
+        "SELECT y0, y0_source, y_end, y_end_source FROM artists WHERE mbid = ?", [mbid]
     ).fetchone()
     assert row == (2005, "declared", 2007, "last_album")
     assert counter(c, "last_album_before_declared_begin") == 0
@@ -86,7 +86,7 @@ def test_first_album_fallback_is_refused_when_the_declared_begin_is_below_the_fl
         [synthetic_release_group("rg-7", mbid, "2016-01-01")],
     )
     row = c.execute(
-        "SELECT y0_declared, y_first_album, y0, y0_source FROM bands WHERE mbid = ?", [mbid]
+        "SELECT y0_declared, y_first_album, y0, y0_source FROM artists WHERE mbid = ?", [mbid]
     ).fetchone()
     assert row == (None, 2016, None, None)
     assert counter(c, "first_album_with_begin_below_min_year") == 1
@@ -103,7 +103,7 @@ def test_first_album_fallback_survives_an_illegible_begin(tmp_path):
         [synthetic_artist(mbid, "????-01-01", None)],
         [synthetic_release_group("rg-8", mbid, "2016-01-01")],
     )
-    row = c.execute("SELECT y0, y0_source FROM bands WHERE mbid = ?", [mbid]).fetchone()
+    row = c.execute("SELECT y0, y0_source FROM artists WHERE mbid = ?", [mbid]).fetchone()
     assert row == (2016, "first_album")
     assert counter(c, "first_album_with_begin_below_min_year") == 0
 
@@ -119,7 +119,7 @@ def test_y_end_falls_back_to_last_album_when_there_is_no_declared_end(tmp_path):
         ],
     )
     row = c.execute(
-        "SELECT y0, y0_source, y_end, y_end_source FROM bands WHERE mbid = ?", [mbid]
+        "SELECT y0, y0_source, y_end, y_end_source FROM artists WHERE mbid = ?", [mbid]
     ).fetchone()
     assert row == (1990, "declared", 1998, "last_album")
 
@@ -128,6 +128,6 @@ def test_y0_and_y_end_are_both_null_without_any_evidence(tmp_path):
     mbid = "no-evidence-band"
     c = build_synthetic(tmp_path, [synthetic_artist(mbid, None, None)])
     row = c.execute(
-        "SELECT y0, y0_source, y_end, y_end_source FROM bands WHERE mbid = ?", [mbid]
+        "SELECT y0, y0_source, y_end, y_end_source FROM artists WHERE mbid = ?", [mbid]
     ).fetchone()
     assert row == (None, None, None, None)
