@@ -194,9 +194,10 @@ CREATE OR REPLACE VIEW genre_unreliable_recomputed AS
     WHERE yr(date) BETWEEN 1850 AND 2026
       AND len(list_filter(coalesce(secondary, []), s -> s NOT IN ('Soundtrack', 'Demo'))) = 0
   )
+  -- genres_declared, like the rule: album genres would bias the rate down.
   SELECT t.g.mbid AS genre_mbid
   FROM credits c JOIN bands b ON b.mbid = c.artist_mbid,
-       UNNEST(b.genres) AS t(g)
+       UNNEST(b.genres_declared) AS t(g)
   GROUP BY t.g.mbid
   HAVING count(*) >= 200
      AND round(100.0 * sum(c.multi::INTEGER) / count(*), 1) >= 50;
