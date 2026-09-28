@@ -10,6 +10,12 @@
 -- Candidates come from raw_release_groups, NOT from `albums`: `albums` has
 -- already dropped the multi-artist release-groups, so the rate read there
 -- would be zero by construction and the loss unrecoverable.
+--
+-- Genres come from genres_declared, NOT from `genres`: a band that takes its
+-- albums' genres (25_band_genres.sql) does so only through albums credited to
+-- it alone, so every one of its candidates is single-artist and the rate would
+-- be pulled down by construction. On the reference dump that bias alone lets
+-- `modern classical` fall from 78.8 % to 38.7 % and leave the exclusion.
 CREATE OR REPLACE TABLE genre_multi_artist_drop AS
 WITH candidates AS (
   SELECT list_distinct(artists) AS credited,
@@ -32,7 +38,7 @@ SELECT
   round(100.0 * sum(c.multi::INTEGER) / count(*), 1) AS multi_artist_drop_pct
 FROM credits c
 JOIN bands b ON b.mbid = c.artist_mbid,
-     UNNEST(b.genres) AS t(g)
+     UNNEST(b.genres_declared) AS t(g)
 GROUP BY t.g.mbid;
 
 ALTER TABLE genres ADD COLUMN n_candidate_credits BIGINT;

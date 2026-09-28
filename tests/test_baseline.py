@@ -12,15 +12,15 @@ from musilogy.paths import SQL_DIR, work_dir
 BASELINE = {
     "bands": 682_447,
     "albums": 643_403,
-    "genres": 1_348,
-    "density": 52_201,
+    "genres": 1_442,
+    "density": 58_767,
     "members": 601_759,
 }
 # What the density exclusion rule (55_genre_reliability.sql) costs: 13 genres,
-# 1 554 (band, genre) pairs, 828 cells and 10 504 band-years. bands, albums,
+# 4 311 (band, genre) pairs, 1 011 cells and 37 138 band-years. bands, albums,
 # genres and members keep every one of them — population and projection are
 # different things, and only the projection narrows.
-DENSITY_EXCLUSIONS = {"genres": 13, "band_genre_pairs": 1_554}
+DENSITY_EXCLUSIONS = {"genres": 13, "band_genre_pairs": 4_311}
 # Witness measurements of the multi-artist bias, from both extremes: classical
 # loses almost all its candidate credits, alternative metal almost none. A
 # definition computed from `albums` instead of raw_release_groups, or one that
@@ -35,8 +35,14 @@ MULTI_ARTIST_DROP = {
 }
 Y0_SOURCE_BREAKDOWN = {"declared": 235_246, "first_album": 145_620, None: 301_581}
 Y_END_SOURCE_BREAKDOWN = {"declared": 48_842, "last_album": 251_514, None: 382_091}
+# 25_band_genres.sql: the declared genres win, the albums take over. Every
+# count below that moved when it landed splits exactly along this column —
+# restricted to 'declared' bands, frieze, density, present, lineage and the
+# excluded pairs give back their previous values (84 262, 52 201, 1 972 825,
+# 37 136 and 1 554), and the 94 new genres are reachable only through albums.
+GENRE_SOURCE_BREAKDOWN = {"declared": 103_221, "albums": 91_519, None: 487_707}
 PLACEABLE = 380_866
-DENSITY_PRESENT = 1_972_825
+DENSITY_PRESENT = 4_242_411
 # The date readings the dump loses, and the album inferences the guards of
 # 30_bands_lifespan.sql refuse. Frozen here too: a guard that stops firing is
 # as much a regression as a count that moves.
@@ -65,16 +71,11 @@ LIVE_LONG_AFTER_LAST_STUDIO = 710
 BANDS_WITHOUT_ALBUM = 404_925
 # The frieze projection and its lineage graph. FRIEZE is density's population
 # seen band by band: if it diverges from the density population, one of the two
-# is wrong, and the frieze_population_mismatch invariant says which.
-# LINEAGE and LINEAGE_STRONG differ from the design spec's estimate (37 322 and
-# 5 340): the spec (2026-09-13-layer1-frieze-design.md) measured them on the
-# 84 722-band population, before the density_eligible filter, and calls them
-# upper bounds "à 0,5 % près". frieze already lands on the filtered 84 262
-# exactly; lineage inherits the same ~0.5 % reduction because the 460 bands
-# the filter drops take their edges with them.
-FRIEZE = 84_262
-LINEAGE = 37_136
-LINEAGE_STRONG = 5_311
+# is wrong, and the frieze_population_mismatch invariant says which. Of the
+# 175 403 dated groups carrying a genre, 887 carry only excluded genres.
+FRIEZE = 174_516
+LINEAGE = 104_859
+LINEAGE_STRONG = 13_209
 WORK = work_dir(REFERENCE_DUMP)
 
 
@@ -103,15 +104,15 @@ def test_reference_dump_matches_the_baseline():
         got = row[0]
         assert got == expected, f"{table}: expected {expected}, got {got}"
 
-    got_y0_source = dict(
-        con.execute("SELECT y0_source, count(*) FROM bands GROUP BY y0_source").fetchall()
-    )
-    assert got_y0_source == Y0_SOURCE_BREAKDOWN
-
-    got_y_end_source = dict(
-        con.execute("SELECT y_end_source, count(*) FROM bands GROUP BY y_end_source").fetchall()
-    )
-    assert got_y_end_source == Y_END_SOURCE_BREAKDOWN
+    for column, expected_breakdown in (
+        ("y0_source", Y0_SOURCE_BREAKDOWN),
+        ("y_end_source", Y_END_SOURCE_BREAKDOWN),
+        ("genre_source", GENRE_SOURCE_BREAKDOWN),
+    ):
+        got_breakdown = dict(
+            con.execute(f"SELECT {column}, count(*) FROM bands GROUP BY {column}").fetchall()
+        )
+        assert got_breakdown == expected_breakdown, column
 
     row = con.execute("SELECT count(*) FROM bands WHERE y0 IS NOT NULL").fetchone()
     assert row is not None

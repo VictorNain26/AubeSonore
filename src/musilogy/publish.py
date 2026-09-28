@@ -38,6 +38,9 @@ BANDS_WEB_COLUMNS = [
     "country",
     "begin_area",
     "genres",
+    "genre_source",
+    "genres_declared",
+    "genres_from_albums",
 ]
 # A delivery has to come out in a fixed order, or the same code on the same
 # extraction writes different bytes: the tables are built by parallel joins and
@@ -56,7 +59,7 @@ ORDER_BY = {
 WEB_COLUMNS = {
     # density_eligible carries the exclusion rule of 60_density.sql itself:
     # without it a web-only consumer cannot apply the rule, recomputes density
-    # from bands_timeline alone, and silently invents the 828 cells of the
+    # from bands_timeline alone, and silently invents the 1 011 cells of the
     # art-music genres this layer deliberately withholds. The two measurements
     # stay published alongside it for whoever wants to audit the rule rather
     # than trust it.

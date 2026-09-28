@@ -10,18 +10,18 @@ function delivered(name: string) {
   return bytes;
 }
 
-// 84262 and 37136 are read back from the manifest as it stood when this
+// 174516 and 104859 are read back from the manifest as it stood when this
 // suite was written; tests/test_baseline.py is the single point of authority
 // for these figures should the dump ever move.
 describe("the delivered blobs", () => {
   it("hold the frieze population the baseline freezes", async () => {
     const frieze = readFrieze(await inflateIfGzipped(delivered("frieze.bin.gz")));
-    expect(frieze.count).toBe(84262);
+    expect(frieze.count).toBe(174516);
   });
 
   it("hold the lineage edges the baseline freezes", async () => {
     const lineage = readLineage(await inflateIfGzipped(delivered("lineage.bin.gz")));
-    expect(lineage.count).toBe(37136);
+    expect(lineage.count).toBe(104859);
   });
 
   it("carry rows ordered on (y0, mbid), the key both writers sort by", async () => {

@@ -35,6 +35,6 @@ def test_the_web_fixtures_are_not_ignored_by_git():
 
 
 def test_the_witness_frieze_holds_the_bands_the_reader_tests_expect(con):
-    assert con.execute("SELECT count(*) FROM frieze").fetchone()[0] == 20
+    assert con.execute("SELECT count(*) FROM frieze").fetchone()[0] == 22
     assert con.execute("SELECT count(*) FROM lineage").fetchone()[0] == 1
-    assert con.execute("SELECT src, dst, shared FROM lineage").fetchone() == (6, 7, 3)
+    assert con.execute("SELECT src, dst, shared FROM lineage").fetchone() == (6, 8, 3)

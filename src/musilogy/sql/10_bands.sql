@@ -50,5 +50,5 @@ SELECT mbid, name, type, y0_declared, y_end_declared, ended, country, begin_area
   list_transform(
     list_sort(list_transform(genres, x -> {'k': [-x.votes::INT], 'n': x.name, 'v': x})),
     y -> y.v
-  ) AS genres
+  ) AS genres_declared
 FROM dated;

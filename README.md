@@ -18,13 +18,13 @@ Mesurées sur le dump de référence `20260909-001002` :
 |---|---|---|
 | `bands` | un artiste : ses preuves de dates, sa ligne de vie dérivée, ses genres votés | 682 447 |
 | `albums` | un point : une sortie d'album créditée à un seul artiste | 643 403 |
-| `genres` | le vocabulaire porté par `bands`, avec sa fiabilité mesurée | 1 348 |
+| `genres` | le vocabulaire porté par `bands`, avec sa fiabilité mesurée | 1 442 |
 | `members` | un lien : un musicien dans un groupe, avec ses années | 601 759 |
-| `density` | groupes présents par genre et par année | 52 201 cellules |
+| `density` | groupes présents par genre et par année | 58 767 cellules |
 
 Colonnes réelles (voir `src/musilogy/sql/`) :
 
-- **`bands`** : `mbid`, `name`, `type`, `y0_declared`, `y_end_declared`, `ended`, `country`, `begin_area`, `genres` (liste de `{mbid, name, votes}`, triée), `y_first_album`, `y_last_album`, `y0`, `y0_source`, `y_end`, `y_end_source`, `y_presence_end`.
+- **`bands`** : `mbid`, `name`, `type`, `y0_declared`, `y_end_declared`, `ended`, `country`, `begin_area`, `genres_declared` et `genres_from_albums` (listes de `{mbid, name, votes}`, triées), `genres`, `genre_source`, `y_first_album`, `y_last_album`, `y0`, `y0_source`, `y_end`, `y_end_source`, `y_presence_end`.
 - **`albums`** : `band_mbid`, `rg_mbid`, `title`, `y`, `soundtrack`.
 - **`genres`** : `genre_mbid`, `name`, `n_bands`, `density_eligible`, `n_candidate_credits`, `multi_artist_drop_pct`.
 - **`members`** : `band_mbid`, `person_mbid`, `y_begin`, `y_end`.
@@ -42,6 +42,8 @@ Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la n
 
   Les démos sont acceptées parce qu'elles sont une preuve *contemporaine* d'activité précoce : 67,5 % des artistes ayant démo et album studio ont sorti la démo d'abord, 3 ans plus tôt en médiane parmi eux. Les albums live sont exclus pour la raison inverse : **MusicBrainz les date de leur publication, pas du concert** — 710 artistes ont un live daté plus de 20 ans après leur dernier studio, avec des titres qui portent eux-mêmes la vraie date (« Live in Paris (1966) », publié en 2024). Compilations, DJ-mix et remix sont exclus au même titre.
 
+- **`25_band_genres` — Genres d'un groupe.** La règle des dates, appliquée aux genres : **les genres déclarés l'emportent, ceux des albums prennent le relais.** Un groupe qui ne déclare aucun genre reçoit la somme des votes des genres de ses propres albums, ceux que `20_albums` a retenus. Un groupe qui en déclare ne mélange jamais ceux de ses albums : ce sont des votes sur des objets différents, et une union laisserait un album l'emporter sur le groupe. `genre_source` nomme la branche (`declared`, `albums`, ou NULL) ; les deux listes brutes restent publiées à côté de `genres`. Sur le dump de référence, 47,0 % des artistes porteurs d'un genre le tiennent de leurs albums.
+
 - **`30_bands_lifespan` — Ligne de vie et provenance.** Aux deux bords, **la preuve déclarée l'emporte, l'album prend le relais** : `y0` vaut l'année déclarée, sinon celle du premier album ; `y_end` la fin déclarée, sinon celle du dernier album. `y0_source` et `y_end_source` nomment la branche qui a produit la valeur. Les preuves brutes restent publiées à côté.
 
   **Une preuve issue d'un album n'est retenue à un bord que si elle ne contredit pas la preuve déclarée à l'autre bord.** Trois garde-fous symétriques, chacun compté :
@@ -54,9 +56,9 @@ Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la n
 
 - **`40_presence` — Présence.** Seuls les artistes dont `y0` est connu. `y_presence_end` borne `y_end` à l'année du dump.
 
-- **`50_genres` — Vocabulaire.** Les genres effectivement portés par `bands`.
+- **`50_genres` — Vocabulaire.** Les genres effectivement portés par `bands.genres`, y compris ceux qu'aucun groupe ne déclare et que seuls des albums portent.
 
-- **`55_genre_reliability` — Fiabilité mesurée.** Pour chaque genre, combien de lignes de crédit ses groupes auraient pu porter (`n_candidate_credits`) — une sortie créditée à deux artistes qui portent tous deux le genre compte deux fois, ce qui distingue les 27 199 crédits mesurés pour `classical` de ses 25 465 release-groups distincts — et quelle part la règle du crédit unique en écarte (`multi_artist_drop_pct`). Un genre sans aucun candidat garde NULL, pas 0.
+- **`55_genre_reliability` — Fiabilité mesurée.** Pour chaque genre, combien de lignes de crédit ses groupes auraient pu porter (`n_candidate_credits`) — une sortie créditée à deux artistes qui portent tous deux le genre compte deux fois, ce qui distingue les 27 199 crédits mesurés pour `classical` de ses 25 465 release-groups distincts — et quelle part la règle du crédit unique en écarte (`multi_artist_drop_pct`). Un genre sans aucun candidat garde NULL, pas 0. La mesure lit `genres_declared`, pas `genres` : un groupe ne reçoit les genres de ses albums que par des sorties créditées à lui seul, donc tous leurs candidats sont mono-artistes et le taux baisserait par construction — `modern classical` passerait de 78,8 % à 38,7 % et sortirait de l'exclusion.
 
 - **`60_density` — Densité.** Délibérément plus étroite que la population : type `Group`, `y0` connu, au moins un genre, **et un genre `density_eligible`** — la règle est matérialisée dans `55_genre_reliability`, ce fichier ne fait que l'appliquer. Un groupe compte dans chacun de ses genres ; les totaux par genre ne s'additionnent pas.
 
@@ -80,16 +82,16 @@ Coder une liste de genres « classiques » serait un jugement arbitraire à main
 
 La règle est donc mesurée, pas nommée : `density` écarte les genres dont **la moitié au moins des albums candidats sont perdus, sur un échantillon d'au moins 200**. Le minimum d'échantillon porte du sens : au seuil seul, 35 genres sortiraient, dont `soukous`, `congolese rumba`, `lovers rock`, `punta` et `huayno` — de la musique populaire dont le taux élevé n'est que du bruit d'échantillon.
 
-Résultat : **13 genres écartés, 1 554 paires groupe-genre sur 214 948.** Sur les 102 098 groupes porteurs d'un genre, 101 291 sont intacts, 211 gardent leur place grâce à un autre genre, et **596 perdent tout genre publiable** — dont 343 `string quartet` et 304 `classical`. 136 de ces 596 n'avaient de toute façon aucun `y0` et n'étaient pas plaçables sur la frise : la perte réelle pour `density` est de **460**. Aucun artiste et aucun album n'est supprimé : `classical` reste dans `genres` avec ses 846 groupes dans `bands` et leurs albums dans `albums`.
+Résultat : **13 genres écartés, 4 311 paires groupe-genre sur 511 490.** Sur les 192 809 groupes porteurs d'un genre, 189 993 sont intacts, 1 793 gardent leur place grâce à un autre genre, et **1 023 perdent tout genre publiable** — dont 715 `classical` et 343 `string quartet`. 136 de ces 1 023 n'avaient de toute façon aucun `y0` et n'étaient pas plaçables sur la frise : la perte réelle pour `density` est de **887**. Aucun artiste et aucun album n'est supprimé : `classical` reste dans `genres` avec ses 2 659 artistes dans `bands` et leurs albums dans `albums`.
 
-Le coût mesuré de la règle est un faux positif, `mincecore` (73,1 % sur 216 candidats), un micro-genre de grindcore : sur ses 16 groupes, un seul sort de la frise, et il n'a aucun album. Aucune exception n'est codée pour lui — une liste d'exceptions serait l'arbitrage qu'on évite.
+Le coût mesuré de la règle est un faux positif, `mincecore` (73,1 % sur 216 candidats), un micro-genre de grindcore : sur ses 20 groupes, trois sortent de la frise. Aucune exception n'est codée pour lui — une liste d'exceptions serait l'arbitrage qu'on évite.
 
 ## Ce que reçoit la couche 1
 
 `data/out/<dump>/` contient les cinq tables en Parquet (archive complète), le manifeste, et un export JSON colonnaire gzippé **scindé** :
 
-- `web/bands_timeline.json.gz` — les artistes dont `y0` est connu, donc plaçables sur une frise (15,6 Mo) ;
-- `web/bands_rest.json.gz` — les autres, chargeables à la demande (9,4 Mo) ;
+- `web/bands_timeline.json.gz` — les artistes dont `y0` est connu, donc plaçables sur une frise (24,7 Mo) ;
+- `web/bands_rest.json.gz` — les autres, chargeables à la demande (9,9 Mo) ;
 - `web/genres.json.gz` — le vocabulaire, avec `density_eligible`, `n_candidate_credits` et `multi_artist_drop_pct` ;
 - `web/density.json.gz` — l'agrégat par genre et par année.
 
@@ -101,13 +103,13 @@ Et trois blobs binaires, la frise elle-même :
 
 Les trois s'indexent par le rang de ligne de `frieze`, pas par `mbid` : c'est ce qui rend la jointure implicite et le décodage immédiat. `docs/superpowers/specs/2026-09-13-layer1-frieze-design.md` décrit les trois formats octet par octet.
 
-`density` est publié plutôt que laissé à recalculer, et `density_eligible` voyage désormais avec le vocabulaire comme une colonne à part entière — la règle elle-même, pas seulement les deux mesures qui la motivent, elles aussi publiées à côté pour qui veut l'auditer plutôt que la croire sur parole. Un consommateur n'a donc plus de seuil à coder en dur : sans cette colonne, reconstruire la densité depuis les seuls artefacts web donne 53 029 cellules au lieu de 52 201 — les 828 cellules des treize genres que la couche 0 refuse délibérément de publier. Réimplémenter une règle, c'est là qu'elle se perd.
+`density` est publié plutôt que laissé à recalculer, et `density_eligible` voyage désormais avec le vocabulaire comme une colonne à part entière — la règle elle-même, pas seulement les deux mesures qui la motivent, elles aussi publiées à côté pour qui veut l'auditer plutôt que la croire sur parole. Un consommateur n'a donc plus de seuil à coder en dur : sans cette colonne, reconstruire la densité depuis les seuls artefacts web donne 59 778 cellules au lieu de 58 767 — les 1 011 cellules des treize genres que la couche 0 refuse délibérément de publier. Réimplémenter une règle, c'est là qu'elle se perd.
 
 Chaque ligne porte son `mbid` — la clé de jointure vers `density`, `members` et MusicBrainz — ses `genres`, et les deux bords avec leurs preuves brutes des deux côtés.
 
-**Attention à `y_presence_end` quand la fin est inconnue.** La colonne vaut alors `y0` : le groupe se réduit à une barre d'un an. Cela concerne **22 496 groupes sur les 84 722 de type `Group` datés et porteurs d'un genre, soit 26,6 %**, dont 9 788 qui ne sont pas terminés et n'ont aucune preuve de fin. Sur ces 84 722, **84 262 alimentent effectivement une cellule** de `density` ; les 460 autres ne portent que des genres exclus. Un groupe formé en 2026 est donc un point, pas une barre ouverte. Pour rendre cela honnêtement, la couche 1 doit lire `ended` et `y_end_source` plutôt que `y_presence_end` seul : c'est le rendu faux le plus probable d'une première intégration.
+**Attention à `y_presence_end` quand la fin est inconnue.** La colonne vaut alors `y0` : le groupe se réduit à une barre d'un an. Cela concerne **53 761 groupes sur les 175 403 de type `Group` datés et porteurs d'un genre, soit 30,6 %**, dont 9 850 qui ne sont pas terminés et n'ont aucune preuve de fin. Sur ces 175 403, **174 516 alimentent effectivement une cellule** de `density` ; les 887 autres ne portent que des genres exclus. Un groupe formé en 2026 est donc un point, pas une barre ouverte. Pour rendre cela honnêtement, la couche 1 doit lire `ended` et `y_end_source` plutôt que `y_presence_end` seul : c'est le rendu faux le plus probable d'une première intégration.
 
-**Deux sujets restent ouverts pour la couche 1.** Le poids : 15,6 Mo gzip pour la frise, non pas à cause des genres (1,7 Mo) mais des identifiants eux-mêmes, des UUID de 36 octets qui ne se compressent pas ; un chargement initial complet n'est pas réaliste sur mobile, et le découpage par genre ou par période lui revient. Et l'absence de hiérarchie : les 1 348 genres sont **plats**, sans regroupement possible, faute de source fiable — parcourir cette liste à la main n'est pas une interface.
+**Deux sujets restent ouverts pour la couche 1.** Le poids : 24,7 Mo gzip pour `bands_timeline`, dont 10,2 Mo pour les quatre colonnes de genres — `genres` y double l'une des deux listes brutes, par principe de provenance — et 7,8 Mo pour les identifiants eux-mêmes, des UUID de 36 octets qui ne se compressent pas ; un chargement initial complet n'est pas réaliste sur mobile, et le découpage par genre ou par période lui revient. Et l'absence de hiérarchie : les 1 442 genres sont **plats**, sans regroupement possible, faute de source fiable — parcourir cette liste à la main n'est pas une interface.
 
 `manifest.json` porte les empreintes des archives **et celles des douze fichiers livrés** — cinq Parquet, quatre `.json.gz`, trois blobs — (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les trois compteurs de neutralisation, les exclusions de densité, le commit et l'empreinte des corrections.
 
@@ -117,7 +119,7 @@ Ces empreintes de sortie sont opposables parce que la livraison est reproductibl
 
 Le **contrat exécutable** est `tests/test_baseline.py` : il confronte le pipeline entier au dump de référence et compare exactement les comptes, la somme des cellules de densité et la répartition des provenances. Les chiffres cités ici sont descriptifs ; en cas de divergence, c'est le test qui fait foi.
 
-Deux situations, deux conduites, à ne pas confondre. **Sur le dump de référence, un écart signale une règle mal implémentée** — jamais un prétexte pour ajuster la ligne de base. **Sur un nouveau dump, tous les chiffres bougent légitimement**, et la ligne de base se régénère : les cinq comptes, les deux répartitions de provenance, les sept compteurs d'anomalies, les trois de neutralisation et les exclusions de densité. Il faut alors aussi mettre à jour `REFERENCE_DUMP`, la valeur par défaut de `dump_year`, ajouter le `reference/<dump>.SHA256SUMS` correspondant, et modifier à la main les bornes codées en dur dans les vues de `90_invariants.sql` — cette dernière opération est délibérément manuelle, c'est ce qui empêche une mauvaise variable de satisfaire à la fois la règle et son contrôle. Les extractions vivant dans `data/work/<dump>/`, changer `REFERENCE_DUMP` suffit à repartir d'une extraction neuve, sans rien vider à la main ; le manifeste porte déjà les paramètres du run (section précédente).
+Deux situations, deux conduites, à ne pas confondre. **Sur le dump de référence, un écart signale une règle mal implémentée** — jamais un prétexte pour ajuster la ligne de base. **Sur un nouveau dump, tous les chiffres bougent légitimement**, et la ligne de base se régénère : les cinq comptes, les trois répartitions de provenance, les sept compteurs d'anomalies, les trois de neutralisation et les exclusions de densité. Il faut alors aussi mettre à jour `REFERENCE_DUMP`, la valeur par défaut de `dump_year`, ajouter le `reference/<dump>.SHA256SUMS` correspondant, et modifier à la main les bornes codées en dur dans les vues de `90_invariants.sql` — cette dernière opération est délibérément manuelle, c'est ce qui empêche une mauvaise variable de satisfaire à la fois la règle et son contrôle. Les extractions vivant dans `data/work/<dump>/`, changer `REFERENCE_DUMP` suffit à repartir d'une extraction neuve, sans rien vider à la main ; le manifeste porte déjà les paramètres du run (section précédente).
 
 Provenance des bords, sur le dump de référence :
 
@@ -125,16 +127,17 @@ Provenance des bords, sur le dump de référence :
 |---|---|---|---|
 | début (`y0_source`) | 235 246 | 145 620 | 301 581 |
 | fin (`y_end_source`) | 48 842 | 251 514 | 382 091 |
+| genres (`genre_source`) | 103 221 | 91 519 | 487 707 |
 
 ## Limites assumées
 
-- **Aucune hiérarchie de genres n'est publiée.** L'arbre Wikidata a été retiré après mesure : 323 genres sur 1 348 n'y avaient aucun parent, `free jazz` et `zeuhl` étaient rangés sous `classical`, et surtout `black metal`, `death metal`, `thrash metal` et `doom metal` **ne figuraient pas** parmi les descendants de `metal` — les 3ᵉ, 5ᵉ, 15ᵉ et 19ᵉ genres du vocabulaire. Un arbre qui marche pour le rock et casse sur le metal est pire qu'une absence d'arbre : il a l'air de fonctionner. La requête SPARQL reste dans l'historique git.
+- **Aucune hiérarchie de genres n'est publiée.** L'arbre Wikidata a été retiré après mesure : 323 genres sur les 1 348 du vocabulaire d'alors n'y avaient aucun parent, `free jazz` et `zeuhl` étaient rangés sous `classical`, et surtout `black metal`, `death metal`, `thrash metal` et `doom metal` **ne figuraient pas** parmi les descendants de `metal` — les 3ᵉ, 5ᵉ, 15ᵉ et 19ᵉ genres du vocabulaire. Un arbre qui marche pour le rock et casse sur le metal est pire qu'une absence d'arbre : il a l'air de fonctionner. La requête SPARQL reste dans l'historique git.
 
 - **Une fin dérivée d'un album n'est pas une fin déclarée.** Elle est marquée `y_end_source = 'last_album'`. Parmi les groupes de type `Group` concernés ayant au moins deux albums, **3,38 % ont un dernier album isolé de plus de 15 ans** du précédent (1,04 % au-delà de 25) : des rééditions de fonds historiques qui étirent la ligne de vie. Les écarter demanderait un seuil arbitraire ; l'étiquette de provenance laisse la couche 1 trancher.
 
-- **Le genre est un filtre de notoriété communautaire, et il est daté.** Part de **groupes** sans aucun genre, par époque de formation : 69,3 % pour 1967-1979, 72,6 % pour 1980-1999, 78,9 % pour 2000-2014, **82,7 % depuis 2023**. La densité près du présent est doublement une borne basse : par la présence, et parce que les groupes récents sont moins tagués. **L'ordre de grandeur est considérable** : la densité totale culmine en 2016 à 67 567 puis tombe à 11 276 en 2026, soit **−83 % en dix ans**, presque entièrement par artefact. La dernière décennie ne se lit pas comme une tendance.
+- **Le genre est un filtre de notoriété communautaire, et il est daté.** Part de **groupes** datés sans aucun genre, par époque de formation, même en prenant ceux des albums : 34,4 % pour 1967-1979, 43,1 % pour 1980-1999, 53,8 % pour 2000-2014, **75,5 % depuis 2023** (69,3 %, 72,6 %, 78,9 % et 82,7 % sur les seuls genres déclarés). La densité près du présent est doublement une borne basse : par la présence, et parce que les groupes récents sont moins tagués. **L'ordre de grandeur est considérable** : la densité totale culmine en 2014 à 150 046 puis tombe à 17 106 en 2026, soit **−89 % en douze ans**, presque entièrement par artefact. La dernière décennie ne se lit pas comme une tendance.
 
-- **`density` ignore les orchestres et chœurs**, faute d'un modèle de ligne de vie comparable — ce qui écartait déjà 37,9 % du répertoire savant avant toute mesure. Ils restent dans `bands`, `albums` et `members`.
+- **`density` ignore les orchestres et chœurs**, faute d'un modèle de ligne de vie comparable — ce qui écartait déjà 21,4 % des artistes du répertoire savant avant toute mesure. Ils restent dans `bands`, `albums` et `members`.
 
 - **59,3 % des artistes n'ont aucun album** qui passe les règles, et 301 581 n'ont aucun début exploitable. La base est complète par choix : la couche 1 filtre, la couche 0 ne jette pas.
 

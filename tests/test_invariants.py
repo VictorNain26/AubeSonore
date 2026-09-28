@@ -302,10 +302,18 @@ def test_density_population_mismatch_is_reported(con):
 
 
 def test_band_genres_out_of_order_is_reported(con):
-    mbid = con.execute("SELECT mbid FROM bands WHERE len(genres) > 1 LIMIT 1").fetchone()[0]
+    mbid = con.execute(
+        "SELECT mbid FROM bands WHERE len(genres) > 1 AND genre_source = 'declared' LIMIT 1"
+    ).fetchone()[0]
     original = con.execute("SELECT genres FROM bands WHERE mbid = ?", [mbid]).fetchone()[0]
-    with restored(con, ("UPDATE bands SET genres = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE bands SET genres = list_reverse(genres) WHERE mbid = ?", [mbid])
+    restore = "UPDATE bands SET genres = ?, genres_declared = ? WHERE mbid = ?"
+    with restored(con, (restore, [original, original, mbid])):
+        # Both lists together: reversing `genres` alone is a genre_source_mismatch.
+        con.execute(
+            "UPDATE bands SET genres = list_reverse(genres), "
+            "genres_declared = list_reverse(genres_declared) WHERE mbid = ?",
+            [mbid],
+        )
         reversed_genres = con.execute("SELECT genres FROM bands WHERE mbid = ?", [mbid]).fetchone()[
             0
         ]
@@ -313,6 +321,38 @@ def test_band_genres_out_of_order_is_reported(con):
     assume_effective = reversed_genres != original
     assert assume_effective
     assert violations.get("band_genres_out_of_order") == 1
+
+
+def test_a_source_that_does_not_name_the_list_genres_came_from_is_reported(con):
+    # Joy Division declares genres, so `genres` is its declared list; calling
+    # that list `albums` is the mislabel genre_source exists to prevent.
+    joy_division = "9a58fda3-f4ed-4080-a3a5-f457aac9fcdd"
+    with restored(
+        con, ("UPDATE bands SET genre_source = 'declared' WHERE mbid = ?", [joy_division])
+    ):
+        con.execute("UPDATE bands SET genre_source = 'albums' WHERE mbid = ?", [joy_division])
+        violations = dict(check_invariants(con, SQL))
+    assert violations.get("genre_source_mismatch") == 1
+
+
+def test_album_genres_that_disagree_with_the_albums_are_reported(con):
+    # The Belle Stars' genres come from its albums; one vote more on the first
+    # of them is a sum the release-groups do not add up to.
+    belle_stars = "62f7a211-0056-45fe-934a-37a388a7356f"
+    original = con.execute(
+        "SELECT genres_from_albums FROM bands WHERE mbid = ?", [belle_stars]
+    ).fetchone()[0]
+    restore = "UPDATE bands SET genres_from_albums = ?, genres = ? WHERE mbid = ?"
+    with restored(con, (restore, [original, original, belle_stars])):
+        con.execute(
+            "UPDATE bands SET genres_from_albums = list_transform(genres_from_albums, "
+            "(g, i) -> CASE WHEN i = 1 THEN {'mbid': g.mbid, 'name': g.name, 'votes': g.votes + 1} "
+            "ELSE g END) WHERE mbid = ?",
+            [belle_stars],
+        )
+        con.execute("UPDATE bands SET genres = genres_from_albums WHERE mbid = ?", [belle_stars])
+        violations = dict(check_invariants(con, SQL))
+    assert violations.get("genres_from_albums_mismatch") == 1
 
 
 def test_unknown_genre_is_reported(con):

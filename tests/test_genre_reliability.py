@@ -1,5 +1,13 @@
 import pytest
-from conftest import BAND_EXCLUDED, BAND_EXCLUDED_2, build_synthetic, unreliable_genre_records
+from conftest import (
+    BAND_CLEAN,
+    BAND_EXCLUDED,
+    BAND_EXCLUDED_2,
+    build_synthetic,
+    synthetic_artist,
+    synthetic_release_group,
+    unreliable_genre_records,
+)
 
 
 @pytest.fixture(scope="module")
@@ -112,3 +120,28 @@ def test_a_genre_with_no_measurable_rate_stays_eligible(c):
     assert c.execute(
         "SELECT density_eligible FROM genres WHERE genre_mbid = 'g-orphan'"
     ).fetchone() == (True,)
+
+
+def test_the_rate_ignores_genres_a_band_only_takes_from_its_albums(tmp_path):
+    # A band that declares nothing takes g-album from its three sole-credit
+    # albums, yet seven more of its candidates are multi-artist. Measured on
+    # `genres` the rate would read 70% over 10 credits; on genres_declared the
+    # genre has no candidate at all. Album genres only ever come from
+    # single-artist release-groups, so letting them in biases every rate down.
+    album_genre = [{"mbid": "g-album", "name": "album", "votes": 1}]
+    artists = [synthetic_artist(BAND_CLEAN, "1990", None, name="band-undeclared")]
+    release_groups = [
+        *(
+            synthetic_release_group(f"rg-sole-{i}", BAND_CLEAN, "2000", genres=album_genre)
+            for i in range(3)
+        ),
+        *(
+            synthetic_release_group(f"rg-multi-{i}", BAND_CLEAN, "2000", co_artists=["guest"])
+            for i in range(7)
+        ),
+    ]
+    c = build_synthetic(tmp_path, artists, release_groups)
+    assert c.execute("SELECT genre_source FROM bands WHERE mbid = ?", [BAND_CLEAN]).fetchone() == (
+        "albums",
+    )
+    assert measurement(c, "g-album") == (0, None)

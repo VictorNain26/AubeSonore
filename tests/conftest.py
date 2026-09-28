@@ -51,6 +51,7 @@ def synthetic_release_group(
     date: str,
     secondary: list[str] | None = None,
     co_artists: list[str] | None = None,
+    genres: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     return {
         "mbid": mbid,
@@ -58,6 +59,7 @@ def synthetic_release_group(
         "date": date,
         "secondary": secondary or [],
         "artists": [artist, *(co_artists or [])],
+        "genres": genres or [],
     }
 
 

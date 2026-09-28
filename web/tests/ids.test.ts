@@ -10,7 +10,7 @@ function witness() {
 describe("readFriezeIds", () => {
   it("reads one mbid per frieze row", () => {
     const ids = witness();
-    expect(ids.count).toBe(20);
+    expect(ids.count).toBe(22);
     // The Beatles, frieze row 0.
     expect(ids.mbid(0)).toBe("b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d");
   });
@@ -42,6 +42,6 @@ describe("readFriezeIds", () => {
     const bytes = new Uint8Array(readFileSync(new URL("fixtures/frieze_ids.bin", import.meta.url)));
     const full = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     const truncated = full.slice(0, full.byteLength - 5);
-    expect(() => readFriezeIds(truncated)).toThrow(/frieze_ids.bin: expected 336 bytes, got 331/);
+    expect(() => readFriezeIds(truncated)).toThrow(/frieze_ids.bin: expected 368 bytes, got 363/);
   });
 });

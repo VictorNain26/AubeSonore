@@ -13,7 +13,8 @@ RAW_ARTIST_COLUMNS = (
     "members:'STRUCT(mbid VARCHAR, begin VARCHAR, \"end\" VARCHAR)[]'}"
 )
 RAW_RG_COLUMNS = (
-    "{mbid:'VARCHAR', title:'VARCHAR', date:'VARCHAR', secondary:'VARCHAR[]', artists:'VARCHAR[]'}"
+    "{mbid:'VARCHAR', title:'VARCHAR', date:'VARCHAR', secondary:'VARCHAR[]', artists:'VARCHAR[]', "
+    "genres:'STRUCT(mbid VARCHAR, name VARCHAR, votes INTEGER)[]'}"
 )
 
 
@@ -97,6 +98,8 @@ INVARIANTS = (
     "album_out_of_window",
     "album_extra_secondary_type",
     "band_genres_out_of_order",
+    "genre_source_mismatch",
+    "genres_from_albums_mismatch",
     "unknown_genre",
     "genre_n_bands_mismatch",
     "cooccurrence_self_pair",

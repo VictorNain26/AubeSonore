@@ -11,15 +11,15 @@ async function witness() {
 describe("readFrieze", () => {
   it("reads the cardinalities", async () => {
     const frieze = await witness();
-    expect(frieze.count).toBe(20);
-    expect(frieze.pairs).toBe(130);
+    expect(frieze.count).toBe(22);
+    expect(frieze.pairs).toBe(139);
   });
 
   it("reads names without the separator the writer appends", async () => {
     const frieze = await witness();
     expect(frieze.name(0)).toBe("The Beatles");
     expect(frieze.name(6)).toBe("Joy Division");
-    expect(frieze.name(19)).toBe("Lethal Shöck");
+    expect(frieze.name(21)).toBe("Lethal Shöck");
   });
 
   it("unpacks the flags out of the high bit of each span", async () => {
@@ -33,28 +33,28 @@ describe("readFrieze", () => {
   it("keeps an end that is over from an end that was never declared", async () => {
     const frieze = await witness();
     // Flesh Field: the band is over, but y1 was inferred from its last album.
-    expect(frieze.name(12)).toBe("Flesh Field");
-    expect(frieze.ended[12]).toBe(1);
-    expect(frieze.yEndIsDeclared[12]).toBe(0);
-    // ROD: one-year bar, and no evidence of an end at all.
-    expect(frieze.name(13)).toBe("ROD");
-    expect(frieze.y0[13]).toBe(1996);
-    expect(frieze.y1[13]).toBe(1996);
-    expect(frieze.ended[13]).toBe(0);
+    expect(frieze.name(13)).toBe("Flesh Field");
+    expect(frieze.ended[13]).toBe(1);
     expect(frieze.yEndIsDeclared[13]).toBe(0);
+    // ROD: one-year bar, and no evidence of an end at all.
+    expect(frieze.name(14)).toBe("ROD");
+    expect(frieze.y0[14]).toBe(1996);
+    expect(frieze.y1[14]).toBe(1996);
+    expect(frieze.ended[14]).toBe(0);
+    expect(frieze.yEndIsDeclared[14]).toBe(0);
   });
 
   it("reads the album counts", async () => {
     const frieze = await witness();
     expect(frieze.nAlbums[0]).toBe(84);
-    expect(frieze.nAlbums[13]).toBe(0);
+    expect(frieze.nAlbums[14]).toBe(0);
   });
 
   it("slices a band's genres out of the shared array", async () => {
     const frieze = await witness();
     expect(frieze.genreOffsets[0]).toBe(0);
     expect(frieze.genreOffsets[1]).toBe(12);
-    expect(Array.from(frieze.genreIds.subarray(0, 5))).toEqual([4, 37, 31, 54, 11]);
+    expect(Array.from(frieze.genreIds.subarray(0, 5))).toEqual([4, 39, 33, 57, 11]);
   });
 
   it("refuses a blob that is not a frieze", async () => {
@@ -74,7 +74,7 @@ describe("readFrieze", () => {
     const bytes = new Uint8Array(readFileSync(new URL("fixtures/frieze.bin.gz", import.meta.url)));
     const buffer = await inflateIfGzipped(bytes);
     new DataView(buffer).setUint32(12, 99, true);
-    expect(() => readFrieze(buffer)).toThrow(/genres section has 99 pairs, offsets end at 130/);
+    expect(() => readFrieze(buffer)).toThrow(/genres section has 99 pairs, offsets end at 139/);
   });
 
   it("refuses a buffer too short to hold a frieze header", () => {
@@ -90,8 +90,8 @@ describe("readFrieze", () => {
   it("refuses a blob truncated before the names section", async () => {
     const bytes = new Uint8Array(readFileSync(new URL("fixtures/frieze.bin.gz", import.meta.url)));
     const buffer = await inflateIfGzipped(bytes);
-    // Fixed part is 24 + 13*count + 2*pairs = 24 + 13*20 + 2*130 = 544 bytes.
+    // Fixed part is 24 + 13*count + 2*pairs = 24 + 13*22 + 2*139 = 588 bytes.
     const truncated = buffer.slice(0, 500);
-    expect(() => readFrieze(truncated)).toThrow(/frieze.bin: expected at least 544 bytes, got 500/);
+    expect(() => readFrieze(truncated)).toThrow(/frieze.bin: expected at least 588 bytes, got 500/);
   });
 });
