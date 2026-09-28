@@ -161,7 +161,7 @@ def make_fixtures() -> None:
             if wanted & set(rec["artists"]):
                 fh.write(line)
 
-    print("witnesses found:", len(wanted & set(kept)), "linked artists:", len(kept) - len(wanted))
+    print("witnesses found:", len(wanted & set(kept)), "linked artists:", len(set(kept) - wanted))
     missing = wanted - set(kept)
     print("missing:", missing or "none")
 
