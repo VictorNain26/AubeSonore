@@ -19,11 +19,18 @@ GROUP = {
     "relations": [
         {
             "type": "member of band",
+            "target-type": "artist",
+            "direction": "backward",
             "begin": "1991",
             "end": "1991",
             "artist": {"id": "5b640e8d-bcb8-45be-a32e-8f4325c8d6c9", "name": "Alex Marquez"},
         },
-        {"type": "discogs", "url": {"resource": "https://example.invalid"}},
+        {
+            "type": "discogs",
+            "target-type": "url",
+            "direction": "forward",
+            "url": {"resource": "https://example.invalid"},
+        },
     ],
 }
 
@@ -51,11 +58,19 @@ def test_reduce_artist_drops_area_no_table_consumes():
     assert out["begin_area"] == "Tampa"
 
 
-def test_reduce_artist_keeps_only_member_of_band_relations():
+def test_reduce_artist_keeps_artist_relations_with_their_type_and_direction():
+    # The discogs relation targets a URL, not an artist: it has no place in a
+    # table of links between artists.
     out = reduce_artist(GROUP)
     assert out is not None
-    assert out["members"] == [
-        {"mbid": "5b640e8d-bcb8-45be-a32e-8f4325c8d6c9", "begin": "1991", "end": "1991"}
+    assert out["relations"] == [
+        {
+            "type": "member of band",
+            "direction": "backward",
+            "mbid": "5b640e8d-bcb8-45be-a32e-8f4325c8d6c9",
+            "begin": "1991",
+            "end": "1991",
+        }
     ]
 
 

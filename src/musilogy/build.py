@@ -10,7 +10,8 @@ RAW_ARTIST_COLUMNS = (
     "{mbid:'VARCHAR', name:'VARCHAR', type:'VARCHAR', begin:'VARCHAR', "
     "\"end\":'VARCHAR', ended:'BOOLEAN', country:'VARCHAR', begin_area:'VARCHAR', "
     "genres:'STRUCT(mbid VARCHAR, name VARCHAR, votes INTEGER)[]', "
-    "members:'STRUCT(mbid VARCHAR, begin VARCHAR, \"end\" VARCHAR)[]'}"
+    "relations:'STRUCT(type VARCHAR, direction VARCHAR, mbid VARCHAR, begin VARCHAR, "
+    '"end" VARCHAR)[]\'}'
 )
 RAW_RG_COLUMNS = (
     "{mbid:'VARCHAR', title:'VARCHAR', date:'VARCHAR', secondary:'VARCHAR[]', artists:'VARCHAR[]', "
@@ -110,9 +111,10 @@ INVARIANTS = (
     "density_population_mismatch",
     "density_missing_cell",
     "density_excluded_genre_present",
-    "member_without_band",
-    "member_without_person",
-    "duplicate_member",
+    "link_endpoint_missing",
+    "link_incomplete",
+    "duplicate_link",
+    "link_misoriented",
     "corrections_file_too_large",
     "corrections_invalid",
     "corrections_duplicate",

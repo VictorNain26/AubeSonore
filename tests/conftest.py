@@ -27,7 +27,7 @@ def synthetic_artist(
     mbid: str,
     begin: str | None,
     end: str | None,
-    members: list[dict[str, Any]] | None = None,
+    relations: list[dict[str, Any]] | None = None,
     genres: list[dict[str, Any]] | None = None,
     name: str | None = None,
     kind: str = "Group",
@@ -42,7 +42,7 @@ def synthetic_artist(
         "country": None,
         "begin_area": None,
         "genres": genres or [],
-        "members": members or [],
+        "relations": relations or [],
     }
 
 

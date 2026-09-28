@@ -13,7 +13,7 @@
 -- birth_below_min_year, which 30_bands_lifespan.sql reads as a guard.
 CREATE OR REPLACE TABLE dated AS
 SELECT
-  mbid, name, type, ended, country, begin_area, genres, members,
+  mbid, name, type, ended, country, begin_area, genres,
   CASE WHEN type <> 'Person'
         AND yr(begin) BETWEEN getvariable('min_year') AND getvariable('dump_year')
        THEN yr(begin) END AS y0_declared,

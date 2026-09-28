@@ -124,11 +124,22 @@ def run() -> None:
 
 
 def make_fixtures() -> None:
-    """Extracts the witness records from the full extractions."""
+    """Extracts the witness records from the full extractions, plus every
+    artist a witness is linked to: a link only survives when both of its ends
+    are artists, so without them the witnesses would carry none. The linked
+    artists come without their release-groups, which keeps the fixtures small
+    and leaves their dates unrepresentative — tests read their links only."""
     work = WORK_DIR
     out = FIXTURES_DIR
     out.mkdir(parents=True, exist_ok=True)
     wanted = set(WITNESSES)
+
+    linked: set[str] = set()
+    with (work / "artists.jsonl").open(encoding="utf-8") as src:
+        for line in src:
+            rec = json.loads(line)
+            if rec["mbid"] in wanted:
+                linked |= {r["mbid"] for r in rec["relations"] if r["mbid"]}
 
     kept = []
     with (
@@ -137,7 +148,7 @@ def make_fixtures() -> None:
     ):
         for line in src:
             rec = json.loads(line)
-            if rec["mbid"] in wanted:
+            if rec["mbid"] in wanted or rec["mbid"] in linked:
                 fh.write(line)
                 kept.append(rec["mbid"])
 
@@ -150,7 +161,7 @@ def make_fixtures() -> None:
             if wanted & set(rec["artists"]):
                 fh.write(line)
 
-    print("witnesses found:", len(kept))
+    print("witnesses found:", len(wanted & set(kept)), "linked artists:", len(kept) - len(wanted))
     missing = wanted - set(kept)
     print("missing:", missing or "none")
 

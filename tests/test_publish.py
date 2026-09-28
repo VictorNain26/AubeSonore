@@ -19,21 +19,19 @@ def read_web(out_dir, name):
 
 def test_publish_writes_every_table(con, tmp_path):
     manifest = publish(con, tmp_path, DUMP, None)
-    for name in ("artists", "albums", "genres", "density", "members"):
+    for name in ("artists", "albums", "genres", "density", "links"):
         assert (tmp_path / f"{name}.parquet").exists()
         assert name in manifest["counts"]
     assert manifest["dump"] == DUMP
     assert "genre_parents" not in manifest["counts"]
 
 
-def test_members_is_archived_but_stays_out_of_the_web_export(con, tmp_path):
-    # The Parquet archive is where the membership table belongs. The web
-    # export already weighs 15.6 MB gzip for the timeline alone and layer 1's
-    # payload budget is a known open problem: 601k relation rows would make it
-    # worse for a consumer that has not asked for them.
+def test_links_are_archived_but_stay_out_of_the_web_export(con, tmp_path):
+    # The Parquet archive is where the link table belongs until layer 1 picks
+    # the format it reads: the JSON exports already weigh tens of MB gzip.
     publish(con, tmp_path, DUMP, None)
-    assert (tmp_path / "members.parquet").exists()
-    assert not (tmp_path / "web" / "members.json.gz").exists()
+    assert (tmp_path / "links.parquet").exists()
+    assert not (tmp_path / "web" / "links.json.gz").exists()
 
 
 def test_web_export_is_columnar_and_gzipped(con, tmp_path):
@@ -183,10 +181,11 @@ def test_manifest_carries_r2_anomaly_counters(con, tmp_path):
         "end_illegible": 1,
         "begin_future": 1,
         "end_future": 1,
-        "begin_below_min_year": 2,
-        # Bach, dead in 1750. Births never count: a person's begin is not read
-        # as a formation.
-        "end_below_min_year": 1,
+        # The artists linked to the witnesses count too: Bach's circle, dead
+        # before 1850, brings most of the ends. Births never count here: a
+        # person's begin is not read as a formation.
+        "begin_below_min_year": 3,
+        "end_below_min_year": 22,
         "end_before_begin": 1,
         "birth_illegible": 0,
         "birth_future": 0,
@@ -389,12 +388,12 @@ def test_manifest_says_so_when_the_extraction_path_does_not_exist(con, tmp_path)
 
 
 def test_manifest_says_extraction_matches_rows_loaded_when_counts_agree(con, tmp_path):
-    # 33 artists and 10277 release-groups are what the fixtures actually load
+    # 673 artists and 10277 release-groups are what the fixtures actually load
     # (test_manifest_counts_the_rows_that_fed_the_build): a sidecar claiming
     # exactly those counts is the case the discrepancy check must let through.
     sidecar = tmp_path / "extraction.json"
     sidecar.write_text(
-        json.dumps({"artists_kept": 33, "release_groups_kept": 10277}), encoding="utf-8"
+        json.dumps({"artists_kept": 673, "release_groups_kept": 10277}), encoding="utf-8"
     )
     manifest = publish(con, tmp_path / "out", DUMP, None, sidecar)
     assert manifest["inputs"]["extraction_matches_rows_loaded"] is True
@@ -442,7 +441,7 @@ PARQUET_KEYS = {
     "albums": ["rg_mbid"],
     "genres": ["genre_mbid"],
     "density": ["genre_mbid", "year"],
-    "members": ["band_mbid", "person_mbid", "y_begin", "y_end"],
+    "links": ["src_mbid", "dst_mbid", "type", "y_begin", "y_end"],
 }
 WEB_KEYS = {
     "genres": ["genre_mbid"],
@@ -453,7 +452,7 @@ WEB_KEYS = {
 
 
 def nulls_last(row):
-    """members' key carries NULL years on 464k of its 601k rows, so the test
+    """links' key carries NULL years on many of its rows, so the test
     has to state where NULLs sort — Python refuses to compare None to an int,
     and DuckDB's placement is a session setting rather than a property of the
     query."""
