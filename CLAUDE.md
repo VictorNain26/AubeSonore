@@ -65,6 +65,7 @@ d'acceptation se donne en nombre ou en code de sortie. « `density` doit valoir
 
 ```bash
 uv sync
+uv run pre-commit install     # une fois par clone : ruff check --fix et format à chaque commit
 uv run pytest                 # suite rapide, sur les témoins
 uv run pytest -m slow         # ligne de base sur le dump réel, exige data/work/
 uv run musilogy run           # fetch → extract → transform → validate → publish

@@ -1,6 +1,5 @@
 {
   "$schema": "https://www.schemastore.org/claude-code-settings.json",
-
   "permissions": {
     "allow": [
       "Bash(uv run pytest*)",
@@ -15,21 +14,6 @@
     ],
     "deny": [
       "Edit(/tests/fixtures/**)"
-    ]
-  },
-
-  "hooks": {
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"${CLAUDE_PROJECT_DIR}/.claude/hooks/ruff.sh\"",
-            "timeout": 60,
-            "statusMessage": "ruff"
-          }
-        ]
-      }
     ]
   }
 }

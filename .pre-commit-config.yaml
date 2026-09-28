@@ -1,0 +1,15 @@
+# Runs the ruff pinned in pyproject.toml (through uv) rather than a separate
+# ruff-pre-commit copy, so the hook, CI and the editor agree on one version.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: unsupported
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: unsupported
+        types: [python]
