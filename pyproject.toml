@@ -66,7 +66,7 @@ module = [
     "test_corrections", "test_density", "test_env", "test_extract",
     "test_fetch", "test_fixtures", "test_genre_reliability",
     "test_genres", "test_invariants", "test_lifespan", "test_members",
-    "test_paths", "test_presence", "test_publish",
+    "test_paths", "test_persons", "test_presence", "test_publish",
 ]
 disallow_untyped_defs = false
 disallow_incomplete_defs = false

@@ -16,6 +16,12 @@
 -- it alone, so every one of its candidates is single-artist and the rate would
 -- be pulled down by construction. On the reference dump that bias alone lets
 -- `modern classical` fall from 78.8 % to 38.7 % and leave the exclusion.
+--
+-- Persons stay out of the measurement: the rate qualifies density, which
+-- counts groups, and a person's co-credits (composer and performer, leader
+-- and sidemen) say nothing about what the rule costs a group. Let in, they
+-- would push 28 more genres over the bounds, `free jazz` and `soukous` among
+-- them.
 CREATE OR REPLACE TABLE genre_multi_artist_drop AS
 WITH candidates AS (
   SELECT list_distinct(artists) AS credited,
@@ -37,7 +43,7 @@ SELECT
   count(*) AS n_candidate_credits,
   round(100.0 * sum(c.multi::INTEGER) / count(*), 1) AS multi_artist_drop_pct
 FROM credits c
-JOIN artists b ON b.mbid = c.artist_mbid,
+JOIN artists b ON b.mbid = c.artist_mbid AND b.type <> 'Person',
      UNNEST(b.genres_declared) AS t(g)
 GROUP BY t.g.mbid;
 
@@ -75,7 +81,13 @@ UPDATE genres SET density_eligible = NOT coalesce(
 -- microgenre and a false positive. It is not special-cased: an exception list
 -- would reintroduce the named judgment the measurement exists to avoid, so
 -- that genre is the measured cost of the rule.
+--
+-- The pairs are counted on the artists the measurement reads, persons left
+-- out: density never counted a person, so the rule removes none of theirs.
 CREATE OR REPLACE TABLE density_exclusions AS
-SELECT count(*) AS genres, coalesce(sum(n_artists), 0) AS artist_genre_pairs
-FROM genres
-WHERE NOT density_eligible;
+SELECT
+  (SELECT count(*) FROM genres WHERE NOT density_eligible) AS genres,
+  (SELECT count(*)
+   FROM artists b, UNNEST(b.genres) AS t(g)
+   JOIN genres x ON x.genre_mbid = t.g.mbid
+   WHERE NOT x.density_eligible AND b.type <> 'Person') AS artist_genre_pairs;

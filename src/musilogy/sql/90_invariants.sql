@@ -184,7 +184,7 @@ CREATE OR REPLACE VIEW genre_unreliable_recomputed AS
   )
   -- genres_declared, like the rule: album genres would bias the rate down.
   SELECT t.g.mbid AS genre_mbid
-  FROM credits c JOIN artists b ON b.mbid = c.artist_mbid,
+  FROM credits c JOIN artists b ON b.mbid = c.artist_mbid AND b.type <> 'Person',
        UNNEST(b.genres_declared) AS t(g)
   GROUP BY t.g.mbid
   HAVING count(*) >= 200
@@ -243,14 +243,21 @@ CREATE OR REPLACE VIEW corrections_invalid AS
   SELECT c.mbid, c.field FROM corrections c
   WHERE c.field NOT IN ('begin', 'end')
      OR NOT EXISTS (SELECT 1 FROM raw_artists r WHERE r.mbid = c.mbid);
--- extract.py projects {Group, Orchestra, Choir} and nothing else; 60_density.sql
+-- extract.py projects {Group, Orchestra, Choir, Person} and nothing else; 60_density.sql
 -- narrows further to Group. Neither is stated in SQL, so a change to KEPT_TYPES
 -- moved the population and the projection at once, in silence. Hardcoded here
 -- like every other contractual bound: widening the population must be a
 -- deliberate edit of this literal.
 CREATE OR REPLACE VIEW artist_unexpected_type AS
   SELECT mbid FROM artists
-  WHERE type IS NULL OR type NOT IN ('Group', 'Orchestra', 'Choir');
+  WHERE type IS NULL OR type NOT IN ('Group', 'Orchestra', 'Choir', 'Person');
+-- 10_bands.sql: a person's begin is a birth. It must land in y_birth and never
+-- in y0_declared, and no other type carries a y_birth. Stated on the published
+-- columns, so a CASE that swapped its two branches fails here.
+CREATE OR REPLACE VIEW birth_misread AS
+  SELECT mbid FROM artists
+  WHERE (type = 'Person' AND y0_declared IS NOT NULL)
+     OR (type <> 'Person' AND y_birth IS NOT NULL);
 -- apply_corrections runs UPDATE ... FROM corrections: two rows for the same
 -- (mbid, field) make the applied value depend on scan order. The file is empty
 -- today, which is exactly when the contract is cheap to state.

@@ -15,14 +15,25 @@ SELECT
   -- NULL here, hence the flag carried over from `dated`): the source asserts
   -- the group predates its albums, so inferring a later formation from the
   -- first album would assert more than the source says.
+  --
+  -- Refused as well when the declared end falls below min_year: every album
+  -- postdates it, so each one is a posthumous release — Bach, dead in 1750,
+  -- whose recordings would otherwise start his activity in 1961. The end is
+  -- neutralised in 10_bands.sql, which is why its flag is read here rather
+  -- than y_end_declared.
   b.y_first_album IS NOT NULL
     AND (b.y_end_declared IS NULL OR b.y_first_album <= b.y_end_declared)
-    AND NOT d.begin_below_min_year AS first_album_is_evidence,
+    AND NOT d.begin_below_min_year
+    AND NOT d.end_below_min_year AS first_album_is_evidence,
   -- Mirror guard: a last album predating a declared begin would close a life
   -- that had not started. The inference is dropped, y_end and y_end_source
   -- both stay NULL.
+  --
+  -- Same refusal as above for an end below min_year: a last album after the
+  -- end is no evidence of when the activity stopped.
   b.y_last_album IS NOT NULL
-    AND (b.y0_declared IS NULL OR b.y_last_album >= b.y0_declared) AS last_album_is_evidence
+    AND (b.y0_declared IS NULL OR b.y_last_album >= b.y0_declared)
+    AND NOT d.end_below_min_year AS last_album_is_evidence
 FROM artists b JOIN dated d USING (mbid);
 
 CREATE OR REPLACE TABLE neutralised_inferences AS
@@ -38,7 +49,10 @@ SELECT
   count(*) FILTER (
     WHERE b.y0_declared IS NULL AND b.y_first_album IS NOT NULL
       AND d.begin_below_min_year
-  ) AS first_album_with_begin_below_min_year
+  ) AS first_album_with_begin_below_min_year,
+  count(*) FILTER (
+    WHERE b.y_first_album IS NOT NULL AND d.end_below_min_year
+  ) AS album_with_end_below_min_year
 FROM artists b JOIN dated d USING (mbid);
 
 ALTER TABLE artists ADD COLUMN y0 INTEGER;

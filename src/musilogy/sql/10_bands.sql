@@ -1,6 +1,11 @@
--- Population. Every artist extracted by extract.py (Group, Orchestra, Choir)
--- is published, whatever its type, dates or genres: the timeline-specific
--- filtering of the previous model now lives with the consumer, not here.
+-- Population. Every artist extracted by extract.py (Group, Orchestra, Choir,
+-- Person) is published, whatever its type, dates or genres: the
+-- timeline-specific filtering of the previous model now lives with the
+-- consumer, not here.
+--
+-- A person's begin is a birth, not the start of an activity: it never becomes
+-- y0_declared, and travels as y_birth instead. A person's end is a death,
+-- which does end the activity, so it is read like any other end.
 -- dump_year and min_year are provided by build() via SET VARIABLE.
 -- The seven boolean columns carry the date sub-rules: they decide nothing
 -- beyond y0_declared/y_end_declared, they just name the same decision so
@@ -8,18 +13,25 @@
 CREATE OR REPLACE TABLE dated AS
 SELECT
   mbid, name, type, ended, country, begin_area, genres, members,
-  CASE WHEN yr(begin) BETWEEN getvariable('min_year') AND getvariable('dump_year')
+  CASE WHEN type <> 'Person'
+        AND yr(begin) BETWEEN getvariable('min_year') AND getvariable('dump_year')
        THEN yr(begin) END AS y0_declared,
+  CASE WHEN type = 'Person' AND yr(begin) <= getvariable('dump_year')
+       THEN yr(begin) END AS y_birth,
   -- Same window as the begin, at both ends: an end below min_year is as
   -- unusable as one in the future.
   CASE WHEN yr("end") BETWEEN getvariable('min_year') AND getvariable('dump_year')
         AND (yr(begin) IS NULL OR yr("end") >= yr(begin))
        THEN yr("end") END AS y_end_declared,
-  begin IS NOT NULL AND yr(begin) IS NULL AS begin_illegible,
+  -- The begin sub-rules only describe a begin read as a formation: a birth
+  -- in 1685 is a fact, not an anomaly.
+  type <> 'Person' AND begin IS NOT NULL AND yr(begin) IS NULL AS begin_illegible,
   "end" IS NOT NULL AND yr("end") IS NULL AS end_illegible,
-  yr(begin) IS NOT NULL AND yr(begin) > getvariable('dump_year') AS begin_future,
+  type <> 'Person' AND yr(begin) IS NOT NULL AND yr(begin) > getvariable('dump_year')
+    AS begin_future,
   yr("end") IS NOT NULL AND yr("end") > getvariable('dump_year') AS end_future,
-  yr(begin) IS NOT NULL AND yr(begin) < getvariable('min_year') AS begin_below_min_year,
+  type <> 'Person' AND yr(begin) IS NOT NULL AND yr(begin) < getvariable('min_year')
+    AS begin_below_min_year,
   yr("end") IS NOT NULL AND yr("end") < getvariable('min_year') AS end_below_min_year,
   yr(begin) IS NOT NULL AND yr("end") IS NOT NULL
     AND yr("end") <= getvariable('dump_year')
@@ -42,7 +54,7 @@ SELECT
 FROM dated;
 
 CREATE OR REPLACE TABLE artists AS
-SELECT mbid, name, type, y0_declared, y_end_declared, ended, country, begin_area,
+SELECT mbid, name, type, y0_declared, y_end_declared, y_birth, ended, country, begin_area,
   -- Explicit sort (votes descending, then name), never inherited from
   -- the source (alphabetical). list_sort does not accept a lambda comparator
   -- in 1.5.5: sort by key, projecting each genre onto {k: [-votes], n: name,

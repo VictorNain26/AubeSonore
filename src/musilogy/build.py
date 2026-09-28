@@ -86,6 +86,7 @@ def build(
 INVARIANTS = (
     "duplicate_artist",
     "artist_unexpected_type",
+    "birth_misread",
     "artist_out_of_window",
     "end_before_begin",
     "end_after_dump_year",

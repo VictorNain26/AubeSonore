@@ -59,8 +59,18 @@ def test_reduce_artist_keeps_only_member_of_band_relations():
     ]
 
 
-def test_reduce_artist_drops_persons():
-    assert reduce_artist({"id": "x", "name": "y", "type": "Person"}) is None
+def test_reduce_artist_keeps_persons():
+    out = reduce_artist({"id": "x", "name": "y", "type": "Person"})
+    assert out is not None
+    assert out["type"] == "Person"
+
+
+def test_reduce_artist_drops_the_types_outside_the_population():
+    # On the reference dump untyped artists carry almost no links (2.6 %),
+    # "Other" few (11.7 %), against a third of the persons; characters are
+    # linked, but almost only to the persons who voice them.
+    for kind in ("Character", "Other", None):
+        assert reduce_artist({"id": "x", "name": "y", "type": kind}) is None
 
 
 def test_reduce_artist_refuses_a_genre_without_a_vote_count():

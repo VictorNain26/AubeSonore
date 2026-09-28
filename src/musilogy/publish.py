@@ -27,6 +27,7 @@ ARTISTS_WEB_COLUMNS = [
     "y0",
     "y0_source",
     "y0_declared",
+    "y_birth",
     "y_first_album",
     "y_end",
     "y_end_source",

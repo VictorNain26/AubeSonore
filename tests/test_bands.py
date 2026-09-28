@@ -6,9 +6,9 @@ def rows(con, q):
 
 
 def test_orchestra_is_in_bands_but_excluded_from_density(con):
-    # Wiener Philharmoniker: type Orchestra, sole carrier of "classical" in
-    # the fixtures (genres.n_artists = 1) — density must still show no row for
-    # that genre, since density is restricted to type = 'Group'.
+    # Wiener Philharmoniker: type Orchestra, carrier of "classical" in the
+    # fixtures alongside Bach, a person — no group carries it, so density must
+    # show no row for that genre, since density is restricted to type = 'Group'.
     orchestra = "d770374d-05e9-4ed3-a068-3fbd4e6e4dd6"
     assert con.execute("SELECT count(*) FROM artists WHERE mbid = ?", [orchestra]).fetchone() == (
         1,
@@ -18,8 +18,10 @@ def test_orchestra_is_in_bands_but_excluded_from_density(con):
         [orchestra],
     ).fetchone()[0]
     assert con.execute(
-        "SELECT n_artists FROM genres WHERE genre_mbid = ?", [genre_mbid]
-    ).fetchone() == (1,)
+        "SELECT count(*) FROM artists, UNNEST(artists.genres) AS t(g) "
+        "WHERE t.g.mbid = ? AND artists.type = 'Group'",
+        [genre_mbid],
+    ).fetchone() == (0,)
     assert con.execute(
         "SELECT count(*) FROM density WHERE genre_mbid = ?", [genre_mbid]
     ).fetchone() == (0,)

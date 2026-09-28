@@ -12,7 +12,7 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-KEPT_TYPES = {"Group", "Orchestra", "Choir"}
+KEPT_TYPES = {"Group", "Orchestra", "Choir", "Person"}
 
 
 def reduce_artist(rec: dict[str, Any]) -> dict[str, Any] | None:

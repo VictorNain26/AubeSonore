@@ -9,10 +9,14 @@ from musilogy.paths import SQL_DIR, work_dir
 # rows (the dump emits one relation per set of attributes) and 66 more collapse
 # once the dates are read as years. No relation is lost to a NULL person: the
 # reference dump carries none.
+# artists: 682 447 groups, orchestras and choirs, plus 1 599 244 persons. Every
+# count the persons moved splits along type: restricted to the other types, the
+# source breakdowns, placeable, the anomalies, the demo and live measurements and
+# the count without album give back the figures they had before persons joined.
 BASELINE = {
-    "artists": 682_447,
-    "albums": 643_403,
-    "genres": 1_442,
+    "artists": 2_281_691,
+    "albums": 1_290_584,
+    "genres": 1_729,
     "density": 58_767,
     "members": 601_759,
 }
@@ -33,42 +37,42 @@ MULTI_ARTIST_DROP = {
     "rock": (37_870, 1.8),
     "alternative metal": (3_006, 0.6),
 }
-Y0_SOURCE_BREAKDOWN = {"declared": 235_246, "first_album": 145_620, None: 301_581}
-Y_END_SOURCE_BREAKDOWN = {"declared": 48_842, "last_album": 251_514, None: 382_091}
+Y0_SOURCE_BREAKDOWN = {"declared": 235_246, "first_album": 346_479, None: 1_699_966}
+Y_END_SOURCE_BREAKDOWN = {"declared": 147_025, "last_album": 438_817, None: 1_695_849}
 # 25_band_genres.sql: the declared genres win, the albums take over. Every
 # count below that moved when it landed splits exactly along this column —
 # restricted to 'declared' artists, density, present and the excluded pairs give
-# back their previous values (52 201, 1 972 825 and 1 554), and the 94 new
-# genres are reachable only through albums.
-GENRE_SOURCE_BREAKDOWN = {"declared": 103_221, "albums": 91_519, None: 487_707}
-PLACEABLE = 380_866
+# back their previous values (52 201, 1 972 825 and 1 554).
+GENRE_SOURCE_BREAKDOWN = {"declared": 199_611, "albums": 153_624, None: 1_928_456}
+PLACEABLE = 581_725
 DENSITY_PRESENT = 4_242_411
 # The date readings the dump loses, and the album inferences the guards of
 # 30_bands_lifespan.sql refuse. Frozen here too: a guard that stops firing is
 # as much a regression as a count that moves.
 DATE_ANOMALIES = {
     "begin_illegible": 34,
-    "end_illegible": 7,
+    "end_illegible": 35,
     "begin_future": 15,
-    "end_future": 3,
+    "end_future": 11,
     "begin_below_min_year": 258,
-    "end_below_min_year": 4,
-    "end_before_begin": 2,
+    "end_below_min_year": 6_493,
+    "end_before_begin": 3,
 }
 NEUTRALISED_INFERENCES = {
-    "first_album_after_declared_end": 81,
+    "first_album_after_declared_end": 2_000,
     "last_album_before_declared_begin": 271,
     "first_album_with_begin_below_min_year": 73,
+    "album_with_end_below_min_year": 235,
 }
 # The measurements that argue for a rule of 20_albums.sql rather than describe
 # an output: accepting Demo and excluding Live are decisions these numbers
 # justify, and the README used to be their only home — where they drifted.
 # (release-groups both demo and studio, of which demo first, median years earlier)
-DEMO_BEFORE_STUDIO = (3_174, 2_144, 3.0)
-# Bands carrying a live release dated more than 20 years after their last studio
+DEMO_BEFORE_STUDIO = (3_723, 2_297, 3.0)
+# Artists carrying a live release dated more than 20 years after their last studio
 # album: the reason a live date is not evidence of activity.
-LIVE_LONG_AFTER_LAST_STUDIO = 710
-BANDS_WITHOUT_ALBUM = 404_925
+LIVE_LONG_AFTER_LAST_STUDIO = 914
+BANDS_WITHOUT_ALBUM = 1_801_156
 WORK = work_dir(REFERENCE_DUMP)
 
 

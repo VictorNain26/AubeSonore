@@ -641,14 +641,27 @@ def test_density_missing_cell_does_not_read_back_the_published_measurement(tmp_p
     assert check_invariants(c, SQL) == []
 
 
-def test_band_unexpected_type_is_reported(con):
-    # extract.py keeps {Group, Orchestra, Choir} and nothing states that
+def test_birth_misread_is_reported_on_both_sides(con):
+    # A person's begin must land in y_birth only, and no other type may carry
+    # one: each half of a swapped CASE in 10_bands.sql is caught.
+    person = con.execute("SELECT mbid FROM artists WHERE type = 'Person' LIMIT 1").fetchone()[0]
+    with restored(con, ("UPDATE artists SET y0_declared = NULL WHERE mbid = ?", [person])):
+        con.execute("UPDATE artists SET y0_declared = 1990 WHERE mbid = ?", [person])
+        assert dict(check_invariants(con, SQL)).get("birth_misread") == 1
+    group = con.execute("SELECT mbid FROM artists WHERE type = 'Group' LIMIT 1").fetchone()[0]
+    with restored(con, ("UPDATE artists SET y_birth = NULL WHERE mbid = ?", [group])):
+        con.execute("UPDATE artists SET y_birth = 1960 WHERE mbid = ?", [group])
+        assert dict(check_invariants(con, SQL)).get("birth_misread") == 1
+
+
+def test_artist_unexpected_type_is_reported(con):
+    # extract.py keeps {Group, Orchestra, Choir, Person} and nothing states that
     # contract in SQL, while 60_density.sql depends on type = 'Group'. A change
     # to KEPT_TYPES moved both the population and the projection in silence.
     mbid = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
     original = con.execute("SELECT type FROM artists WHERE mbid = ?", [mbid]).fetchone()[0]
     with restored(con, ("UPDATE artists SET type = ? WHERE mbid = ?", [original, mbid])):
-        con.execute("UPDATE artists SET type = 'Person' WHERE mbid = ?", [mbid])
+        con.execute("UPDATE artists SET type = 'Character' WHERE mbid = ?", [mbid])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("artist_unexpected_type") == 1
 

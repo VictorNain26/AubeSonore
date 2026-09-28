@@ -184,21 +184,25 @@ def test_manifest_carries_r2_anomaly_counters(con, tmp_path):
         "begin_future": 1,
         "end_future": 1,
         "begin_below_min_year": 2,
-        "end_below_min_year": 0,
+        # Bach, dead in 1750. Births never count: a person's begin is not read
+        # as a formation.
+        "end_below_min_year": 1,
         "end_before_begin": 1,
     }
 
 
-def test_manifest_carries_the_three_neutralised_inference_counters(con, tmp_path):
+def test_manifest_carries_the_four_neutralised_inference_counters(con, tmp_path):
     # One counter per guard of 30_bands_lifespan.sql. On the witnesses:
     # Polska Radio One (formed 2015, last album 2014) for the end, Wiener
     # Philharmoniker and Handel and Haydn Society (begins below 1850) for the
-    # begin. A neutralised anomaly stays visible instead of being absorbed.
+    # begin, Bach (dead in 1750, recorded from 1961) for an end below 1850. A
+    # neutralised anomaly stays visible instead of being absorbed.
     manifest = publish(con, tmp_path, DUMP, None)
     assert manifest["neutralised_inferences"] == {
         "first_album_after_declared_end": 0,
         "last_album_before_declared_begin": 1,
         "first_album_with_begin_below_min_year": 2,
+        "album_with_end_below_min_year": 1,
     }
 
 
@@ -369,12 +373,12 @@ def test_manifest_says_so_when_the_extraction_path_does_not_exist(con, tmp_path)
 
 
 def test_manifest_says_extraction_matches_rows_loaded_when_counts_agree(con, tmp_path):
-    # 29 artists and 3632 release-groups are what the fixtures actually load
+    # 33 artists and 10277 release-groups are what the fixtures actually load
     # (test_manifest_counts_the_rows_that_fed_the_build): a sidecar claiming
     # exactly those counts is the case the discrepancy check must let through.
     sidecar = tmp_path / "extraction.json"
     sidecar.write_text(
-        json.dumps({"artists_kept": 29, "release_groups_kept": 3632}), encoding="utf-8"
+        json.dumps({"artists_kept": 33, "release_groups_kept": 10277}), encoding="utf-8"
     )
     manifest = publish(con, tmp_path / "out", DUMP, None, sidecar)
     assert manifest["inputs"]["extraction_matches_rows_loaded"] is True
