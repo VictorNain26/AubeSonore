@@ -1,6 +1,5 @@
 # Layer 0 — Genre order Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Give the 1 348 genres a display order derived from the bands they share, published as a column of the vocabulary and frozen in the baseline.
 
