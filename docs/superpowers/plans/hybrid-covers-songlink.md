@@ -1,7 +1,5 @@
 # Covers hybrides + fiabilité Songlink — Plan d'implémentation
 
-> Sous-skill : superpowers:subagent-driven-development. Étapes en cases à cocher.
-
 **Goal :** Remplacer le snapshot R2 par une approche hybride (cover iTunes vérifiée sinon visuel onde), et fiabiliser le match iTunes.
 
 **Architecture :** Module pur de similarité côté backend → vérification dans `searchItunes` → enrichissement garde l'URL AzuraCast dans le trou → front rend un `CoverGlyph` déterministe quand l'image manque/échoue. R2 entièrement retiré.
