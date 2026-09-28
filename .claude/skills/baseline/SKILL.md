@@ -1,7 +1,6 @@
 ---
 name: baseline
-description: Rejouer la ligne de base sur le dump réel et instruire un écart avant de l'entériner. Prend une dizaine de minutes et exige les extractions de data/work/.
-disable-model-invocation: true
+description: À charger dès que `uv run pytest -m slow` échoue ou qu'un chiffre de tests/test_baseline.py doit bouger. Rejouer la ligne de base sur le dump réel et instruire un écart avant de l'entériner. Prend une dizaine de minutes et exige les extractions de data/work/.
 ---
 
 # Ligne de base
