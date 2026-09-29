@@ -42,15 +42,16 @@ en ouvrant `tests/`, et `/baseline` pour instruire un écart à la ligne de base
 
 ## Mesurer plutôt que raisonner
 
-Les extractions complètes vivent dans `data/work/` et DuckDB lit un JSONL de
-400 Mo en quelques secondes. Une question chiffrée — « combien de groupes perd
-cette règle ? », « ce changement bouge-t-il la densité ? » — se tranche par une
-requête, pas par un raisonnement plausible, et le résultat est opposable. Le
-pipeline étant déterministe, un contrefactuel est toujours possible.
+Les extractions complètes vivent dans `data/work/` et DuckDB y lit un JSONL de
+plusieurs centaines de Mo en quelques secondes. Une question chiffrée —
+« combien de groupes perd cette règle ? », « ce changement bouge-t-il la
+densité ? » — se tranche par une requête, pas par un raisonnement plausible, et
+le résultat est opposable. Le pipeline étant déterministe, un contrefactuel est
+toujours possible.
 
 C'est aussi ce qui rend le travail délégué praticable ici : un critère
-d'acceptation se donne en nombre ou en code de sortie. « `density` doit valoir
-52 201 cellules » vaut mieux que « corriger la densité ».
+d'acceptation se donne en nombre ou en code de sortie. « le chiffre `density` de
+`tests/test_baseline.py` ne bouge pas » vaut mieux que « corriger la densité ».
 
 ## Dépôt
 

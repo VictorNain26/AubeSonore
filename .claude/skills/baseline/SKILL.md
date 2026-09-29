@@ -15,7 +15,7 @@ faut nommer la cause.
 ## 1. Vérifier que les extractions sont là
 
 ```bash
-uv run python -c "from musilogy.paths import work_dir; print(work_dir())"
+uv run python -c "from musilogy import REFERENCE_DUMP; from musilogy.paths import work_dir; print(work_dir(REFERENCE_DUMP))"
 ```
 
 Si le répertoire est absent ou vide, la ligne de base ne peut pas tourner.
@@ -43,8 +43,8 @@ Pour chaque chiffre qui bouge, dans l'ordre :
    écart absolu et relatif.
 2. **Trouver la règle responsable.** `git diff` sur `src/musilogy/sql/` depuis
    le dernier passage vert dit quels paliers ont changé. La numérotation est
-   topologique : une variation sur `density` vient d'un fichier de numéro
-   inférieur à `60`.
+   topologique : une variation sur `density` vient de `60_density.sql` ou
+   d'un fichier de numéro inférieur.
 3. **Mesurer le coût de la règle, ne pas le supposer.** Le pipeline est
    déterministe, donc le contrefactuel est toujours disponible : interroger les
    extractions de `data/work/` avec DuckDB pour compter exactement ce que la

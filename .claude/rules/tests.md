@@ -26,7 +26,7 @@ uv run pytest -m slow    # ligne de base sur le dump réel, exige data/work/
 
 La suite rapide tourne à chaque changement et garde la CI verte. La ligne de
 base rejoue le pipeline complet : elle ne tourne qu'à la demande, prend une
-dizaine de minutes et réclame les ~600 Mo de `data/work/`.
+dizaine de minutes et réclame les extractions de `data/work/`.
 
 `tests/test_baseline.py` est le contrat exécutable des chiffres : c'est le seul
 point d'autorité. Un écart à la ligne de base se comprend avant d'être
