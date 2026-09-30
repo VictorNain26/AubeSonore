@@ -4,8 +4,9 @@ Seul document de conception et d'exploitation du pipeline. Les preuves (mesures,
 sont dans `docs/recherches/`. Quand le système réel contredit ce document, le système a raison et
 ce document se corrige.
 
-État au 2026-09-30 : les étapes 1 à 4 tournent chaque semaine, la CI et Gatus surveillent. L'antenne
-diffuse encore en natif AzuraCast les 369 titres de l'ancienne version.
+État au 2026-09-30 : les étapes 1 à 7 tournent chaque semaine, la CI et Gatus surveillent. Les
+découvertes s'accumulent dans `antenne/` ; l'antenne diffuse encore en natif AzuraCast les 369
+titres de l'ancienne version, jusqu'à la bascule (§7.2).
 
 ## 1. But
 
@@ -54,9 +55,9 @@ suivante reprend.
 | 2 Découverte | 15 graines par semaine, tirées selon l'écoute ; voisins confirmés par Deezer `related` ET Last.fm `getSimilar` ; 10 titres par voisin | API Deezer, Last.fm | fait |
 | 3 Empreinte | Empreinte Discogs-EffNet de l'extrait Deezer de 30 s | essentia-tensorflow, modèle MTG épinglé | fait |
 | 4 Goût | Régression logistique sur l'empreinte ; chaque fournée est classée et son tiers le mieux noté est retenu | scikit-learn | fait |
-| 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | codée, attend le compte Soulseek |
-| 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | codée, attend le compte Soulseek |
-| 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | codée (`radio antenne`) ; la bascule reste à écrire |
+| 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | en service |
+| 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | en service |
+| 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | en service ; la bascule reste à écrire |
 | 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | — | plus tard (§7.3) |
 
 ## 4. Le goût (étapes 1 à 4)
@@ -108,6 +109,9 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
      paires ; la durée seule laissait passer un autre titre du même artiste pour 18 fichiers sur 38.
 4. **Pas de YouTube.** Un titre introuvable reste un échec compté, et on retente à la passe
    suivante.
+5. **Premier essai réel** (2026-09-30, 10 retenus, sans port ouvert sur la box) : 10 prêts, tous
+   en MP3 320 kbit/s, identité Chromaprint de 0,925 à 0,982, durée à ±2 s. Le port d'écoute de
+   Sockseek reste fermé tant qu'un taux d'échec ne justifie pas de l'ouvrir.
 
 ## 6. Préparation (étape 6)
 
@@ -231,7 +235,7 @@ plus toutes les 24 h et un message de retour à la normale.
 
 | Quand | Unité systemd utilisateur | Ce qui se passe |
 |---|---|---|
-| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train` ; ensuite acquisition, préparation, antenne (à venir) et `votes-select` (avec la page) ; bornée à 12 h, battement de cœur Gatus |
+| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train`, `acquire`, `antenne` ; `votes-select` s'ajoutera avec la page ; bornée à 12 h, battement de cœur Gatus |
 | dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote (quand la page sera active) |
 | en continu | `radio-votes` | page de vote, `127.0.0.1:8040` (quand elle sera active) |
 
@@ -263,12 +267,10 @@ Les liens pointent vers le dépôt : il faut les re-lier si le dépôt change de
 
 **Actions de Victor**
 
-- Créer le compte Soulseek de la radio (un nom libre et un mot de passe : le compte se crée à la
-  première connexion) et les écrire dans `.env` (`SOULSEEK_USER`, `SOULSEEK_PASSWORD`). Ensuite
-  seulement, `radio acquire` rejoint la passe hebdomadaire.
-- Ouvrir un port d'écoute sur la box. C'est facultatif, mais sans lui une partie des pairs reste
-  injoignable.
-- Activer la protection de `main` sur GitHub.
+- Plus tard, si les mesures le justifient : ouvrir sur la box le port d'écoute de Sockseek
+  (49998/TCP), ce qui demande aussi une règle `ufw` sur l'hôte.
+- Vérifier que la box ne redirige pas le port 5030 : l'interface de slskd est publiée sur
+  toutes les interfaces de la machine, et Docker contourne `ufw`.
 
 ## 11. Hors périmètre
 

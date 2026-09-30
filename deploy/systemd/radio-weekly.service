@@ -5,6 +5,8 @@ After=network-online.target
 [Service]
 Type=oneshot
 WorkingDirectory=%h/radio/pipeline
+# Sockseek et rsgain sont dans ~/.local/bin ; ffmpeg et fpcalc viennent d'apt.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 EnvironmentFile=%h/radio/pipeline/.env
 # Machine partagée : la diffusion et les autres services passent avant.
 Nice=19
@@ -17,6 +19,8 @@ ExecStart=%h/radio/pipeline/.venv/bin/radio library-sync
 ExecStart=%h/radio/pipeline/.venv/bin/radio discover
 ExecStart=%h/radio/pipeline/.venv/bin/radio signals
 ExecStart=%h/radio/pipeline/.venv/bin/radio train
+ExecStart=%h/radio/pipeline/.venv/bin/radio acquire
+ExecStart=%h/radio/pipeline/.venv/bin/radio antenne
 # Battement de cœur vers Gatus, même en échec : $SERVICE_RESULT vaut « success » ou la cause
 # (systemd.exec(5), « Environment Variables Set or Propagated by the Service Manager »).
 ExecStopPost=/bin/sh -c 'curl -fsS -m 10 -X POST -H "Authorization: Bearer $GATUS_TOKEN" "http://127.0.0.1:8050/api/v1/endpoints/radio_passe-hebdo/external?success=$([ "$SERVICE_RESULT" = success ] && echo true || echo false)&error=$SERVICE_RESULT"'
