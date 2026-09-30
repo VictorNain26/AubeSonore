@@ -76,10 +76,25 @@ bon était même promu une fois sur deux. Le bulletin garde le verdict au moment
 (`retained`), et le taux de oui des retenus se lit sur ce sous-ensemble, qui représente environ
 un tiers de l'examen.
 
-Il faut encore mesurer le plafond propre à Victor. Amatriain et al. (2009, « I like it... I like
-it not ») mesurent un écart de RMSE de 0,56 à 0,82 sur une échelle de 1 à 5 entre deux notations
-des mêmes films. Aucun modèle ne peut dépasser la cohérence de l'auditeur avec lui-même. Protocole
-prévu : revote à l'aveugle d'une vingtaine de titres déjà votés.
+### Plafond de cohérence (mesuré le 2026-09-30)
+
+Revote à l'aveugle de 20 titres déjà votés (10 oui, 10 non), trois jours après : 17 accords sur
+20, soit 85 % [64–95 %] (Wilson). 9 « oui » sur 10 sont restés « oui ». Un taux de oui mesuré
+ne peut pas dépasser durablement cette cohérence : 90 % est à la limite de ce que Victor
+reproduit lui-même. Cela rejoint Amatriain et al. (2009, « I like it... I like it not »).
+
+### Apport des votes de leçon
+
+À réglages égaux, sur l'examen :
+
+| Votes de leçon | AUC | Oui dans les 20 mieux notés |
+|---|---|---|
+| 0 | 0,760 | 65 % |
+| 25 (10 tirages) | 0,787 ± 0,015 | — |
+| 50 (10 tirages) | 0,791 ± 0,014 | — |
+| 99 | 0,816 | 75 % |
+
+Les votes améliorent le modèle, mais le gain s'amenuise.
 
 ## Outils existants examinés (2026-09-30)
 
