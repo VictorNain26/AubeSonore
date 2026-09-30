@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     # Compte Soulseek propre à la radio : celui de slskd l'éjecterait, et les deux Lidarr avec.
     soulseek_user: str | None = None
     soulseek_password: SecretStr | None = Field(default=None, repr=False)
+    azuracast_url: str = "http://127.0.0.1:8080"
+    azuracast_api_key: SecretStr | None = Field(default=None, repr=False)
+    azuracast_station_id: int = 1
     sockseek_bin: Path = Path("~/.local/bin/sockseek").expanduser()
     rsgain_bin: Path = Path("~/.local/bin/rsgain").expanduser()
     # Le numéro est une donnée personnelle : masqué comme un secret.
@@ -77,6 +80,15 @@ class AcquisitionConfig(BaseModel):
     min_success_rate: float = Field(default=0.2, ge=0, le=1)
 
 
+class AntenneConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    target_max: int = Field(default=2000, ge=1)
+    reference_share: float = Field(default=0.2, ge=0, lt=1)
+    min_age_days: int = Field(default=60, ge=0)
+    max_removals_per_pass: int = Field(default=50, ge=0)
+    cutover_min: int = Field(default=400, ge=1)
+
+
 class VotesConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     exam_per_selection: int = Field(default=10, ge=1, le=100)
@@ -90,6 +102,7 @@ class Editorial(BaseModel):
     discover: DiscoverConfig = DiscoverConfig()
     model: ModelConfig = ModelConfig()
     acquisition: AcquisitionConfig = AcquisitionConfig()
+    antenne: AntenneConfig = AntenneConfig()
     votes: VotesConfig = VotesConfig()
 
 

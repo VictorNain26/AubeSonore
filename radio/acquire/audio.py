@@ -94,10 +94,11 @@ def similarity(file_fp: Fingerprint, preview_fp: Fingerprint) -> float:
 def prepare(
     src: Path, dest: Path, codec: str, artist: str, title: str, deezer_id: int, rsgain: Path
 ) -> None:
-    """FLAC → MP3 V0 ; un MP3 n'est jamais réencodé. Balises remplacées, ReplayGain posé."""
+    """Tout sauf le MP3 passe en MP3 V0 ; un MP3 n'est jamais réencodé. Balises remplacées,
+    ReplayGain posé."""
     audio = (
         ["-af", "aresample=resampler=soxr:osr=44100", "-c:a", "libmp3lame", "-q:a", "0"]
-        if codec == "flac"
+        if codec != "mp3"
         else ["-c:a", "copy"]
     )
     tmp = dest.with_name(f".{dest.name}")

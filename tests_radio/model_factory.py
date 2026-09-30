@@ -35,7 +35,7 @@ def make_model_db(
             plays = int(rng.integers(0, 20))
             lib.append((key, f"Lib {a}", f"Chanson {k}", "Album", 200000, plays, NOW))
             matches.append((key, "matched", None, 100000 + 10 * a + k, 1000 + a, NOW))
-    conn.executemany("INSERT INTO library_tracks VALUES (?, ?, ?, ?, ?, ?, ?)", lib)
+    conn.executemany("INSERT INTO library_tracks VALUES (?, ?, ?, ?, ?, ?, ?, NULL)", lib)
     conn.executemany("INSERT INTO deezer_matches VALUES (?, ?, ?, ?, ?, ?)", matches)
     conn.commit()
     register_library(conn, NOW)
