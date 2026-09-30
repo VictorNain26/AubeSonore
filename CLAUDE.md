@@ -15,7 +15,8 @@ uv sync                                  # dépendances (.venv)
 .venv/bin/ruff check radio tests_radio && .venv/bin/ruff format --check radio tests_radio
 .venv/bin/mypy                           # strict
 .venv/bin/radio --help                   # library-sync, discover, negatives-sync, signals,
-                                         # train, report, votes-select, votes-serve, votes-remind
+                                         # train, acquire, report, votes-select, votes-serve,
+                                         # votes-remind
 ```
 
 ## Invariants
@@ -41,5 +42,9 @@ uv sync                                  # dépendances (.venv)
   texte simple, puis laisser `pick_match` juger.
 - Les migrations SQLite suivent la procédure officielle de reconstruction de table. Un script ne
   contient ni `BEGIN` ni `COMMIT`.
+- La passe hebdomadaire exécute le code de `~/radio/pipeline` : développer dans un worktree
+  pendant qu'elle tourne, sinon elle importe du code en cours d'écriture.
+- Sockseek et rsgain sont des binaires figés dans `~/.local/bin` (versions et sha256 dans
+  `docs/vision.md`) ; ffmpeg et fpcalc viennent d'apt.
 - Les unités systemd de `deploy/systemd/` sont liées par `systemctl --user link`. Il faut les
   re-lier si le dépôt change de place.

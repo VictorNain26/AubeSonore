@@ -54,8 +54,8 @@ suivante reprend.
 | 2 Découverte | 15 graines par semaine, tirées selon l'écoute ; voisins confirmés par Deezer `related` ET Last.fm `getSimilar` ; 10 titres par voisin | API Deezer, Last.fm | fait |
 | 3 Empreinte | Empreinte Discogs-EffNet de l'extrait Deezer de 30 s | essentia-tensorflow, modèle MTG épinglé | fait |
 | 4 Goût | Régression logistique sur l'empreinte ; chaque fournée est classée et son tiers le mieux noté est retenu | scikit-learn | fait |
-| 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | à faire |
-| 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain, mutagen | à faire |
+| 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | codée, attend le compte Soulseek |
+| 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | codée, attend le compte Soulseek |
 | 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | à faire |
 | 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | — | plus tard (§7.3) |
 
@@ -90,16 +90,19 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
 §2.
 
 1. **Entrée.** Les titres retenus pas encore acquis, écrits en CSV (Artist, Title, Length).
-2. **Sockseek 3.0.5** (version figée, binaire dans `~/.local/bin`) sur un **compte Soulseek
-   dédié à la radio**. Le compte de slskd est interdit : il éjecterait slskd et les deux Lidarr.
-   - Options : `--format mp3,flac --pref-format mp3 --length-tol 3`.
+2. **Sockseek 3.0.5** (binaire figé dans `~/.local/bin`, sha256 `d0a1e909…1b66` vérifié) sur un
+   **compte Soulseek dédié à la radio** (`SOULSEEK_USER`, `SOULSEEK_PASSWORD`). Le compte de slskd est interdit : il éjecterait slskd et les deux Lidarr.
+   - Options : `--format mp3,flac --pref-format mp3 --length-tol 3 --name-format {uri}`, avec
+     l'id Deezer en colonne URI du CSV : chaque fichier porte l'id du titre demandé.
+   - Le mot de passe passe par un fichier de config en 0600, supprimé après la passe, jamais par
+     la ligne de commande.
    - Une recherche à la fois, au plus 10 recherches par 220 s.
    - Le pipeline lit `_index.csv` : les échecs sont comptés par raison et ne sont pas relancés
      avant la passe suivante.
 3. **Contrôle de chaque fichier.** Il est rejeté, compté et supprimé s'il échoue à l'un de ces
    points :
-   - `ffprobe` : codec MP3 ou FLAC, durée à ±3 s de Deezer, et pour un MP3 un débit ≥ 320 kbit/s
-     ou un VBR (le seuil exact du V0 sera mesuré sur les premiers fichiers) ;
+   - `ffprobe` : codec MP3 ou FLAC, durée à ±3 s de Deezer, et pour un MP3 un débit moyen
+     ≥ 200 kbit/s (un V0 tourne autour de 220–260 ; à revoir sur les premiers fichiers réels) ;
    - **Chromaprint** : `fpcalc -raw` sur le fichier et sur l'extrait Deezer. Le taux de bits
      identiques au meilleur décalage doit être ≥ 0,70. La mesure a donné 0 erreur sur 38 + 1 406
      paires ; la durée seule laissait passer un autre titre du même artiste pour 18 fichiers sur 38.
@@ -111,11 +114,12 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
 - **Conversion.** Un FLAC passe en MP3 V0 :
   `ffmpeg -af aresample=resampler=soxr:osr=44100 -c:a libmp3lame -q:a 0`. Un MP3 n'est jamais
   réencodé.
-- **ReplayGain.** `rsgain custom -s i`, avec rsgain 3.8 en binaire figé. Sans ces balises,
+- **ReplayGain.** `rsgain custom -s i -c p`, avec rsgain 3.8 en binaire figé (sha256
+  `4939de3b…65a0` vérifié). Sans ces balises,
   Liquidsoap recalcule le gain à chaque titre, ce qui coûte beaucoup de CPU (doc AzuraCast,
   « optimizing »).
-- **Balises** (mutagen) : artiste et titre Deezer, commentaire `deezer:<id>`. Nom de fichier :
-  `<id Deezer>.mp3`, unique.
+- **Balises** (ffmpeg, qui remplace toutes les balises d'origine) : artiste et titre Deezer,
+  commentaire `deezer:<id>`. Fichier prêt : `data/antenne/<id Deezer>.mp3`.
 - **Repères.** Des titres de la bibliothèque Plex, copiés sans jamais y écrire, préparés de la
   même façon et étiquetés `repère` dans la base. Ils représentent au plus 20 % de l'antenne.
 
@@ -175,8 +179,8 @@ Justification : `recherches/…-observabilite.md` §4.
 
 ### 8.1 Rapport de passe
 
-Chaque passe écrit une ligne en base : pour chaque étape, les compteurs (vus, faits, sautés par
-raison) et la durée. `radio report` l'affiche. Le rapport est aussi comparé à des seuils
+Chaque étape écrit une ligne en base (`stage_reports`) avec ses compteurs, rattachée à la passe
+par `$INVOCATION_ID` de systemd. `radio report` affiche le dernier rapport de chaque étape. Le rapport est aussi comparé à des seuils
 (`editorial.toml`) :
 
 - au moins un titre publié ;
@@ -252,7 +256,9 @@ Les liens pointent vers le dépôt : il faut les re-lier si le dépôt change de
 
 **Actions de Victor**
 
-- Créer le compte Soulseek de la radio et en donner les identifiants dans `.env`.
+- Créer le compte Soulseek de la radio (un nom libre et un mot de passe : le compte se crée à la
+  première connexion) et les écrire dans `.env` (`SOULSEEK_USER`, `SOULSEEK_PASSWORD`). Ensuite
+  seulement, `radio acquire` rejoint la passe hebdomadaire.
 - Ouvrir un port d'écoute sur la box. C'est facultatif, mais sans lui une partie des pairs reste
   injoignable.
 - Activer la protection de `main` sur GitHub.

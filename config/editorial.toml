@@ -25,6 +25,21 @@ keep_fraction = 0.3333
 # Nombre de derniers votes d'examen qui jugent le modèle.
 exam_window = 60
 
+[acquisition]
+# Titres retenus tentés au plus par passe, et tentatives par titre avant abandon.
+max_per_pass = 300
+max_attempts = 3
+# Débit moyen minimal d'un MP3 (kbit/s) : un V0 tourne autour de 220-260.
+min_mp3_kbps = 200
+# Part de bits Chromaprint identiques entre le fichier et l'extrait Deezer
+# (docs/recherches/2026-09-30-acquisition-publication-observabilite.md §2).
+identity_threshold = 0.70
+# Rythme des recherches Soulseek : le serveur bannit 30 min en cas de rafale.
+searches_per_time = 10
+searches_renew_s = 220
+# Sous ce taux de fichiers prêts (sur au moins 20 tentatives), la passe échoue et Gatus alerte.
+min_success_rate = 0.2
+
 [votes]
 # Titres d'examen par sélection hebdomadaire, tirés au hasard parmi les retenus.
 exam_per_selection = 10
