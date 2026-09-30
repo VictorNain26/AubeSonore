@@ -4,8 +4,8 @@ Seul document de conception et d'exploitation du pipeline. Les preuves (mesures,
 sont dans `docs/recherches/`. Quand le système réel contredit ce document, le système a raison et
 ce document se corrige.
 
-État au 2026-09-30 : les étapes 1 à 4 tournent. L'antenne diffuse encore en natif AzuraCast les
-369 titres de l'ancienne version.
+État au 2026-09-30 : les étapes 1 à 4 tournent chaque semaine, la CI et Gatus surveillent. L'antenne
+diffuse encore en natif AzuraCast les 369 titres de l'ancienne version.
 
 ## 1. But
 
@@ -187,15 +187,16 @@ Un seuil franchi fait échouer la passe.
 
 ### 8.2 Gatus
 
-Gatus est un conteneur dont la configuration YAML est versionnée dans `deploy/gatus/`. Il est le
-seul outil de surveillance. Il alerte par WhatsApp (CallMeBot) après 3 échecs, avec un rappel au
+Gatus 5.37.0 est un conteneur dont la configuration YAML est versionnée dans `deploy/gatus/`. Il
+est le seul outil de surveillance. Tableau de bord sur `127.0.0.1:8050` (tunnel SSH). Chaîne
+d'alerte testée de bout en bout le 2026-09-30. Il alerte par WhatsApp (CallMeBot) après 3 échecs, avec un rappel au
 plus toutes les 24 h et un message de retour à la normale.
 
 | Sonde | Condition |
 |---|---|
-| `nowplaying` AzuraCast | HTTP 200 et `is_online == true` |
-| Flux public `radio.aubesonore.fr/listen/aubesonore/radio.mp3` | HTTP 200 : vérifie aussi le tunnel Cloudflare |
-| Passe hebdomadaire (endpoint externe) | Poussée par `ExecStopPost=` avec `$SERVICE_RESULT` ; silence de plus de 8 jours = alerte |
+| `antenne` : `nowplaying` AzuraCast, chaque minute | HTTP 200 et `is_online == true` (en place) |
+| `flux-public` : `radio.aubesonore.fr/listen/aubesonore/radio.mp3`, toutes les 5 min | HTTP 200 : vérifie aussi le tunnel Cloudflare (en place) |
+| `passe-hebdo` (endpoint externe) | Poussée par `ExecStopPost=` avec `$SERVICE_RESULT` ; alerte au premier échec ou après 8 jours de silence (en place) |
 | Playlist en cours ≠ secours | Après l'enchaînement (§7.3) |
 | Page de vote | Après son activation |
 
@@ -219,7 +220,7 @@ plus toutes les 24 h et un message de retour à la normale.
 
 | Quand | Unité systemd utilisateur | Ce qui se passe |
 |---|---|---|
-| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train`, puis acquisition, préparation, antenne (à venir), `votes-select` ; bornée à 12 h |
+| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train` ; ensuite acquisition, préparation, antenne (à venir) et `votes-select` (avec la page) ; bornée à 12 h, battement de cœur Gatus |
 | dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote (quand la page sera active) |
 | en continu | `radio-votes` | page de vote, `127.0.0.1:8040` (quand elle sera active) |
 
@@ -227,8 +228,9 @@ plus toutes les 24 h et un message de retour à la normale.
 - Journaux : `journalctl --user -u radio-weekly`.
 - Un gros rattrapage de `signals` (environ 3 s par titre) se lance à la main, en `nice`.
 
-**Réglages.** Les secrets et les URL sont dans `.env` (modèle : `.env.example`, jamais commité).
-Le reste est dans `config/editorial.toml`.
+**Réglages.** Les secrets et les URL sont dans `.env` (modèle : `.env.example`, jamais commité),
+y compris `GATUS_TOKEN` pour le battement de cœur. Le reste est dans `config/editorial.toml`.
+Gatus : `cd deploy/gatus && docker compose up -d` (son `.env` est un lien vers celui du dépôt).
 
 **Installer les unités.**
 
