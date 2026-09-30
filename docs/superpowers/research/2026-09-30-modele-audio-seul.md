@@ -62,7 +62,7 @@ ramenée à un poids total de 1. Taux de base sur les 159 votes : 53 %.
 Premier modèle réel avec ces réglages : AUC d'examen 0,816, et 15 oui sur les 20 titres d'examen
 les mieux notés, soit 75 % [53–89 %]. L'examen ayant servi au choix des réglages, ce chiffre est
 optimiste ; l'estimation propre est la validation croisée ci-dessus. Les votes d'examen de la page
-(tirés parmi les retenus) donneront la vraie mesure.
+(tirés sur toute la fournée) donneront la vraie mesure.
 
 ## Objectif
 
