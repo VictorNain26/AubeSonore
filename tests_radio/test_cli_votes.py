@@ -8,6 +8,7 @@ from typer.testing import CliRunner
 
 import radio.cli as cli
 from radio.core.config import Settings
+from radio.core.report import record_stage
 from radio.model.model import Batch, YesRate
 from radio.notify.whatsapp import WhatsAppError
 from radio.votes.status import Status
@@ -176,3 +177,23 @@ def test_report_prints_the_status(full: Path) -> None:
     assert res.exit_code == 0, res.output
     assert "Aucun modèle en service" in res.output
     assert "Titres en attente de vote : 0 (dernière sélection : aucune)" in res.output
+
+
+def test_report_shows_the_last_run_of_each_stage(full: Path) -> None:
+    conn = make_model_db(full / "data")
+    record_stage(conn, "discover", True, {"ajoutés": 3})
+    record_stage(conn, "acquire", False, {"prêts": 0})
+    record_stage(conn, "discover", True, {"ajoutés": 7})
+    conn.close()
+    res = runner.invoke(cli.app, ["report"])
+    assert res.exit_code == 0, res.output
+    lines = res.output.splitlines()
+    assert lines[0] == "Dernières étapes :"
+    assert lines[1].startswith("  discover (") and lines[1].endswith(") : ajoutés 7")
+    assert lines[2].startswith("✗ acquire (")
+
+
+def test_acquire_requires_the_radio_soulseek_account(full: Path) -> None:
+    res = runner.invoke(cli.app, ["acquire"])
+    assert res.exit_code == 2
+    assert "SOULSEEK_USER et SOULSEEK_PASSWORD" in res.output

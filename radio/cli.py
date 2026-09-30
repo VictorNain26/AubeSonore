@@ -16,8 +16,10 @@ import uvicorn
 from plexapi.exceptions import PlexApiException
 from pydantic import ValidationError
 
+from radio.acquire.run import acquire_pass
 from radio.core.config import Editorial, Settings, load_editorial
 from radio.core.db import connect
+from radio.core.report import last_stages, record_stage
 from radio.discover.negatives import import_negatives, load_negatives
 from radio.discover.run import NoLibraryArtistsError, discover_pass
 from radio.library.artists import register_library
@@ -148,6 +150,18 @@ def library_sync() -> None:
         except DeezerUnavailable as e:
             _fail(_unavailable(e), 1)
         done, total = coverage(conn)
+        record_stage(
+            conn,
+            "library-sync",
+            True,
+            {
+                "titres": sync.n_tracks,
+                "rapprochés": rep.n_matched,
+                "non trouvés": sum(rep.unmatched.values()),
+                "erreurs": len(rep.errors),
+                "couverture": done / total if total else 0.0,
+            },
+        )
     details = ", ".join(
         f"{label} {_n(rep.unmatched[k])}" for k, label in _REASONS if rep.unmatched.get(k)
     )
@@ -187,6 +201,17 @@ def discover() -> None:
             )
         except (DeezerUnavailable, LastfmUnavailable) as e:
             _fail(_unavailable(e), 1)
+        record_stage(
+            conn,
+            "discover",
+            True,
+            {
+                "graines": rep.n_seeds,
+                "voisins": rep.n_neighbours,
+                "ajoutés": rep.n_added,
+                "sautés": len(rep.skipped),
+            },
+        )
     kind = "reprise" if rep.resumed else "nouvelle"
     lines = [
         f"Découverte : passe n°{rep.run_id} ({kind}), {_n(rep.n_seeds)} graines → "
@@ -245,6 +270,19 @@ def signals() -> None:
         except DeezerUnavailable as e:
             _fail(_unavailable(e), 1)
         origins = Counter(load_signals(conn).origins)
+        record_stage(
+            conn,
+            "signals",
+            True,
+            {
+                "à mesurer": meas.n_todo,
+                "mesurés": meas.n_ok,
+                "sans extrait": meas.n_no_preview,
+                "empreinte ratée": meas.n_audio_failed,
+                "disparus": meas.n_gone,
+                "erreurs": len(meas.errors),
+            },
+        )
     _echo(
         [
             f"Bibliothèque inscrite : {_n(reg.n_tracks)} titres, {_n(reg.n_artists)} artistes "
@@ -258,6 +296,48 @@ def signals() -> None:
             f"{_n(origins['negative'])})",
         ]
     )
+
+
+@app.command()
+def acquire() -> None:
+    """Télécharge les titres retenus sur Soulseek, prouve leur identité et les prépare."""
+    settings = _settings()
+    cfg = _editorial(settings).acquisition
+    if not settings.soulseek_user or settings.soulseek_password is None:
+        _fail("SOULSEEK_USER et SOULSEEK_PASSWORD doivent être définis dans .env", 2)
+    now = _now()
+    with _db(settings) as conn:
+        try:
+            rep = acquire_pass(
+                conn,
+                DeezerClient(),
+                settings.data_dir / "acquisition" / now[:19].replace(":", ""),
+                settings.data_dir / "antenne",
+                (settings.sockseek_bin, settings.rsgain_bin),
+                (settings.soulseek_user, settings.soulseek_password.get_secret_value()),
+                cfg,
+                now,
+            )
+        except DeezerUnavailable as e:
+            _fail(_unavailable(e), 1)
+        rate = rep.n_ready / rep.n_attempted if rep.n_attempted else 1.0
+        ok = rep.n_attempted < 20 or rate >= cfg.min_success_rate
+        record_stage(
+            conn,
+            "acquire",
+            ok,
+            {"demandés": rep.n_wanted, "prêts": rep.n_ready, "échecs": dict(rep.failures)},
+        )
+    _echo(
+        [
+            f"Acquisition : {_n(rep.n_wanted)} demandés → {_n(rep.n_ready)} prêts "
+            f"({_pct(rep.n_ready, rep.n_attempted)} des tentés), "
+            f"{_n(sum(rep.failures.values()))} en échec",
+            *(f"  {reason} : {_n(n)}" for reason, n in rep.failures.most_common()),
+        ]
+    )
+    if not ok:
+        _fail(f"Taux d'acquisition sous {_rate(cfg.min_success_rate)} : à examiner", 1)
 
 
 def _train_lines(r: TrainReport) -> list[str]:
@@ -301,6 +381,16 @@ def train_command() -> None:
                 )
         model_id = rescore(conn, models_dir, cfg)
         batch = last_batch(conn)
+        record_stage(
+            conn,
+            "train",
+            model_id is not None,
+            {
+                "modèle en service": model_id,
+                "candidats": batch.n if batch else 0,
+                "retenus": batch.retained if batch else 0,
+            },
+        )
     if model_id is None:
         lines.append("Aucun modèle en service : candidats non notés")
     else:
@@ -353,12 +443,23 @@ def _status_lines(st: Status, quiet_days: int) -> list[str]:
     return lines
 
 
+def _stage_lines(stages: list[tuple[str, str, bool, dict[str, object]]]) -> list[str]:
+    return [
+        f"{'  ' if ok else '✗ '}{stage} ({at[:16].replace('T', ' ')}) : "
+        + ", ".join(f"{k} {v}" for k, v in counts.items())
+        for stage, at, ok, counts in stages
+    ]
+
+
 @app.command()
 def report() -> None:
-    """État du goût : modèle en service, taux de oui, votes, dernière fournée."""
+    """État : dernières étapes, modèle en service, taux de oui, votes, dernière fournée."""
     settings = _settings()
     editorial = _editorial(settings)
-    _echo(_status_lines(_status(settings, editorial), editorial.votes.quiet_days))
+    with _db(settings) as conn:
+        stages = last_stages(conn)
+    status = _status_lines(_status(settings, editorial), editorial.votes.quiet_days)
+    _echo(["Dernières étapes :", *_stage_lines(stages), *status])
 
 
 @app.command("votes-select")

@@ -35,6 +35,11 @@ class Settings(BaseSettings):
         default=None, pattern=r"^[a-z0-9-]+\.cloudflareaccess\.com$"
     )
     cf_access_aud: str | None = None
+    # Compte Soulseek propre à la radio : celui de slskd l'éjecterait, et les deux Lidarr avec.
+    soulseek_user: str | None = None
+    soulseek_password: SecretStr | None = Field(default=None, repr=False)
+    sockseek_bin: Path = Path("~/.local/bin/sockseek").expanduser()
+    rsgain_bin: Path = Path("~/.local/bin/rsgain").expanduser()
     # Le numéro est une donnée personnelle : masqué comme un secret.
     whatsapp_phone: SecretStr | None = Field(default=None, repr=False)
     callmebot_apikey: SecretStr | None = Field(default=None, repr=False)
@@ -61,6 +66,17 @@ class ModelConfig(BaseModel):
     exam_window: int = Field(default=60, ge=10, le=1000)
 
 
+class AcquisitionConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    max_per_pass: int = Field(default=300, ge=1, le=5000)
+    max_attempts: int = Field(default=3, ge=1, le=20)
+    min_mp3_kbps: int = Field(default=200, ge=96, le=320)
+    identity_threshold: float = Field(default=0.70, gt=0.5, lt=1)
+    searches_per_time: int = Field(default=10, ge=1, le=34)
+    searches_renew_s: int = Field(default=220, ge=60)
+    min_success_rate: float = Field(default=0.2, ge=0, le=1)
+
+
 class VotesConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     exam_per_selection: int = Field(default=10, ge=1, le=100)
@@ -73,6 +89,7 @@ class Editorial(BaseModel):
     library: LibraryConfig = LibraryConfig()
     discover: DiscoverConfig = DiscoverConfig()
     model: ModelConfig = ModelConfig()
+    acquisition: AcquisitionConfig = AcquisitionConfig()
     votes: VotesConfig = VotesConfig()
 
 
