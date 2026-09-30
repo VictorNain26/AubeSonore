@@ -6,12 +6,9 @@ import responses
 from pyrate_limiter import Duration, Limiter, Rate
 
 from radio.sources.lastfm import (
-    ArtistInfo,
     LastfmClient,
     LastfmError,
     LastfmUnavailable,
-    SimilarArtist,
-    Tag,
 )
 
 URL = "https://ws.audioscrobbler.com/2.0/"
@@ -28,7 +25,7 @@ def test_similar_artists() -> None:
         URL,
         json={"similarartists": {"artist": [{"name": "Wire", "match": "0.83", "mbid": ""}]}},
     )
-    assert client().similar_artists("A Certain Ratio", limit=50) == [SimilarArtist("Wire", 0.83)]
+    assert client().similar_artists("A Certain Ratio", limit=50) == ["Wire"]
     p = responses.calls[0].request.params
     assert p["method"] == "artist.getSimilar" and p["artist"] == "A Certain Ratio"
     assert p["limit"] == "50" and p["autocorrect"] == "1" and p["format"] == "json"
@@ -37,37 +34,13 @@ def test_similar_artists() -> None:
 @responses.activate
 def test_single_similar_object_is_a_list() -> None:
     responses.get(URL, json={"similarartists": {"artist": {"name": "Wire", "match": "1"}}})
-    assert client().similar_artists("x") == [SimilarArtist("Wire", 1.0)]
-
-
-@responses.activate
-def test_artist_info() -> None:
-    responses.get(URL, json={"artist": {"name": "Wire", "stats": {"listeners": "812345"}}})
-    assert client().artist_info("Wire") == ArtistInfo("Wire", 812345)
-
-
-@responses.activate
-def test_artist_info_unknown_is_none() -> None:
-    responses.get(URL, json={"error": 6, "message": "The artist you supplied could not be found"})
-    assert client().artist_info("zzz") is None
-
-
-@responses.activate
-def test_top_tags() -> None:
-    responses.get(
-        URL,
-        json={
-            "toptags": {"tag": [{"name": "post-punk", "count": 100}, {"name": "uk", "count": "7"}]}
-        },
-    )
-    assert client().artist_top_tags("Wire") == [Tag("post-punk", 100), Tag("uk", 7)]
+    assert client().similar_artists("x") == ["Wire"]
 
 
 @responses.activate
 def test_unknown_artist_gives_empty() -> None:
     responses.get(URL, json={"error": 6, "message": "not found"})
     assert client().similar_artists("zzz") == []
-    assert client().artist_top_tags("zzz") == []
 
 
 @pytest.mark.parametrize("code", [8, 11, 16, 29, 10, 26])

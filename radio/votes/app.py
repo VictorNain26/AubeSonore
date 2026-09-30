@@ -11,6 +11,8 @@
 
 import html
 import logging
+import os
+import tempfile
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,7 +20,8 @@ from typing import Annotated, Literal, Protocol
 
 import jwt
 from fastapi import Depends, FastAPI, Form, Header, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
+from starlette.background import BackgroundTask
 
 from radio.core.db import connect
 from radio.sources.deezer import DeezerError, DeezerTrack, DeezerUnavailable
@@ -53,34 +56,6 @@ class PreviewSource(Protocol):
     def track(self, track_id: int) -> tuple[DeezerTrack, str | None] | None: ...
 
     def download_preview(self, url: str) -> bytes: ...
-
-
-def _byte_range(value: str, total: int) -> tuple[int, int] | None:
-    """Une seule plage `bytes=A-B`, `bytes=A-` ou `bytes=-N` sur un contenu de `total` octets.
-    None si la syntaxe ne correspond pas ou si la plage n'est pas satisfiable (iOS Safari sonde
-    l'extrait avec `Range: bytes=0-1` avant de le lire)."""
-    prefix = "bytes="
-    if not value.startswith(prefix) or "," in value:
-        return None
-    start_s, sep, end_s = value[len(prefix) :].partition("-")
-    if not sep:
-        return None
-    try:
-        if start_s == "":
-            if end_s == "":
-                return None
-            suffix = int(end_s)
-            if suffix <= 0:
-                return None
-            start, end = max(0, total - suffix), total - 1
-        else:
-            start = int(start_s)
-            end = int(end_s) if end_s else total - 1
-    except ValueError:
-        return None
-    if start < 0 or end < start or start >= total:
-        return None
-    return start, min(end, total - 1)
 
 
 def _shell(body: str) -> str:
@@ -160,7 +135,7 @@ def create_app(db_path: Path, deezer: PreviewSource, verify: Callable[[str], Non
         return RedirectResponse("/", status_code=303)
 
     @app.get("/extrait/{tid}", dependencies=guarded)
-    def extrait(tid: int, range: Annotated[str | None, Header()] = None) -> Response:
+    def extrait(tid: int) -> Response:
         if not any(b.deezer_track_id == tid for b in waiting()):
             raise HTTPException(404, "Titre inconnu")
         try:
@@ -176,19 +151,14 @@ def create_app(db_path: Path, deezer: PreviewSource, verify: Callable[[str], Non
             logger.warning("preview unavailable for %s (%s)", tid, type(e).__name__)
             raise HTTPException(503, "Deezer indisponible, réessayer plus tard") from None
 
-        total = len(audio)
-        headers = {"Cache-Control": "no-store", "Accept-Ranges": "bytes"}
-        if range is None:
-            return Response(audio, media_type="audio/mpeg", headers=headers)
-        parsed = _byte_range(range, total)
-        if parsed is None:
-            return Response(
-                status_code=416, headers={**headers, "Content-Range": f"bytes */{total}"}
-            )
-        start, end = parsed
-        headers["Content-Range"] = f"bytes {start}-{end}/{total}"
-        return Response(
-            audio[start : end + 1], media_type="audio/mpeg", status_code=206, headers=headers
+        # FileResponse gère Range : iOS Safari sonde l'extrait (`bytes=0-1`) avant de le lire.
+        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+            f.write(audio)
+        return FileResponse(
+            f.name,
+            media_type="audio/mpeg",
+            headers={"Cache-Control": "no-store"},
+            background=BackgroundTask(os.unlink, f.name),
         )
 
     return app

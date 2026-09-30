@@ -15,8 +15,8 @@ URL = "https://cdnt-preview.dzcdn.net/x.mp3?hdnea=SIGNED-SECRET"
 VEC = np.full(DIM, 1 / np.sqrt(DIM), dtype=np.float32)
 
 
-def dt(tid: int, rank: int = 500) -> DeezerTrack:
-    return DeezerTrack(tid, "T", "T", 200, rank, 1, "Knife", True)
+def dt(tid: int) -> DeezerTrack:
+    return DeezerTrack(tid, "T", "T", 200, 500, 1, "Knife", True)
 
 
 class FakeDeezer:
@@ -56,11 +56,8 @@ def db(tmp_path: Path, n: int = 5) -> sqlite3.Connection:
     return conn
 
 
-def rows(conn: sqlite3.Connection) -> dict[int, tuple[str, int | None]]:
-    return {
-        r["deezer_track_id"]: (r["status"], r["rank"])
-        for r in conn.execute("SELECT * FROM track_measures")
-    }
+def rows(conn: sqlite3.Connection) -> dict[int, str]:
+    return {r["deezer_track_id"]: r["status"] for r in conn.execute("SELECT * FROM track_measures")}
 
 
 def test_statuses(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
@@ -68,7 +65,7 @@ def test_statuses(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     conn = db(tmp_path)
     dz = FakeDeezer(
         {
-            1: (dt(1, rank=700), URL),
+            1: (dt(1), URL),
             2: (dt(2), None),
             3: None,
             4: DeezerError("code 501"),
@@ -79,7 +76,7 @@ def test_statuses(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     rep = measure_tracks(conn, dz, emb, "d")
     assert (rep.n_todo, rep.n_ok, rep.n_no_preview, rep.n_gone) == (5, 2, 1, 1)
     assert (rep.n_audio_failed, rep.errors) == (0, ["Knife — T (DeezerError)"])
-    assert rows(conn) == {1: ("ok", 700), 2: ("no_preview", 500), 3: ("gone", None), 5: ("ok", 500)}
+    assert rows(conn) == {1: "ok", 2: "no_preview", 3: "gone", 5: "ok"}
     blob = conn.execute("SELECT embedding, model FROM track_measures WHERE deezer_track_id = 1")
     b, model = blob.fetchone()
     assert np.array_equal(from_blob(b), VEC) and model == MODEL_TAG
@@ -95,8 +92,8 @@ def test_failed_audio(tmp_path: Path) -> None:
     measure_tracks(conn, FakeDeezer({1: (dt(1), URL)}, fail_download=True), FakeEmbedder(), "d")
     conn2 = db(tmp_path / "b", n=1)
     measure_tracks(conn2, FakeDeezer({1: (dt(1), URL)}), FakeEmbedder(None), "d")
-    assert rows(conn) == {1: ("audio_failed", 500)}
-    assert rows(conn2) == {1: ("audio_failed", 500)}
+    assert rows(conn) == {1: "audio_failed"}
+    assert rows(conn2) == {1: "audio_failed"}
 
 
 def test_unavailable_commits_work_done(tmp_path: Path) -> None:

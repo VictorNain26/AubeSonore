@@ -18,7 +18,7 @@ def neighbours(
     exclude_ids: set[int],
     exclude_names: frozenset[str],
 ) -> list[DeezerArtist]:
-    similar = {normalize(s.name) for s in lastfm.similar_artists(seed.name, limit=similar_limit)}
+    similar = {normalize(s) for s in lastfm.similar_artists(seed.name, limit=similar_limit)}
     similar.discard("")
     out = []
     for a in deezer.related(seed.deezer_artist_id):

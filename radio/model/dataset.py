@@ -1,7 +1,7 @@
-"""Exemples d'entraînement et jeu d'examen (spec §5.4.3, §7.1 ; revue v3-2 point 6).
+"""Exemples d'entraînement et jeu d'examen (spec §5.4, §7.1).
 
 - Positifs : titres de la bibliothèque (poids d'écoute) et « oui » de leçon.
-- Négatifs : « non » de leçon, et négatifs faibles (origine `negative`), pondérés par λ.
+- Négatifs : « non » de leçon, et négatifs faibles (origine `negative`), sous-pondérés.
 - « Passer » est ignoré. Un vote l'emporte sur l'origine du titre.
 - Un titre voté à l'examen n'est jamais un exemple d'entraînement.
 - Un négatif faible est écarté si son artiste est dans la bibliothèque (id ou nom normalisé), ou
@@ -36,9 +36,8 @@ class MissingExamplesError(Exception):
 class Dataset:
     rows: Ints  # indices dans la SignalTable
     labels: Ints  # 1 positif, 0 négatif
-    base_weights: Floats  # avant λ et équilibrage
+    base_weights: Floats  # avant négatifs faibles et équilibrage
     categories: Ints  # index dans CATEGORIES
-    groups: Ints  # artiste (nom normalisé) codé en entier
 
     def counts(self) -> dict[str, int]:
         return {name: int((self.categories == i).sum()) for i, name in enumerate(CATEGORIES)}
@@ -123,13 +122,11 @@ def build_labels(conn: sqlite3.Connection, table: SignalTable, exam_window: int)
         labels.append(label)
         base.append(weight)
         cats.append(cat)
-    _, groups = np.unique([table.artist_keys[i] for i in rows], return_inverse=True)
     train = Dataset(
         rows=np.array(rows, dtype=np.int64),
         labels=np.array(labels, dtype=np.int64),
         base_weights=np.array(base, dtype=np.float64),
         categories=np.array(cats, dtype=np.int64),
-        groups=np.asarray(groups, dtype=np.int64).reshape(-1),
     )
     exam_set = ExamSet(
         rows=np.array([index[v["tid"]] for v in exam], dtype=np.int64),
@@ -140,13 +137,13 @@ def build_labels(conn: sqlite3.Connection, table: SignalTable, exam_window: int)
 
 
 def weights(ds: Dataset, weak_weight: float) -> Floats:
-    """Poids d'entraînement : λ sur les négatifs faibles, puis classes équilibrées (même poids
-    total pour les positifs et les négatifs, poids moyen 1)."""
+    """Négatifs faibles sous-pondérés, puis chaque classe ramenée à un poids total de 1 : le C
+    de la régression ne dépend pas de la taille de la bibliothèque."""
     w = ds.base_weights.copy()
     w[ds.categories == WEAK] *= weak_weight
     pos, neg = w[ds.labels == 1].sum(), w[ds.labels == 0].sum()
     if pos == 0 or neg == 0:
         raise MissingExamplesError("il faut des exemples positifs et négatifs")
-    w[ds.labels == 1] *= len(w) / (2 * pos)
-    w[ds.labels == 0] *= len(w) / (2 * neg)
+    w[ds.labels == 1] /= pos
+    w[ds.labels == 0] /= neg
     return w

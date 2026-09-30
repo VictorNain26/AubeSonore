@@ -3,8 +3,9 @@
 - Examen : tirage uniforme parmi les titres retenus (acceptés par le modèle en service) de la
   dernière fournée notée. Un vote d'examen n'est jamais un exemple d'entraînement
   (radio/model/dataset.py).
-- Leçon : les titres les plus incertains (note la plus proche du seuil), au plus un par artiste :
-  échantillonnage par incertitude (Settles, Active Learning Literature Survey, 2009).
+- Leçon : les titres les plus incertains (note la plus proche de la coupure de la dernière
+  fournée), au plus un par artiste : échantillonnage par incertitude (Settles, Active Learning
+  Literature Survey, 2009).
 - À l'aveugle : l'ordre de présentation est tiré au hasard, la page ne montre que l'artiste et
   le titre.
 - Un titre voté ou déjà présenté ne revient jamais. Tant qu'un bulletin attend, aucune nouvelle
@@ -15,8 +16,6 @@ import sqlite3
 from dataclasses import dataclass
 
 import numpy as np
-
-VOTES = ("oui", "non", "passer")
 
 
 class NoServingModelError(Exception):
@@ -69,8 +68,6 @@ def pending_ballots(conn: sqlite3.Connection) -> list[Ballot]:
 
 def record_vote(conn: sqlite3.Connection, track_id: int, vote: str, now: str) -> bool:
     """Enregistre le vote d'un bulletin en attente. False si le titre n'attend pas de vote."""
-    if vote not in VOTES:
-        raise ValueError(f"vote inconnu : {vote!r}")
     try:
         with conn:
             row = conn.execute(
@@ -91,13 +88,13 @@ def record_vote(conn: sqlite3.Connection, track_id: int, vote: str, now: str) ->
     return True
 
 
-def _serving(conn: sqlite3.Connection) -> tuple[int, float]:
+def _serving(conn: sqlite3.Connection) -> int:
     row = conn.execute(
-        "SELECT model_id, threshold FROM models WHERE promoted = 1 ORDER BY model_id DESC LIMIT 1"
+        "SELECT model_id FROM models WHERE promoted = 1 ORDER BY model_id DESC LIMIT 1"
     ).fetchone()
     if row is None:
         raise NoServingModelError
-    return int(row[0]), float(row[1])
+    return int(row[0])
 
 
 def select_batch(
@@ -106,7 +103,7 @@ def select_batch(
     waiting = pending_ballots(conn)
     if waiting:
         raise PendingBallotsError(len(waiting))
-    model_id, threshold = _serving(conn)
+    model_id = _serving(conn)
     last_run = conn.execute(
         "SELECT MAX(c.run_id) FROM scores s JOIN candidates c USING (deezer_track_id) "
         "WHERE s.model_id = ?",
@@ -129,11 +126,16 @@ def select_batch(
         (model_id,),
     ).fetchall()
     retained = [int(r[0]) for r in rows if int(r[3]) == run_id and int(r[2]) == 1]
+    cut = conn.execute(
+        "SELECT MIN(s.score) FROM scores s JOIN candidates c USING (deezer_track_id) "
+        "WHERE c.run_id = ? AND s.accepted = 1",
+        (run_id,),
+    ).fetchone()[0]
     k = min(n_exam, len(retained))
     exam = sorted(int(t) for t in rng.choice(retained, size=k, replace=False)) if k else []
     lesson: list[int] = []
     artists: set[int] = set()
-    for r in sorted(rows, key=lambda r: (abs(float(r[1]) - threshold), int(r[0]))):
+    for r in sorted(rows, key=lambda r: (abs(float(r[1]) - cut), int(r[0]))):
         if len(lesson) == n_lesson:
             break
         tid, artist = int(r[0]), int(r[4])

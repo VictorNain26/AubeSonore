@@ -2,7 +2,6 @@ import logging
 from collections.abc import Callable
 from pathlib import Path
 
-import numpy as np
 import pytest
 import requests
 from plexapi.exceptions import Unauthorized
@@ -10,10 +9,9 @@ from typer.testing import CliRunner
 
 import radio.cli as cli
 from radio.core.config import Settings
-from radio.library.match import MatchReport
 from radio.signals.audio import ModelError
 from radio.sources.deezer import DeezerArtist, DeezerTrack, DeezerUnavailable
-from radio.sources.lastfm import LastfmUnavailable, SimilarArtist
+from radio.sources.lastfm import LastfmUnavailable
 from radio.sources.plex import LibraryGuardError, PlexTrack
 from tests_radio.factories import make_library
 
@@ -61,8 +59,8 @@ def test_library_sync_end_to_end(env: Path, monkeypatch: pytest.MonkeyPatch) -> 
         PlexTrack("1", "Wire", "Mannequin", "Pink Flag", 157000, 2),
         PlexTrack("2", "Wire", "Nope", "Pink Flag", 100000, 0),
     ]
-    monkeypatch.setattr(cli, "_plex", lambda s: FakePlex(tracks))
-    monkeypatch.setattr(cli, "_deezer", lambda: FakeDeezer())
+    monkeypatch.setattr(cli, "PlexSource", lambda *a: FakePlex(tracks))
+    monkeypatch.setattr(cli, "DeezerClient", lambda: FakeDeezer())
     res = runner.invoke(cli.app, ["library-sync"])
     assert res.exit_code == 0, res.output
     assert "Bibliothèque Plex : 2 titres (2 ajoutés, 0 modifiés, 0 retirés)" in res.stdout
@@ -85,9 +83,11 @@ def test_missing_config_exits_2(env: Path, monkeypatch: pytest.MonkeyPatch) -> N
 
 def test_deezer_unavailable_exits_1(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(
-        cli, "_plex", lambda s: FakePlex([PlexTrack("1", "Wire", "Mannequin", "P", 157000, 0)])
+        cli,
+        "PlexSource",
+        lambda *a: FakePlex([PlexTrack("1", "Wire", "Mannequin", "P", 157000, 0)]),
     )
-    monkeypatch.setattr(cli, "_deezer", lambda: FakeDeezer(fail=True))
+    monkeypatch.setattr(cli, "DeezerClient", lambda: FakeDeezer(fail=True))
     res = runner.invoke(cli.app, ["library-sync"])
     assert res.exit_code == 1
     assert "Deezer indisponible" in res.output
@@ -98,30 +98,30 @@ def test_thousands_are_formatted_in_french() -> None:
     assert cli._pct(2900, 3424) == "84,7 %"
 
 
-def _raise(exc: Exception) -> Callable[[Settings], FakePlex]:
-    def plex(settings: Settings) -> FakePlex:
+def _raise(exc: Exception) -> Callable[..., FakePlex]:
+    def plex(*args: object) -> FakePlex:
         raise exc
 
     return plex
 
 
 def test_library_guard_error_exits_2(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cli, "_plex", _raise(LibraryGuardError("section interdite : X")))
+    monkeypatch.setattr(cli, "PlexSource", _raise(LibraryGuardError("section interdite : X")))
     res = runner.invoke(cli.app, ["library-sync"])
     assert res.exit_code == 2
     assert "Bibliothèque refusée : section interdite : X" in res.output
 
 
 def test_plex_error_exits_1_with_type_name(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cli, "_plex", _raise(Unauthorized("(401) unauthorized")))
+    monkeypatch.setattr(cli, "PlexSource", _raise(Unauthorized("(401) unauthorized")))
     res = runner.invoke(cli.app, ["library-sync"])
     assert res.exit_code == 1
     assert "Plex en erreur (Unauthorized)" in res.output
 
 
 def test_empty_library_exits_1(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(cli, "_plex", lambda s: FakePlex([]))
-    monkeypatch.setattr(cli, "_deezer", lambda: FakeDeezer())
+    monkeypatch.setattr(cli, "PlexSource", lambda *a: FakePlex([]))
+    monkeypatch.setattr(cli, "DeezerClient", lambda: FakeDeezer())
     res = runner.invoke(cli.app, ["library-sync"])
     assert res.exit_code == 1
     assert "Plex n'a renvoyé aucun titre" in res.output
@@ -137,7 +137,7 @@ def test_plex_token_never_leaks(env: Path, monkeypatch: pytest.MonkeyPatch) -> N
     )
     monkeypatch.setattr(cli, "_settings", lambda: settings)
     exc = requests.ConnectionError("http://plex?X-Plex-Token=tok-SECRET-123")
-    monkeypatch.setattr(cli, "_plex", _raise(exc))
+    monkeypatch.setattr(cli, "PlexSource", _raise(exc))
     res = runner.invoke(cli.app, ["library-sync"])
     assert res.exit_code == 1
     assert "Plex en erreur (ConnectionError)" in res.output
@@ -148,19 +148,9 @@ def test_urllib3_logs_are_silenced(env: Path, monkeypatch: pytest.MonkeyPatch) -
     # urllib3 à WARNING peut journaliser l'URL complète, clé Last.fm comprise.
     urllib3_logger = logging.getLogger("urllib3")
     monkeypatch.setattr(urllib3_logger, "level", logging.NOTSET)
-    monkeypatch.setattr(cli, "_plex", lambda s: FakePlex([]))
+    monkeypatch.setattr(cli, "PlexSource", lambda *a: FakePlex([]))
     runner.invoke(cli.app, ["library-sync"])
     assert urllib3_logger.level == logging.ERROR
-
-
-def test_match_line_formats_reason_counts() -> None:
-    rep = MatchReport(
-        n_todo=5000, n_matched=2000, unmatched={"no_result": 1234, "no_exact_match": 1766}
-    )
-    assert cli._match_line(rep) == (
-        "Rapprochement Deezer : 5\u202f000 à traiter → 2\u202f000 trouvés, 3\u202f000 non trouvés "
-        "(sans résultat 1\u202f234, sans correspondance exacte 1\u202f766), 0 en erreur"
-    )
 
 
 class DiscoverFakes:
@@ -168,22 +158,21 @@ class DiscoverFakes:
         self.fail = fail
 
     def related(self, artist_id: int) -> list[DeezerArtist]:
-        return [DeezerArtist(1, "Knife", 10)] if artist_id == 83 else []
+        return [DeezerArtist(1, "Knife")] if artist_id == 83 else []
 
     def top(self, artist_id: int, limit: int = 10) -> list[DeezerTrack]:
         return [DeezerTrack(11, "Heartbeats", "Heartbeats", 200, 1000, 1, "Knife", True)]
 
-    def similar_artists(self, artist: str, limit: int = 100) -> list[SimilarArtist]:
+    def similar_artists(self, artist: str, limit: int = 100) -> list[str]:
         if self.fail:
             raise LastfmUnavailable("code 29")
-        return [SimilarArtist("The Knife", 0.9)]
+        return ["The Knife"]
 
 
 def _discover_env(monkeypatch: pytest.MonkeyPatch, env: Path, fakes: DiscoverFakes) -> None:
     make_library(env / "data").close()
-    monkeypatch.setattr(cli, "_deezer", lambda: fakes)
+    monkeypatch.setattr(cli, "DeezerClient", lambda: fakes)
     monkeypatch.setattr(cli, "_lastfm", lambda s: fakes)
-    monkeypatch.setattr(cli, "_rng", lambda: np.random.default_rng(0))
 
 
 def test_discover_command(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -211,7 +200,7 @@ def test_discover_without_lastfm_key_exits_2(env: Path) -> None:
 
 def test_discover_without_library_exits_1(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     fakes = DiscoverFakes()
-    monkeypatch.setattr(cli, "_deezer", lambda: fakes)
+    monkeypatch.setattr(cli, "DeezerClient", lambda: fakes)
     monkeypatch.setattr(cli, "_lastfm", lambda s: fakes)
     res = runner.invoke(cli.app, ["discover"])
     assert res.exit_code == 1
@@ -227,7 +216,7 @@ def test_negatives_sync_command(env: Path, monkeypatch: pytest.MonkeyPatch) -> N
         def top(self, artist_id: int, limit: int = 10) -> list[DeezerTrack]:
             return [DeezerTrack(1, "Tchikita", "Tchikita", 200, 1000, 900, "Jul", True)]
 
-    monkeypatch.setattr(cli, "_deezer", lambda: Top())
+    monkeypatch.setattr(cli, "DeezerClient", lambda: Top())
     res = runner.invoke(cli.app, ["negatives-sync"])
     assert res.exit_code == 0, res.output
     assert (
@@ -244,11 +233,10 @@ def test_negatives_sync_invalid_file_exits_2(env: Path) -> None:
 
 
 def test_signals_refuses_a_bad_model(env: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    def bad(settings: Settings) -> object:
+    def bad(path: Path) -> object:
         raise ModelError("somme de contrôle inattendue : m.pb")
 
-    monkeypatch.setattr(cli, "_lastfm", lambda s: object())
-    monkeypatch.setattr(cli, "_embedder", bad)
+    monkeypatch.setattr(cli, "EffnetEmbedder", bad)
     res = runner.invoke(cli.app, ["signals"])
     assert res.exit_code == 2
     assert "Modèle EffNet refusé : somme de contrôle inattendue" in res.output

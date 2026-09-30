@@ -41,7 +41,6 @@ class DeezerTrack:
 class DeezerArtist:
     id: int
     name: str
-    nb_fan: int
 
 
 def _track(d: Any) -> DeezerTrack:
@@ -62,7 +61,7 @@ def _track(d: Any) -> DeezerTrack:
 
 def _artist(d: Any) -> DeezerArtist:
     try:
-        return DeezerArtist(id=int(d["id"]), name=str(d["name"]), nb_fan=int(d["nb_fan"]))
+        return DeezerArtist(id=int(d["id"]), name=str(d["name"]))
     except (KeyError, TypeError, ValueError):
         raise DeezerError("malformed artist") from None
 
@@ -77,10 +76,6 @@ class DeezerClient:
     def search_tracks(self, query: str, limit: int = 10) -> list[DeezerTrack]:
         body = self._get("/search/track", {"q": query, "limit": limit})
         return [_track(d) for d in body.get("data") or []]
-
-    def artist(self, artist_id: int) -> DeezerArtist | None:
-        body = self._get(f"/artist/{artist_id}", {})
-        return _artist(body) if "id" in body else None
 
     def related(self, artist_id: int) -> list[DeezerArtist]:
         body = self._get(f"/artist/{artist_id}/related", {})

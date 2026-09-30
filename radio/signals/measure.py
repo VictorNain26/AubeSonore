@@ -1,4 +1,4 @@
-"""Mesure de chaque titre : rang Deezer et empreinte de l'extrait de 30 s (spec §5.3, §8).
+"""Empreinte de l'extrait Deezer de 30 s de chaque titre (spec §5.3, §8).
 
 L'URL d'extrait est demandée fraîche à Deezer juste avant le téléchargement (signée, elle expire).
 Elle n'est ni stockée, ni journalisée, ni mise dans un message. Un titre sans extrait ou à
@@ -54,7 +54,7 @@ def measure_tracks(
 
     def flush() -> None:
         with conn:
-            conn.executemany("INSERT INTO track_measures VALUES (?, ?, ?, ?, ?, ?)", rows)
+            conn.executemany("INSERT INTO track_measures VALUES (?, ?, ?, ?, ?)", rows)
         rows.clear()
 
     try:
@@ -62,15 +62,13 @@ def measure_tracks(
             if i % 100 == 0:
                 logger.info("measure: %d/%d tracks processed", i, len(todo))
             status: str
-            rank: int | None = None
             blob: bytes | None = None
             try:
                 got = deezer.track(r["tid"])
                 if got is None:
                     status = "gone"
                 else:
-                    track, url = got
-                    rank = track.rank
+                    _, url = got
                     if url is None:
                         status = "no_preview"
                     else:
@@ -86,7 +84,7 @@ def measure_tracks(
             except DeezerError as e:
                 rep.errors.append(f"{r['name']} — {r['title']} ({type(e).__name__})")
                 continue
-            rows.append((r["tid"], status, rank, blob, MODEL_TAG, now))
+            rows.append((r["tid"], status, blob, MODEL_TAG, now))
             if status == "ok":
                 rep.n_ok += 1
             elif status == "no_preview":

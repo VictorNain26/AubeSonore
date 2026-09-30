@@ -3,12 +3,12 @@ from typing import Any
 
 import pytest
 import uvicorn
+from pydantic import ValidationError
 from typer.testing import CliRunner
 
 import radio.cli as cli
-from radio.core.config import Editorial, Settings
-from radio.model.evaluate import YesRate
-from radio.model.promote import ExamMetrics
+from radio.core.config import Settings
+from radio.model.model import Batch, YesRate
 from radio.notify.whatsapp import WhatsAppError
 from radio.votes.status import Status
 from tests_radio.model_factory import make_model_db, serve_scores
@@ -42,57 +42,46 @@ def full(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
 def _st(**kw: Any) -> Status:
     base: dict[str, Any] = {
         "model_id": 3,
-        "exam": ExamMetrics(60, 0.8, YesRate(48, 40, 0.70, 0.91)),
+        "exam_auc": 0.8,
+        "n_exam": 60,
+        "yes": YesRate(48, 40, 0.70, 0.91),
         "last_exam_vote": "2026-09-20T10:00:00+00:00",
         "pending": 20,
         "last_selection": "2026-09-27T03:40:00+00:00",
         "stale_selection_days": 0,
         "recent_votes": 12,
-        "batch": (7, 400, 60),
+        "batch": Batch(7, 400, 133),
     }
     base.update(kw)
     return Status(**base)
 
 
-def test_reminder_counts_waiting_titles_and_raises_alerts() -> None:
-    ed = Editorial()
-    text = cli._reminder(_st(), ed, "https://votes.example.org", page_ok=True)
-    assert text.startswith("AubeSonore : 20 titres à écouter — https://votes.example.org")
-    assert "Examen (modèle n°3) : 60 votes, AUC 0,800, taux de oui 83,3 %" in text
-    assert "ALERTE : taux de oui sous 90,0 %" in text
-    assert "Dernier vote d'examen : 2026-09-20T10:00:00+00:00" in text
-    assert "injoignable" not in text
-    quiet = _st(
-        pending=0,
-        recent_votes=0,
-        exam=ExamMetrics(60, 0.9, YesRate(50, 47, 0.84, 0.98)),
-        batch=(7, 400, 20),
-    )
-    text = cli._reminder(quiet, ed, "https://votes.example.org", page_ok=False)
-    assert text.startswith("AubeSonore : aucun titre en attente de vote")
-    assert "Page de vote injoignable" in text
-    assert "Votes des 7 derniers jours : 0 — pas de réentraînement" in text
-    assert "ALERTE : taux de oui" not in text
-    assert "Dernière fournée (passe n°7) : 5,0 % acceptés — ALERTE : sous 10,0 %" in text
-    assert "Aucun modèle en service" in cli._reminder(_st(model_id=None, exam=None), ed, "u", True)
+def test_status_lines() -> None:
+    lines = cli._status_lines(_st(), 7)
+    assert "Modèle n°3 : AUC d'examen 0,800 sur 60" in lines
+    assert "Taux de oui des retenus : 83,3 % [70,0 % - 91,0 %] sur 48 votes d'examen" in lines
+    assert "Dernière fournée (passe n°7) : 133 retenus sur 400 candidats" in lines
+    none = cli._status_lines(_st(model_id=None, exam_auc=None, n_exam=0, yes=None), 7)
+    assert none[:2] == [
+        "Aucun modèle en service",
+        "Taux de oui des retenus : aucun vote d'examen sur la page",
+    ]
 
 
 def test_status_lines_alert_when_the_weekly_pass_seems_to_have_failed() -> None:
-    ed = Editorial()  # quiet_days = 7
-
-    stale = cli._status_lines(_st(pending=0, stale_selection_days=8), ed)
+    stale = cli._status_lines(_st(pending=0, stale_selection_days=8), 7)
     assert any(
         "ALERTE : aucune sélection depuis 8 jours (passe hebdomadaire en échec ?)" in line
         for line in stale
     )
 
-    fresh = cli._status_lines(_st(pending=0, stale_selection_days=2), ed)
+    fresh = cli._status_lines(_st(pending=0, stale_selection_days=2), 7)
     assert not any("ALERTE : aucune sélection" in line for line in fresh)
 
-    never = cli._status_lines(_st(pending=0, last_selection=None, stale_selection_days=None), ed)
+    never = cli._status_lines(_st(pending=0, last_selection=None, stale_selection_days=None), 7)
     assert "ALERTE : aucune sélection encore tirée (passe hebdomadaire en échec ?)" in never
 
-    waiting = cli._status_lines(_st(pending=20, stale_selection_days=8), ed)
+    waiting = cli._status_lines(_st(pending=20, stale_selection_days=8), 7)
     assert not any("ALERTE : aucune sélection" in line for line in waiting)
 
 
@@ -125,11 +114,8 @@ def test_votes_serve_requires_access_settings(
     res = runner.invoke(cli.app, ["votes-serve"])
     assert res.exit_code == 2
     assert "CF_ACCESS_TEAM_DOMAIN et CF_ACCESS_AUD" in res.output
-    bad = _settings(tmp_path, cf_access_team_domain="https://aube.fr", cf_access_aud="a")
-    monkeypatch.setattr(cli, "_settings", lambda: bad)
-    res = runner.invoke(cli.app, ["votes-serve"])
-    assert res.exit_code == 2
-    assert "<équipe>.cloudflareaccess.com" in res.output
+    with pytest.raises(ValidationError):
+        _settings(tmp_path, cf_access_team_domain="https://aube.fr", cf_access_aud="a")
 
 
 def test_votes_serve_runs_uvicorn_on_loopback(full: Path, monkeypatch: pytest.MonkeyPatch) -> None:

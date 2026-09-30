@@ -27,7 +27,8 @@ def test_exam_from_latest_batch_lesson_most_uncertain(tmp_path: Path) -> None:
     assert len(sel.exam) == 10
     assert all(2006 <= t // 100 < 2012 for t in sel.exam)  # retenus de la dernière fournée
     assert len(sel.lesson) == 10
-    assert all(t % 100 == 0 for t in sel.lesson)  # k = 0 : les plus proches du seuil
+    # Coupure 0,5625 (aimé k = 0) : les plus proches sont les aimés k = 0, puis k = 1.
+    assert all(t // 100 < 3000 and t % 100 <= 1 for t in sel.lesson)
     assert len({t // 100 for t in sel.lesson}) == 10  # un par artiste
     assert not set(sel.exam) & set(sel.lesson)
     ballots = pending_ballots(conn)
@@ -50,8 +51,6 @@ def test_votes_empty_the_queue_and_titles_never_return(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
     first = select_batch(conn, _rng(), 10, 10, NOW)
-    with pytest.raises(ValueError):
-        record_vote(conn, first.exam[0], "peut-être", NOW)
     for b in pending_ballots(conn):
         assert record_vote(conn, b.deezer_track_id, "oui", NOW)
     assert pending_ballots(conn) == []
@@ -79,13 +78,13 @@ def test_small_pool_gives_what_there_is(tmp_path: Path) -> None:
 def test_lesson_takes_at_most_one_title_per_artist(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    # 200001 (artiste 2000, k=1) devient plus incertain que 200000 (k=0, même artiste) : sans la
-    # garde par artiste, les deux seraient pris.
-    conn.execute("UPDATE scores SET score = 0.51 WHERE deezer_track_id = 200001")
+    # Deux titres de l'artiste 2000 exactement sur la coupure : sans la garde par artiste, les
+    # deux seraient pris.
+    conn.execute("UPDATE scores SET score = 0.9 WHERE deezer_track_id = 200000")
+    conn.execute("UPDATE scores SET score = 0.5625 WHERE deezer_track_id IN (200001, 200002)")
     conn.commit()
     sel = select_batch(conn, _rng(), 0, 10, NOW)
     assert 200001 in sel.lesson
-    assert 200000 not in sel.lesson
     assert sum(1 for t in sel.lesson if t // 100 == 2000) == 1
 
 
@@ -93,7 +92,7 @@ def test_needs_a_serving_model_and_its_scores(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     with pytest.raises(NoServingModelError):
         select_batch(conn, _rng(), 10, 10, NOW)
-    conn.execute("INSERT INTO models VALUES (1, 'd', 'f', 0.5, 1, 'v', '{}', '{}')")
+    conn.execute("INSERT INTO models VALUES (1, 'd', 'f', 1, 'v', '{}', '{}')")
     conn.commit()
     with pytest.raises(NoScoresError):
         select_batch(conn, _rng(), 10, 10, NOW)

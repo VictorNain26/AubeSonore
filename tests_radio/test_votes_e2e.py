@@ -1,11 +1,9 @@
 """Test de bout en bout de la couture modèle <-> votes (spec §9) : entraînement réel, sélection,
 vote sur la vraie page, réentraînement, deuxième sélection. `radio discover` est hors de portée
 d'un test sans réseau : la file de candidats est semée directement (mêmes tables que
-`radio discover` remplirait), comme `tests_radio/model_factory.py::serve_scores` le fait déjà
-pour d'autres tests.
+`radio discover` remplirait).
 """
 
-import sqlite3
 from pathlib import Path
 
 import pytest
@@ -17,7 +15,7 @@ from radio.core.config import Settings
 from radio.core.db import connect
 from radio.votes.app import create_app
 from radio.votes.select import pending_ballots
-from tests_radio.model_factory import add_vote, make_model_db
+from tests_radio.model_factory import add_vote, make_model_db, seed_run
 from tests_radio.test_votes_app import OK, FakeDeezer, _verify
 
 runner = CliRunner()
@@ -27,35 +25,22 @@ runner = CliRunner()
 def env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
     cfg = tmp_path / "config"
     cfg.mkdir()
-    (cfg / "editorial.toml").write_text("[model]\nmin_votes_per_class = 4\nfolds = 3\n")
+    (cfg / "editorial.toml").write_text("")
     settings = Settings(_env_file=None, RADIO_DATA_DIR=tmp_path / "data", RADIO_CONFIG_DIR=cfg)
     monkeypatch.setattr(cli, "_settings", lambda: settings)
     return tmp_path
 
 
-def _seed_candidates(conn: sqlite3.Connection) -> None:
-    """Simule une fournée de découverte unique (`radio discover` a besoin du réseau) : tous les
-    titres candidats de `make_model_db` entrent dans la seule et dernière fournée."""
-    conn.execute("INSERT INTO discover_runs VALUES (1, 'd', 'd', 'done')")
-    rows = conn.execute(
-        "SELECT deezer_track_id, deezer_artist_id FROM tracks WHERE origin = 'candidate'"
-    ).fetchall()
-    conn.executemany(
-        "INSERT INTO candidates VALUES (?, 1, 1000, ?)", [(tid, aid) for tid, aid in rows]
-    )
-    conn.commit()
-
-
 def test_votes_lifecycle_from_training_to_a_second_selection(env: Path) -> None:
     conn = make_model_db(env / "data")
-    _seed_candidates(conn)
+    seed_run(conn)
     for a in range(5):
         add_vote(conn, (2000 + a) * 100, "lesson", "oui")
         add_vote(conn, (3000 + a) * 100, "lesson", "non")
     conn.close()
     db_path = env / "data" / "radio.db"
 
-    # 1. votes de leçon suffisants -> `radio train` : modèle n°1 promu, candidats notés.
+    # 1. `radio train` : modèle n°1 promu, candidats notés.
     res = runner.invoke(cli.app, ["train"])
     assert res.exit_code == 0, res.output
     assert "Modèle n°1 : promu — premier modèle" in res.output

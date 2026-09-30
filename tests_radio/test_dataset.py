@@ -24,7 +24,7 @@ def test_categories_and_exam(tmp_path: Path) -> None:
     add_vote(conn, 300001, "lesson", "passer")
     add_vote(conn, 200100, "exam", "oui")
     add_vote(conn, 300100, "exam", "non")
-    table = load_signals(conn, 10)
+    table = load_signals(conn)
     lab = build_labels(conn, table, 60)
     assert lab.train.counts() == {"library": 6, "vote_yes": 1, "vote_no": 1, "weak": 6}
     ids = table.track_ids
@@ -38,7 +38,7 @@ def test_categories_and_exam(tmp_path: Path) -> None:
 
 def test_library_weights_follow_plays(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path, n_artists=3, per_artist=2)
-    table = load_signals(conn, 10)
+    table = load_signals(conn)
     lab = build_labels(conn, table, 60)
     plays = {
         r[0]: r[1]
@@ -55,7 +55,7 @@ def test_library_weights_follow_plays(tmp_path: Path) -> None:
 def test_a_vote_overrides_the_origin(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path, n_artists=3, per_artist=2)
     add_vote(conn, 100000, "lesson", "non")
-    table = load_signals(conn, 10)
+    table = load_signals(conn)
     lab = build_labels(conn, table, 60)
     row = int(np.flatnonzero(table.track_ids == 100000)[0])
     i = int(np.flatnonzero(lab.train.rows == row)[0])
@@ -70,7 +70,7 @@ def test_weak_negatives_close_to_the_library_are_excluded(tmp_path: Path) -> Non
     key = conn.execute("SELECT dedupe_key FROM tracks WHERE deezer_track_id = 100010").fetchone()
     conn.execute("UPDATE tracks SET dedupe_key = ? WHERE deezer_track_id = 400100", (key[0],))
     conn.commit()
-    table = load_signals(conn, 10)
+    table = load_signals(conn)
     lab = build_labels(conn, table, 60)
     assert lab.n_weak_excluded == 3
     assert lab.train.counts()["weak"] == 3
@@ -82,7 +82,7 @@ def test_exam_window_keeps_the_latest_votes(tmp_path: Path) -> None:
     add_vote(conn, 200001, "exam", "non", at="2026-09-24T11:00:00+00:00")
     add_vote(conn, 200100, "exam", "oui", at="2026-09-24T12:00:00+00:00")
     add_vote(conn, 999, "lesson", "oui")
-    table = load_signals(conn, 10)
+    table = load_signals(conn)
     lab = build_labels(conn, table, 2)
     assert table.track_ids[lab.exam.rows].tolist() == [200001, 200100]
     assert lab.n_votes_unmeasured == 1
@@ -90,29 +90,14 @@ def test_exam_window_keeps_the_latest_votes(tmp_path: Path) -> None:
     assert 200000 not in table.track_ids[lab.train.rows].tolist()
 
 
-def test_groups_follow_normalized_artist_names(tmp_path: Path) -> None:
-    conn = make_model_db(tmp_path, n_artists=3, per_artist=2)
-    conn.execute("UPDATE artists SET name = 'LIB 1' WHERE deezer_artist_id = 1000")
-    conn.commit()
-    table = load_signals(conn, 10)
-    lab = build_labels(conn, table, 60)
-    keys = [table.artist_keys[r] for r in lab.train.rows]
-    by_group: dict[int, set[str]] = {}
-    for g, k in zip(lab.train.groups.tolist(), keys, strict=True):
-        by_group.setdefault(g, set()).add(k)
-    assert all(len(v) == 1 for v in by_group.values())
-    lib1 = {g for g, k in zip(lab.train.groups.tolist(), keys, strict=True) if k == "lib 1"}
-    assert len(lib1) == 1
-
-
 def test_weights_balance_the_classes(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path, n_artists=3, per_artist=2)
     add_vote(conn, 300000, "lesson", "non")
-    table = load_signals(conn, 10)
+    table = load_signals(conn)
     ds = build_labels(conn, table, 60).train
     w = weights(ds, 0.1)
-    assert w[ds.labels == 1].sum() == pytest.approx(w[ds.labels == 0].sum())
-    assert w.mean() == pytest.approx(1.0)
+    assert w[ds.labels == 1].sum() == pytest.approx(1.0)
+    assert w[ds.labels == 0].sum() == pytest.approx(1.0)
     weak, no = w[ds.categories == WEAK], w[ds.categories == VOTE_NO]
     assert weak[0] / no[0] == pytest.approx(0.1 / 4.0)
     w0 = weights(ds, 0.0)
@@ -121,7 +106,7 @@ def test_weights_balance_the_classes(tmp_path: Path) -> None:
 
 def test_weights_need_both_classes(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path, n_artists=3, per_artist=2)
-    table = load_signals(conn, 10)
+    table = load_signals(conn)
     ds = build_labels(conn, table, 60).train
     with pytest.raises(MissingExamplesError):
         weights(ds, 0.0)

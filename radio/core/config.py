@@ -28,17 +28,14 @@ class Settings(BaseSettings):
         default=REPO_ROOT / "models" / "discogs-effnet-bs64-1.pb",
         validation_alias="RADIO_EFFNET_MODEL",
     )
-    # Page de vote (spec §6.2) : écoute en local, publiée par le tunnel Cloudflare.
     votes_host: str = Field(default="127.0.0.1", validation_alias="RADIO_VOTES_HOST")
     votes_port: int = Field(default=8040, validation_alias="RADIO_VOTES_PORT")
-    # Adresse publique de la page, donnée dans le rappel WhatsApp.
     votes_url: str | None = Field(default=None, validation_alias="RADIO_VOTES_URL")
-    # Cloudflare Access : domaine d'équipe (<équipe>.cloudflareaccess.com) et étiquette AUD de
-    # l'application. La page refuse de démarrer sans eux.
-    cf_access_team_domain: str | None = None
+    cf_access_team_domain: str | None = Field(
+        default=None, pattern=r"^[a-z0-9-]+\.cloudflareaccess\.com$"
+    )
     cf_access_aud: str | None = None
-    # Rappel WhatsApp (CallMeBot, canal existant du serveur). Le numéro est une donnée
-    # personnelle : masqué comme un secret.
+    # Le numéro est une donnée personnelle : masqué comme un secret.
     whatsapp_phone: SecretStr | None = Field(default=None, repr=False)
     callmebot_apikey: SecretStr | None = Field(default=None, repr=False)
 
@@ -56,35 +53,18 @@ class DiscoverConfig(BaseModel):
     lastfm_similar_limit: int = Field(default=100, ge=1, le=250)
 
 
-class SignalsConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    culture_vocabulary: int = Field(default=200, ge=10, le=2000)
-
-
 class ModelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    # Précision visée sur les votes de leçon : fixe le seuil d'acceptation (spec §5.4.5).
-    target_precision: float = Field(default=0.90, gt=0, lt=1)
-    # Garde-fou de sévérité : part minimale de la bibliothèque acceptée (spec §7.3).
-    library_acceptance_min: float = Field(default=0.80, gt=0, lt=1)
-    # Alerte si une fournée de candidats est acceptée sous ce taux (spec §7.3).
-    candidate_acceptance_alert: float = Field(default=0.10, gt=0, lt=1)
-    # Fenêtre des derniers votes d'examen qui jugent (spec §7.2).
+    c: float = Field(default=0.1, gt=0)
+    weak_weight: float = Field(default=0.1, ge=0, le=1)
+    keep_fraction: float = Field(default=1 / 3, gt=0, le=1)
     exam_window: int = Field(default=60, ge=10, le=1000)
-    # En dessous, par classe (« oui », « non ») : pas de seuil, pas d'ablation, pas de promotion.
-    min_votes_per_class: int = Field(default=10, ge=2, le=1000)
-    folds: int = Field(default=5, ge=3, le=10)
 
 
 class VotesConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    # Examen : tirage uniforme parmi les titres retenus de la dernière fournée (spec §6.1).
     exam_per_selection: int = Field(default=10, ge=1, le=100)
-    # Leçon : les titres les plus incertains, au plus un par artiste (spec §6.1).
     lesson_per_selection: int = Field(default=10, ge=0, le=100)
-    # Alerte si le taux de oui d'examen passe sous ce seuil (spec §2.2, §8).
-    yes_rate_alert: float = Field(default=0.90, gt=0, lt=1)
-    # Sans vote depuis ce nombre de jours, le rapport et le rappel le signalent (spec §8).
     quiet_days: int = Field(default=7, ge=1, le=60)
 
 
@@ -92,7 +72,6 @@ class Editorial(BaseModel):
     model_config = ConfigDict(extra="forbid")
     library: LibraryConfig = LibraryConfig()
     discover: DiscoverConfig = DiscoverConfig()
-    signals: SignalsConfig = SignalsConfig()
     model: ModelConfig = ModelConfig()
     votes: VotesConfig = VotesConfig()
 

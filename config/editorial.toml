@@ -1,4 +1,4 @@
-# Réglages éditoriaux AubeSonore v3 — validés au chargement (radio/core/config.py).
+# Réglages éditoriaux AubeSonore — validés au chargement (radio/core/config.py).
 
 [library]
 # Écart maximal de durée (secondes) entre le titre Plex et le titre Deezer rapproché.
@@ -14,30 +14,21 @@ tracks_per_neighbour = 10
 # Similaires demandés à Last.fm pour chaque artiste.
 lastfm_similar_limit = 100
 
-[signals]
-# Taille du vocabulaire de tags Last.fm (signal culture).
-culture_vocabulary = 200
-
 [model]
-# Précision visée sur les votes de leçon : fixe le seuil d'acceptation.
-target_precision = 0.90
-# Garde-fou : part minimale des titres de la bibliothèque acceptés (artiste retiré).
-library_acceptance_min = 0.80
-# Alerte si une fournée de candidats est acceptée sous ce taux.
-candidate_acceptance_alert = 0.10
+# Régression logistique sur l'empreinte audio. C, poids des négatifs faibles : fixés le
+# 2026-09-30 par validation croisée groupée par artiste sur les 159 votes du banc
+# (docs/superpowers/research/2026-09-30-modele-audio-seul.md).
+c = 0.1
+weak_weight = 0.1
+# Part de chaque fournée de candidats retenue, les mieux notés d'abord.
+keep_fraction = 0.3333
 # Nombre de derniers votes d'examen qui jugent le modèle.
 exam_window = 60
-# Minimum de « oui » et de « non » de leçon pour choisir un seuil et promouvoir un modèle.
-min_votes_per_class = 10
-# Plis de la validation croisée groupée par artiste.
-folds = 5
 
 [votes]
 # Titres d'examen par sélection hebdomadaire, tirés au hasard parmi les retenus.
 exam_per_selection = 10
-# Titres de leçon par sélection : les plus incertains, un par artiste.
+# Titres de leçon par sélection : les plus proches de la coupure, un par artiste.
 lesson_per_selection = 10
-# Alerte WhatsApp si le taux de oui d'examen passe sous ce seuil.
-yes_rate_alert = 0.90
 # Signaler l'absence de vote depuis ce nombre de jours.
 quiet_days = 7

@@ -11,7 +11,7 @@ from radio.core.db import connect
 from radio.discover.run import NoLibraryArtistsError, discover_pass
 from radio.discover.seeds import recently_used
 from radio.sources.deezer import DeezerArtist, DeezerError, DeezerTrack, DeezerUnavailable
-from radio.sources.lastfm import LastfmUnavailable, SimilarArtist
+from radio.sources.lastfm import LastfmUnavailable
 from tests_radio.factories import make_library
 
 NOW = datetime(2026, 9, 25, tzinfo=UTC)
@@ -25,8 +25,8 @@ def dt(tid: int, aid: int, title: str, preview: bool = True) -> DeezerTrack:
 class FakeDeezer:
     def __init__(self) -> None:
         self._related = {
-            83: [DeezerArtist(1, "Knife", 10), DeezerArtist(70, "Wire", 5)],
-            70: [DeezerArtist(1, "Knife", 10), DeezerArtist(2, "The Fall", 3)],
+            83: [DeezerArtist(1, "Knife"), DeezerArtist(70, "Wire")],
+            70: [DeezerArtist(1, "Knife"), DeezerArtist(2, "The Fall")],
         }
         self.top_: dict[int, list[DeezerTrack] | Exception] = {
             1: [
@@ -52,12 +52,12 @@ class FakeDeezer:
 
 class FakeLastfm:
     def __init__(self) -> None:
-        self.similar: dict[str, list[SimilarArtist] | Exception] = {
-            "M83": [SimilarArtist("The Knife", 0.9), SimilarArtist("Wire", 0.5)],
-            "Wire": [SimilarArtist("Knife", 0.5), SimilarArtist("Fall", 0.8)],
+        self.similar: dict[str, list[str] | Exception] = {
+            "M83": ["The Knife", "Wire"],
+            "Wire": ["Knife", "Fall"],
         }
 
-    def similar_artists(self, artist: str, limit: int = 100) -> list[SimilarArtist]:
+    def similar_artists(self, artist: str, limit: int = 100) -> list[str]:
         v = self.similar[artist]
         if isinstance(v, Exception):
             raise v

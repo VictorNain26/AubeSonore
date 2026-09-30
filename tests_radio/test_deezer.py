@@ -127,24 +127,12 @@ PREVIEW = "https://cdnt-preview.dzcdn.net/api/1/1/x.mp3?hdnea=SIGNED-SECRET"
 
 
 @responses.activate
-def test_artist() -> None:
-    responses.get(API + "/artist/27", json={"id": 27, "name": "Daft Punk", "nb_fan": 5210804})
-    assert client().artist(27) == DeezerArtist(27, "Daft Punk", 5210804)
-
-
-@responses.activate
-def test_unknown_artist_is_none() -> None:
-    responses.get(API + "/artist/27", json={"error": {"type": "DataException", "code": 800}})
-    assert client().artist(27) is None
-
-
-@responses.activate
 def test_related() -> None:
     responses.get(
         API + "/artist/27/related",
         json={"data": [{"id": 1, "name": "Justice", "nb_fan": 10}], "total": 1},
     )
-    assert client().related(27) == [DeezerArtist(1, "Justice", 10)]
+    assert client().related(27) == [DeezerArtist(1, "Justice")]
 
 
 @responses.activate
