@@ -19,6 +19,11 @@ jobs:
           python-version: "3.12"
       # Outils audio de l'acquisition : le test d'intégration les fait tourner pour de vrai.
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg libchromaprint-tools rsgain
+      # Modèle EffNet officiel, somme de contrôle épinglée dans radio/signals/audio.py.
+      - run: |
+          mkdir -p models
+          curl -fsSL -o models/discogs-effnet-bs64-1.pb https://essentia.upf.edu/models/feature-extractors/discogs-effnet/discogs-effnet-bs64-1.pb
+          echo "3ed9af50d5367c0b9c795b294b00e7599e4943244f4cbd376869f3bfc87721b1  models/discogs-effnet-bs64-1.pb" | sha256sum -c
       - run: uv sync --locked
       - run: uv run ruff check radio tests_radio
       - run: uv run ruff format --check radio tests_radio
