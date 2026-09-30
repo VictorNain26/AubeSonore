@@ -9,6 +9,4 @@ WEIGHT_CAP = 4.0
 
 
 def play_weight(plays: int) -> float:
-    if plays < 0:
-        raise ValueError("plays must be >= 0")
     return min(1.0 + math.log1p(plays), WEIGHT_CAP)
