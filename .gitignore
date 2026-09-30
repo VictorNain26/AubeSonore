@@ -1,52 +1,7 @@
-# Audio files
-*.mp3
-*.flac
-*.wav
-*.m4a
-
-# Data directories
-downloads/
-music/
-archive/
-temp/
-temp_*/
-
-# Data directory: ignore all state/cache, but keep templates
-data/*
-!data/*.example
-
-# Beets / SQLite databases
-*.db
-import.log
-
-# Logs (rotated by logrotate, not for git)
-*.log
-*.log.*
-
-# Heavy ML models (downloaded by scripts/download_models.sh)
-models/
-
-# Transient discovery queue (regenerated each run)
-tracks-to-download.json
-tracks-to-download.txt
-
-# Environment
 .env
-
-# Tests
-.pytest_cache/
-
-# Python
-__pycache__/
-*.pyc
 .venv/
-
-# Cache Spotify
-scripts/.cache
-.cache
-
-# System
-.DS_Store
-
-# v3
+__pycache__/
+.pytest_cache/
 .superpowers/
+data/
+models/
