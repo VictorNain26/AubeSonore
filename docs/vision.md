@@ -56,7 +56,7 @@ suivante reprend.
 | 4 Goût | Régression logistique sur l'empreinte ; chaque fournée est classée et son tiers le mieux noté est retenu | scikit-learn | fait |
 | 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | codée, attend le compte Soulseek |
 | 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | codée, attend le compte Soulseek |
-| 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | à faire |
+| 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | codée (`radio antenne`) ; la bascule reste à écrire |
 | 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | — | plus tard (§7.3) |
 
 ## 4. Le goût (étapes 1 à 4)
@@ -122,6 +122,9 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
   commentaire `deezer:<id>`. Fichier prêt : `data/antenne/<id Deezer>.mp3`.
 - **Repères.** Des titres de la bibliothèque Plex, copiés sans jamais y écrire, préparés de la
   même façon et étiquetés `repère` dans la base. Ils représentent au plus 20 % de l'antenne.
+  Le chemin du fichier vient de Plex (`Media/Part`) ; un chemin hors de `/media/plex/Musique`
+  n'est jamais lu.
+- **Conversion.** Tout ce qui n'est pas du MP3 (FLAC, AAC, OGG…) passe en V0.
 
 ## 7. Antenne (étape 7)
 
@@ -149,8 +152,12 @@ Justification : `recherches/…-observabilite.md` §3.
 - **Réalignement à chaque passe.** On compare la base au contenu de `antenne/` et on rapporte les
   écarts.
 
-**Bascule.** Elle a lieu quand `antenne/` atteint 400 titres (environ une journée d'antenne sans
-répétition) :
+Avant la bascule, `antenne/` n'est rattaché à aucune playlist : ce qu'on y dépose ne passe pas
+à l'antenne (doc AzuraCast : un média doit appartenir à une playlist pour être joué).
+
+**Bascule.** Elle a lieu quand `antenne/` atteint 400 titres (`cutover_min`, environ une journée
+d'antenne sans répétition). La commande sera écrite à ce moment-là, sur la base des appels
+vérifiés :
 
 1. sauvegarde JSON des 8 playlists actuelles ;
 2. désactivation de ces 8 playlists ;

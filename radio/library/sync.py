@@ -39,13 +39,16 @@ def sync_library(conn: sqlite3.Connection, tracks: list[PlexTrack], now: str) ->
         conn.executemany(
             """
             INSERT INTO library_tracks
-                (plex_key, artist, title, album, duration_ms, plays, synced_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+                (plex_key, artist, title, album, duration_ms, plays, synced_at, file)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT (plex_key) DO UPDATE SET
                 artist = excluded.artist, title = excluded.title, album = excluded.album,
                 duration_ms = excluded.duration_ms, plays = excluded.plays,
-                synced_at = excluded.synced_at
+                synced_at = excluded.synced_at, file = excluded.file
             """,
-            [(t.key, t.artist, t.title, t.album, t.duration_ms, t.plays, now) for t in tracks],
+            [
+                (t.key, t.artist, t.title, t.album, t.duration_ms, t.plays, now, t.file)
+                for t in tracks
+            ],
         )
     return SyncReport(len(tracks), len(added), len(changed), len(removed))

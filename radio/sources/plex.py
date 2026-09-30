@@ -30,6 +30,7 @@ class PlexTrack:
     album: str
     duration_ms: int | None
     plays: int
+    file: str | None = None
 
 
 def _safe(p: PurePosixPath) -> bool:
@@ -76,6 +77,7 @@ class PlexSource:
                 album=str(t.parentTitle or ""),
                 duration_ms=int(t.duration) if t.duration else None,
                 plays=int(t.viewCount or 0),
+                file=str(t.media[0].parts[0].file) if t.media and t.media[0].parts else None,
             )
             for t in self._section.searchTracks(container_size=_TRACK_BATCH)
         ]

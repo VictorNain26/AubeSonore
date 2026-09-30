@@ -17,6 +17,7 @@ from plexapi.exceptions import PlexApiException
 from pydantic import ValidationError
 
 from radio.acquire.run import acquire_pass
+from radio.antenna.sync import antenne_pass
 from radio.core.config import Editorial, Settings, load_editorial
 from radio.core.db import connect
 from radio.core.report import last_stages, record_stage
@@ -39,6 +40,7 @@ from radio.notify.whatsapp import WhatsAppError, send_whatsapp
 from radio.signals.audio import EffnetEmbedder, ModelError
 from radio.signals.measure import measure_tracks
 from radio.signals.table import load_signals
+from radio.sources.azuracast import AzuracastClient, AzuracastUnavailable
 from radio.sources.deezer import DeezerClient, DeezerUnavailable
 from radio.sources.lastfm import LastfmClient, LastfmUnavailable
 from radio.sources.plex import LibraryGuardError, PlexSource
@@ -338,6 +340,58 @@ def acquire() -> None:
     )
     if not ok:
         _fail(f"Taux d'acquisition sous {_rate(cfg.min_success_rate)} : à examiner", 1)
+
+
+@app.command()
+def antenne() -> None:
+    """Publie les titres prêts et les repères sur AzuraCast, retire l'excédent."""
+    settings = _settings()
+    cfg = _editorial(settings).antenne
+    if settings.azuracast_api_key is None:
+        _fail("AZURACAST_API_KEY doit être défini dans .env", 2)
+    station = AzuracastClient(
+        settings.azuracast_url,
+        settings.azuracast_api_key.get_secret_value(),
+        settings.azuracast_station_id,
+    )
+    with _db(settings) as conn:
+        try:
+            rep = antenne_pass(
+                conn,
+                station,
+                cfg,
+                PurePosixPath(settings.plex_music_root),
+                settings.rsgain_bin,
+                np.random.default_rng(),
+                datetime.now(UTC),
+            )
+        except AzuracastUnavailable as e:
+            _fail(f"AzuraCast indisponible ({e}) : le travail fait est gardé", 1)
+        record_stage(
+            conn,
+            "antenne",
+            not rep.errors,
+            {
+                "publiés": rep.n_published,
+                "repères": rep.n_references,
+                "retirés": rep.n_removed,
+                "oubliés": rep.n_forgotten,
+                "inconnus": rep.n_unknown,
+                "à l'antenne": rep.n_total,
+                "erreurs": len(rep.errors),
+            },
+        )
+    _echo(
+        [
+            f"Antenne : {_n(rep.n_total)} titres ({_n(rep.n_published)} publiés, "
+            f"{_n(rep.n_references)} repères ajoutés, {_n(rep.n_removed)} retirés)",
+            f"  réalignement : {_n(rep.n_forgotten)} disparus d'AzuraCast oubliés, "
+            f"{_n(rep.n_unknown)} fichiers inconnus dans antenne/",
+            *(f"  erreur : {e}" for e in rep.errors),
+        ]
+    )
+    if rep.errors:
+        _fail(f"{_n(len(rep.errors))} erreurs de publication", 1)
 
 
 def _train_lines(r: TrainReport) -> list[str]:

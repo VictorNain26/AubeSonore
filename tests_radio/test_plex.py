@@ -20,6 +20,7 @@ class FakeTrack:
     duration: int | None
     viewCount: int | None = None
     originalTitle: str | None = None
+    media: list[Any] = field(default_factory=list)
 
 
 @dataclass
@@ -100,8 +101,9 @@ def test_sub_location_is_accepted() -> None:
 
 _TRACK_XML = (
     '<MediaContainer><Track ratingKey="1" key="/library/metadata/1" type="track" '
-    'title="Mannequin" grandparentTitle="Wire" parentTitle="Pink Flag" duration="157000"/>'
-    "</MediaContainer>"
+    'title="Mannequin" grandparentTitle="Wire" parentTitle="Pink Flag" duration="157000">'
+    '<Media id="1"><Part id="1" file="/media/plex/Musique/Wire/Pink Flag/01.flac"/></Media>'
+    "</Track></MediaContainer>"
 )
 
 
@@ -131,5 +133,15 @@ def test_real_plexapi_tracks_trigger_no_reload(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setenv("PLEXAPI_PLEXAPI_AUTORELOAD", "true")
     monkeypatch.delenv("PLEXAPI_PLEXAPI_AUTORELOAD")
     sec = RealTrackSection()
-    assert source(sec).tracks() == [PlexTrack("1", "Wire", "Mannequin", "Pink Flag", 157000, 0)]
+    assert source(sec).tracks() == [
+        PlexTrack(
+            "1",
+            "Wire",
+            "Mannequin",
+            "Pink Flag",
+            157000,
+            0,
+            "/media/plex/Musique/Wire/Pink Flag/01.flac",
+        )
+    ]
     assert sec.server.queries == []

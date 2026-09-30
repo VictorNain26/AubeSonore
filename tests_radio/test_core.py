@@ -12,7 +12,7 @@ from radio.core.http import log_retry
 
 def test_connect_applies_migrations(tmp_path: Path) -> None:
     conn = connect(tmp_path / "radio.db")
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 8
     names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"library_tracks", "deezer_matches"} <= names
     assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
@@ -21,7 +21,7 @@ def test_connect_applies_migrations(tmp_path: Path) -> None:
 def test_connect_is_idempotent(tmp_path: Path) -> None:
     connect(tmp_path / "radio.db").close()
     conn = connect(tmp_path / "radio.db")
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 7
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 8
 
 
 def test_failed_migration_leaves_nothing_behind(
@@ -53,7 +53,7 @@ def test_failed_migration_leaves_nothing_behind(
 def test_match_row_consistency_is_enforced(tmp_path: Path) -> None:
     conn = connect(tmp_path / "radio.db")
     conn.execute(
-        "INSERT INTO library_tracks VALUES ('k1', 'A', 'T', 'Al', 200000, 0, '2026-09-24')"
+        "INSERT INTO library_tracks VALUES ('k1', 'A', 'T', 'Al', 200000, 0, '2026-09-24', NULL)"
     )
     with pytest.raises(sqlite3.IntegrityError):
         conn.execute(
