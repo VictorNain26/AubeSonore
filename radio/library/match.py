@@ -16,8 +16,7 @@ logger = logging.getLogger(__name__)
 # « with » est exclu : « (with Strings) »/« (with the LSO) » peuvent désigner une autre version.
 # « original » seul ou « original version » aussi : ils s'opposent à un réenregistrement, seul
 # « Original Mix » est inoffensif. Tout le reste (live, remix, mix, edit, instrumental, acoustic,
-# demo, mono, version X, part N) est conservé : un faux rapprochement est pire qu'un titre manqué
-# (spec §5.1).
+# demo, mono, version X, part N) est conservé : un faux rapprochement est pire qu'un titre manqué.
 _HARMLESS = re.compile(
     r"(?:\d{4}\s+)?(?:digital(?:ly)?\s+)?remaster(?:ed)?(?:\s+(?:version|edition))?(?:\s+\d{4})?"
     r"|explicit(?:\s+version)?"

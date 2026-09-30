@@ -1,4 +1,4 @@
-"""Poids tirés des écoutes Plex (spec §5.1) : 1 + log(1 + écoutes), plafonné à 4.
+"""Poids tirés des écoutes Plex : 1 + log(1 + écoutes), plafonné à 4.
 
 Tout artiste ou titre garde un poids d'au moins 1 : les coins peu écoutés comptent aussi.
 """

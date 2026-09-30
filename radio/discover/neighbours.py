@@ -1,4 +1,4 @@
-"""Voisins d'une graine : Deezer related ∩ Last.fm getSimilar, moins la bibliothèque (spec §5.2).
+"""Voisins d'une graine : Deezer related ∩ Last.fm getSimilar, moins la bibliothèque.
 
 Les deux sources se croisent sur le nom normalisé (Last.fm ne donne que des noms). Un voisin
 n'est jamais un artiste de la bibliothèque : exclusion par id Deezer et par nom.

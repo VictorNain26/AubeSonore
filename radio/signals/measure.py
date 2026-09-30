@@ -1,4 +1,4 @@
-"""Empreinte de l'extrait Deezer de 30 s de chaque titre (spec §5.3, §8).
+"""Empreinte de l'extrait Deezer de 30 s de chaque titre.
 
 L'URL d'extrait est demandée fraîche à Deezer juste avant le téléchargement (signée, elle expire).
 Elle n'est ni stockée, ni journalisée, ni mise dans un message. Un titre sans extrait ou à

@@ -1,6 +1,6 @@
-"""Empreinte sonore Discogs-EffNet d'un extrait Deezer de 30 s (spec §5.3).
+"""Empreinte sonore Discogs-EffNet d'un extrait Deezer de 30 s.
 
-Chaîne officielle MTG (docs/superpowers/research/2026-09-23-essentia-effnet.md §1.1) : graphe
+Chaîne officielle MTG (docs/recherches/2026-09-23-essentia-effnet.md §1.1) : graphe
 bs64, sortie PartitionedCall:1, MonoLoader à 16 kHz avec resampleQuality=4. Un seul MonoLoader,
 reconfiguré à chaque extrait : en créer un par fichier produit des milliers d'avertissements (§4).
 Pas de patchHopSize=128 : sur 30 s, les deux pas tiennent dans un seul lot de 64 patches, le pas

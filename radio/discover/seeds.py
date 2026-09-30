@@ -1,4 +1,4 @@
-"""Graines : tirage pondéré sans remise parmi les artistes de la bibliothèque (spec §5.2).
+"""Graines : tirage pondéré sans remise parmi les artistes de la bibliothèque.
 
 Poids d'un artiste : 1 + log(1 + ses écoutes), plafonné à 4 ; chacun garde une chance. Un artiste
 tiré lors d'une passe terminée n'est plus tiré pendant `seed_cooldown_days`. Une passe n'est

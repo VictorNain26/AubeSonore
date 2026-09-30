@@ -2,16 +2,10 @@
 
 ## Ce que fait ce dépôt
 
-Le goût et la découverte de la radio : lire la bibliothèque Plex de Victor, découvrir des titres
-voisins, les noter par un modèle de goût appris sur la bibliothèque et sur les votes de Victor,
-et retenir le tiers le mieux noté de chaque fournée. La conception est dans
-`docs/superpowers/specs/2026-09-24-gout-decouverte-v3-design.md`, amendée par
-`docs/superpowers/research/2026-09-30-modele-audio-seul.md`. L'exploitation est décrite dans
-`docs/exploitation.md`.
-
-Rien ici ne publie encore sur AzuraCast. L'acquisition, l'analyse, l'enchaînement et la
-publication feront l'objet de specs ultérieures. En attendant, la station tourne en natif
-AzuraCast sur ses playlists existantes.
+Le pipeline de la radio AubeSonore : goût, découverte, puis bientôt acquisition et publication
+sur AzuraCast. **`docs/vision.md` est l'unique document de conception et d'exploitation** : le
+lire avant toute modification, et le tenir à jour dans le même commit que le code. Les mesures et
+sources qui fondent chaque décision sont dans `docs/recherches/`.
 
 ## Commandes
 

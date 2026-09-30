@@ -1,4 +1,4 @@
-"""Test de bout en bout de la couture modèle <-> votes (spec §9) : entraînement réel, sélection,
+"""Test de bout en bout de la couture modèle <-> votes : entraînement réel, sélection,
 vote sur la vraie page, réentraînement, deuxième sélection. `radio discover` est hors de portée
 d'un test sans réseau : la file de candidats est semée directement (mêmes tables que
 `radio discover` remplirait).

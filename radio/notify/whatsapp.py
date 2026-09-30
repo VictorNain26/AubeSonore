@@ -1,4 +1,4 @@
-"""Rappel WhatsApp par CallMeBot (canal existant du serveur, spec §6.2).
+"""Rappel WhatsApp par CallMeBot (canal existant du serveur).
 
 CallMeBot répond 210, et non une erreur, quand le quota (16 messages par 4 h) est épuisé : seul
 un 200 garantit l'envoi. La clé et le numéro voyagent dans l'URL : ni l'URL, ni les paramètres,

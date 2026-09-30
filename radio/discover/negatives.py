@@ -1,4 +1,4 @@
-"""Négatifs faibles de démarrage (spec §5.4) : les titres des artistes de config/negatives.toml.
+"""Négatifs faibles de démarrage : les titres des artistes de config/negatives.toml.
 
 Ils sont lus et mesurés comme les candidats (10 titres, artiste principal, extrait présent) ;
 leur poids à l'entraînement se décide plus tard, sur les votes.

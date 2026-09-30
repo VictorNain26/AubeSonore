@@ -1,4 +1,4 @@
-"""Passe de découverte : graines → voisins → titres candidats (spec §5.2, §8).
+"""Passe de découverte : graines → voisins → titres candidats.
 
 Erreur définitive sur un artiste : sauté, compté, nommé. Deezer ou Last.fm indisponible : la
 passe s'arrête, le travail fait est gardé, aucune graine n'est marquée ; la passe suivante

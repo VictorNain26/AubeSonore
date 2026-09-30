@@ -17,7 +17,7 @@ lastfm_similar_limit = 100
 [model]
 # Régression logistique sur l'empreinte audio. C, poids des négatifs faibles : fixés le
 # 2026-09-30 par validation croisée groupée par artiste sur les 159 votes du banc
-# (docs/superpowers/research/2026-09-30-modele-audio-seul.md).
+# (docs/recherches/2026-09-30-modele-audio-seul.md).
 c = 0.1
 weak_weight = 0.1
 # Part de chaque fournée de candidats retenue, les mieux notés d'abord.

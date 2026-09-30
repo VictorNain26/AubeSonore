@@ -1,4 +1,4 @@
-"""Exemples d'entraînement et jeu d'examen (spec §5.4, §7.1).
+"""Exemples d'entraînement et jeu d'examen.
 
 - Positifs : titres de la bibliothèque (poids d'écoute) et « oui » de leçon.
 - Négatifs : « non » de leçon, et négatifs faibles (origine `negative`), sous-pondérés.

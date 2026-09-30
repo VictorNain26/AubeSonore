@@ -1,4 +1,4 @@
-"""Sélection hebdomadaire des votes (spec §6.1) et bulletins en attente.
+"""Sélection hebdomadaire des votes et bulletins en attente.
 
 - Examen : tirage uniforme sur toute la dernière fournée notée, retenus ou non : l'AUC des
   modèles s'y compare sans biais, et le taux de oui des retenus se lit sur les bulletins marqués

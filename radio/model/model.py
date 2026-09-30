@@ -1,5 +1,5 @@
 """Modèle de goût : régression logistique sur l'empreinte audio (décision du 2026-09-30,
-docs/superpowers/research/2026-09-30-modele-audio-seul.md).
+docs/recherches/2026-09-30-modele-audio-seul.md).
 
 Chaque fournée de candidats est classée ; la part `keep_fraction` la mieux notée est retenue.
 Seuls les votes d'examen jugent : un nouveau modèle n'est mis en service que si son AUC d'examen

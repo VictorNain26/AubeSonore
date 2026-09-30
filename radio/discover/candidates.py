@@ -1,4 +1,4 @@
-"""Titres d'un voisin (ou d'un négatif) : filtre et insertion dédoublonnée (spec §5.2)."""
+"""Titres d'un voisin (ou d'un négatif) : filtre et insertion dédoublonnée."""
 
 import sqlite3
 

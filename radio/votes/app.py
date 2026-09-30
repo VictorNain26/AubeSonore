@@ -1,4 +1,4 @@
-"""Page de vote (spec §6.2) : une page pour le téléphone, un geste par titre.
+"""Page de vote : une page pour le téléphone, un geste par titre.
 
 - Chaque requête, sauf /sante, doit porter un jeton Cloudflare Access valide.
 - L'extrait est servi par la page elle-même. Le serveur demande à Deezer une URL fraîche

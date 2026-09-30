@@ -1,4 +1,4 @@
-"""Clé de dédoublonnage des titres découverts (spec §5.2), plus large que le rapprochement strict.
+"""Clé de dédoublonnage des titres découverts, plus large que le rapprochement strict.
 
 Deux versions d'un même titre (« Song », « Song (Remastered 2011) », « Song - Radio Edit ») ne
 donnent qu'un candidat : on retire toutes les parenthèses et crochets, un suffixe « - … » qui parle
