@@ -388,7 +388,7 @@ def votes_select() -> None:
         return
     typer.echo(
         f"Sélection n°{sel.selection_id} (modèle n°{sel.model_id}, fournée n°{sel.run_id}) : "
-        f"{_n(len(sel.exam))} d'examen parmi {_n(sel.n_retained)} retenus, "
+        f"{_n(len(sel.exam))} d'examen parmi {_n(sel.n_batch)} titres de la fournée, "
         f"{_n(len(sel.lesson))} de leçon"
     )
 

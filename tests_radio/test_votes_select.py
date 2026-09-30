@@ -23,9 +23,9 @@ def test_exam_from_latest_batch_lesson_most_uncertain(tmp_path: Path) -> None:
     serve_scores(conn)
     sel = select_batch(conn, _rng(), 10, 10, NOW)
     assert sel.selection_id == 1 and sel.model_id == 1
-    assert sel.run_id == 2 and sel.n_retained == 24
+    assert sel.run_id == 2 and sel.n_batch == 48
     assert len(sel.exam) == 10
-    assert all(2006 <= t // 100 < 2012 for t in sel.exam)  # retenus de la dernière fournée
+    assert all(t // 100 % 100 >= 6 for t in sel.exam)  # dernière fournée : artistes 6 à 11
     assert len(sel.lesson) == 10
     # Coupure 0,5625 (aimé k = 0) : les plus proches sont les aimés k = 0, puis k = 1.
     assert all(t // 100 < 3000 and t % 100 <= 1 for t in sel.lesson)
@@ -64,15 +64,26 @@ def test_votes_empty_the_queue_and_titles_never_return(tmp_path: Path) -> None:
     second = select_batch(conn, _rng(1), 10, 10, NOW)
     shown = set(first.exam) | set(first.lesson)
     assert not (set(second.exam) | set(second.lesson)) & shown
-    retained_shown = {t for t in shown if 2006 <= t // 100 < 2012}
-    assert second.n_retained == 24 - len(retained_shown)
+    batch_shown = {t for t in shown if t // 100 % 100 >= 6}
+    assert second.n_batch == 48 - len(batch_shown)
 
 
 def test_small_pool_gives_what_there_is(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    sel = select_batch(conn, _rng(), 30, 0, NOW)
-    assert len(sel.exam) == 24 and sel.lesson == []
+    sel = select_batch(conn, _rng(), 60, 0, NOW)
+    assert len(sel.exam) == 48 and sel.lesson == []
+
+
+def test_exam_covers_the_whole_batch_and_remembers_the_verdict(tmp_path: Path) -> None:
+    # Tiré parmi les seuls retenus, l'examen tronquait les notes du modèle en service et
+    # favorisait tout challenger à la promotion.
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    sel = select_batch(conn, _rng(), 48, 0, NOW)
+    flags = dict(conn.execute("SELECT deezer_track_id, retained FROM ballots").fetchall())
+    assert {t: flags[t] for t in sel.exam} == {t: int(t < 300000) for t in sel.exam}
+    assert set(flags.values()) == {0, 1}
 
 
 def test_lesson_takes_at_most_one_title_per_artist(tmp_path: Path) -> None:

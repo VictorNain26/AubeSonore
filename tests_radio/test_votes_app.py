@@ -185,3 +185,18 @@ def test_extrait_supports_byte_ranges(db: Path) -> None:
     assert r.status_code == 200
     assert r.content == b"ID3-mp3"
     assert r.headers["accept-ranges"] == "bytes"
+
+
+def test_extraits_never_outlive_the_app(db: Path) -> None:
+    # Starlette ne lance pas la tâche de nettoyage sur un 416 : le fichier reste dans le
+    # répertoire de l'application, supprimé avec elle.
+    tid = _first(db).deezer_track_id
+    app = create_app(db, FakeDeezer(), _verify)
+    c = TestClient(app)
+    folder = Path(app.state.extraits.name)
+    assert c.get(f"/extrait/{tid}", headers=OK).status_code == 200
+    assert list(folder.iterdir()) == []
+    assert c.get(f"/extrait/{tid}", headers={**OK, "Range": "bytes=9-"}).status_code == 416
+    assert len(list(folder.iterdir())) == 1
+    app.state.extraits.cleanup()
+    assert not folder.exists()

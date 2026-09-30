@@ -1,8 +1,8 @@
 """Sélection hebdomadaire des votes (spec §6.1) et bulletins en attente.
 
-- Examen : tirage uniforme parmi les titres retenus (acceptés par le modèle en service) de la
-  dernière fournée notée. Un vote d'examen n'est jamais un exemple d'entraînement
-  (radio/model/dataset.py).
+- Examen : tirage uniforme sur toute la dernière fournée notée, retenus ou non : l'AUC des
+  modèles s'y compare sans biais, et le taux de oui des retenus se lit sur les bulletins marqués
+  `retained`. Un vote d'examen n'est jamais un exemple d'entraînement (radio/model/dataset.py).
 - Leçon : les titres les plus incertains (note la plus proche de la coupure de la dernière
   fournée), au plus un par artiste : échantillonnage par incertitude (Settles, Active Learning
   Literature Survey, 2009).
@@ -46,7 +46,7 @@ class Selection:
     selection_id: int | None  # None : rien à présenter
     model_id: int
     run_id: int
-    n_retained: int  # retenus de la dernière fournée, encore jamais présentés
+    n_batch: int  # titres de la dernière fournée encore jamais présentés
     exam: list[int]
     lesson: list[int]
 
@@ -125,14 +125,15 @@ def select_batch(
         """,
         (model_id,),
     ).fetchall()
-    retained = [int(r[0]) for r in rows if int(r[3]) == run_id and int(r[2]) == 1]
+    batch = [int(r[0]) for r in rows if int(r[3]) == run_id]
+    retained = {int(r[0]) for r in rows if int(r[2]) == 1}
     cut = conn.execute(
         "SELECT MIN(s.score) FROM scores s JOIN candidates c USING (deezer_track_id) "
         "WHERE c.run_id = ? AND s.accepted = 1",
         (run_id,),
     ).fetchone()[0]
-    k = min(n_exam, len(retained))
-    exam = sorted(int(t) for t in rng.choice(retained, size=k, replace=False)) if k else []
+    k = min(n_exam, len(batch))
+    exam = sorted(int(t) for t in rng.choice(batch, size=k, replace=False)) if k else []
     lesson: list[int] = []
     artists: set[int] = set()
     for r in sorted(rows, key=lambda r: (abs(float(r[1]) - cut), int(r[0]))):
@@ -145,7 +146,7 @@ def select_batch(
         artists.add(artist)
     chosen = [(t, "exam") for t in exam] + [(t, "lesson") for t in lesson]
     if not chosen:
-        return Selection(None, model_id, run_id, len(retained), [], [])
+        return Selection(None, model_id, run_id, len(batch), [], [])
     positions = rng.permutation(len(chosen))
     with conn:
         cur = conn.execute(
@@ -154,10 +155,10 @@ def select_batch(
         selection_id = cur.lastrowid
         assert selection_id is not None
         conn.executemany(
-            "INSERT INTO ballots VALUES (?, ?, ?, ?)",
+            "INSERT INTO ballots VALUES (?, ?, ?, ?, ?)",
             [
-                (tid, selection_id, kind, int(p))
+                (tid, selection_id, kind, int(p), int(tid in retained))
                 for (tid, kind), p in zip(chosen, positions, strict=True)
             ],
         )
-    return Selection(selection_id, model_id, run_id, len(retained), exam, lesson)
+    return Selection(selection_id, model_id, run_id, len(batch), exam, lesson)

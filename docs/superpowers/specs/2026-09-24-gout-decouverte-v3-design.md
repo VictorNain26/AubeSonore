@@ -7,7 +7,9 @@ Date : 2026-09-24. Validé section par section par Victor le 2026-09-24 au soir.
 > logistique sur l'empreinte audio seule ; popularité, culture et proximité sont retirées (§5.3),
 > tout comme l'empilement, l'ablation, la grille de λ et le seuil de précision (§5.4). Chaque
 > fournée est classée et son tiers le mieux noté retenu ; la leçon tire les titres les plus
-> proches de la coupure (§6.1). Les 90 % de oui deviennent un horizon suivi avec son intervalle,
+> proches de la coupure, et l'examen se tire sur toute la fournée, retenus ou non, ce qui lève la
+> limite du §7.5 : tiré parmi les seuls retenus, il favorisait tout challenger à la promotion
+> (§6.1). Les 90 % de oui deviennent un horizon suivi avec son intervalle,
 > sans alerte, et le garde-fou bibliothèque ≥ 80 % disparaît (§2.2, §7.3, §8). Les sections
 > ci-dessous gardent le texte d'origine.
 

@@ -108,6 +108,9 @@ def create_app(db_path: Path, deezer: PreviewSource, verify: Callable[[str], Non
             conn.close()
 
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+    # FileResponse ne lance pas sa tâche de nettoyage quand il répond 400 ou 416 à un Range
+    # invalide : les extraits vivent dans un répertoire supprimé avec l'application.
+    app.state.extraits = tempfile.TemporaryDirectory(prefix="radio-extraits-")
     guarded = [Depends(access)]
 
     @app.get("/sante")
@@ -152,7 +155,9 @@ def create_app(db_path: Path, deezer: PreviewSource, verify: Callable[[str], Non
             raise HTTPException(503, "Deezer indisponible, réessayer plus tard") from None
 
         # FileResponse gère Range : iOS Safari sonde l'extrait (`bytes=0-1`) avant de le lire.
-        with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+        with tempfile.NamedTemporaryFile(
+            suffix=".mp3", dir=app.state.extraits.name, delete=False
+        ) as f:
             f.write(audio)
         return FileResponse(
             f.name,

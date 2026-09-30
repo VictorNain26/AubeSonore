@@ -1,7 +1,7 @@
 """État du goût, pour le rapport et le rappel hebdomadaire (spec §7, §8).
 
-Le taux de oui se mesure sur les votes d'examen de la page : des titres retenus, tirés au hasard
-et présentés à l'aveugle. L'AUC du modèle en service se mesure sur toute la fenêtre d'examen.
+Le taux de oui des retenus se mesure sur les votes d'examen de la page dont le titre était retenu
+au tirage. L'AUC du modèle en service se mesure sur toute la fenêtre d'examen.
 """
 
 import sqlite3
@@ -46,8 +46,9 @@ def load_status(
         exam_auc, n_exam = auc(exam.labels, predict(current[1], table, exam.rows)), len(exam.rows)
     page = conn.execute(
         """
-        SELECT vote = 'oui' FROM votes WHERE kind = 'exam' AND source = 'page' AND vote != 'passer'
-        ORDER BY voted_at DESC LIMIT ?
+        SELECT v.vote = 'oui' FROM votes v JOIN ballots b USING (deezer_track_id)
+        WHERE v.kind = 'exam' AND b.retained = 1 AND v.vote != 'passer'
+        ORDER BY v.voted_at DESC LIMIT ?
         """,
         (exam_window,),
     ).fetchall()

@@ -69,6 +69,13 @@ optimiste ; l'estimation propre est la validation croisée ci-dessus. Les votes 
 On retient le tiers le mieux noté de chaque fournée (`keep_fraction`). Le taux de oui des
 retenus se suit avec son intervalle de Wilson. 90 % reste l'horizon, pas une barrière.
 
+L'examen se tire uniformément sur toute la fournée. En revue, une simulation a montré le
+problème du tirage parmi les seuls retenus du modèle en service : ses notes étaient tronquées,
+et un challenger à qualité égale gagnait 71 % des comparaisons. Un challenger nettement moins
+bon était même promu une fois sur deux. Le bulletin garde le verdict au moment du tirage
+(`retained`), et le taux de oui des retenus se lit sur ce sous-ensemble, qui représente environ
+un tiers de l'examen.
+
 Il faut encore mesurer le plafond propre à Victor. Amatriain et al. (2009, « I like it... I like
 it not ») mesurent un écart de RMSE de 0,56 à 0,82 sur une échelle de 1 à 5 entre deux notations
 des mêmes films. Aucun modèle ne peut dépasser la cohérence de l'auditeur avec lui-même. Protocole

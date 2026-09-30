@@ -92,8 +92,8 @@ def test_votes_select_draws_then_waits(full: Path) -> None:
     res = runner.invoke(cli.app, ["votes-select"])
     assert res.exit_code == 0, res.output
     assert (
-        "Sélection n°1 (modèle n°1, fournée n°2) : 10 d'examen parmi 24 retenus, 10 de leçon"
-        in res.output
+        "Sélection n°1 (modèle n°1, fournée n°2) : 10 d'examen parmi 48 titres de la fournée, "
+        "10 de leçon" in res.output
     )
     res = runner.invoke(cli.app, ["votes-select"])
     assert res.exit_code == 0, res.output
