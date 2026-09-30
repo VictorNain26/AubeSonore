@@ -8,5 +8,5 @@ After=radio-weekly.service
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/radio/pipeline-v3
-ExecStart=%h/radio/pipeline-v3/.venv/bin/radio votes-remind
+WorkingDirectory=%h/radio/pipeline
+ExecStart=%h/radio/pipeline/.venv/bin/radio votes-remind

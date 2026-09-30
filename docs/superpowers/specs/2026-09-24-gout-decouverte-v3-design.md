@@ -2,6 +2,15 @@
 
 Date : 2026-09-24. Validé section par section par Victor le 2026-09-24 au soir.
 
+> **Amendé le 2026-09-30** (décision de Victor, sur mesures :
+> `docs/superpowers/research/2026-09-30-modele-audio-seul.md`). Le modèle est une régression
+> logistique sur l'empreinte audio seule ; popularité, culture et proximité sont retirées (§5.3),
+> tout comme l'empilement, l'ablation, la grille de λ et le seuil de précision (§5.4). Chaque
+> fournée est classée et son tiers le mieux noté retenu ; la leçon tire les titres les plus
+> proches de la coupure (§6.1). Les 90 % de oui deviennent un horizon suivi avec son intervalle,
+> sans alerte, et le garde-fou bibliothèque ≥ 80 % disparaît (§2.2, §7.3, §8). Les sections
+> ci-dessous gardent le texte d'origine.
+
 Remplace, pour le goût et la découverte, les §4 (en partie), §5 et §14 (critères couleur)
 de `2026-09-23-refonte-antenne-design.md`, ainsi que `2026-09-24-couleur-v2-design.md` et
 le plan 2 découverte. Le reste de l'antenne (acquisition, analyse, fil, publication) fera

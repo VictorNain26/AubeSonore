@@ -4,7 +4,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/radio/pipeline-v3
+WorkingDirectory=%h/radio/pipeline
 # Machine partagée : la diffusion et les autres services passent avant.
 Nice=19
 CPUWeight=20
@@ -12,8 +12,8 @@ IOSchedulingClass=idle
 TimeoutStartSec=12h
 # Une étape en échec arrête la suite (spec §8) : pas de sélection sur des notes périmées.
 # train ne réentraîne que s'il y a de nouveaux votes ; il note toujours les candidats.
-ExecStart=%h/radio/pipeline-v3/.venv/bin/radio library-sync
-ExecStart=%h/radio/pipeline-v3/.venv/bin/radio discover
-ExecStart=%h/radio/pipeline-v3/.venv/bin/radio signals
-ExecStart=%h/radio/pipeline-v3/.venv/bin/radio train
-ExecStart=%h/radio/pipeline-v3/.venv/bin/radio votes-select
+ExecStart=%h/radio/pipeline/.venv/bin/radio library-sync
+ExecStart=%h/radio/pipeline/.venv/bin/radio discover
+ExecStart=%h/radio/pipeline/.venv/bin/radio signals
+ExecStart=%h/radio/pipeline/.venv/bin/radio train
+ExecStart=%h/radio/pipeline/.venv/bin/radio votes-select
