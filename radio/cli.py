@@ -465,7 +465,7 @@ def _status(settings: Settings, editorial: Editorial) -> Status:
         )
 
 
-def _status_lines(st: Status, quiet_days: int) -> list[str]:
+def _status_lines(st: Status, quiet_days: int, votes_active: bool) -> list[str]:
     if st.model_id is None:
         lines = ["Aucun modèle en service"]
     else:
@@ -484,7 +484,8 @@ def _status_lines(st: Status, quiet_days: int) -> list[str]:
         f"Titres en attente de vote : {_n(st.pending)} "
         f"(dernière sélection : {st.last_selection or 'aucune'})",
     ]
-    if st.pending == 0:
+    # Sans page de vote publiée, la sélection est volontairement hors de la passe : rien à signaler.
+    if votes_active and st.pending == 0:
         if st.last_selection is None:
             lines.append("ALERTE : aucune sélection encore tirée (passe hebdomadaire en échec ?)")
         elif st.stale_selection_days is not None and st.stale_selection_days > quiet_days:
@@ -512,7 +513,9 @@ def report() -> None:
     editorial = _editorial(settings)
     with _db(settings) as conn:
         stages = last_stages(conn)
-    status = _status_lines(_status(settings, editorial), editorial.votes.quiet_days)
+    status = _status_lines(
+        _status(settings, editorial), editorial.votes.quiet_days, bool(settings.votes_url)
+    )
     _echo(["Dernières étapes :", *_stage_lines(stages), *status])
 
 
@@ -584,7 +587,7 @@ def votes_remind() -> None:
         else "AubeSonore : aucun titre en attente de vote"
     )
     lines = [head] + ([] if _page_ok(settings) else ["Page de vote injoignable"])
-    text = "\n".join(lines + _status_lines(st, editorial.votes.quiet_days))
+    text = "\n".join(lines + _status_lines(st, editorial.votes.quiet_days, True))
     typer.echo(text)
     try:
         send_whatsapp(
