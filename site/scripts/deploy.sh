@@ -49,8 +49,8 @@ echo "deploying ${current:0:8} -> ${target:0:8}"
 # HEAD only moves once the gate opens, so diffing HEAD against the target would
 # block forever: the operator records the schema.ts blob they pushed instead.
 schema=site/apps/backend/src/db/schema.ts
-running_schema=$(git rev-parse "HEAD:$schema")
-target_schema=$(git rev-parse "$target:$schema")
+running_schema=$(git rev-parse -q --verify "HEAD:$schema" || echo absent)
+target_schema=$(git rev-parse -q --verify "$target:$schema" || echo absent)
 applied_schema=$(git config --get aubesonore.appliedSchema || true)
 if [ "$target_schema" != "$running_schema" ] && [ "$target_schema" != "$applied_schema" ]; then
   echo "schema.ts changed — apply 'bun db:push' by hand from ${target:0:8}, then:"
