@@ -116,7 +116,7 @@ def test_transient_error_logs_seed_and_propagates(
     lf.similar["Wire"] = LastfmUnavailable("code 29")
     with pytest.raises(LastfmUnavailable):
         discover_pass(conn, dz, lf, CFG, NOW, np.random.default_rng(0))
-    assert "Wire" in caplog.text and "70" in caplog.text
+    assert caplog.messages == ["discover: stopped at seed Wire (70)"]
 
 
 def test_transient_error_logs_neighbour_and_propagates(
@@ -128,7 +128,7 @@ def test_transient_error_logs_neighbour_and_propagates(
     dz.top_[1] = DeezerUnavailable("code 4")
     with pytest.raises(DeezerUnavailable):
         discover_pass(conn, dz, lf, CFG, NOW, np.random.default_rng(0))
-    assert "Knife" in caplog.text and "1" in caplog.text
+    assert caplog.messages == ["discover: stopped at neighbour Knife (1)"]
 
 
 def test_no_library_artist(tmp_path: Path) -> None:

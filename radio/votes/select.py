@@ -17,6 +17,8 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from radio.model.model import serving_id
+
 
 class NoServingModelError(Exception):
     """Aucun modèle promu : rien ne dit quels titres sont retenus."""
@@ -88,22 +90,15 @@ def record_vote(conn: sqlite3.Connection, track_id: int, vote: str, now: str) ->
     return True
 
 
-def _serving(conn: sqlite3.Connection) -> int:
-    row = conn.execute(
-        "SELECT model_id FROM models WHERE promoted = 1 ORDER BY model_id DESC LIMIT 1"
-    ).fetchone()
-    if row is None:
-        raise NoServingModelError
-    return int(row[0])
-
-
 def select_batch(
     conn: sqlite3.Connection, rng: np.random.Generator, n_exam: int, n_lesson: int, now: str
 ) -> Selection:
     waiting = pending_ballots(conn)
     if waiting:
         raise PendingBallotsError(len(waiting))
-    model_id = _serving(conn)
+    model_id = serving_id(conn)
+    if model_id is None:
+        raise NoServingModelError
     last_run = conn.execute(
         "SELECT MAX(c.run_id) FROM scores s JOIN candidates c USING (deezer_track_id) "
         "WHERE s.model_id = ?",
@@ -135,7 +130,15 @@ def select_batch(
     k = min(n_exam, len(batch))
     exam = sorted(int(t) for t in rng.choice(batch, size=k, replace=False)) if k else []
     lesson: list[int] = []
-    artists: set[int] = set()
+    # Un artiste d'examen, de cette sélection ou d'une précédente, ne reçoit jamais de vote de
+    # leçon : le modèle candidat l'aurait vu, pas celui en service, et l'examen le favoriserait.
+    artists = {int(r[4]) for r in rows if int(r[0]) in exam} | {
+        int(r[0])
+        for r in conn.execute(
+            "SELECT t.deezer_artist_id FROM ballots b JOIN tracks t USING (deezer_track_id) "
+            "WHERE b.kind = 'exam'"
+        )
+    }
     for r in sorted(rows, key=lambda r: (abs(float(r[1]) - cut), int(r[0]))):
         if len(lesson) == n_lesson:
             break

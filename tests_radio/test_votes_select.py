@@ -27,15 +27,32 @@ def test_exam_from_latest_batch_lesson_most_uncertain(tmp_path: Path) -> None:
     assert len(sel.exam) == 10
     assert all(t // 100 % 100 >= 6 for t in sel.exam)  # dernière fournée : artistes 6 à 11
     assert len(sel.lesson) == 10
-    # Coupure 0,5625 (aimé k = 0) : les plus proches sont les aimés k = 0, puis k = 1.
-    assert all(t // 100 < 3000 and t % 100 <= 1 for t in sel.lesson)
     assert len({t // 100 for t in sel.lesson}) == 10  # un par artiste
-    assert not set(sel.exam) & set(sel.lesson)
+    assert not {t // 100 for t in sel.exam} & {t // 100 for t in sel.lesson}
     ballots = pending_ballots(conn)
     assert sorted(b.position for b in ballots) == list(range(20))
     kinds = {b.deezer_track_id: b.kind for b in ballots}
     assert kinds == {**dict.fromkeys(sel.exam, "exam"), **dict.fromkeys(sel.lesson, "lesson")}
     assert ballots[0].artist.startswith("Art ") and ballots[0].title.startswith("Titre ")
+
+
+def test_lesson_is_the_closest_to_the_cut_outside_exam_artists(tmp_path: Path) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    sel = select_batch(conn, _rng(), 0, 10, NOW)
+    # Coupure 0,5625 (aimé k = 0) : les plus proches sont les aimés k = 0, un par artiste.
+    assert sorted(sel.lesson) == [(2000 + a) * 100 for a in range(10)]
+
+
+def test_an_artist_once_examined_never_gets_a_lesson(tmp_path: Path) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    first = select_batch(conn, _rng(), 10, 0, NOW)
+    for b in pending_ballots(conn):
+        assert record_vote(conn, b.deezer_track_id, "oui", NOW)
+    second = select_batch(conn, _rng(1), 0, 10, NOW)
+    assert second.lesson
+    assert not {t // 100 for t in first.exam} & {t // 100 for t in second.lesson}
 
 
 def test_no_new_selection_while_ballots_wait(tmp_path: Path) -> None:

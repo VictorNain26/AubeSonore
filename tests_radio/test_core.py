@@ -9,10 +9,12 @@ from radio.core.config import Settings, load_editorial
 from radio.core.db import MIGRATIONS, connect
 from radio.core.http import log_retry
 
+N_MIGRATIONS = len(list(MIGRATIONS.glob("*.sql")))
+
 
 def test_connect_applies_migrations(tmp_path: Path) -> None:
     conn = connect(tmp_path / "radio.db")
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 9
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == N_MIGRATIONS
     names = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"library_tracks", "deezer_matches"} <= names
     assert conn.execute("PRAGMA foreign_keys").fetchone()[0] == 1
@@ -21,7 +23,7 @@ def test_connect_applies_migrations(tmp_path: Path) -> None:
 def test_connect_is_idempotent(tmp_path: Path) -> None:
     connect(tmp_path / "radio.db").close()
     conn = connect(tmp_path / "radio.db")
-    assert conn.execute("PRAGMA user_version").fetchone()[0] == 9
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == N_MIGRATIONS
 
 
 def test_migration_9_marks_published_discoveries(

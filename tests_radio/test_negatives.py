@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import get_args
 
 import pytest
 from pydantic import ValidationError
@@ -11,10 +12,10 @@ from tests_radio.factories import make_library
 
 
 def test_repo_negatives_file() -> None:
+    # load_negatives refuse une catégorie inconnue et un deezer_id en double.
     negs = load_negatives(REPO_ROOT / "config" / "negatives.toml")
-    assert len(negs) == 324
-    categories = {n.category for n in negs}
-    assert categories == {"commercial_fr", "commercial_intl", "metal", "hard_techno"}
+    known = set(get_args(NegativeArtist.model_fields["category"].annotation))
+    assert {n.category for n in negs} == known
 
 
 def test_invalid_file_is_refused(tmp_path: Path) -> None:

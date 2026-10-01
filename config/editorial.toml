@@ -51,9 +51,10 @@ min_age_days = 60
 max_removals_per_pass = 50
 
 [votes]
-# Titres d'examen par sélection hebdomadaire, tirés au hasard parmi les retenus.
+# Titres d'examen par sélection hebdomadaire, tirés au hasard sur toute la fournée.
 exam_per_selection = 10
 # Titres de leçon par sélection : les plus proches de la coupure, un par artiste.
 lesson_per_selection = 10
-# Signaler l'absence de vote depuis ce nombre de jours.
+# Fenêtre des votes récents du rapport. Page de vote publiée et aucun titre en attente : une
+# sélection plus ancienne déclenche une alerte (passe hebdomadaire en échec ?).
 quiet_days = 7

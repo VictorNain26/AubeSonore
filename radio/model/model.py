@@ -74,10 +74,20 @@ def predict(model: Pipeline, table: SignalTable, rows: Ints) -> Floats:
     return np.asarray(model.predict_proba(table.audio[rows])[:, 1], dtype=np.float64)
 
 
-def serving(conn: sqlite3.Connection, models_dir: Path) -> tuple[int, Pipeline] | None:
-    row = conn.execute(
+def _serving_row(conn: sqlite3.Connection) -> sqlite3.Row | None:
+    row: sqlite3.Row | None = conn.execute(
         "SELECT model_id, file FROM models WHERE promoted = 1 ORDER BY model_id DESC LIMIT 1"
     ).fetchone()
+    return row
+
+
+def serving_id(conn: sqlite3.Connection) -> int | None:
+    row = _serving_row(conn)
+    return None if row is None else int(row["model_id"])
+
+
+def serving(conn: sqlite3.Connection, models_dir: Path) -> tuple[int, Pipeline] | None:
+    row = _serving_row(conn)
     if row is None:
         return None
     return int(row["model_id"]), joblib.load(models_dir / row["file"])
@@ -97,11 +107,18 @@ def write_scores(
     table: SignalTable,
     keep_fraction: float,
 ) -> None:
-    """Note tous les candidats d'une passe de découverte et retient, passe par passe, la part la
-    mieux notée."""
+    """Note les candidats de chaque passe de découverte et retient, passe par passe, la part la
+    mieux notée. Un candidat entré depuis dans la bibliothèque n'est plus une découverte."""
     run_of = dict(conn.execute("SELECT deezer_track_id, run_id FROM candidates").fetchall())
     rows = np.array(
-        [i for i, t in enumerate(table.track_ids.tolist()) if t in run_of], dtype=np.int64
+        [
+            i
+            for i, (t, origin) in enumerate(
+                zip(table.track_ids.tolist(), table.origins, strict=True)
+            )
+            if t in run_of and origin == "candidate"
+        ],
+        dtype=np.int64,
     )
     scores = predict(model, table, rows)
     runs = np.array([run_of[int(table.track_ids[i])] for i in rows], dtype=np.int64)
@@ -181,7 +198,7 @@ def train(conn: sqlite3.Connection, models_dir: Path, cfg: ModelConfig, now: str
         "weak_weight": cfg.weak_weight,
         "embedding": MODEL_TAG,
         "sklearn": sklearn.__version__,
-        "votes": votes_count(conn),
+        "votes": labels.n_votes,
     }
     metrics = {
         "counts": labels.train.counts(),

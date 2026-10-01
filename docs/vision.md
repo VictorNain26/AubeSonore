@@ -70,7 +70,8 @@ suivante reprend.
   159 votes du banc.
 - **Signaux retirés.** Popularité, tags et proximité étaient au niveau du hasard (AUC 0,52 à 0,58).
   L'empreinte seule donne une AUC d'examen de 0,82, contre 0,76 pour l'ancien modèle empilé.
-- **Rétention.** Pour chaque fournée, le tiers le mieux noté est retenu (`keep_fraction`).
+- **Rétention.** Pour chaque fournée, le tiers le mieux noté est retenu (`keep_fraction`). Un
+  candidat entré depuis dans la bibliothèque n'est plus noté : ce n'est plus une découverte.
 - **Pistes écartées après mesure** : ressemblance kNN sur l'empreinte (AUC 0,67), filtre
   « couleur » à négatifs par catégories, têtes de style Essentia, modèle Jev (texte seul). Leurs
   recherches sont dans l'historique git (`git show f7d7081:docs/recherches/`).
@@ -79,8 +80,11 @@ suivante reprend.
 
 - **Examen.** Tirage uniforme sur toute la fournée. Le verdict « retenu » au moment du tirage est
   gardé. Ces votes jugent le modèle et ne servent jamais à l'entraîner.
-- **Leçon.** Les titres les plus proches de la coupure, un par artiste. Ces votes entraînent le
-  modèle, avec un gain décroissant : AUC 0,76 sans vote, 0,79 avec 50, 0,82 avec 99.
+- **Leçon.** Les titres les plus proches de la coupure, un par artiste, jamais d'un artiste déjà
+  tiré à l'examen : le modèle candidat l'aurait vu et pas celui en service. Ces votes entraînent
+  le modèle, avec un gain décroissant : AUC 0,76 sans vote, 0,79 avec 50, 0,82 avec 99. Une
+  autre version d'un titre d'examen (même titre normalisé) n'entre pas non plus à
+  l'entraînement.
 - **Promotion.** Un nouveau modèle n'est mis en service que si son AUC d'examen égale au moins
   celle du modèle en service.
 
@@ -94,7 +98,8 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
 
 1. **Entrée.** Les titres retenus pas encore acquis, écrits en CSV (Artist, Title, Length).
    Un titre voté « non » (examen ou leçon) n'est jamais acquis.
-2. **Sockseek 3.0.5** (binaire figé dans `~/.local/bin`, sha256 `d0a1e909…1b66` vérifié) sur un
+2. **Sockseek 3.0.5** (binaire figé dans `~/.local/bin`, extrait de l'archive de release
+   `sockseek_3.0.5_linux-x64.tar.gz`, dont la sha256 `d0a1e909…1b66` a été vérifiée) sur un
    **compte Soulseek dédié à la radio** (`SOULSEEK_USER`, `SOULSEEK_PASSWORD`). Le compte de slskd est interdit : il éjecterait slskd et les deux Lidarr.
    - Options : `--format mp3,flac --pref-format mp3 --length-tol 3 --name-format {uri}`, avec
      l'id Deezer en colonne URI du CSV : chaque fichier porte l'id du titre demandé.
@@ -134,11 +139,12 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
 
 ## 6. Préparation (étape 6)
 
-- **Conversion.** Un FLAC passe en MP3 V0 :
+- **Conversion.** Tout ce qui n'est pas du MP3 (FLAC, AAC, OGG…) passe en MP3 V0 :
   `ffmpeg -af aresample=resampler=soxr:osr=44100 -c:a libmp3lame -q:a 0`. Un MP3 n'est jamais
   réencodé.
-- **ReplayGain.** `rsgain custom -s i -c p`, avec rsgain 3.8 en binaire figé (sha256
-  `4939de3b…65a0` vérifié). Sans ces balises,
+- **ReplayGain.** `rsgain custom -s i -c p`, avec rsgain 3.8 en binaire figé, extrait de
+  l'archive de release `rsgain-3.8-Linux.tar.xz`, dont la sha256 `4939de3b…65a0` a été
+  vérifiée ; la CI installe la même. Sans ces balises,
   Liquidsoap recalcule le gain à chaque titre, ce qui coûte beaucoup de CPU (doc AzuraCast,
   « optimizing »).
 - **Balises** (ffmpeg, qui remplace toutes les balises d'origine) : artiste et titre Deezer,
@@ -156,13 +162,12 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
   Le chemin du fichier vient de Plex (`Media/Part`) ; un chemin hors de `/media/plex/Musique`
   n'est jamais lu. Un repère qui échoue (outil, Deezer) est sauté, compté et nommé, sans faire
   échouer l'étape : un autre sera tiré à la passe suivante.
-- **Conversion.** Tout ce qui n'est pas du MP3 (FLAC, AAC, OGG…) passe en V0.
 
 ## 7. Antenne (étape 7)
 
 ### 7.1 Bibliothèque d'antenne
 
-- **Taille.** Cible de 1 500 à 2 000 titres (`config/editorial.toml`).
+- **Taille.** Plafond de 2 000 titres (`target_max` dans `config/editorial.toml`).
 - **Entrées.** Chaque passe publie tout ce qui a été acquis. Des repères sont ajoutés pour rester
   sous 20 %, tirés selon l'écoute. Une découverte passe à « publiée » dans la transaction de son
   entrée à l'antenne : sortie ensuite (excédent, vote, suppression dans AzuraCast), elle n'est
@@ -171,7 +176,7 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
   de l'excédent, repères compris (aucun vote ne porte aujourd'hui sur un titre de la
   bibliothèque : les bulletins sont tirés parmi les candidats). Un fichier prêt voté « non »
   n'est jamais publié. Un repère voté « non » n'est jamais tiré.
-- **Sorties.** Au-delà de la cible, chaque entrée retire le titre le moins bien noté parmi ceux
+- **Sorties.** Au-delà du plafond, chaque entrée retire le titre le moins bien noté parmi ceux
   qui sont à l'antenne depuis plus de 60 jours, repères exclus.
   - Le nombre de suppressions par passe est plafonné.
   - Le titre en cours (`GET /nowplaying/{station}`, `now_playing.song.id`) et la file de
@@ -253,7 +258,9 @@ plus toutes les 24 h et un message de retour à la normale.
 
 - **CI GitHub Actions** : ruff, mypy strict et pytest à chaque push et à chaque PR, avec
   astral-sh/setup-uv. `main` est protégée : rien n'y entre sans CI verte.
-- **Dependabot** pour `uv.lock` et pour les actions GitHub.
+- **Dependabot** pour `uv.lock`, les actions GitHub et l'image de Gatus. `essentia-tensorflow`
+  en est exclu : ses versions récentes ne publient que des roues cp314, et le projet est en
+  Python 3.12.
 - Les tests tournent sans réseau (~12 s). Tout bug corrigé reçoit son test.
 
 ## 9. Ordre de réalisation
@@ -285,10 +292,15 @@ Gatus : `cd deploy/gatus && docker compose up -d` (son `.env` est un lien vers c
 
 ```bash
 for u in deploy/systemd/*; do systemctl --user link "$PWD/$u"; done
-systemctl --user daemon-reload && systemctl --user enable --now radio-weekly.timer
+systemctl --user daemon-reload
+systemctl --user enable --now radio-weekly.timer radio-remind.timer radio-votes.service
+loginctl enable-linger
 ```
 
-Les liens pointent vers le dépôt : il faut les re-lier si le dépôt change de place.
+Les liens pointent vers le dépôt : il faut les re-lier si le dépôt change de place. Le linger
+est indispensable : il lance le gestionnaire systemd de l'utilisateur au démarrage et le garde
+après la déconnexion, ce qui fait tourner les unités sans session ouverte (`man loginctl`,
+`enable-linger`). Il est actif sur la machine (`loginctl show-user victormoi -p Linger`).
 
 **Publier la page de vote** (tableau de bord Cloudflare Zero Trust, dans cet ordre) :
 
