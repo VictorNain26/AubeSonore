@@ -102,7 +102,7 @@ Le déploiement est automatique et _pull-based_ : merger sur `master` suffit. Su
 3. attend que tous les healthchecks soient verts (échec au-delà de 300 s) ;
 4. supprime les images de plus de 72 h.
 
-Aucun runner self-hosted ni webhook entrant : le dépôt est public, et le polling ne demande ni credential ni port ouvert. Un changement de `site/apps/backend/src/db/schema.ts` bloque le déploiement, car `bun db:push` reste manuel (il peut supprimer des colonnes) : appliquer le push à la main depuis la révision cible, l'acquitter avec `git -C ~/radio config aubesonore.appliedSchema <blob>` (le script affiche la commande exacte), puis relancer `systemctl --user start aubesonore-deploy`.
+Aucun runner self-hosted ni webhook entrant : le dépôt est public, et le polling ne demande ni credential ni port ouvert. Le backend applique au démarrage les nouvelles migrations `apps/backend/drizzle/*.sql` (`src/db/migrate.ts`, SQL idempotent) : un changement de `site/apps/backend/src/db/schema.ts` livré avec sa migration (dans le même commit de `master`) se déploie seul ; que la migration corresponde au schéma relève de la revue de PR. Sans migration, il bloque le déploiement : l'appliquer à la main, l'acquitter avec `git -C ~/radio config aubesonore.appliedSchema <blob>` (le script affiche la commande exacte), puis relancer `systemctl --user start aubesonore-deploy`.
 
 Installation, une fois, sur le serveur (unités et script supposent le dépôt AubeSonore cloné dans `~/radio`, le site dans `~/radio/site` ; ailleurs, ajuster `ExecStart` et définir `REPO_DIR`) :
 
