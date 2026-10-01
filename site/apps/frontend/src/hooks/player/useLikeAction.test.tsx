@@ -31,7 +31,7 @@ describe('useLikeAction', () => {
       string,
       { action: { label: string; onClick: () => void } },
     ];
-    expect(message).toBe('Ajouté à votre bibliothèque');
+    expect(message).toBe('Gardé.');
     expect(options.action.label).toBe('Découvrir Test Artist');
 
     act(() => options.action.onClick());
@@ -44,6 +44,6 @@ describe('useLikeAction', () => {
     await act(() => result.current.toggleLike('Test Track', 'Unknown'));
 
     await waitFor(() => expect(mockedToastSuccess).toHaveBeenCalled());
-    expect(mockedToastSuccess).toHaveBeenCalledWith('Ajouté à votre bibliothèque');
+    expect(mockedToastSuccess).toHaveBeenCalledWith('Gardé.');
   });
 });

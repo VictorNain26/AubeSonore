@@ -1,8 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { useShallow } from 'zustand/react/shallow';
-import { LayoutView } from '../design/templates/LayoutView';
-import { AboutModal } from '../design/organisms/AboutModal';
-import { useAuthStore } from '../stores/authStore';
+import { useEffect, type ReactNode } from 'react';
+import { Toaster } from 'sonner';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { toastError } from '../lib/appToast';
 import * as m from '@/paraglide/messages.js';
@@ -18,16 +15,7 @@ function readResetTokenFromUrl(): string | null {
 }
 
 export default function Layout({ children }: LayoutProps) {
-  const { user, isAuthenticated, isLoading, signOut } = useAuthStore(
-    useShallow((s) => ({
-      user: s.user,
-      isAuthenticated: s.isAuthenticated,
-      isLoading: s.isLoading,
-      signOut: s.signOut,
-    }))
-  );
   const openAuthModal = useAuthModalStore((s) => s.open);
-  const [isAboutOpen, setIsAboutOpen] = useState(false);
 
   // Better Auth's forget-password emails redirect to /reset-password?token=XXX
   // (or ?error=INVALID_TOKEN). Open the modal in reset mode on first paint
@@ -50,20 +38,22 @@ export default function Layout({ children }: LayoutProps) {
   }, [openAuthModal]);
 
   return (
-    <LayoutView
-      user={user}
-      isAuthenticated={isAuthenticated}
-      isLoading={isLoading}
-      onSignOut={() => void signOut()}
-      onOpenAuthModal={() => openAuthModal()}
-      onOpenAbout={() => setIsAboutOpen(true)}
-      aboutModal={
-        isAboutOpen ? (
-          <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
-        ) : null
-      }
-    >
+    <div className="text-text min-h-dvh">
+      <a href="#main" className="skip-link">
+        {m.skip_link()}
+      </a>
       {children}
-    </LayoutView>
+      <Toaster
+        position="top-center"
+        duration={3000}
+        toastOptions={{
+          classNames: {
+            toast: '!bg-accent !text-on-accent !border-0 !text-ui !rounded-full',
+            description: '!text-on-accent-muted',
+            actionButton: '!bg-surface !text-text',
+          },
+        }}
+      />
+    </div>
   );
 }

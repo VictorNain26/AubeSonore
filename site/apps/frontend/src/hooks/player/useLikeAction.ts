@@ -51,7 +51,7 @@ export function useLikeAction(): UseLikeAction {
         if (existingTrack) {
           const success = await unlikeTrack(existingTrack.id);
           if (success) {
-            toast.success(m.toast_removed_from_library());
+            toast.success(m.toast_unkept());
           }
         } else {
           const requestData: Parameters<typeof likeTrack>[0] = {
@@ -65,14 +65,14 @@ export function useLikeAction(): UseLikeAction {
           await likeTrack(requestData);
           const info = await getArtistInfo(artist);
           if (info?.bio) {
-            toast.success(m.toast_added_to_library(), {
+            toast.success(m.toast_kept(), {
               action: {
                 label: m.toast_discover_artist({ artist }),
                 onClick: () => useArtistPanelStore.getState().open(artist),
               },
             });
           } else {
-            toast.success(m.toast_added_to_library());
+            toast.success(m.toast_kept());
           }
         }
       } finally {

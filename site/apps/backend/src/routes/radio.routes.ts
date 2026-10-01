@@ -4,7 +4,7 @@ import { logger } from '../lib/logger';
 
 const DEFAULT_ROWS = 120;
 const MIN_ROWS = 1;
-const MAX_ROWS = 200;
+const MAX_ROWS = 400;
 
 function clampRows(raw: unknown): number {
   const parsed = Number(raw);

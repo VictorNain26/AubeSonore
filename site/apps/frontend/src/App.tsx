@@ -1,10 +1,8 @@
-import { LazyMotion, MotionConfig, domAnimation } from 'motion/react';
 import { AuthInit } from './components/AuthInit';
 import { AuthModalHost } from './components/AuthModalHost';
 import { NowPlayingPoller } from './components/NowPlayingPoller';
 import Layout from './layout/Layout';
 import HomePage from './pages/HomePage';
-import { PWAInstallBanner } from './components/PWAInstallBanner';
 import { useLocaleStore } from './stores/localeStore';
 
 export default function App() {
@@ -13,16 +11,13 @@ export default function App() {
   useLocaleStore((s) => s.locale);
 
   return (
-    <LazyMotion features={domAnimation} strict>
-      <MotionConfig reducedMotion="user">
-        <AuthInit />
-        <NowPlayingPoller />
-        <Layout>
-          <HomePage />
-        </Layout>
-        <AuthModalHost />
-        <PWAInstallBanner />
-      </MotionConfig>
-    </LazyMotion>
+    <>
+      <AuthInit />
+      <NowPlayingPoller />
+      <Layout>
+        <HomePage />
+      </Layout>
+      <AuthModalHost />
+    </>
   );
 }

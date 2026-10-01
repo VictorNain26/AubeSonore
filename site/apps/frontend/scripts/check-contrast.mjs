@@ -59,6 +59,7 @@ const pairs = [
   ['text-faint/surface-raised', c('text-faint'), c('surface-raised'), 4.5],
   ['accent/surface', c('accent'), c('surface'), 3.0],
   ['on-accent/accent', c('on-accent'), c('accent'), 4.5],
+  ['on-accent-muted/accent', c('on-accent-muted'), c('accent'), 4.5],
   ['text/dawn-glow', c('text'), glow, 4.5],
 ];
 let fail = false;

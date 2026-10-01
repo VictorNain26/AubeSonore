@@ -1,21 +1,25 @@
 import { ErrorBoundary } from 'react-error-boundary';
-import Player from '../components/Player';
 import { PlayerSideEffects } from '../components/Player/PlayerSideEffects';
+import { ArtistContext } from '../components/Player/ArtistContext';
 import { PlayerErrorFallback } from '../design/organisms/ErrorFallback';
+import { Hero } from '../home/Hero';
+import { SinceDawn } from '../home/SinceDawn';
+import { MostKept } from '../home/MostKept';
+import { SiteFooter } from '../home/SiteFooter';
 
-/**
- * Top-level route: page frame around the `Player` composition, with an error
- * boundary and the side-effects hook. Pure routing glue with no layout logic
- * of its own — `Player` already owns and stories its own scene. Not storied.
- */
 export default function HomePage() {
   return (
-    <div className="max-w-page mx-auto size-full min-h-0 px-6 pb-6">
+    <>
       <ErrorBoundary FallbackComponent={PlayerErrorFallback}>
-        <Player />
+        <Hero />
       </ErrorBoundary>
-
+      <main id="main" className="flex flex-col gap-18 px-6 py-14 md:gap-35 md:px-10 md:py-30">
+        <SinceDawn />
+        <MostKept />
+      </main>
+      <SiteFooter />
+      <ArtistContext />
       <PlayerSideEffects />
-    </div>
+    </>
   );
 }
