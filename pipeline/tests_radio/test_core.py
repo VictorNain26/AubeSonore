@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from radio.core.config import Settings, load_editorial
+from radio.core.config import REPO_ROOT, Settings, load_editorial
 from radio.core.db import MIGRATIONS, connect
 from radio.core.http import log_retry
 
@@ -183,3 +183,7 @@ def test_retry_hook_logs_no_arguments(caplog: pytest.LogCaptureFixture) -> None:
         log_retry(Details())  # type: ignore[arg-type]
     assert "SECRET" not in caplog.text
     assert "RuntimeError" in caplog.text and "attempt 2" in caplog.text
+
+
+def test_tests_never_reach_the_real_data_dir() -> None:
+    assert Settings(_env_file=None).data_dir != REPO_ROOT / "data"
