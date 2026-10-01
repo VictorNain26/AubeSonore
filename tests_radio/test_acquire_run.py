@@ -9,7 +9,7 @@ import radio.acquire.run as run_mod
 from radio.acquire.audio import Probe
 from radio.acquire.run import acquire_pass, pending
 from radio.core.config import AcquisitionConfig
-from radio.sources.deezer import DeezerTrack
+from radio.sources.deezer import DeezerAlbum, DeezerTrack
 from tests_radio.model_factory import NOW, make_model_db, serve_scores
 
 CFG = AcquisitionConfig(max_per_pass=4, max_attempts=2)
@@ -24,7 +24,10 @@ class FakeDeezer:
             return None
         return DeezerTrack(tid, f"T{tid}", f"T{tid}", 200, 1, 1, "Art", True), "https://signed"
 
-    def download_preview(self, url: str) -> bytes:
+    def album(self, tid: int) -> DeezerAlbum | None:
+        return DeezerAlbum("Album", None)
+
+    def download(self, url: str) -> bytes:
         return b"preview"
 
 

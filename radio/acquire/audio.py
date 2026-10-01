@@ -91,42 +91,67 @@ def similarity(file_fp: Fingerprint, preview_fp: Fingerprint) -> float:
     return float(1 - errors.min() / (32 * len(core)))
 
 
-def prepare(
-    src: Path, dest: Path, codec: str, artist: str, title: str, deezer_id: int, rsgain: Path
-) -> None:
+@dataclass(frozen=True)
+class Tags:
+    artist: str
+    title: str
+    deezer_id: int
+    album: str
+    cover: bytes | None
+
+
+def prepare(src: Path, dest: Path, codec: str, tags: Tags, rsgain: Path) -> None:
     """Tout sauf le MP3 passe en MP3 V0 ; un MP3 n'est jamais réencodé. Balises remplacées,
-    ReplayGain posé."""
+    pochette intégrée (ffmpeg-formats, muxer mp3), ReplayGain posé."""
     audio = (
         ["-af", "aresample=resampler=soxr:osr=44100", "-c:a", "libmp3lame", "-q:a", "0"]
         if codec != "mp3"
         else ["-c:a", "copy"]
     )
     tmp = dest.with_name(f".{dest.name}")
-    _run(
-        [
-            "ffmpeg",
-            "-v",
-            "error",
-            "-y",
-            "-i",
-            str(src),
+    cover = dest.with_name(f".{dest.stem}.jpg")
+    inputs, maps = ["-i", str(src)], ["-map", "0:a:0"]
+    if tags.cover is not None:
+        cover.write_bytes(tags.cover)
+        inputs += ["-i", str(cover)]
+        maps += [
             "-map",
-            "0:a:0",
-            *audio,
-            "-map_metadata",
-            "-1",
-            "-id3v2_version",
-            "3",
-            "-metadata",
-            f"artist={artist}",
-            "-metadata",
-            f"title={title}",
-            "-metadata",
-            f"comment=deezer:{deezer_id}",
-            "-f",
-            "mp3",
-            str(tmp),
+            "1:0",
+            "-c:v",
+            "copy",
+            "-metadata:s:v",
+            "title=Album cover",
+            "-metadata:s:v",
+            "comment=Cover (front)",
         ]
-    )
+    try:
+        _run(
+            [
+                "ffmpeg",
+                "-v",
+                "error",
+                "-y",
+                *inputs,
+                *maps,
+                *audio,
+                "-map_metadata",
+                "-1",
+                "-id3v2_version",
+                "3",
+                "-metadata",
+                f"artist={tags.artist}",
+                "-metadata",
+                f"title={tags.title}",
+                "-metadata",
+                f"album={tags.album}",
+                "-metadata",
+                f"comment=deezer:{tags.deezer_id}",
+                "-f",
+                "mp3",
+                str(tmp),
+            ]
+        )
+    finally:
+        cover.unlink(missing_ok=True)
     _run([str(rsgain), "custom", "-s", "i", "-c", "p", str(tmp)])
     tmp.replace(dest)

@@ -123,7 +123,11 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
   Liquidsoap recalcule le gain à chaque titre, ce qui coûte beaucoup de CPU (doc AzuraCast,
   « optimizing »).
 - **Balises** (ffmpeg, qui remplace toutes les balises d'origine) : artiste et titre Deezer,
-  commentaire `deezer:<id>`. Fichier prêt : `data/antenne/<id Deezer>.mp3`.
+  commentaire `deezer:<id>`, album et pochette (`album.cover_xl`, 1000 × 1000) lus sur
+  `/track/<id>` : l'id exact donne le bon album, là où la recherche native d'AzuraCast
+  (MusicBrainz par artiste et titre) prend le premier venu. La pochette est un flux image
+  intégré en APIC (ffmpeg-formats, muxer mp3) ; `-map 0:a:0` seul la perdait. Fichier prêt :
+  `data/antenne/<id Deezer>.mp3`.
 - **Repères.** Des titres de la bibliothèque Plex, copiés sans jamais y écrire, préparés de la
   même façon et étiquetés `repère` dans la base. Ils représentent au plus 20 % de l'antenne.
   Le chemin du fichier vient de Plex (`Media/Part`) ; un chemin hors de `/media/plex/Musique`

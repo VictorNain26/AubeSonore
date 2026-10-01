@@ -8,14 +8,23 @@ import pytest
 import responses
 
 import radio.antenna.sync as sync_mod
-from radio.acquire.audio import Probe
+from radio.acquire.audio import Probe, Tags
 from radio.antenna.sync import antenne_pass
 from radio.core.config import AntenneConfig
 from radio.sources.azuracast import AzuracastClient, AzuracastError, Media
+from radio.sources.deezer import DeezerAlbum
 from tests_radio.model_factory import NOW, make_model_db, serve_scores
 
 ROOT = PurePosixPath("/media/plex/Musique")
 LATER = datetime(2026, 12, 1, tzinfo=UTC)
+
+
+class FakeDeezer:
+    def album(self, tid: int) -> DeezerAlbum | None:
+        return DeezerAlbum(f"Album {tid}", "https://cover")
+
+    def download(self, url: str) -> bytes:
+        return b"jpeg"
 
 
 class FakeStation:
@@ -45,12 +54,16 @@ class FakeStation:
 
 
 @pytest.fixture
-def no_tools(monkeypatch: pytest.MonkeyPatch) -> None:
-    def prepare(src: Path, dest: Path, *rest: Any) -> None:
+def no_tools(monkeypatch: pytest.MonkeyPatch) -> list[Tags]:
+    tagged: list[Tags] = []
+
+    def prepare(src: Path, dest: Path, codec: str, tags: Tags, rsgain: Path) -> None:
+        tagged.append(tags)
         dest.write_bytes(b"mp3")
 
     monkeypatch.setattr(sync_mod, "probe", lambda p: Probe("flac", 200.0, 900))
     monkeypatch.setattr(sync_mod, "prepare", prepare)
+    return tagged
 
 
 def _ready(conn: Any, tmp: Path, ids: list[int]) -> None:
@@ -69,7 +82,7 @@ def _library_files(conn: Any) -> None:
     conn.commit()
 
 
-def test_publish_ready_files_and_references(tmp_path: Path, no_tools: None) -> None:
+def test_publish_ready_files_and_references(tmp_path: Path, no_tools: list[Tags]) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
     _library_files(conn)
@@ -78,7 +91,9 @@ def test_publish_ready_files_and_references(tmp_path: Path, no_tools: None) -> N
     station = FakeStation([Media(1, "old", "ancien.mp3")])
     cfg = AntenneConfig(reference_share=0.2)
 
-    rep = antenne_pass(conn, station, cfg, ROOT, Path("/rsgain"), np.random.default_rng(0), LATER)
+    rep = antenne_pass(
+        conn, station, FakeDeezer(), cfg, ROOT, Path("/rsgain"), np.random.default_rng(0), LATER
+    )
 
     assert (rep.n_published, rep.n_references, rep.n_removed, rep.errors) == (8, 2, 0, [])
     assert rep.n_total == 10
@@ -89,6 +104,8 @@ def test_publish_ready_files_and_references(tmp_path: Path, no_tools: None) -> N
         r[0] for r in conn.execute("SELECT deezer_track_id FROM antenne WHERE origin = 'repere'")
     ]
     assert 100000 not in refs  # fichier hors de la racine Plex : jamais lu
+    assert sorted(t.deezer_id for t in no_tools) == sorted(refs)
+    assert all(t.album == f"Album {t.deezer_id}" and t.cover == b"jpeg" for t in no_tools)
     assert all(m.path.startswith("antenne/") for m in station.media[1:])
 
 
@@ -100,6 +117,7 @@ def test_reconcile_forgets_missing_and_counts_unknown(tmp_path: Path, no_tools: 
     rep = antenne_pass(
         conn,
         station,
+        FakeDeezer(),
         AntenneConfig(reference_share=0),
         ROOT,
         Path("/r"),
@@ -127,7 +145,9 @@ def test_excess_removes_worst_old_discoveries_but_never_busy_ones(
     station.busy = {f"s{ids[0]}"}
     cfg = AntenneConfig(target_max=3, reference_share=0, max_removals_per_pass=10)
 
-    rep = antenne_pass(conn, station, cfg, ROOT, Path("/r"), np.random.default_rng(0), LATER)
+    rep = antenne_pass(
+        conn, station, FakeDeezer(), cfg, ROOT, Path("/r"), np.random.default_rng(0), LATER
+    )
 
     assert station.deleted == [f"antenne/{ids[1]}.mp3", f"antenne/{ids[2]}.mp3"]
     assert (rep.n_removed, rep.n_total) == (2, 3)
@@ -140,6 +160,7 @@ def test_upload_refusal_is_reported_and_file_kept(tmp_path: Path, no_tools: None
     rep = antenne_pass(
         conn,
         station,
+        FakeDeezer(),
         AntenneConfig(reference_share=0),
         ROOT,
         Path("/r"),

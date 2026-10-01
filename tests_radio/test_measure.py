@@ -30,7 +30,7 @@ class FakeDeezer:
             raise v
         return v
 
-    def download_preview(self, url: str) -> bytes:
+    def download(self, url: str) -> bytes:
         assert url == URL
         if self.fail_download:
             raise DeezerError("preview HTTP 404")

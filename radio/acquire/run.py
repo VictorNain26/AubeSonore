@@ -11,7 +11,7 @@ from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from radio.acquire.audio import ToolError, check, fingerprint, prepare, probe, similarity
+from radio.acquire.audio import Tags, ToolError, check, fingerprint, prepare, probe, similarity
 from radio.acquire.sockseek import Runner, Wanted, download, run_command
 from radio.core.config import AcquisitionConfig
 from radio.sources.deezer import DeezerClient, DeezerError
@@ -62,6 +62,15 @@ def _save(
         )
 
 
+def tags_for(deezer: DeezerClient, tid: int, artist: str, title: str) -> Tags:
+    """Balises d'antenne : l'album et sa pochette viennent de Deezer, par l'id exact du titre."""
+    album = deezer.album(tid)
+    if album is None:
+        return Tags(artist, title, tid, "", None)
+    cover = deezer.download(album.cover_url) if album.cover_url else None
+    return Tags(artist, title, tid, album.title, cover)
+
+
 def _verify_and_prepare(
     file: Path,
     want: Wanted,
@@ -78,13 +87,14 @@ def _verify_and_prepare(
     if fresh is None or fresh[1] is None:
         return None, "extrait Deezer indisponible"
     with tempfile.NamedTemporaryFile(suffix=".mp3") as preview:
-        preview.write(deezer.download_preview(fresh[1]))
+        preview.write(deezer.download(fresh[1]))
         preview.flush()
         score = similarity(fingerprint(file), fingerprint(Path(preview.name)))
     if score < cfg.identity_threshold:
         return None, "identité"
     dest = ready_dir / f"{want.deezer_track_id}.mp3"
-    prepare(file, dest, p.codec, want.artist, want.title, want.deezer_track_id, rsgain)
+    tags = tags_for(deezer, want.deezer_track_id, want.artist, want.title)
+    prepare(file, dest, p.codec, tags, rsgain)
     return dest, None
 
 

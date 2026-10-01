@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from radio.acquire.audio import Probe, check, fingerprint, prepare, probe, similarity
+from radio.acquire.audio import Probe, Tags, check, fingerprint, prepare, probe, similarity
 from radio.core.config import AcquisitionConfig
 
 CFG = AcquisitionConfig()
@@ -69,17 +69,66 @@ def test_real_tools_identity_and_preparation(tmp_path: Path) -> None:
 
     p = probe(full)
     assert (p.codec, round(p.duration_s)) == ("flac", 60)
+    cover = tmp_path / "cover.jpg"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=red:s=64x64",
+            "-frames:v",
+            "1",
+            str(cover),
+        ],
+        check=True,
+    )
+    rsgain = Path(str(shutil.which("rsgain")))
     dest = tmp_path / "123.mp3"
-    prepare(full, dest, p.codec, "Artiste", "Titre", 123, Path(str(shutil.which("rsgain"))))
-    tags = json.loads(
-        subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries", "format_tags", "-of", "json", str(dest)],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
-    )["format"]["tags"]
+    prepare(full, dest, p.codec, Tags("Artiste", "Titre", 123, "Album", cover.read_bytes()), rsgain)
+    tags = _tags(dest)
     assert probe(dest).codec == "mp3"
-    assert (tags["artist"], tags["title"], tags["comment"]) == ("Artiste", "Titre", "deezer:123")
+    assert (tags["artist"], tags["title"], tags["album"], tags["comment"]) == (
+        "Artiste",
+        "Titre",
+        "Album",
+        "deezer:123",
+    )
     assert "REPLAYGAIN_TRACK_GAIN" in {k.upper() for k in tags}
-    assert not (tmp_path / ".123.mp3").exists()
+    assert _pictures(dest) == 1  # la pochette survit à rsgain
+    assert sorted(f.name for f in tmp_path.iterdir() if f.name.startswith(".")) == []
+
+    bare = tmp_path / "124.mp3"
+    prepare(dest, bare, "mp3", Tags("Artiste", "Titre", 124, "", None), rsgain)
+    assert _pictures(bare) == 0
+
+
+def _tags(f: Path) -> dict[str, str]:
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format_tags", "-of", "json", str(f)],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return dict(json.loads(out)["format"]["tags"])
+
+
+def _pictures(f: Path) -> int:
+    out = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-show_entries",
+            "stream=index:stream_disposition=attached_pic",
+            "-of",
+            "json",
+            str(f),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    return sum(s["disposition"]["attached_pic"] for s in json.loads(out)["streams"])

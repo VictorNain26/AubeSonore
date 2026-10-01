@@ -38,6 +38,12 @@ class DeezerTrack:
 
 
 @dataclass(frozen=True)
+class DeezerAlbum:
+    title: str
+    cover_url: str | None
+
+
+@dataclass(frozen=True)
 class DeezerArtist:
     id: int
     name: str
@@ -94,16 +100,24 @@ class DeezerClient:
         preview = body.get("preview")
         return _track(body), (str(preview) if preview else None)
 
+    def album(self, track_id: int) -> DeezerAlbum | None:
+        body = self._get(f"/track/{track_id}", {})
+        album = body.get("album")
+        if "id" not in body or not isinstance(album, dict):
+            return None
+        cover = album.get("cover_xl")
+        return DeezerAlbum(str(album.get("title") or ""), str(cover) if cover else None)
+
     @stamina.retry(on=DeezerUnavailable, attempts=5, wait_initial=1.0, wait_max=30.0)
-    def download_preview(self, url: str) -> bytes:
+    def download(self, url: str) -> bytes:
         try:
             r = self._session.get(url, timeout=30)
         except requests.RequestException as e:
             raise DeezerUnavailable(type(e).__name__) from None
         if r.status_code == 429 or r.status_code >= 500:
-            raise DeezerUnavailable(f"preview HTTP {r.status_code}")
+            raise DeezerUnavailable(f"download HTTP {r.status_code}")
         if r.status_code >= 400 or not r.content:
-            raise DeezerError(f"preview HTTP {r.status_code}")
+            raise DeezerError(f"download HTTP {r.status_code}")
         return r.content
 
     @stamina.retry(on=DeezerUnavailable, attempts=5, wait_initial=1.0, wait_max=30.0)
