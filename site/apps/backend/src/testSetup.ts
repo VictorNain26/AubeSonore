@@ -11,3 +11,7 @@ process.env.BETTER_AUTH_URL ??= 'http://localhost:3000';
 process.env.AZURACAST_BASE_URL = 'http://azuracast.test';
 process.env.AZURACAST_API_KEY = 'secret-key';
 process.env.AZURACAST_STATION_ID = 'aubesonore';
+
+// Forced too: the track links specs follow the Spotify path with these.
+process.env.SPOTIFY_CLIENT_ID = 'test-spotify-id';
+process.env.SPOTIFY_CLIENT_SECRET = 'test-spotify-secret';

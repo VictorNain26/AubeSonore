@@ -1,7 +1,7 @@
 import { Elysia } from 'elysia';
 import { checkRate, getClientIp } from '../lib/rateLimit';
 import { logger } from '../lib/logger';
-import { searchSonglink } from '../services/songlinkService';
+import { findTrackLinks } from '../services/trackLinksService';
 import { renderSharePage, type ShareLocale } from '../services/templates/sharePage';
 
 const SHARE_LIMIT = 30;
@@ -37,7 +37,7 @@ export const shareRoutes = new Elysia().get('/t', async ({ request, query, set }
 
   let songlink = null;
   try {
-    songlink = await searchSonglink(title, artist);
+    songlink = await findTrackLinks(title, artist);
   } catch (error) {
     // Transient Songlink failure: the page renders without cover/links.
     logger.warn('share.songlink_error', {
