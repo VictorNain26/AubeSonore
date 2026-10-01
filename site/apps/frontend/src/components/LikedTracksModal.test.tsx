@@ -66,19 +66,24 @@ beforeEach(() => {
 });
 
 describe('LikedTracksModal', () => {
+  // Fifty-odd rows make the accessibility tree costly: `hidden: true` skips the
+  // visibility checks (testing-library.com/docs/queries/byrole#performance).
   it('renders only 50 rows plus a button to reveal the remaining tracks', async () => {
     useLikedTracksStore.setState({ tracks: Array.from({ length: 60 }, (_, i) => makeTrack(i)) });
     render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(50);
-    const showMoreButton = screen.getByRole('button', { name: /afficher les 10 autres/i });
+    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(50);
+    const showMoreButton = screen.getByRole('button', {
+      name: /afficher les 10 autres/i,
+      hidden: true,
+    });
     expect(showMoreButton).toBeInTheDocument();
 
     await userEvent.click(showMoreButton);
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(60);
+    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(60);
     expect(
-      screen.queryByRole('button', { name: /afficher les .* autres/i })
+      screen.queryByRole('button', { name: /afficher les .* autres/i, hidden: true })
     ).not.toBeInTheDocument();
   });
 
@@ -86,24 +91,29 @@ describe('LikedTracksModal', () => {
     useLikedTracksStore.setState({ tracks: Array.from({ length: 60 }, (_, i) => makeTrack(i)) });
     const { rerender } = render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    const showMoreButton = screen.getByRole('button', { name: /afficher les 10 autres/i });
+    const showMoreButton = screen.getByRole('button', {
+      name: /afficher les 10 autres/i,
+      hidden: true,
+    });
     await userEvent.click(showMoreButton);
-    expect(screen.getAllByRole('listitem')).toHaveLength(60);
+    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(60);
 
     rerender(<LikedTracksModal isOpen={false} onClose={vi.fn()} />);
     rerender(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(50);
-    expect(screen.getByRole('button', { name: /afficher les 10 autres/i })).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(50);
+    expect(
+      screen.getByRole('button', { name: /afficher les 10 autres/i, hidden: true })
+    ).toBeInTheDocument();
   });
 
   it('does not render the show-more button when there are 50 or fewer tracks', () => {
     useLikedTracksStore.setState({ tracks: Array.from({ length: 50 }, (_, i) => makeTrack(i)) });
     render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    expect(screen.getAllByRole('listitem')).toHaveLength(50);
+    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(50);
     expect(
-      screen.queryByRole('button', { name: /afficher les .* autres/i })
+      screen.queryByRole('button', { name: /afficher les .* autres/i, hidden: true })
     ).not.toBeInTheDocument();
   });
 
