@@ -7,6 +7,7 @@ import {
   jsonb,
   index,
   uniqueIndex,
+  customType,
 } from 'drizzle-orm/pg-core';
 import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import type { PlatformLinks, PreferredPlatform } from '@aubesonore/shared-types/client';
@@ -192,6 +193,25 @@ export const userStats = pgTable('user_stats', {
     .references(() => user.id, { onDelete: 'cascade' }),
   snapshot: jsonb('snapshot').notNull().$type<StatsState>(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ─────────────────────────────────────────────
+// COVERS TABLE
+// ─────────────────────────────────────────────
+// Drizzle 0.45 has no bytea column; node-postgres reads and writes it as a Buffer.
+const bytea = customType<{ data: Buffer }>({
+  dataType() {
+    return 'bytea';
+  },
+});
+
+// AzuraCast art dies with its media: a kept track gets its own copy,
+// addressed by the SHA-256 of its bytes.
+export const covers = pgTable('covers', {
+  sha256: text('sha256').primaryKey(),
+  contentType: text('content_type').notNull(),
+  bytes: bytea('bytes').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
 // ─────────────────────────────────────────────

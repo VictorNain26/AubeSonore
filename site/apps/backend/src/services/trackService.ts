@@ -3,6 +3,7 @@ import { eq, and, desc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { User, LikedTrack } from '../db/schema';
 import { searchSonglink } from './songlinkService';
+import { keepCover } from './coverService';
 
 // Hard cap on the liked-tracks listing payload. Power users with thousands
 // of tracks would otherwise stream the entire library on every page load.
@@ -93,11 +94,12 @@ async function enrichTrackInBackground(
   const songlinkData = await searchSonglink(title, artist);
 
   // Prefer the artist-verified iTunes cover when Songlink found one, else
-  // keep the AzuraCast art already in DB — never overwrite durable art with
-  // the ephemeral one.
+  // our own copy of the AzuraCast art, which dies with its media.
   const verifiedArt = songlinkData?.artworkUrl ?? null;
   const existingAzuracastUrl = track?.artworkUrl ?? null;
-  const nextArt = verifiedArt ?? existingAzuracastUrl ?? null;
+  const keptArt =
+    !verifiedArt && existingAzuracastUrl ? await keepCover(existingAzuracastUrl) : null;
+  const nextArt = verifiedArt ?? keptArt ?? existingAzuracastUrl ?? null;
 
   const update: Partial<LikedTrack> = {};
   if (songlinkData) {

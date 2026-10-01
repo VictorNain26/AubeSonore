@@ -14,6 +14,7 @@ import { statsRoutes } from './routes/stats.routes';
 import { trendsRoutes } from './routes/trends.routes';
 import { radioRoutes } from './routes/radio.routes';
 import { shareRoutes } from './routes/share.routes';
+import { coversRoutes } from './routes/covers.routes';
 import { songlinkCache, itunesCache } from './services/songlinkService';
 import { lastfmCache } from './services/lastfmService';
 import { radioHistoryCache } from './services/radioService';
@@ -82,6 +83,7 @@ const app = new Elysia()
   .use(trendsRoutes)
   .use(radioRoutes)
   .use(shareRoutes)
+  .use(coversRoutes)
   .get('/health', () => ({ status: 'ok', uptime: process.uptime() }))
   .get('/', () => ({ message: 'AubeSonore API' }))
   .onError(({ error, set, request }) => {
