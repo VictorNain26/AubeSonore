@@ -70,7 +70,8 @@ suivante reprend.
   159 votes du banc.
 - **Signaux retirés.** Popularité, tags et proximité étaient au niveau du hasard (AUC 0,52 à 0,58).
   L'empreinte seule donne une AUC d'examen de 0,82, contre 0,76 pour l'ancien modèle empilé.
-- **Rétention.** Pour chaque fournée, le tiers le mieux noté est retenu (`keep_fraction`).
+- **Rétention.** Pour chaque fournée, le tiers le mieux noté est retenu (`keep_fraction`). Un
+  candidat entré depuis dans la bibliothèque n'est plus noté : ce n'est plus une découverte.
 - **Pistes écartées après mesure** : ressemblance kNN sur l'empreinte (AUC 0,67), filtre
   « couleur » à négatifs par catégories, têtes de style Essentia, modèle Jev (texte seul). Leurs
   recherches sont dans l'historique git (`git show f7d7081:docs/recherches/`).
@@ -79,8 +80,11 @@ suivante reprend.
 
 - **Examen.** Tirage uniforme sur toute la fournée. Le verdict « retenu » au moment du tirage est
   gardé. Ces votes jugent le modèle et ne servent jamais à l'entraîner.
-- **Leçon.** Les titres les plus proches de la coupure, un par artiste. Ces votes entraînent le
-  modèle, avec un gain décroissant : AUC 0,76 sans vote, 0,79 avec 50, 0,82 avec 99.
+- **Leçon.** Les titres les plus proches de la coupure, un par artiste, jamais d'un artiste déjà
+  tiré à l'examen : le modèle candidat l'aurait vu et pas celui en service. Ces votes entraînent
+  le modèle, avec un gain décroissant : AUC 0,76 sans vote, 0,79 avec 50, 0,82 avec 99. Une
+  autre version d'un titre d'examen (même titre normalisé) n'entre pas non plus à
+  l'entraînement.
 - **Promotion.** Un nouveau modèle n'est mis en service que si son AUC d'examen égale au moins
   celle du modèle en service.
 

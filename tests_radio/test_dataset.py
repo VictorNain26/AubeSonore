@@ -109,3 +109,16 @@ def test_weights_need_both_classes(tmp_path: Path) -> None:
     ds = build_labels(conn, table, 60).train
     with pytest.raises(MissingExamplesError):
         weights(ds, 0.0)
+
+
+def test_another_version_of_an_exam_title_is_not_trained_on(tmp_path: Path) -> None:
+    conn = make_model_db(tmp_path, n_artists=3, per_artist=2)
+    library_key = conn.execute(
+        "SELECT dedupe_key FROM tracks WHERE origin = 'library' ORDER BY deezer_track_id"
+    ).fetchone()[0]
+    conn.execute("UPDATE tracks SET dedupe_key = ? WHERE deezer_track_id = 200000", (library_key,))
+    conn.commit()
+    add_vote(conn, 200000, "exam", "oui")
+    lab = build_labels(conn, load_signals(conn), 60)
+    assert lab.train.counts()["library"] == 5
+    assert lab.n_votes == 1
