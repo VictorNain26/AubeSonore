@@ -1,8 +1,10 @@
+import { lazy, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { ModalErrorFallback } from '../design/organisms/ErrorFallback';
-import { AuthModal } from './AuthModal';
+// Loaded on first open: the sign-in code is not needed to listen.
+const AuthModal = lazy(() => import('./AuthModal').then((mod) => ({ default: mod.AuthModal })));
 
 // App-level host for the AuthModal. Mounted once at App.tsx and driven
 // entirely by useAuthModalStore. Every caller (header Connexion button,
@@ -23,12 +25,14 @@ export function AuthModalHost() {
 
   return (
     <ErrorBoundary FallbackComponent={(props) => <ModalErrorFallback {...props} onClose={close} />}>
-      <AuthModal
-        isOpen={isOpen}
-        onClose={close}
-        defaultMode={mode}
-        {...(resetToken && { resetToken })}
-      />
+      <Suspense fallback={null}>
+        <AuthModal
+          isOpen={isOpen}
+          onClose={close}
+          defaultMode={mode}
+          {...(resetToken && { resetToken })}
+        />
+      </Suspense>
     </ErrorBoundary>
   );
 }

@@ -47,8 +47,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title ?? 'AubeSonore', {
       body: body ?? '',
-      icon: '/icons/icon-192x192.png',
-      badge: '/favicon-48.png',
+      icon: '/icon-192.png',
+      badge: '/icon-32.png',
       data: { url: url ?? '/' },
     })
   );

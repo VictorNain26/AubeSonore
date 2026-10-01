@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { ModalErrorFallback } from '../design/organisms/ErrorFallback';
-import { LikedTracksModal } from '../components/LikedTracksModal';
 import { PlayerPill } from './PlayerPill';
 import * as m from '@/paraglide/messages.js';
+
+const LikedTracksModal = lazy(() =>
+  import('../components/LikedTracksModal').then((mod) => ({ default: mod.LikedTracksModal }))
+);
 
 const NAV_LINK =
   'text-ui ease-out-quart focus-visible:outline-accent hidden min-h-11 items-center rounded-sm transition-opacity duration-150 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-4 md:inline-flex';
@@ -46,7 +49,9 @@ export function SiteHeader() {
         <ErrorBoundary
           FallbackComponent={(props) => <ModalErrorFallback {...props} onClose={closeLibrary} />}
         >
-          <LikedTracksModal isOpen onClose={closeLibrary} />
+          <Suspense fallback={null}>
+            <LikedTracksModal isOpen onClose={closeLibrary} />
+          </Suspense>
         </ErrorBoundary>
       ) : null}
     </header>

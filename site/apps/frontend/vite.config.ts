@@ -33,14 +33,14 @@ export default defineConfig(({ mode }) => {
         srcDir: 'src',
         filename: 'sw.ts',
         registerType: 'autoUpdate',
-        injectRegister: 'auto',
+        injectRegister: 'script-defer',
         includeAssets: [
-          'favicon.png',
-          'favicon-48.png',
+          'favicon.svg',
+          'icon-32.png',
           'robots.txt',
           'sitemap.xml',
           'llms.txt',
-          'icons/apple-touch-icon.png',
+          'icon-180.png',
         ],
         manifest: {
           name: 'AubeSonore',
@@ -54,20 +54,20 @@ export default defineConfig(({ mode }) => {
           start_url: '/',
           icons: [
             {
-              src: '/icons/icon-192x192.png',
+              src: '/icon-192.png',
               sizes: '192x192',
               type: 'image/png',
             },
             {
-              src: '/icons/icon-512x512.png',
+              src: '/icon-512.png',
               sizes: '512x512',
               type: 'image/png',
             },
             {
-              src: '/icons/icon-512x512.png',
+              src: '/icon-maskable-512.png',
               sizes: '512x512',
               type: 'image/png',
-              purpose: 'any maskable',
+              purpose: 'maskable',
             },
           ],
         },
