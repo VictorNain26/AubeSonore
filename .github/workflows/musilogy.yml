@@ -1,0 +1,34 @@
+name: musilogy
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+# musilogy vit dans musilogy/. Pas de filtre de chemin : ce job est un contrôle requis sur
+# master, et un workflow sauté par un filtre ne le rapporte jamais.
+defaults:
+  run:
+    working-directory: musilogy
+
+jobs:
+  checks:
+    name: musilogy (ruff, mypy, pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          version: "0.11.19"
+          python-version: "3.12"
+          working-directory: musilogy
+      - run: uv sync --locked
+      - run: uv run ruff check
+      - run: uv run ruff format --check
+      - run: uv run mypy
+      # La suite lente (pytest -m slow) rejoue le pipeline sur le dump MusicBrainz réel : elle exige
+      # les extractions de data/work/, non versionnées, et ne tourne donc pas ici. addopts l'exclut.
+      - run: uv run pytest

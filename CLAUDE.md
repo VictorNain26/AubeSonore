@@ -3,26 +3,27 @@
 ## What this repository is
 
 One self-hosted webradio, AubeSonore, in a single repository cloned at `~/radio`
-(GitHub `VictorNain26/AubeSonore`, branch `master`). Three pieces run side by side on one machine:
+(GitHub `VictorNain26/AubeSonore`, branch `master`). Four pieces live side by side on one machine:
 
 | Directory    | Role                                        | Stack                          |
 | ------------ | ------------------------------------------- | ------------------------------ |
 | `site/`      | Web app (listener site + API)               | pnpm, Turbo, Bun, React        |
 | `pipeline/`  | Taste model, discovery, acquisition, antenne | Python 3.12, uv                |
 | `azuracast/` | Broadcast server runtime                    | Docker — **config only** here  |
+| `musilogy/`  | Artist lineage tables from MusicBrainz dumps | Python 3.12, uv, DuckDB        |
 
-Until 2026-10-01 they were three repositories; the standalone `radio-pipeline` repository is
-archived, its history kept under `pipeline/` (git subtree).
+Until 2026-10-01 they were separate repositories; the standalone `radio-pipeline` and `musilogy`
+repositories are archived, their history kept under `pipeline/` and `musilogy/` (git subtree).
 
 **Each piece has its own `CLAUDE.md`, and it is the authority for that piece**: commands,
 conventions, invariants. Read it before touching anything there. This file covers only what spans
-all three. `azuracast/RUNBOOK.md` covers rebuilding the whole system from nothing.
+them all. `azuracast/RUNBOOK.md` covers rebuilding the whole system from nothing.
 
 ## Working in the repository
 
 - One branch, one PR per change; a PR stays inside one piece unless the change truly spans them.
-- **CI**: `.github/workflows/site.yml` and `pipeline.yml` run on every PR, with no path filter:
-  their jobs are required checks on `master`.
+- **CI**: `.github/workflows/site.yml`, `pipeline.yml` and `musilogy.yml` run on every PR, with
+  no path filter: their jobs are required checks on `master`.
 - **Dependencies**: Renovate (`renovate.json`) covers pnpm, uv, GitHub Actions and Docker images.
 - **Hooks**: husky lives in `site/.husky` (`prepare` runs `cd .. && husky site/.husky`). The
   commit message is checked by commitlint (Conventional Commits, English) for every commit,
@@ -32,7 +33,7 @@ all three. `azuracast/RUNBOOK.md` covers rebuilding the whole system from nothin
   radio's weekly pass (`radio-weekly.service`) runs, since that pass loads `pipeline/` code.
 - Develop in a git worktree, never in `~/radio` itself: it is the production checkout.
 
-## How the three fit together
+## How the pieces fit together
 
 AzuraCast is the hub. The other two never talk to each other.
 
@@ -53,6 +54,10 @@ AzuraCast is the hub. The other two never talk to each other.
   read-only consumer of the station and must stay that way.
 - Any change that seems to need pipeline↔app coupling is a design smell — route it through
   AzuraCast, or reconsider.
+- musilogy is **offline reference data**, outside the radio: it turns MusicBrainz dumps into
+  Parquet tables (artists, links, lineage) on demand. Nothing consumes them yet; the site's
+  artist page is the planned reader, through an import into its database — never by calling
+  musilogy at runtime.
 
 ## Documentation drifts faster than the system
 
@@ -71,11 +76,11 @@ When this file disagrees with the running system, the system is right — correc
 ## Cross-cutting
 
 - **Shared machine.** Many unrelated services run here. Before binding a port, scheduling heavy
-  work, or moving data, check what else is running — the broadcast container is CPU-weighted to
+  work (a full `musilogy run` reads ~3 GB of dumps), or moving data, check what else is running — the broadcast container is CPU-weighted to
   win against batch workloads for a reason.
 - **Scheduling is systemd *user* timers**, not cron, and depends on lingering being enabled.
   Deploying AubeSonore is merging to `master`: `aubesonore-deploy.timer` promotes it.
-- **Secrets are untracked `.env` files in all three pieces** (plus `azuracast/azuracast.env`), and the broadcast runtime also
+- **Secrets are untracked `.env` files in `site/`, `pipeline/` and `azuracast/`** (plus `azuracast/azuracast.env`), and the broadcast runtime also
   holds listener access logs. Keep all of it out of diffs, pastes, and issue reports.
 - **Language**: commits are English Conventional Commits everywhere (commitlint). Documentation
-  follows the piece: the pipeline and azuracast document in French, the site in English.
+  follows the piece: the pipeline, azuracast and musilogy document in French, the site in English.
