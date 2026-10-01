@@ -4,6 +4,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { ModalErrorFallback } from '../design/organisms/ErrorFallback';
+import { Menu } from '../design/molecules/Menu';
 import * as m from '@/paraglide/messages.js';
 
 const LikedTracksModal = lazy(() =>
@@ -16,9 +17,17 @@ const NAV_LINK =
 const OUTLINE_PILL =
   'text-ui border-accent ease-out-quart hover:bg-accent hover:text-on-accent focus-visible:outline-accent inline-flex min-h-11 items-center rounded-full border px-4.5 transition-[color,background-color,scale] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-97';
 
+const AVATAR =
+  'bg-accent text-on-accent ease-out-quart focus-visible:outline-accent flex size-11 items-center justify-center rounded-full font-semibold transition-[scale] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95';
+
 export function SiteHeader() {
-  const { isAuthenticated, isLoading } = useAuthStore(
-    useShallow((s) => ({ isAuthenticated: s.isAuthenticated, isLoading: s.isLoading }))
+  const { isAuthenticated, isLoading, user, signOut } = useAuthStore(
+    useShallow((s) => ({
+      isAuthenticated: s.isAuthenticated,
+      isLoading: s.isLoading,
+      user: s.user,
+      signOut: s.signOut,
+    }))
   );
   const openAuthModal = useAuthModalStore((s) => s.open);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -40,10 +49,28 @@ export function SiteHeader() {
         </a>
         {isLoading ? (
           <span aria-hidden="true" className="bg-surface-raised h-11 w-32 rounded-full" />
-        ) : isAuthenticated ? (
-          <button type="button" onClick={() => setIsLibraryOpen(true)} className={OUTLINE_PILL}>
-            {m.nav_my_tracks()}
-          </button>
+        ) : isAuthenticated && user ? (
+          <span className="flex items-center gap-3">
+            <button type="button" onClick={() => setIsLibraryOpen(true)} className={OUTLINE_PILL}>
+              {m.nav_my_tracks()}
+            </button>
+            <Menu
+              trigger={
+                <button type="button" aria-label={m.account_label()} className={AVATAR}>
+                  {(user.name?.charAt(0) || user.email.charAt(0)).toUpperCase()}
+                </button>
+              }
+              header={
+                <span className="flex flex-col py-1">
+                  <span className="text-ui font-semibold">
+                    {user.name || m.header_user_fallback()}
+                  </span>
+                  <span className="text-caption text-text-muted">{user.email}</span>
+                </span>
+              }
+              items={[{ label: m.library_sign_out(), onSelect: () => void signOut() }]}
+            />
+          </span>
         ) : (
           <button type="button" onClick={() => openAuthModal()} className={OUTLINE_PILL}>
             {m.nav_sign_in()}

@@ -19,7 +19,7 @@ export interface MenuProps {
 }
 
 const itemClassName =
-  'flex h-11 cursor-default items-center px-4 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-surface';
+  'flex h-11 items-center px-4 outline-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 data-[highlighted]:bg-surface';
 
 /**
  * Menu contextuel basé sur Base UI. Bascule automatiquement en groupe radio dès qu'une

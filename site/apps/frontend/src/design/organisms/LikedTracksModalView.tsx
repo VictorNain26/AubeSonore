@@ -31,8 +31,6 @@ interface PlatformOption {
 export interface LikedTracksModalViewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  user: { name: string | null; email: string };
-  onSignOut: () => void;
   alert: { state: AlertState | null; isBusy: boolean; onToggle: () => void };
   totalCount: number;
   isLoading: boolean;
@@ -98,15 +96,13 @@ function AlertSwitch({ alert }: Pick<LikedTracksModalViewProps, 'alert'>) {
 }
 
 /**
- * "Ma bibliothèque": the listener's account, the alert switch, the preferred
+ * "Mes titres": the alert switch, the preferred
  * platform, and every kept track with a link to open it there. The container
  * owns the stores, link resolution, the removal timer and the push subscription.
  */
 export function LikedTracksModalView({
   open,
   onOpenChange,
-  user,
-  onSignOut,
   alert,
   totalCount,
   isLoading,
@@ -120,7 +116,6 @@ export function LikedTracksModalView({
   onUndoTrack,
 }: LikedTracksModalViewProps) {
   const platformName = platforms.find((p) => p.id === selectedPlatformId)?.name ?? '';
-  const initial = (user.name?.charAt(0) || user.email.charAt(0)).toUpperCase();
 
   return (
     <Modal
@@ -134,16 +129,6 @@ export function LikedTracksModalView({
               totalCount > 1 ? m.library_count_other({ count: totalCount }) : m.library_count_one(),
           }
         : {})}
-      header={
-        <span className="flex items-center gap-3">
-          <span className="bg-accent text-on-accent flex size-9 shrink-0 items-center justify-center rounded-full font-semibold">
-            {initial}
-          </span>
-          <span className="text-ui truncate font-semibold">
-            {user.name || m.header_user_fallback()}
-          </span>
-        </span>
-      }
     >
       <AlertSwitch alert={alert} />
 
@@ -288,13 +273,6 @@ export function LikedTracksModalView({
           {m.library_show_more({ count: hiddenCount })}
         </button>
       ) : null}
-      <button
-        type="button"
-        onClick={onSignOut}
-        className="text-ui text-text-muted ease-out-quart hover:text-text focus-visible:outline-accent mx-6 mt-auto mb-6 inline-flex min-h-11 items-center self-start rounded-sm pt-6 underline decoration-1 underline-offset-4 focus-visible:outline-2 md:mx-8"
-      >
-        {m.library_sign_out()}
-      </button>
     </Modal>
   );
 }
