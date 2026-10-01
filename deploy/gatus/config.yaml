@@ -19,6 +19,16 @@ alerting:
       failure-threshold: 3
       success-threshold: 2
       send-on-resolved: true
+  # Second canal : CallMeBot répond 210 quand son quota est épuisé, et Gatus ne compte comme échec
+  # d'envoi qu'un statut > 399 (alerting/provider/custom/custom.go:94 au tag v5.37.0) : l'alerte
+  # WhatsApp peut se perdre en silence. Le sujet ntfy.sh est aléatoire, car il fait office de secret.
+  ntfy:
+    topic: "${NTFY_TOPIC}"
+    priority: 4
+    default-alert:
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
 
 endpoints:
   - name: antenne
@@ -31,6 +41,8 @@ endpoints:
     alerts:
       - type: custom
         minimum-reminder-interval: 24h
+      - type: ntfy
+        minimum-reminder-interval: 24h
 
   # Le flux ne finit jamais : aucune condition ne lit le corps, Gatus ne le lit donc pas.
   - name: flux-public
@@ -41,6 +53,8 @@ endpoints:
       - "[STATUS] == 200"
     alerts:
       - type: custom
+        minimum-reminder-interval: 24h
+      - type: ntfy
         minimum-reminder-interval: 24h
 
   # Sans jeton Access, la page répond 403 : elle tourne. Le tunnel est couvert par flux-public.
@@ -53,6 +67,24 @@ endpoints:
     alerts:
       - type: custom
         minimum-reminder-interval: 24h
+      - type: ntfy
+        minimum-reminder-interval: 24h
+
+  # La page publique doit renvoyer vers la connexion Access : sinon la règle Access ou la route du
+  # tunnel a sauté. Redirection non suivie (README Gatus v5.37.0, client.ignore-redirect).
+  - name: page-de-vote-publique
+    group: radio
+    url: "https://votes.aubesonore.fr/"
+    interval: 5m
+    client:
+      ignore-redirect: true
+    conditions:
+      - "[STATUS] == 302"
+    alerts:
+      - type: custom
+        minimum-reminder-interval: 24h
+      - type: ntfy
+        minimum-reminder-interval: 24h
 
 external-endpoints:
   - name: passe-hebdo
@@ -62,5 +94,8 @@ external-endpoints:
       interval: 192h
     alerts:
       - type: custom
+        failure-threshold: 1
+        minimum-reminder-interval: 24h
+      - type: ntfy
         failure-threshold: 1
         minimum-reminder-interval: 24h

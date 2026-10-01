@@ -32,3 +32,14 @@ def last_stages(conn: sqlite3.Connection) -> list[tuple[str, str, bool, dict[str
         """
     ).fetchall()
     return [(str(r[0]), str(r[1]), bool(r[2]), json.loads(r[3])) for r in rows]
+
+
+def invocation_stages(
+    conn: sqlite3.Connection, invocation: str
+) -> list[tuple[str, bool, dict[str, object]]]:
+    """Rapports des étapes d'une passe systemd, dans l'ordre : (étape, réussie, compteurs)."""
+    rows = conn.execute(
+        "SELECT stage, ok, counts FROM stage_reports WHERE invocation = ? ORDER BY report_id",
+        (invocation,),
+    ).fetchall()
+    return [(str(r[0]), bool(r[1]), json.loads(r[2])) for r in rows]
