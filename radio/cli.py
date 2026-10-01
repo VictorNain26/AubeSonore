@@ -1,4 +1,4 @@
-"""Commandes AubeSonore : goût et découverte."""
+"""Commandes AubeSonore : goût, découverte, acquisition, antenne et votes."""
 
 import logging
 import sqlite3
@@ -116,7 +116,7 @@ def _now() -> str:
 
 @app.callback()
 def main() -> None:
-    """AubeSonore — goût et découverte."""
+    """AubeSonore — goût, découverte, acquisition, antenne et votes."""
     logging.basicConfig(
         level=logging.INFO, stream=sys.stderr, format="%(asctime)s %(levelname)s %(message)s"
     )
@@ -524,7 +524,7 @@ def report() -> None:
 
 @app.command("votes-select")
 def votes_select() -> None:
-    """Tire la sélection de la semaine : examen au hasard parmi les retenus, leçon par
+    """Tire la sélection de la semaine : examen au hasard sur toute la fournée, leçon par
     incertitude."""
     settings = _settings()
     v = _editorial(settings).votes

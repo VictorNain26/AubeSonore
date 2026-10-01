@@ -1,7 +1,7 @@
 [project]
 name = "aubesonore-radio"
 version = "3.0.0"
-description = "AubeSonore — goût et découverte"
+description = "AubeSonore — goût, découverte, acquisition, antenne et votes"
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "typer>=0.27",
