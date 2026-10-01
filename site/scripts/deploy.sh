@@ -44,16 +44,18 @@ fi
 
 echo "deploying ${current:0:8} -> ${target:0:8}"
 
-# drizzle push is manual and can drop columns, so a schema change must not ride
-# in on an unattended deploy: the new code would boot against the old tables.
-# HEAD only moves once the gate opens, so diffing HEAD against the target would
-# block forever: the operator records the schema.ts blob they pushed instead.
+# The backend applies new drizzle/*.sql migrations at boot (src/db/migrate.ts).
+# A schema.ts change that ships without one would boot the new code against the
+# old tables, so it waits for the operator. HEAD only moves once the gate opens,
+# so diffing HEAD against the target would block forever: the operator records
+# the schema.ts blob they applied instead.
 schema=site/apps/backend/src/db/schema.ts
 running_schema=$(git rev-parse -q --verify "HEAD:$schema" || echo absent)
 target_schema=$(git rev-parse -q --verify "$target:$schema" || echo absent)
 applied_schema=$(git config --get aubesonore.appliedSchema || true)
-if [ "$target_schema" != "$running_schema" ] && [ "$target_schema" != "$applied_schema" ]; then
-  echo "schema.ts changed — apply 'bun db:push' by hand from ${target:0:8}, then:"
+new_migrations=$(git diff --name-only --diff-filter=A "$current" "$target" -- 'site/apps/backend/drizzle/*.sql')
+if [ "$target_schema" != "$running_schema" ] && [ "$target_schema" != "$applied_schema" ] && [ -z "$new_migrations" ]; then
+  echo "schema.ts changed without a new migration — apply it by hand from ${target:0:8}, then:"
   echo "  git -C $REPO_DIR config aubesonore.appliedSchema $target_schema"
   echo "  systemctl --user start aubesonore-deploy"
   exit 1
