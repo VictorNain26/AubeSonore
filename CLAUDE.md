@@ -14,9 +14,9 @@ uv sync                                  # dépendances (.venv)
 .venv/bin/pytest -q -W error             # suite complète, ~12 s, sans réseau
 .venv/bin/ruff check radio tests_radio && .venv/bin/ruff format --check radio tests_radio
 .venv/bin/mypy                           # strict
-.venv/bin/radio --help                   # library-sync, discover, negatives-sync, signals,
-                                         # train, acquire, antenne, check, report, votes-select,
-                                         # votes-serve, votes-remind
+.venv/bin/radio --help                   # library-sync, discover, nouveautes, negatives-sync,
+                                         # signals, train, votes-select, acquire, antenne,
+                                         # check, report, backup, votes-serve, votes-remind
 ```
 
 ## Invariants

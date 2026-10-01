@@ -52,12 +52,42 @@ suivante reprend.
 |---|---|---|---|
 | 1 Bibliothèque | Lire Plex, rapprocher chaque titre de Deezer (strict : artiste, titre, durée ±3 s) | python-plexapi, API Deezer | fait |
 | 2 Découverte | 15 graines par semaine, tirées selon l'écoute ; voisins confirmés par Deezer `related` ET Last.fm `getSimilar` (`recherches/2026-09-24-sources-decouverte.md`) ; 10 titres par voisin | API Deezer, Last.fm | fait |
+| 2b Nouveautés | Titres récents choisis par des humains, ajoutés à la fournée (§3.1) | API Hype Machine v2, API Deezer | en service |
 | 3 Empreinte | Empreinte Discogs-EffNet de l'extrait Deezer de 30 s | essentia-tensorflow, modèle MTG épinglé | fait |
 | 4 Goût | Régression logistique sur l'empreinte ; chaque fournée est classée et son tiers le mieux noté est retenu | scikit-learn | fait |
 | 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | en service |
 | 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | en service |
 | 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | en service |
 | 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | — | plus tard (§7.3) |
+
+### 3.1 Sources et nouveautés
+
+La qualité des sources fait celle de l'antenne : le modèle trie, il n'invente rien. Deux
+familles de sources alimentent chaque fournée, et chaque candidat garde la sienne
+(`candidates.source`, avec le blog ou le genre dans `detail`) :
+
+- **Voisins** (découverte) : voisins confirmés de tes artistes, leurs titres les plus écoutés.
+- **Nouveautés** : des titres récents choisis par des humains, pour un mélange de découverte et
+  de nouveauté (décision de Victor, 2026-10-01).
+  - **Hype Machine**, classement « lastweek » des blogs (`hypem_pages`), retrouvé sur Deezer
+    par la règle stricte de la bibliothèque. L'API v2 n'a pas de documentation publique et
+    `api.hypem.com/robots.txt` refuse les robots : usage choisi en connaissance de cause, à
+    quelques requêtes par semaine, User-Agent identifié ; une réponse hors format est une
+    source sautée et nommée, jamais une liste vide.
+  - **Sélections éditoriales Deezer** (`/editorial/{genre}/selection`), genres
+    `deezer_editorial` (Alternative et Electro au départ ; Rap, Pop et Chanson française
+    écartés, trop grand public), les `tracks_per_album` titres les plus écoutés de chaque album.
+    Deezer exclut la musique générée par IA de ses playlists éditoriales (page « AI-generated
+    music labelling », consultée le 2026-10-01).
+  - Écartés : les « dernières sorties » Deezer d'un voisin (compilations d'archives, et place
+    idéale d'un faux album IA, que l'API ne signale pas) ; `/editorial/{genre}/releases`
+    (vide) ; les flux RSS de Hype Machine (réservés aux abonnés).
+  - Un titre déjà dans la bibliothèque, même sous une autre version, n'est pas une nouveauté.
+
+**Jugement des sources.** L'examen tire uniformément dans la fournée : il juge donc la source
+elle-même, avant le modèle. `radio report` donne le taux de « oui » à l'examen par source et
+par blog ou genre, avec son intervalle de Wilson. Une source qui reste nettement sous les
+autres après une vingtaine de votes est retirée ; une autre peut être essayée à sa place.
 
 ## 4. Le goût (étapes 1 à 4)
 
@@ -290,7 +320,7 @@ toutes les 24 h et un message de retour à la normale, sur deux canaux :
 
 | Quand | Unité systemd utilisateur | Ce qui se passe |
 |---|---|---|
-| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train`, `votes-select`, `acquire`, `antenne`, `check` ; bornée à 12 h, battement de cœur Gatus |
+| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `nouveautes`, `signals`, `train`, `votes-select`, `acquire`, `antenne`, `check` ; bornée à 12 h, battement de cœur Gatus |
 | chaque jour 04:30 | `radio-backup` | copie de `data/radio.db` (API de sauvegarde SQLite, `integrity_check` vérifié) et de `data/models/` dans `RADIO_BACKUP_DIR` (`/media/plex/.backups/radio`, autre disque physique), 14 jours gardés ; battement de cœur Gatus |
 | dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote |
 | en continu | `radio-votes` | page de vote, `127.0.0.1:8040`, publiée sur `votes.aubesonore.fr` |

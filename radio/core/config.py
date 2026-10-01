@@ -68,6 +68,15 @@ class DiscoverConfig(BaseModel):
     lastfm_similar_limit: int = Field(default=100, ge=1, le=250)
 
 
+class FreshConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    hypem_pages: int = Field(default=2, ge=0, le=5)
+    deezer_editorial: dict[str, int] = Field(
+        default_factory=lambda: {"alternative": 85, "electro": 106}
+    )
+    tracks_per_album: int = Field(default=3, ge=1, le=20)
+
+
 class ModelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     c: float = Field(default=0.1, gt=0)
@@ -112,6 +121,7 @@ class Editorial(BaseModel):
     model_config = ConfigDict(extra="forbid")
     library: LibraryConfig = LibraryConfig()
     discover: DiscoverConfig = DiscoverConfig()
+    nouveautes: FreshConfig = FreshConfig()
     model: ModelConfig = ModelConfig()
     acquisition: AcquisitionConfig = AcquisitionConfig()
     antenne: AntenneConfig = AntenneConfig()

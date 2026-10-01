@@ -55,6 +55,35 @@ def test_migration_9_marks_published_discoveries(
     ]
 
 
+def test_migration_10_gives_existing_candidates_the_neighbour_source(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old = tmp_path / "migrations"
+    old.mkdir()
+    for script in sorted(MIGRATIONS.glob("00[1-9]_*.sql")):
+        (old / script.name).write_text(script.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr("radio.core.db.MIGRATIONS", old)
+    conn = connect(tmp_path / "radio.db")
+    conn.execute("INSERT INTO artists VALUES (1, 'A')")
+    conn.execute("INSERT INTO tracks VALUES (1, 1, 'T', 'candidate', 'k1', 'd')")
+    conn.execute("INSERT INTO discover_runs VALUES (1, 'd', 'd', 'done')")
+    conn.execute("INSERT INTO candidates VALUES (1, 1, 83, 1)")
+    conn.commit()
+    conn.close()
+    monkeypatch.setattr("radio.core.db.MIGRATIONS", MIGRATIONS)
+
+    conn = connect(tmp_path / "radio.db")
+    row = conn.execute(
+        "SELECT run_id, source, seed_artist_id, neighbour_artist_id, detail FROM candidates"
+    )
+    assert [tuple(r) for r in row] == [(1, "voisin", 83, 1, None)]
+    conn.execute("INSERT INTO tracks VALUES (2, 1, 'U', 'candidate', 'k2', 'd')")
+    conn.execute("INSERT INTO tracks VALUES (3, 1, 'V', 'candidate', 'k3', 'd')")
+    conn.execute("INSERT INTO candidates VALUES (2, 1, 'hypem', NULL, NULL, 'blog')")
+    with pytest.raises(sqlite3.IntegrityError, match="CHECK"):  # une nouveauté n'a pas de graine
+        conn.execute("INSERT INTO candidates VALUES (2, 1, 'hypem', 83, 1, 'blog')")
+
+
 def test_failed_migration_leaves_nothing_behind(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

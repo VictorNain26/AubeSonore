@@ -99,6 +99,18 @@ class DeezerClient:
         body = self._get(f"/artist/{artist_id}/top", {"limit": limit})
         return [_track(d) for d in body.get("data") or []]
 
+    def editorial_selection(self, genre_id: int) -> list[int]:
+        """Les albums choisis par les éditeurs Deezer pour un genre."""
+        body = self._get(f"/editorial/{genre_id}/selection", {})
+        try:
+            return [int(a["id"]) for a in body.get("data") or []]
+        except (KeyError, TypeError, ValueError):
+            raise DeezerError("malformed selection") from None
+
+    def album_tracks(self, album_id: int) -> list[DeezerTrack]:
+        body = self._get(f"/album/{album_id}/tracks", {"limit": 100})
+        return [_track(d) for d in body.get("data") or []]
+
     def track(self, track_id: int) -> tuple[DeezerTrack, str | None] | None:
         """Le titre et une URL d'extrait fraîche. L'URL est signée et expire : ne jamais la
         stocker, la journaliser ni la mettre dans un message."""

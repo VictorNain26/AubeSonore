@@ -26,6 +26,7 @@ from radio.core.backup import BackupError, backup
 from radio.core.config import Editorial, Settings, load_editorial
 from radio.core.db import connect
 from radio.core.report import invocation_stages, last_stages, record_stage
+from radio.discover.fresh import NoBatchError, fresh_pass
 from radio.discover.negatives import import_negatives, load_negatives
 from radio.discover.run import NoLibraryArtistsError, discover_pass
 from radio.library.artists import register_library
@@ -47,12 +48,13 @@ from radio.signals.measure import measure_tracks
 from radio.signals.table import load_signals
 from radio.sources.azuracast import AzuracastClient, AzuracastUnavailable
 from radio.sources.deezer import DeezerClient, DeezerUnavailable
+from radio.sources.hypem import HypemClient
 from radio.sources.lastfm import LastfmClient, LastfmUnavailable
 from radio.sources.plex import LibraryGuardError, PlexSource
 from radio.votes.access import AccessVerifier
 from radio.votes.app import create_app
 from radio.votes.select import NoScoresError, NoServingModelError, PendingBallotsError, select_batch
-from radio.votes.status import Status, load_status
+from radio.votes.status import Status, load_status, yes_by_source
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -281,6 +283,54 @@ def discover() -> None:
             f"  {_n(rep.n_dropped)} graines de la passe reprise ont quitté la bibliothèque"
         )
     _echo(lines + [f"  sauté : {s}" for s in rep.skipped])
+
+
+@app.command()
+@_stage("nouveautes")
+def nouveautes() -> None:
+    """Ajoute à la dernière fournée des titres récents choisis par des humains (Hype Machine,
+    sélections éditoriales Deezer), chacun avec sa source."""
+    settings = _settings()
+    editorial = _editorial(settings)
+    with _db(settings) as conn:
+        try:
+            rep = fresh_pass(
+                conn,
+                DeezerClient(),
+                HypemClient(),
+                editorial.nouveautes,
+                editorial.library.duration_tolerance_s,
+                _now(),
+            )
+        except NoBatchError:
+            _fail("Aucune fournée de découverte : lancer d'abord radio discover", 1)
+        except DeezerUnavailable as e:
+            _fail(_unavailable(e), 1)
+        _record(
+            conn,
+            "nouveautes",
+            not rep.skipped,
+            {
+                "vus": dict(rep.seen),
+                "ajoutés": dict(rep.added),
+                "non trouvés sur Deezer": rep.n_unmatched,
+                "déjà dans la bibliothèque": rep.n_known,
+                "sources sautées": rep.skipped,
+            },
+        )
+    _echo(
+        [
+            f"Nouveautés (fournée n°{rep.run_id}) : "
+            + ", ".join(
+                f"{src} {_n(rep.added[src])} ajoutés sur {_n(n)} vus" for src, n in rep.seen.items()
+            ),
+            f"  non trouvés sur Deezer : {_n(rep.n_unmatched)}, déjà dans la bibliothèque : "
+            f"{_n(rep.n_known)}",
+            *(f"  source sautée : {s}" for s in rep.skipped),
+        ]
+    )
+    if rep.skipped:
+        _fail("Une source de nouveautés est en panne : voir ci-dessus", 1)
 
 
 @app.command("negatives-sync")
@@ -595,7 +645,16 @@ def _stage_lines(stages: list[tuple[str, str, bool, dict[str, object]]]) -> list
 
 
 # Étapes de deploy/systemd/radio-weekly.service : chacune doit avoir laissé sa ligne de rapport.
-PASS_STAGES = ("library-sync", "discover", "signals", "train", "votes-select", "acquire", "antenne")
+PASS_STAGES = (
+    "library-sync",
+    "discover",
+    "nouveautes",
+    "signals",
+    "train",
+    "votes-select",
+    "acquire",
+    "antenne",
+)
 
 
 @app.command()
@@ -647,10 +706,23 @@ def report() -> None:
     editorial = _editorial(settings)
     with _db(settings) as conn:
         stages = last_stages(conn)
+        sources = yes_by_source(conn)
     status = _status_lines(
         _status(settings, editorial), editorial.votes.quiet_days, bool(settings.votes_url)
     )
-    _echo(["Dernières étapes :", *_stage_lines(stages), *status])
+    by_source = [
+        f"  {key} : {_rate(r.rate)} [{_rate(r.low)} - {_rate(r.high)}] sur {_n(r.n)}"
+        for key, r in sources
+    ]
+    _echo(
+        [
+            "Dernières étapes :",
+            *_stage_lines(stages),
+            *status,
+            "Taux de oui à l'examen par source :",
+            *(by_source or ["  aucun vote d'examen sur un candidat"]),
+        ]
+    )
 
 
 @app.command("votes-select")

@@ -211,3 +211,14 @@ def test_preview_errors_never_carry_the_signed_url(caplog: pytest.LogCaptureFixt
         client().download(PREVIEW)
     for text in (str(definitive.value), str(transient.value), caplog.text):
         assert "SIGNED-SECRET" not in text
+
+
+@responses.activate
+def test_editorial_selection_and_album_tracks() -> None:
+    responses.get(API + "/editorial/85/selection", json={"data": [{"id": 7}, {"id": 8}]})
+    responses.get(API + "/album/7/tracks", json={"data": [item()]})
+    assert client().editorial_selection(85) == [7, 8]
+    assert [t.id for t in client().album_tracks(7)] == [3135556]
+    responses.replace(responses.GET, API + "/editorial/85/selection", json={"data": [{"x": 1}]})
+    with pytest.raises(DeezerError):
+        client().editorial_selection(85)
