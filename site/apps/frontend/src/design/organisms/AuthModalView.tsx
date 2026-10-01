@@ -280,6 +280,21 @@ export function AuthModalView({
                     : m.auth_submit_reset()}
           </Button>
 
+          {mode === 'signup' && (
+            <p className="text-caption text-text-muted m-0">
+              {m.auth_privacy_notice()}{' '}
+              <a
+                href={m.legal_href()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-text underline decoration-1 underline-offset-4 hover:decoration-2"
+              >
+                {m.auth_privacy_link()}
+              </a>
+              .
+            </p>
+          )}
+
           {mode !== 'forgot' && mode !== 'reset-password' && (
             <p className="text-ui text-text-muted m-0 font-normal">
               {mode === 'signin' ? m.auth_no_account() : m.auth_have_account()}{' '}

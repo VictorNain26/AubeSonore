@@ -30,13 +30,11 @@ export function Hero() {
       <SiteHeader />
 
       <div className="relative z-10 grid gap-10 px-6 pt-12 md:grid-cols-[minmax(0,1fr)_18rem] md:gap-16 md:px-10 md:pt-20">
-        <div className="motion-safe:animate-rise flex flex-col gap-4 md:gap-5.5">
+        <div className="flex flex-col gap-4 md:gap-5.5">
           <h1 className="text-hero max-w-hero m-0">{m.hero_title()}</h1>
           <p className="text-intro text-text-muted m-0">{m.hero_tagline()}</p>
         </div>
-        <div className="motion-safe:animate-rise-late">
-          <NowPlaying />
-        </div>
+        <NowPlaying />
       </div>
 
       <Horizon />

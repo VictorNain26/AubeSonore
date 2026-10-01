@@ -24,7 +24,7 @@ const twMerge = extendTailwindMerge({
       ],
       'font-weight': ['display', 'heading'],
       shadow: ['cover', 'lift', 'bar'],
-      animate: ['breathe', 'pulse-now', 'rise', 'rise-late'],
+      animate: ['breathe', 'pulse-now'],
     },
   },
 });

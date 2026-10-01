@@ -47,12 +47,16 @@ export function NowPlayingView({
 
   if (!track) {
     return (
-      <div className="flex items-center gap-4 md:flex-col md:items-start" aria-busy="true">
-        <div className="bg-surface-raised size-24 shrink-0 rounded-sm md:size-72" />
-        <div className="flex w-full flex-col gap-2">
-          <div className="bg-surface-raised h-3 w-32 rounded-sm" />
+      <div
+        className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-4 md:flex md:flex-col md:items-start md:gap-3.5"
+        aria-busy="true"
+      >
+        <div className="bg-surface-raised aspect-square w-24 rounded-sm md:w-72" />
+        <div className="flex w-full flex-col gap-1">
+          <div className="bg-surface-raised h-4 w-32 rounded-sm" />
           <div className="bg-surface-raised h-6 w-48 rounded-sm" />
-          <div className="bg-surface-raised h-4 w-24 rounded-sm" />
+          <div className="bg-surface-raised h-5 w-24 rounded-sm" />
+          <div className="mt-1.5 h-11" />
         </div>
       </div>
     );
