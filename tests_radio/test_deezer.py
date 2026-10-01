@@ -6,6 +6,7 @@ import responses
 from pyrate_limiter import Duration, Limiter, Rate
 
 from radio.sources.deezer import (
+    DeezerAlbum,
     DeezerArtist,
     DeezerClient,
     DeezerError,
@@ -166,16 +167,27 @@ def test_gone_track_is_none() -> None:
 
 
 @responses.activate
-def test_download_preview() -> None:
+def test_album_of_a_track() -> None:
+    album = {"id": 1, "title": "Discovery", "cover_xl": "https://cdn/cover.jpg"}
+    responses.get(API + "/track/1", json=item(album=album))
+    responses.get(API + "/track/2", json=item(album={"id": 2, "title": "Sans image"}))
+    responses.get(API + "/track/3", json={"error": {"type": "DataException", "code": 800}})
+    assert client().album(1) == DeezerAlbum("Discovery", "https://cdn/cover.jpg")
+    assert client().album(2) == DeezerAlbum("Sans image", None)
+    assert client().album(3) is None
+
+
+@responses.activate
+def test_download() -> None:
     responses.get(PREVIEW, body=b"ID3data")
-    assert client().download_preview(PREVIEW) == b"ID3data"
+    assert client().download(PREVIEW) == b"ID3data"
 
 
 @responses.activate
 def test_preview_server_error_is_retried() -> None:
     responses.get(PREVIEW, status=503)
     with pytest.raises(DeezerUnavailable):
-        client().download_preview(PREVIEW)
+        client().download(PREVIEW)
     assert len(responses.calls) == 3
 
 
@@ -184,9 +196,9 @@ def test_preview_errors_never_carry_the_signed_url(caplog: pytest.LogCaptureFixt
     caplog.set_level(logging.DEBUG)
     responses.get(PREVIEW, status=404)
     with pytest.raises(DeezerError) as definitive:
-        client().download_preview(PREVIEW)
+        client().download(PREVIEW)
     responses.replace(responses.GET, PREVIEW, body=requests.ConnectionError(PREVIEW))
     with pytest.raises(DeezerUnavailable) as transient:
-        client().download_preview(PREVIEW)
+        client().download(PREVIEW)
     for text in (str(definitive.value), str(transient.value), caplog.text):
         assert "SIGNED-SECRET" not in text

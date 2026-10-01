@@ -73,7 +73,7 @@ def measure_tracks(
                         status = "no_preview"
                     else:
                         try:
-                            vec = embedder.embed(deezer.download_preview(url))
+                            vec = embedder.embed(deezer.download(url))
                         except DeezerError:
                             vec = None
                         status = "ok" if vec is not None else "audio_failed"

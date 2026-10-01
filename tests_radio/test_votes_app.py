@@ -29,7 +29,7 @@ class FakeDeezer:
         t = DeezerTrack(track_id, "T", "T", 30, 1, 1, "A", self.preview is not None)
         return t, self.preview
 
-    def download_preview(self, url: str) -> bytes:
+    def download(self, url: str) -> bytes:
         self.urls.append(url)
         return b"ID3-mp3"
 

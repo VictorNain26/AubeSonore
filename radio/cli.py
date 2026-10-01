@@ -359,6 +359,7 @@ def antenne() -> None:
             rep = antenne_pass(
                 conn,
                 station,
+                DeezerClient(),
                 cfg,
                 PurePosixPath(settings.plex_music_root),
                 settings.rsgain_bin,
@@ -367,6 +368,8 @@ def antenne() -> None:
             )
         except AzuracastUnavailable as e:
             _fail(f"AzuraCast indisponible ({e}) : le travail fait est gardé", 1)
+        except DeezerUnavailable as e:
+            _fail(_unavailable(e), 1)
         record_stage(
             conn,
             "antenne",

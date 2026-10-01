@@ -55,7 +55,7 @@ _CHOICES = (("oui", "Oui"), ("non", "Non"), ("passer", "Passer"))
 class PreviewSource(Protocol):
     def track(self, track_id: int) -> tuple[DeezerTrack, str | None] | None: ...
 
-    def download_preview(self, url: str) -> bytes: ...
+    def download(self, url: str) -> bytes: ...
 
 
 def _shell(body: str) -> str:
@@ -146,7 +146,7 @@ def create_app(db_path: Path, deezer: PreviewSource, verify: Callable[[str], Non
             if found is None or found[1] is None:
                 logger.warning("preview unavailable for %s (%s)", tid, "no preview")
                 raise HTTPException(404, "Extrait indisponible")
-            audio = deezer.download_preview(found[1])
+            audio = deezer.download(found[1])
         except DeezerError as e:
             logger.warning("preview unavailable for %s (%s)", tid, type(e).__name__)
             raise HTTPException(404, "Extrait indisponible") from None

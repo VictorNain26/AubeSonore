@@ -15,9 +15,11 @@ from typing import Protocol
 import numpy as np
 
 from radio.acquire.audio import ToolError, prepare, probe
+from radio.acquire.run import tags_for
 from radio.core.config import AntenneConfig
 from radio.library.weights import play_weight
 from radio.sources.azuracast import AzuracastError, Media
+from radio.sources.deezer import DeezerClient, DeezerError
 
 FOLDER = "antenne"
 
@@ -105,6 +107,7 @@ def _under(root: PurePosixPath, file: str) -> bool:
 def add_references(
     conn: sqlite3.Connection,
     station: Station,
+    deezer: DeezerClient,
     cfg: AntenneConfig,
     root: PurePosixPath,
     rsgain: Path,
@@ -142,8 +145,8 @@ def add_references(
             dest = Path(tmp) / f"{tid}.mp3"
             try:
                 p = probe(Path(file))
-                prepare(Path(file), dest, p.codec, artist, title, tid, rsgain)
-            except ToolError as e:
+                prepare(Path(file), dest, p.codec, tags_for(deezer, tid, artist, title), rsgain)
+            except (ToolError, DeezerError) as e:
                 rep.errors.append(f"repère {tid} : {e}")
                 continue
             if _upload(conn, station, tid, "repere", dest, now, rep):
@@ -192,6 +195,7 @@ def remove_excess(
 def antenne_pass(
     conn: sqlite3.Connection,
     station: Station,
+    deezer: DeezerClient,
     cfg: AntenneConfig,
     root: PurePosixPath,
     rsgain: Path,
@@ -202,7 +206,7 @@ def antenne_pass(
     stamp = now.isoformat()
     reconcile(conn, station.files(), rep)
     publish_ready(conn, station, stamp, rep)
-    add_references(conn, station, cfg, root, rsgain, rng, stamp, rep)
+    add_references(conn, station, deezer, cfg, root, rsgain, rng, stamp, rep)
     remove_excess(conn, station, cfg, now, rep)
     rep.n_total = conn.execute("SELECT COUNT(*) FROM antenne").fetchone()[0]
     return rep
