@@ -1,0 +1,76 @@
+# Réglages éditoriaux AubeSonore — validés au chargement (radio/core/config.py).
+
+[library]
+# Écart maximal de durée (secondes) entre le titre Plex et le titre Deezer rapproché.
+duration_tolerance_s = 3
+
+[discover]
+# Artistes de la bibliothèque tirés comme graines à chaque passe de découverte.
+seeds_per_run = 15
+# Une graine n'est pas retirée avant ce délai (jours) après une passe réussie.
+seed_cooldown_days = 30
+# Titres lus par voisin (Deezer artist/{id}/top), et par artiste négatif.
+tracks_per_neighbour = 10
+# Similaires demandés à Last.fm pour chaque artiste.
+lastfm_similar_limit = 100
+
+[nouveautes]
+# Titres récents choisis par des humains, ajoutés à la fournée de la semaine et jugés par le modèle.
+# Hype Machine : pages du classement « lastweek » des blogs (API v2 non documentée, cf. vision §3).
+hypem_pages = 2
+# Titres les plus écoutés retenus par album des sélections éditoriales Deezer.
+tracks_per_album = 3
+
+[nouveautes.deezer_editorial]
+# Genres Deezer (/editorial) dont la sélection d'albums est lue ; nom = libellé du rapport.
+alternative = 85
+electro = 106
+
+[model]
+# Régression logistique sur l'empreinte audio. C, poids des négatifs faibles : fixés le
+# 2026-09-30 par validation croisée groupée par artiste sur les 159 votes du banc
+# (docs/recherches/2026-09-30-modele-audio-seul.md).
+c = 0.1
+weak_weight = 0.1
+# Part de chaque fournée de candidats retenue, les mieux notés d'abord.
+keep_fraction = 0.3333
+# Nombre de derniers votes d'examen qui jugent le modèle.
+exam_window = 60
+
+[acquisition]
+# Titres retenus tentés au plus par passe, et tentatives par titre avant abandon.
+max_per_pass = 300
+max_attempts = 3
+# Débit moyen minimal d'un MP3 (kbit/s) : un V0 tourne autour de 220-260.
+min_mp3_kbps = 200
+# Part de bits Chromaprint identiques entre le fichier et l'extrait Deezer
+# (docs/recherches/2026-09-30-acquisition-publication-observabilite.md §2).
+identity_threshold = 0.70
+# Rythme des recherches Soulseek : le serveur bannit 30 min en cas de rafale.
+searches_per_time = 10
+searches_renew_s = 220
+# Sous ce taux de fichiers prêts, la passe échoue et Gatus alerte ; le taux n'est jugé qu'à partir
+# de min_attempts_for_rate tentatives.
+min_success_rate = 0.2
+min_attempts_for_rate = 20
+
+[antenne]
+# Au-delà, chaque entrée fait sortir le titre le moins bien noté de plus de min_age_days jours.
+target_max = 2000
+# Part maximale de repères (titres de la bibliothèque Plex) à l'antenne.
+reference_share = 0.2
+min_age_days = 60
+max_removals_per_pass = 50
+
+[votes]
+# Titres d'examen par sélection hebdomadaire, tirés au hasard sur toute la fournée.
+exam_per_selection = 10
+# Titres de leçon par sélection : les plus proches de la coupure, un par artiste.
+lesson_per_selection = 10
+# Fenêtre des votes récents du rapport. Page de vote publiée et aucun titre en attente : une
+# sélection plus ancienne déclenche une alerte (passe hebdomadaire en échec ?).
+quiet_days = 7
+
+[backup]
+# Jours de copies quotidiennes de la base gardés dans RADIO_BACKUP_DIR.
+keep_days = 14

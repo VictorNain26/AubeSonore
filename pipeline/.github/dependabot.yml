@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    ignore:
+      # Les versions récentes ne publient que des roues cp314 ; le projet est en Python 3.12.
+      - dependency-name: "essentia-tensorflow"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker-compose"
+    directory: "/deploy/gatus"
+    schedule:
+      interval: "weekly"
