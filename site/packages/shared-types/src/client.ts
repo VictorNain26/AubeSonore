@@ -93,6 +93,47 @@ export interface ArtistInfo {
   listeners: number;
 }
 
+export interface ArtistLink {
+  platform: string;
+  url: string;
+}
+
+export interface SimilarArtist {
+  id: string;
+  name: string;
+  image: string | null;
+}
+
+export interface ArtistTopTrack {
+  title: string;
+  url: string;
+}
+
+export interface ArtistRadioPlay {
+  title: string;
+  artist: string;
+  /** ISO timestamp of the play. */
+  playedAt: string;
+}
+
+export interface ArtistProfile {
+  id: string;
+  name: string;
+  slug: string;
+  /** Absolute https Deezer URL, hotlinked — never re-hosted. */
+  image: string | null;
+  bio: string | null;
+  tags: string[];
+  listeners: number | null;
+  similar: SimilarArtist[];
+  topTracks: ArtistTopTrack[];
+  links: ArtistLink[];
+  /** What the antenna actually played — the one section no upstream can supply. */
+  playedOnRadio: ArtistRadioPlay[];
+  /** False when no upstream match was found; only the radio floor renders. */
+  resolved: boolean;
+}
+
 export const PLATFORM_NAMES: Record<PreferredPlatform, string> = {
   spotify: 'Spotify',
   appleMusic: 'Apple Music',

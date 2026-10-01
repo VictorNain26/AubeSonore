@@ -59,6 +59,18 @@ Env vars are read only in `apps/backend/src/config/env.ts`; never read `process.
 - `apps/backend/src/db/migrate.ts` runs at backend boot and applies every `apps/backend/drizzle/*.sql` not yet recorded in `__app_migrations`, in name order. `0000`–`0003` are baseline, recorded without running. **Every new migration must be idempotent SQL** (`IF NOT EXISTS` / `IF EXISTS`), since the runner may meet a schema that already has it.
 - `bun db:push` syncs `schema.ts` straight to the connected DB and can drop columns. Don't use `bun db:generate`: the repo keeps no drizzle snapshot meta (no `apps/backend/drizzle/meta/`); new migrations are hand-written.
 
+## Working with artist enrichment
+
+The artist profile (`GET /api/artist/:id`, document route `/artist/:id/:slug`) composes four sources; each is isolated, cached, and allowed to fail on its own.
+
+- **Identity first.** `artistResolver.resolveArtist` turns a messy AzuraCast string into a canonical id persisted in the `artist` table, so URLs stay stable across restarts. It strips `feat.`/`ft.`/`featuring` only — **never split on `&`, `+` or `,`**, that destroys "Simon & Garfunkel" and "Earth, Wind & Fire".
+- **Sources**: `deezerService` (portrait, similar artists, top tracks — keyless), `lastfmService` (FR bio, tags), `musicbrainzService` (Bandcamp/SoundCloud/official links; **1 req/s throttle and an identifying `User-Agent` are hard API requirements**). Spotify related-artists is deprecated for new apps — do not add it.
+- **`radioPlayService` is the floor.** No external source knows what this radio played, so `likedArtistWatcher` records every new track in `radio_play`. That watcher runs even without VAPID keys — don't re-couple it to push config.
+- Every service uses `TtlCache` + a circuit breaker + `createSingleFlight`, so a cold popular page triggers one upstream call, not one per listener.
+- **OG tags**: `artistPage.routes` reads the build's empty shell (`app.html`) from the frontend container — never `index.html`, the pre-rendered home page — and rewrites its head tags **in place** (title, description, canonical, `og:*`, `twitter:*`) with `HTMLRewriter`; appending would leave the home page's canonical in place. `og:image` is restricted to an allowlist of Deezer CDN hosts. An unknown id answers 404.
+- Deezer images are **hotlinked, never re-hosted**.
+- `GET /api/artist?name=` (Last.fm only) still feeds the home page's now-playing bio; it goes away once nothing calls it.
+
 ## SSRF, headers, and other security baselines
 
 - Never `fetch()` a user-supplied URL without `assertSafeUrl()` from `lib/security/urlValidation`. It blocks private IPv4/IPv6, link-local (`169.254.0.0/16` = cloud metadata), and enforces `https` in prod.

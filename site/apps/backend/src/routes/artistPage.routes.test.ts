@@ -1,0 +1,189 @@
+import { describe, it, expect, mock, afterEach } from 'bun:test';
+import { Elysia } from 'elysia';
+
+const VALID_ID = '11111111-1111-1111-1111-111111111111';
+const UNKNOWN_ID = '22222222-2222-2222-2222-222222222222';
+
+// Mirrors the head tags of apps/frontend/index.html that the page rewrites.
+const SHELL = `<!doctype html><html lang="fr"><head>
+<title>AubeSonore — home</title>
+<meta name="description" content="home description" />
+<link rel="canonical" href="https://aubesonore.fr/" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="home title" />
+<meta property="og:description" content="home description" />
+<meta property="og:image" content="https://aubesonore.fr/og-fr.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="AubeSonore" />
+<meta property="og:url" content="https://aubesonore.fr/" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="home title" />
+<meta name="twitter:description" content="home description" />
+<meta name="twitter:image" content="https://aubesonore.fr/og-fr.png" />
+</head><body><div id="root"></div></body></html>`;
+
+let profileName = 'Daft Punk';
+let profileImage: string | null = 'https://cdn-images.dzcdn.net/images/artist/dp.jpg';
+
+void mock.module('../services/artistProfileService', () => ({
+  getArtistProfile: (id: string) =>
+    Promise.resolve(
+      id === VALID_ID
+        ? {
+            id: VALID_ID,
+            name: profileName,
+            slug: 'daft-punk',
+            image: profileImage,
+            bio: 'Un duo français.',
+            tags: [],
+            listeners: null,
+            similar: [],
+            topTracks: [],
+            links: [],
+            playedOnRadio: [],
+            resolved: true,
+          }
+        : null
+    ),
+}));
+
+const { artistPageRoutes, artistShellCache } = await import('./artistPage.routes');
+const { env } = await import('../config/env');
+const { __resetRateLimits } = await import('../lib/rateLimit');
+
+const originalFetch = globalThis.fetch;
+const app = new Elysia().use(artistPageRoutes);
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+  artistShellCache.dispose();
+  __resetRateLimits();
+  profileName = 'Daft Punk';
+  profileImage = 'https://cdn-images.dzcdn.net/images/artist/dp.jpg';
+});
+
+let shellUrl = '';
+
+function mockShell(): void {
+  globalThis.fetch = ((input: string | URL) => {
+    shellUrl = String(input);
+    return Promise.resolve(new Response(SHELL, { headers: { 'content-type': 'text/html' } }));
+  }) as unknown as typeof fetch;
+}
+
+function count(html: string, needle: string): number {
+  return html.split(needle).length - 1;
+}
+
+describe('GET /artist/:id', () => {
+  it('rewrites the head tags of the empty shell in place', async () => {
+    mockShell();
+
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}/daft-punk`));
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/html');
+    expect(shellUrl).toEndWith('/app.html');
+    const html = await res.text();
+    const pageUrl = `${env.FRONTEND_BASE_URL}/artist/${VALID_ID}/daft-punk`;
+    expect(html).toContain('<title>Daft Punk — AubeSonore</title>');
+    expect(html).toContain(`<link rel="canonical" href="${pageUrl}" />`);
+    expect(html).toContain(`<meta property="og:url" content="${pageUrl}" />`);
+    expect(html).toContain('<meta property="og:title" content="Daft Punk — AubeSonore" />');
+    expect(html).toContain('<meta name="description" content="Un duo français." />');
+    expect(html).toContain(
+      '<meta property="og:image" content="https://cdn-images.dzcdn.net/images/artist/dp.jpg" />'
+    );
+    expect(html).not.toContain('og-fr.png');
+    expect(html).not.toContain('og:image:width');
+    expect(html).not.toContain('https://aubesonore.fr/"');
+    expect(count(html, 'property="og:title"')).toBe(1);
+    expect(count(html, 'rel="canonical"')).toBe(1);
+    expect(html).toContain('<div id="root"></div>');
+  });
+
+  it('serves the same tags on the slug-decorated url', async () => {
+    mockShell();
+
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}/daft-punk`));
+
+    expect(res.status).toBe(200);
+    expect(await res.text()).toContain('property="og:title"');
+  });
+
+  it('keeps an artist name inside its attribute and its text node', async () => {
+    mockShell();
+    profileName = 'AT&T "><script>alert(1)</script>';
+
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+
+    const html = await res.text();
+    expect(html).not.toContain('"><script>');
+    expect(html).toContain(
+      '<meta property="og:title" content="AT&amp;T &quot;><script>alert(1)</script> — AubeSonore" />'
+    );
+    expect(html).toContain(
+      '<title>AT&amp;T "&gt;&lt;script&gt;alert(1)&lt;/script&gt; — AubeSonore</title>'
+    );
+  });
+
+  it('keeps the default share image when the artist image is not on an allowed host', async () => {
+    mockShell();
+    profileImage = 'https://evil.example/pwn.jpg';
+
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+
+    const html = await res.text();
+    expect(html).not.toContain('evil.example');
+    expect(html).toContain(
+      '<meta property="og:image" content="https://aubesonore.fr/og-fr.png" />'
+    );
+    expect(html).toContain('og:image:width');
+  });
+
+  it('drops a non-https og:image', async () => {
+    mockShell();
+    profileImage = 'http://cdn-images.dzcdn.net/images/artist/dp.jpg';
+
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+
+    expect(await res.text()).not.toContain('http://cdn-images.dzcdn.net');
+  });
+
+  it('returns 400 on a malformed id', async () => {
+    mockShell();
+
+    const res = await app.handle(new Request('http://localhost/artist/not-a-uuid'));
+
+    expect(res.status).toBe(400);
+  });
+
+  it('answers 404 with the untouched shell when the artist is unknown', async () => {
+    mockShell();
+
+    const res = await app.handle(new Request(`http://localhost/artist/${UNKNOWN_ID}`));
+
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe(SHELL);
+  });
+
+  it('returns 502 when the frontend shell cannot be read', async () => {
+    globalThis.fetch = (() =>
+      Promise.resolve(new Response(null, { status: 500 }))) as unknown as typeof fetch;
+
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+
+    expect(res.status).toBe(502);
+  });
+
+  it('caches the rendered page so a second hit skips the profile lookup', async () => {
+    mockShell();
+
+    await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+    profileName = 'Changed After Caching';
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+
+    expect(await res.text()).toContain('Daft Punk');
+  });
+});
