@@ -2,20 +2,26 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
     <!-- Warm the connection to the media origin (audio stream + now-playing API
          + artwork, the likely LCP) so its TLS/DNS is ready before first paint. -->
     <link rel="preconnect" href="https://radio.aubesonore.fr" />
+    <link
+      rel="preload"
+      href="https://radio.aubesonore.fr/api/nowplaying_static/aubesonore.json"
+      as="fetch"
+      crossorigin
+    />
 
     <!-- SEO -->
-    <title>AubeSonore — une radio de découverte, choisie titre par titre</title>
+    <title>AubeSonore — des titres à l'aube de vous plaire</title>
     <meta
       name="description"
-      content="Une radio de découverte, choisie titre par titre. Gratuite. Sans publicité. Jour et nuit. Gardez ce qui vous arrête, retrouvez-le sur votre plateforme."
+      content="Une radio de découverte, un titre après l'autre, gratuite et sans publicité. Gardez ceux qui vous arrêtent, retrouvez-les sur votre plateforme."
     />
     <meta name="author" content="AubeSonore" />
-    <meta name="theme-color" content="#f7f4f0" />
+    <meta name="theme-color" content="#e8e0d7" />
     <meta name="color-scheme" content="light" />
     <link rel="canonical" href="https://aubesonore.fr/" />
 
@@ -32,7 +38,7 @@
             "name": "AubeSonore",
             "alternateName": "AubeSonore Webradio",
             "url": "https://aubesonore.fr/",
-            "description": "Une radio de découverte, choisie titre par titre. Gratuite, sans publicité, en continu jour et nuit.",
+            "description": "Une radio de découverte, un titre après l'autre. Gratuite, sans publicité, en continu jour et nuit.",
             "logo": "https://aubesonore.fr/icon-512.png",
             "image": "https://aubesonore.fr/og-fr.png",
             "inLanguage": "fr-FR",
@@ -57,13 +63,10 @@
 
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
-    <meta
-      property="og:title"
-      content="AubeSonore — une radio de découverte, choisie titre par titre"
-    />
+    <meta property="og:title" content="AubeSonore — des titres à l'aube de vous plaire" />
     <meta
       property="og:description"
-      content="Une radio de découverte, choisie titre par titre. Gratuite. Sans publicité. Jour et nuit. Gardez ce qui vous arrête, retrouvez-le sur votre plateforme."
+      content="Une radio de découverte, un titre après l'autre, gratuite et sans publicité. Gardez ceux qui vous arrêtent, retrouvez-les sur votre plateforme."
     />
     <meta property="og:image" content="https://aubesonore.fr/og-fr.png" />
     <meta property="og:image:width" content="1200" />
@@ -77,13 +80,10 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@aubesonore" />
     <meta name="twitter:creator" content="@aubesonore" />
-    <meta
-      name="twitter:title"
-      content="AubeSonore — une radio de découverte, choisie titre par titre"
-    />
+    <meta name="twitter:title" content="AubeSonore — des titres à l'aube de vous plaire" />
     <meta
       name="twitter:description"
-      content="Une radio de découverte, choisie titre par titre. Gratuite. Sans publicité. Jour et nuit. Gardez ce qui vous arrête, retrouvez-le sur votre plateforme."
+      content="Une radio de découverte, un titre après l'autre, gratuite et sans publicité. Gardez ceux qui vous arrêtent, retrouvez-les sur votre plateforme."
     />
     <meta name="twitter:image" content="https://aubesonore.fr/og-fr.png" />
 

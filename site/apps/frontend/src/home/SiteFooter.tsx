@@ -41,7 +41,9 @@ export function SiteFooterView({
 }: SiteFooterViewProps) {
   return (
     <footer className="border-accent text-ui mx-6 flex flex-wrap items-center justify-between gap-6 border-t pt-7 pb-32 font-normal md:mx-10 md:pb-10">
-      <span className="text-text-muted">© {new Date().getFullYear()} AubeSonore</span>
+      <span className="text-text-muted">
+        © {new Date().getFullYear()} AubeSonore · {m.footer_free()}
+      </span>
       <div className="flex flex-wrap items-center gap-x-7">
         <button type="button" onClick={onOpenAbout} className={LINK}>
           {m.footer_about()}

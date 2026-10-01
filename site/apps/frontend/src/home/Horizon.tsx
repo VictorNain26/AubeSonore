@@ -15,7 +15,7 @@ export interface HorizonViewProps {
 export function HorizonView({ isPlaying, songId }: HorizonViewProps) {
   return (
     <div className="relative mt-6 h-36 md:mt-auto md:h-50">
-      <div className="absolute inset-x-0 right-9 bottom-0 h-20 mask-r-from-75% md:right-24 md:h-30 md:mask-r-from-80%">
+      <div className="draw-in absolute inset-x-0 right-9 bottom-0 h-20 mask-r-from-75% md:right-24 md:h-30 md:mask-r-from-80%">
         <HorizonLine isPlaying={isPlaying} songId={songId} className="size-full" />
       </div>
       <span
@@ -24,9 +24,12 @@ export function HorizonView({ isPlaying, songId }: HorizonViewProps) {
       />
       <span
         aria-hidden="true"
-        className="bg-accent motion-safe:animate-pulse-now absolute right-5 bottom-10 size-3 translate-y-1/2 rounded-full md:right-12 md:bottom-15"
+        className="now-arrive bg-accent absolute right-5 bottom-10 size-3 translate-y-1/2 rounded-full md:right-12 md:bottom-15"
       />
-      <span className="text-label text-text-muted absolute right-10 bottom-24 hidden font-mono uppercase md:block">
+      <span
+        aria-hidden="true"
+        className="text-label text-text-muted absolute right-10 bottom-24 hidden font-mono uppercase md:block"
+      >
         {m.horizon_now()}
       </span>
       <p className="text-logo condensed absolute bottom-10 left-6 m-0 md:bottom-15 md:left-10">

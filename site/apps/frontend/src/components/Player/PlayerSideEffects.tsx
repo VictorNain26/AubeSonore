@@ -28,6 +28,16 @@ export function PlayerSideEffects(): null {
 
   useMediaSession({ title, artist, album, artworkUrl: art }, isPlaying);
 
+  // While listening, the tab shows what plays (useful from another tab).
+  useEffect(() => {
+    if (!isPlaying || !title || !artist) return;
+    const previous = document.title;
+    document.title = `${title} — ${artist} · AubeSonore`;
+    return () => {
+      document.title = previous;
+    };
+  }, [isPlaying, title, artist]);
+
   useEffect(() => {
     if (playError) {
       toast(m.toast_sound_cut(), {

@@ -1,6 +1,7 @@
 /*
   AubeSonore — design system. Source unique des tokens.
-  Un seul style : papier clair, encre, et une seule lumière abricot (l'aube).
+  Un seul style, confortable de jour comme de nuit : papier rosé-grège (moins
+  éblouissant qu'un blanc le soir), encre adoucie, une seule lumière abricot (l'aube).
   Couche primitive (--p-*) : jamais consommée par les composants.
   Couche sémantique : la seule API, exposée à Tailwind via @theme inline.
   AA prouvé par scripts/check-contrast.mjs.
@@ -12,25 +13,25 @@
   --p-font-stack: 'Bricolage Grotesque Variable', system-ui, sans-serif;
   --p-font-mono: 'Geist Mono Variable', ui-monospace, monospace;
 
-  --surface: oklch(0.968 0.006 75.4);
-  --surface-raised: oklch(0.939 0.01 72.7);
-  --text: oklch(0.204 0.012 293);
-  --text-muted: oklch(0.406 0.019 302.1);
-  --text-faint: oklch(0.513 0.02 308);
-  --border: oklch(0.885 0.019 67.6);
-  --accent: oklch(0.204 0.012 293);
-  --on-accent: oklch(0.968 0.006 75.4);
-  --on-accent-muted: oklch(0.774 0.014 314.7);
+  --surface: oklch(0.91 0.015 72);
+  --surface-raised: oklch(0.875 0.018 70);
+  --text: oklch(0.245 0.014 300);
+  --text-muted: oklch(0.395 0.02 302);
+  --text-faint: oklch(0.455 0.02 306);
+  --border: oklch(0.82 0.022 68);
+  --accent: oklch(0.245 0.014 300);
+  --on-accent: oklch(0.91 0.015 72);
+  --on-accent-muted: oklch(0.79 0.014 310);
   /* L'aube : une seule lumière, abricot, frangée de rose et de lilas. Décor seul, jamais de texte. */
-  --dawn: oklch(0.834 0.088 54.9);
-  --dawn-rose: oklch(0.855 0.045 352.7);
-  --dawn-lilac: oklch(0.878 0.027 290.4);
+  --dawn: oklch(0.8 0.1 52);
+  --dawn-rose: oklch(0.83 0.05 352);
+  --dawn-lilac: oklch(0.85 0.03 290);
   /* Voile de modale (overlay, jamais de texte dessus → pas de paire AA). */
-  --scrim: oklch(0.204 0.012 293 / 0.5);
-  --glyph-1: oklch(0.834 0.088 54.9);
-  --glyph-2: oklch(0.855 0.045 352.7);
-  --glyph-3: oklch(0.878 0.027 290.4);
-  --glyph-4: oklch(0.885 0.019 67.6);
+  --scrim: oklch(0.245 0.014 300 / 0.5);
+  --glyph-1: oklch(0.8 0.1 52);
+  --glyph-2: oklch(0.83 0.05 352);
+  --glyph-3: oklch(0.85 0.03 290);
+  --glyph-4: oklch(0.82 0.022 68);
 }
 
 @theme inline {
@@ -108,7 +109,7 @@
   --text-label--letter-spacing: 0.08em;
   --text-body: 1rem;
   --text-body--line-height: 1.55;
-  --text-body--font-weight: 400;
+  --text-body--font-weight: 450;
   --text-caption: 0.8125rem;
   --text-caption--line-height: 1.4;
   --text-caption--font-weight: 500;
@@ -130,7 +131,6 @@
 
   /* La lumière respire, le point « maintenant » bat, les sections montent au défilement. */
   --animate-breathe: breathe 14s ease-in-out infinite;
-  --animate-pulse-now: pulse-now 2.4s ease-out infinite;
 
   /* Mesures de lecture : l'accroche tient sur trois lignes, une légende sur deux. */
   --container-hero: 13ch;
@@ -138,6 +138,7 @@
   --container-form: 24rem;
   --container-drawer: 32.5rem;
   --container-aside: 34rem;
+  --container-bar: 42rem;
 
   @keyframes breathe {
     0%,
@@ -166,6 +167,47 @@
 
   /* Montée sans fondu : liée au défilement, l'animation peut s'arrêter à
      mi-course si l'écran s'arrête là, et le texte doit rester lisible. */
+  /* Entrée : l'aube monte de l'horizon, la ligne se trace, le point « maintenant »
+     s'allume, les blocs se posent. Décor et mouvement seuls : le texte n'est
+     jamais masqué (opacité), pour ne pas retarder l'affichage mesuré (LCP). */
+  @keyframes dawn-up {
+    from {
+      opacity: 0;
+      transform: translateY(30%) scaleX(0.9);
+    }
+    to {
+      opacity: 0.82;
+      transform: translateY(8px) scaleX(1);
+    }
+  }
+
+  @keyframes draw {
+    from {
+      clip-path: inset(0 100% 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  @keyframes pop {
+    from {
+      scale: 0;
+    }
+    to {
+      scale: 1;
+    }
+  }
+
+  @keyframes settle {
+    from {
+      transform: translateY(16px);
+    }
+    to {
+      transform: none;
+    }
+  }
+
   @keyframes lift {
     from {
       transform: translateY(28px);
@@ -206,6 +248,40 @@
   }
 }
 
+@utility dawn-arrive {
+  @media (prefers-reduced-motion: no-preference) {
+    animation:
+      dawn-up 1.8s var(--ease-out-soft) both,
+      breathe 14s ease-in-out 1.8s infinite;
+  }
+}
+
+@utility draw-in {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: draw 1.6s var(--ease-out-soft) 0.3s both;
+  }
+}
+
+@utility now-arrive {
+  @media (prefers-reduced-motion: no-preference) {
+    animation:
+      pop 0.5s var(--ease-spring) 1.6s both,
+      pulse-now 2.4s ease-out 2.1s infinite;
+  }
+}
+
+@utility lift-in {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: settle 0.9s var(--ease-out-soft) both;
+  }
+}
+
+@utility lift-in-late {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: settle 0.9s var(--ease-out-soft) 0.12s both;
+  }
+}
+
 /* La même aube, vue depuis le bas d'un panneau (connexion, bibliothèque). */
 @utility dawn-rise {
   background:
@@ -227,6 +303,11 @@
   @media (width >= 48rem) {
     min-height: min(100svh, 50rem);
   }
+}
+
+/* Barre du lecteur : au-dessus de la zone gestuelle des téléphones (iPhone). */
+@utility bottom-safe {
+  bottom: calc(1rem + env(safe-area-inset-bottom));
 }
 
 @utility condensed {
@@ -261,7 +342,7 @@
 }
 
 @utility artwork-size {
-  width: min(100%, 20rem, 38dvh);
+  width: min(100%, 18rem, 32dvh);
 
   @media (width >= 64rem) {
     width: min(24rem, 42dvh);

@@ -7,13 +7,13 @@ import { meta, pageHtml, staticPageHtml } from './entry-server';
 describe('entry-server', () => {
   it('renders the French home page as static HTML', async () => {
     const html = await pageHtml('fr');
-    expect(html).toContain('Une radio de découverte, choisie titre par titre.');
+    expect(html).toContain('Des titres à l&#x27;aube de vous plaire.');
     expect(html).toContain('Depuis l&#x27;aube');
   });
 
   it('renders the English home page as static HTML', async () => {
     const html = await pageHtml('en');
-    expect(html).toContain('A discovery radio, chosen track by track.');
+    expect(html).toContain('The first light of your next favourite songs.');
     expect(html).toContain('Most kept');
   });
 
@@ -27,12 +27,12 @@ describe('entry-server', () => {
 
   it('renders a bilingual 404 that leads back to both home pages', async () => {
     const html = await staticPageHtml('notFound', 'fr');
-    expect(html).toContain('Rien à cette adresse.');
+    expect(html).toContain('Un blanc à l&#x27;antenne.');
     expect(html).toContain('href="/en/"');
   });
 
   it('gives each language its own title and description', () => {
-    expect(meta('fr').title).toBe('AubeSonore — une radio de découverte, choisie titre par titre');
+    expect(meta('fr').title).toBe("AubeSonore — des titres à l'aube de vous plaire");
     expect(meta('en').description).toMatch(/^A discovery radio/);
   });
 });

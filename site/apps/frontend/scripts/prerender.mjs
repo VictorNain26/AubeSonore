@@ -25,6 +25,7 @@ function alternates(pages) {
 /** Static pages carry no app script: they are read, never hydrated. */
 function withoutScripts(html) {
   return html
+    .replace(/<link\s+rel="preload"[^>]*as="fetch"[^>]*>\s*/g, '')
     .replace(/<script type="module"[^>]*><\/script>\s*/g, '')
     .replace(/<link rel="modulepreload"[^>]*>\s*/g, '')
     .replace(/<script id="vite-plugin-pwa:register-sw"[^>]*><\/script>\s*/g, '');
@@ -66,13 +67,21 @@ const home = [
   { kind: 'home', locale: 'en', path: '/en/', file: 'dist/en/index.html' },
 ];
 const legal = [
-  { kind: 'legal', locale: 'fr', path: '/mentions-legales/', file: 'dist/mentions-legales/index.html' },
+  {
+    kind: 'legal',
+    locale: 'fr',
+    path: '/mentions-legales/',
+    file: 'dist/mentions-legales/index.html',
+  },
   { kind: 'legal', locale: 'en', path: '/en/legal/', file: 'dist/en/legal/index.html' },
 ];
 
 for (const page of home) await write(page, await pageHtml(page.locale), { siblings: home });
 for (const page of legal) {
-  await write(page, await staticPageHtml('legal', page.locale), { siblings: legal, hydrate: false });
+  await write(page, await staticPageHtml('legal', page.locale), {
+    siblings: legal,
+    hydrate: false,
+  });
 }
 await write(
   { kind: 'notFound', locale: 'fr', path: '/404', file: 'dist/404.html' },

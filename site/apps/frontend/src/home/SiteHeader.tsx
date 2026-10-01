@@ -4,7 +4,6 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { ModalErrorFallback } from '../design/organisms/ErrorFallback';
-import { PlayerPill } from './PlayerPill';
 import * as m from '@/paraglide/messages.js';
 
 const LikedTracksModal = lazy(() =>
@@ -26,9 +25,15 @@ export function SiteHeader() {
   const closeLibrary = () => setIsLibraryOpen(false);
 
   return (
-    <header className="relative z-10 flex items-center justify-end gap-6 px-4 pt-4 md:justify-between md:px-10 md:pt-5">
-      <PlayerPill />
-      <nav aria-label={m.nav_label()} className="flex items-center gap-7">
+    <header className="relative z-10 flex flex-col gap-6 px-6 pt-4 md:flex-row md:items-start md:justify-between md:px-10 md:pt-6">
+      <div className="order-2 flex max-w-xl flex-col gap-1.5 md:order-1">
+        <h1 className="text-headline m-0">{m.hero_title()}</h1>
+        <p className="text-sub text-text-muted m-0 text-balance">{m.hero_tagline()}</p>
+      </div>
+      <nav
+        aria-label={m.nav_label()}
+        className="order-1 flex items-center gap-7 self-end md:order-2 md:self-start"
+      >
         <a href="#plus-gardes" className={NAV_LINK}>
           {m.most_kept_title()}
         </a>

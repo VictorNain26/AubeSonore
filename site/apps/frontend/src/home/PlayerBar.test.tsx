@@ -1,0 +1,79 @@
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { PlayerBarView, type PlayerBarViewProps } from './PlayerBar';
+
+const playedAt = Math.floor(new Date(2026, 9, 1, 17, 1).getTime() / 1000);
+
+function props(overrides: Partial<PlayerBarViewProps> = {}): PlayerBarViewProps {
+  return {
+    isHidden: false,
+    listen: 'idle',
+    onToggleListen: vi.fn(),
+    track: { title: 'Mimoun', artist: 'Mickey 3D', art: undefined, playedAt },
+    isKept: false,
+    onToggleKeep: vi.fn(),
+    volume: 0.8,
+    isMuted: false,
+    onVolumeChange: vi.fn(),
+    onToggleMute: vi.fn(),
+    airPlay: null,
+    ...overrides,
+  };
+}
+
+describe('PlayerBarView', () => {
+  it('invites to listen, then says what is on air while playing', async () => {
+    const onToggleListen = vi.fn();
+    const { rerender } = render(<PlayerBarView {...props({ onToggleListen })} />);
+
+    expect(screen.getByText('Écouter')).toBeInTheDocument();
+    expect(screen.getByText('Mimoun — Mickey 3D')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Écouter le direct' }));
+    expect(onToggleListen).toHaveBeenCalledOnce();
+
+    rerender(<PlayerBarView {...props({ listen: 'playing' })} />);
+    expect(screen.getByText("17:01 — à l'antenne")).toBeInTheDocument();
+  });
+
+  it('is inert while hidden, so nothing in it can be focused', () => {
+    render(<PlayerBarView {...props({ isHidden: true })} />);
+    expect(screen.getByRole('region', { hidden: true })).toHaveAttribute('inert');
+  });
+
+  it('stays on screen while it holds the keyboard focus', async () => {
+    const { rerender } = render(<PlayerBarView {...props()} />);
+
+    await userEvent.tab();
+    rerender(<PlayerBarView {...props({ isHidden: true })} />);
+    expect(screen.getByRole('region')).not.toHaveAttribute('inert');
+
+    await userEvent.tab({ shift: true });
+    expect(screen.getByRole('region', { hidden: true })).toHaveAttribute('inert');
+  });
+
+  it('keeps the track with a constant label', async () => {
+    const onToggleKeep = vi.fn();
+    render(<PlayerBarView {...props({ onToggleKeep, isKept: true })} />);
+
+    const keep = screen.getByRole('button', { name: 'Garder « Mimoun »' });
+    expect(keep).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(keep);
+    expect(onToggleKeep).toHaveBeenCalledOnce();
+  });
+
+  it('opens the volume on demand and offers AirPlay only when available', async () => {
+    const onOpen = vi.fn();
+    const { rerender } = render(<PlayerBarView {...props()} />);
+
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Volume' }));
+    expect(await screen.findByRole('slider', { name: 'Volume' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Diffuser via AirPlay' })).not.toBeInTheDocument();
+
+    rerender(<PlayerBarView {...props({ airPlay: { isActive: false, onOpen } })} />);
+    await userEvent.click(screen.getByRole('button', { name: 'Diffuser via AirPlay' }));
+    expect(onOpen).toHaveBeenCalledOnce();
+  });
+});

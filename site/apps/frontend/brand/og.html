@@ -18,8 +18,8 @@
     height: 630px;
     position: relative;
     overflow: hidden;
-    background: #f7f4f0;
-    color: #17161c;
+    background: #e8e0d7;
+    color: #211f26;
     font-family: B, sans-serif;
   }
   .light {
@@ -30,9 +30,9 @@
     height: 420px;
     filter: blur(8px);
     background:
-      radial-gradient(48% 46% at 52% 62%, rgba(246, 186, 146, 0.8) 0%, rgba(246, 186, 146, 0) 72%),
-      radial-gradient(30% 34% at 30% 58%, rgba(232, 196, 210, 0.55) 0%, rgba(232, 196, 210, 0) 72%),
-      radial-gradient(26% 30% at 78% 60%, rgba(214, 212, 232, 0.5) 0%, rgba(214, 212, 232, 0) 72%);
+      radial-gradient(48% 46% at 52% 62%, rgba(242, 172, 129, 0.8) 0%, rgba(242, 172, 129, 0) 72%),
+      radial-gradient(30% 34% at 30% 58%, rgba(226, 187, 203, 0.55) 0%, rgba(226, 187, 203, 0) 72%),
+      radial-gradient(26% 30% at 78% 60%, rgba(205, 203, 225, 0.5) 0%, rgba(205, 203, 225, 0) 72%);
   }
   .intro {
     position: absolute;
@@ -45,6 +45,7 @@
   h1 {
     margin: 0;
     max-width: 20ch;
+    text-wrap: balance;
     font-weight: 520;
     font-size: 68px;
     line-height: 1;
@@ -53,7 +54,7 @@
   p {
     margin: 0;
     font-size: 28px;
-    color: #4b4752;
+    color: #484450;
   }
   svg {
     position: absolute;
@@ -78,8 +79,8 @@
     width: 18px;
     height: 18px;
     border-radius: 50%;
-    background: #17161c;
-    box-shadow: 0 0 40px 14px rgba(246, 186, 146, 0.6);
+    background: #211f26;
+    box-shadow: 0 0 40px 14px rgba(242, 172, 129, 0.6);
   }
 </style>
 <div class="light"></div>
@@ -91,7 +92,7 @@
   <path
     d="M0 30 C 80 12, 160 48, 240 30 S 400 12, 480 30 S 640 48, 720 30 S 880 12, 960 30 S 1080 40, 1120 30"
     fill="none"
-    stroke="#17161C"
+    stroke="#211F26"
     stroke-width="2.4"
     stroke-linecap="round"
   />
@@ -101,9 +102,9 @@
 <script>
   const en = location.hash === '#en';
   document.getElementById('t').textContent = en
-    ? 'A discovery radio, chosen track by track.'
-    : 'Une radio de découverte, choisie titre par titre.';
+    ? 'The first light of your next favourite songs.'
+    : "Des titres à l'aube de vous plaire.";
   document.getElementById('s').textContent = en
-    ? 'Free. No ads. Day and night.'
-    : 'Gratuite. Sans publicité. Jour et nuit.';
+    ? 'A discovery radio, one track after another.'
+    : "Une radio de découverte, un titre après l'autre.";
 </script>

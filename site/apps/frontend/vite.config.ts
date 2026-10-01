@@ -45,10 +45,10 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'AubeSonore',
           short_name: 'AubeSonore',
-          description: 'Une radio de découverte, choisie titre par titre.',
+          description: "Des titres à l'aube de vous plaire.",
           lang: 'fr',
-          theme_color: '#f7f4f0',
-          background_color: '#f7f4f0',
+          theme_color: '#e8e0d7',
+          background_color: '#e8e0d7',
           display: 'standalone',
           scope: '/',
           start_url: '/',

@@ -1,3 +1,4 @@
+import { usePlayer } from '../lib/player';
 import { useState, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { authApi } from '../lib/api';
@@ -14,6 +15,8 @@ interface AuthModalProps {
   // a token. Layout extracts it and passes it down to switch the modal into
   // the reset flow on mount.
   resetToken?: string;
+  /** Title the listener tried to keep before signing in. */
+  keepTitle?: string;
 }
 
 function validateEmailFormat(value: string): string | undefined {
@@ -31,7 +34,14 @@ function validatePasswordMatch(password: string, confirm: string): string | unde
   return confirm === password ? undefined : m.auth_error_password_mismatch();
 }
 
-export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken }: AuthModalProps) {
+export function AuthModal({
+  isOpen,
+  onClose,
+  defaultMode = 'signin',
+  resetToken,
+  keepTitle,
+}: AuthModalProps) {
+  const isListening = usePlayer((s) => s.isPlaying);
   const [mode, setMode] = useState<AuthMode>(resetToken ? 'reset-password' : defaultMode);
   const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -164,6 +174,8 @@ export function AuthModal({ isOpen, onClose, defaultMode = 'signin', resetToken 
 
   return (
     <AuthModalView
+      keepTitle={keepTitle}
+      isListening={isListening}
       mode={mode}
       isOpen={isOpen}
       isLoading={isLoading}

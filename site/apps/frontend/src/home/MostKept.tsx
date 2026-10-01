@@ -37,11 +37,10 @@ function Ranking({ entries, period }: { entries: TrendEntry[]; period: Period })
           />
           <span className="text-label text-text-muted flex justify-between font-mono">
             <span>{String(i + 1).padStart(2, '0')}</span>
-            <span>
-              {entry.likes > 1
-                ? m.most_kept_count_other({ count: entry.likes })
-                : m.most_kept_count_one()}
-            </span>
+            {/* Under two, a count shows how quiet it is rather than what people like. */}
+            {entry.likes >= 2 ? (
+              <span>{m.most_kept_count_other({ count: entry.likes })}</span>
+            ) : null}
           </span>
           <span className="flex flex-col">
             <span className="text-row">{entry.title}</span>

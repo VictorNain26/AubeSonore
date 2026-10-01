@@ -8,6 +8,10 @@ import * as m from '@/paraglide/messages.js';
 export type AuthMode = 'signin' | 'signup' | 'forgot' | 'verification-sent' | 'reset-password';
 
 export interface AuthModalViewProps {
+  /** Title the listener tried to keep: the sign-in heading names it. */
+  keepTitle?: string | undefined;
+  /** The stream plays: warn that the Google redirect stops it. */
+  isListening: boolean;
   /** Flux courant : détermine titre, champs affichés et libellé du bouton. */
   mode: AuthMode;
   /** Ouverture de la modale (portail Base UI). */
@@ -98,6 +102,8 @@ function AuthAside() {
  * événements.
  */
 export function AuthModalView({
+  keepTitle,
+  isListening,
   mode,
   isOpen,
   isLoading,
@@ -125,7 +131,10 @@ export function AuthModalView({
   onSwitchMode,
 }: AuthModalViewProps) {
   const headerCopy = {
-    signin: { title: m.auth_signin_title(), desc: null },
+    signin: {
+      title: keepTitle ? m.auth_keep_title({ title: keepTitle }) : m.auth_signin_title(),
+      desc: null,
+    },
     signup: { title: m.auth_signup_title(), desc: null },
     forgot: { title: m.auth_forgot_title(), desc: m.auth_forgot_desc() },
     'verification-sent': { title: m.auth_verification_title(), desc: null },
@@ -156,6 +165,9 @@ export function AuthModalView({
       initialFocus={mode === 'reset-password' ? passwordRef : emailRef}
     >
       {headerCopy.desc ? <p className="text-text-muted -mt-2">{headerCopy.desc}</p> : null}
+      {mode === 'signin' || mode === 'signup' ? (
+        <p className="text-sub text-text-muted -mt-2 md:hidden">{m.auth_mobile_pitch()}</p>
+      ) : null}
 
       {(mode === 'forgot' || mode === 'reset-password') && (
         <Button
@@ -185,6 +197,9 @@ export function AuthModalView({
                 <GoogleLogo className="size-4.5" />
                 {m.auth_oauth_google()}
               </Button>
+              {isListening ? (
+                <p className="text-caption text-text-muted -mt-2">{m.auth_google_stops()}</p>
+              ) : null}
 
               <div className="text-label text-text-muted flex items-center gap-3.5 font-mono uppercase">
                 <div className="border-border flex-1 border-t" />
