@@ -1,15 +1,22 @@
-name: CI
+name: Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 permissions:
   contents: read
 
+# Le pipeline vit dans pipeline/. Pas de filtre de chemin : ce job est un contrôle requis sur
+# master, et un workflow sauté par un filtre ne le rapporte jamais.
+defaults:
+  run:
+    working-directory: pipeline
+
 jobs:
   checks:
+    name: Pipeline (ruff, mypy, pytest)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -17,6 +24,7 @@ jobs:
         with:
           version: "0.11.19"
           python-version: "3.12"
+          working-directory: pipeline
       # Outils audio de l'acquisition : le test d'intégration les fait tourner pour de vrai.
       - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg libchromaprint-tools
       # rsgain 3.8, la version figée en production (docs/vision.md §6), et non la 3.4 d'apt.
@@ -29,7 +37,7 @@ jobs:
       - id: effnet
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: models/discogs-effnet-bs64-1.pb
+          path: pipeline/models/discogs-effnet-bs64-1.pb
           key: effnet-3ed9af50d5367c0b9c795b294b00e7599e4943244f4cbd376869f3bfc87721b1
       - if: steps.effnet.outputs.cache-hit != 'true'
         run: |
