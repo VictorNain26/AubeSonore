@@ -12,7 +12,7 @@ describe('getPlatformLink', () => {
         },
         'spotify'
       )
-    ).toBe('https://s/1');
+    ).toEqual({ href: 'https://s/1', platform: 'spotify' });
   });
 
   it('maps a youtube preference to the youtubeMusic link', () => {
@@ -21,16 +21,16 @@ describe('getPlatformLink', () => {
         { title: 'a', artist: 'b', platformLinks: { youtubeMusic: 'https://ym/1' } },
         'youtube'
       )
-    ).toBe('https://ym/1');
+    ).toEqual({ href: 'https://ym/1', platform: 'youtubeMusic' });
   });
 
-  it('falls back to any real platform link when the preferred one is missing', () => {
+  it('falls back to any real platform link when the preferred one is missing, and says which', () => {
     expect(
       getPlatformLink(
         { title: 'a', artist: 'b', platformLinks: { deezer: 'https://d/1' } },
         'spotify'
       )
-    ).toBe('https://d/1');
+    ).toEqual({ href: 'https://d/1', platform: 'deezer' });
   });
 
   it('returns null when no real platform link exists (never a search URL)', () => {

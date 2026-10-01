@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { KeepHeart } from './KeepHeart';
 import { useNowPlayingStore } from '../lib/azuracast';
 import { useTodayHistory } from '../hooks/useTodayHistory';
 import { useLikeAction } from '../hooks/player/useLikeAction';
 import { useLikedTracksStore, isTrackLiked } from '../stores/likedTracksStore';
+import { Cover } from './Cover';
 import { formatClock } from './time';
 import { TEXT_ACTION } from './styles';
 import * as m from '@/paraglide/messages.js';
@@ -16,6 +17,7 @@ export interface ThreadRow {
   playedAt: number;
   title: string;
   artist: string;
+  art: string | null;
   isNow: boolean;
   isKept: boolean;
   isKeeping: boolean;
@@ -29,14 +31,18 @@ export interface SinceDawnViewProps {
 
 export function SinceDawnView({ rows, status, onToggleKeep }: SinceDawnViewProps) {
   const [visible, setVisible] = useState(PAGE);
+  // Rows present at first load stay still; a track that arrives later slides in.
+  const [initialIds, setInitialIds] = useState<Set<number> | null>(null);
+  if (initialIds === null && rows.length > 0) setInitialIds(new Set(rows.map((r) => r.id)));
   const shown = rows.slice(0, visible);
 
   return (
     <section
+      id="depuis-l-aube"
       aria-labelledby="since-dawn-title"
-      className="reveal grid gap-6 md:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] md:gap-16"
+      className="grid scroll-mt-10 gap-6 md:grid-cols-[minmax(0,4fr)_minmax(0,8fr)] md:gap-16"
     >
-      <div className="flex flex-col gap-2 self-start md:sticky md:top-10 md:gap-3">
+      <div className="reveal flex flex-col gap-2 self-start md:sticky md:top-10 md:gap-3">
         <h2 id="since-dawn-title" className="text-section m-0">
           {m.since_dawn_title()}
         </h2>
@@ -61,7 +67,10 @@ export function SinceDawnView({ rows, status, onToggleKeep }: SinceDawnViewProps
             {shown.map((row) => (
               <li
                 key={row.id}
-                className="border-border ease-out-soft hover:bg-accent/3 grid min-h-16 grid-cols-[4.25rem_minmax(0,1fr)_2.75rem] items-center gap-x-3 border-b transition-[background-color,translate] duration-300 motion-safe:hover:translate-x-1.5 md:min-h-15 md:grid-cols-[7rem_minmax(0,1.2fr)_minmax(0,1fr)_2.75rem] md:gap-x-6 md:px-1"
+                className={cn(
+                  'border-border ease-out-soft hover:bg-accent/3 grid min-h-16 grid-cols-[3.75rem_2.75rem_minmax(0,1fr)_2.75rem] items-center gap-x-3 border-b py-2 transition-colors duration-300 md:min-h-15 md:grid-cols-[4.5rem_2.75rem_minmax(0,1.2fr)_minmax(0,1fr)_2.75rem] md:gap-x-6 md:px-1',
+                  initialIds !== null && !initialIds.has(row.id) ? 'thread-in' : 'reveal'
+                )}
               >
                 <span
                   className={cn(
@@ -71,15 +80,25 @@ export function SinceDawnView({ rows, status, onToggleKeep }: SinceDawnViewProps
                 >
                   {row.isNow ? (
                     <>
-                      <span aria-hidden="true">● </span>
+                      <span aria-hidden="true" className="motion-safe:animate-live">
+                        ●{' '}
+                      </span>
                       <span className="sr-only">{m.on_air_sr()} </span>
                     </>
                   ) : null}
                   {formatClock(row.playedAt)}
                 </span>
+                <Cover
+                  src={row.art}
+                  alt=""
+                  seed={`${row.artist}|${row.title}`}
+                  className="size-11"
+                />
                 <span className="flex min-w-0 flex-col md:contents">
-                  <span className="text-row truncate">{row.title}</span>
-                  <span className="text-sub text-text-muted truncate">{row.artist}</span>
+                  <span className="text-row truncate md:self-center">{row.title}</span>
+                  <span className="text-sub text-text-muted truncate md:self-center">
+                    {row.artist}
+                  </span>
                 </span>
                 <button
                   type="button"
@@ -87,15 +106,12 @@ export function SinceDawnView({ rows, status, onToggleKeep }: SinceDawnViewProps
                   disabled={row.isKeeping}
                   aria-pressed={row.isKept}
                   aria-label={m.track_keep_aria({ title: row.title })}
-                  className="group ease-out-quart focus-visible:outline-accent flex size-11 items-center justify-center rounded-full focus-visible:outline-2 disabled:opacity-50"
+                  className="group ease-out-quart focus-visible:outline-accent flex size-11 items-center justify-center rounded-full transition-[scale] duration-150 focus-visible:outline-2 active:scale-90 disabled:opacity-50"
                 >
-                  <Heart
-                    className={cn(
-                      'ease-spring size-4.5 transition-transform duration-250 group-hover:scale-118',
-                      row.isKept && 'fill-current'
-                    )}
+                  <KeepHeart
+                    isKept={row.isKept}
+                    className="ease-spring size-4.5 transition-transform duration-250 group-hover:scale-118"
                     strokeWidth={1.5}
-                    aria-hidden="true"
                   />
                 </button>
               </li>
@@ -107,7 +123,7 @@ export function SinceDawnView({ rows, status, onToggleKeep }: SinceDawnViewProps
           <button
             type="button"
             onClick={() => setVisible((v) => v + PAGE)}
-            className={cn(TEXT_ACTION, 'mt-5 self-start md:ml-34')}
+            className={cn(TEXT_ACTION, 'mt-5 self-start md:ml-41')}
           >
             {m.since_dawn_more()}
           </button>
@@ -128,6 +144,7 @@ export function SinceDawn() {
     playedAt: e.played_at,
     title: e.song.title,
     artist: e.song.artist,
+    art: e.song.art,
     isNow: e.sh_id === nowId,
     isKept: isTrackLiked(tracks, e.song.title, e.song.artist),
     isKeeping: likingTrackId === `${e.song.title}-${e.song.artist}`,

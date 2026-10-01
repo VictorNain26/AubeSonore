@@ -10,22 +10,23 @@ export interface ShareableTrack {
 
 /**
  * Returns the direct platform link for a track on the user's preferred
- * platform, falling back to any other real platform link. Returns `null`
+ * platform, falling back to any other real platform link, with the platform it
+ * belongs to so the caller can name it truthfully. Returns `null`
  * when no real platform link exists yet — callers disable open/share instead
  * of surfacing a search URL or a third-party song.link page.
  */
 export function getPlatformLink(
   track: ShareableTrack,
   preferredPlatform: PreferredPlatform
-): string | null {
+): { href: string; platform: keyof PlatformLinks } | null {
   if (!track.platformLinks) return null;
   const platformKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
   const preferred = track.platformLinks[platformKey];
-  if (preferred) return preferred;
-  const firstAvailable = (Object.values(track.platformLinks) as Array<string | undefined>).find(
-    Boolean
-  );
-  return firstAvailable ?? null;
+  if (preferred) return { href: preferred, platform: platformKey };
+  const fallback = (
+    Object.entries(track.platformLinks) as Array<[keyof PlatformLinks, string]>
+  ).find(([, href]) => Boolean(href));
+  return fallback ? { href: fallback[1], platform: fallback[0] } : null;
 }
 
 /**

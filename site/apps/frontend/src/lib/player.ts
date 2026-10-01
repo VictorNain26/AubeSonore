@@ -37,19 +37,11 @@ interface PlayerActions {
 
 type PlayerStore = PlayerState & PlayerActions;
 
-// The stream plays through a bare native <audio> element on iOS only, where
-// createMediaElementSource() would make the AudioContext the audio's sole
-// output path — and iOS suspends that context a few seconds after the screen
-// locks, silencing background playback (WebKit bug #231105). Everywhere else
-// the stream is routed through Web Audio so the antenna waveform can read
-// real frequency data; on iOS it falls back to its procedural motion.
-// Lock-screen controls come from Media Session either way.
-function canAnalyze(): boolean {
-  const isIOS =
-    /iP(hone|ad|od)/.test(navigator.userAgent) ||
-    (navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1);
-  return !isIOS && typeof AudioContext !== 'undefined';
-}
+// The stream plays through the bare native <audio> element on every platform.
+// Routing it through Web Audio (createMediaElementSource) would make the
+// AudioContext its only output, and iOS suspends that context seconds after
+// the screen locks, silencing background playback (WebKit bug #231105).
+// Lock-screen controls come from Media Session.
 
 // Created on first use, never at import: the page is pre-rendered at build
 // time, where there is no window, no Audio and no localStorage.
@@ -59,7 +51,6 @@ export function getAudioElement(): HTMLAudioElement {
   if (!audioElement) {
     audioElement = new Audio();
     audioElement.preload = 'none';
-    audioElement.crossOrigin = 'anonymous';
     audioElement.setAttribute('x-webkit-airplay', 'allow');
     audioElement.setAttribute('airplay', 'allow');
     audioElement.volume = getStoredVolume();
@@ -68,9 +59,6 @@ export function getAudioElement(): HTMLAudioElement {
   return audioElement;
 }
 
-let audioContext: AudioContext | null = null;
-let analyser: AnalyserNode | null = null;
-let sourceNode: MediaElementAudioSourceNode | null = null;
 // Tracks if a stop() is in progress so the resulting audio error event
 // is not surfaced as a playError to the user.
 let isStopping = false;
@@ -88,19 +76,6 @@ const getStoredVolume = (): number => {
     return 1;
   }
 };
-
-const initAudioContext = (audio: HTMLAudioElement) => {
-  if ((audioContext && sourceNode) || !canAnalyze()) return;
-  audioContext = new AudioContext();
-  analyser = audioContext.createAnalyser();
-  analyser.fftSize = 128;
-  analyser.smoothingTimeConstant = 0.8;
-  sourceNode = audioContext.createMediaElementSource(audio);
-  sourceNode.connect(analyser);
-  analyser.connect(audioContext.destination);
-};
-
-export const getAnalyser = (): AnalyserNode | null => analyser;
 
 function classifyPlayError(err: unknown): PlayError | null {
   if (err instanceof Error && err.name === 'AbortError') {
@@ -164,10 +139,6 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
     reconnectAttempts = 0;
     const audio = getAudioElement();
     try {
-      initAudioContext(audio);
-      if (audioContext?.state === 'suspended') {
-        await audioContext.resume();
-      }
       audio.src = STREAM_URL;
       audio.load();
       await audio.play();

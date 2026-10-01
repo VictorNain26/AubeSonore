@@ -1,14 +1,14 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
-import { HorizonLine } from './HorizonLine';
+import { HorizonLine, LAYERS, stepMotion } from './HorizonLine';
 
 function fakeContext() {
   return {
     clearRect: vi.fn(),
     beginPath: vi.fn(),
     moveTo: vi.fn(),
-    quadraticCurveTo: vi.fn(),
+    lineTo: vi.fn(),
     stroke: vi.fn(),
     lineWidth: 0,
     lineCap: '',
@@ -48,32 +48,41 @@ function runFrames(count: number) {
   }
 }
 
-describe('HorizonLine', () => {
-  it('draws one continuous line per frame, thin and faint at rest', () => {
-    const ctx = fakeContext();
-    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
-      ctx as unknown as CanvasRenderingContext2D
-    );
+describe('stepMotion', () => {
+  const rest = { liveness: 0, drift: LAYERS.map(() => 0) };
 
-    render(<HorizonLine isPlaying={false} songId={1} />);
-    runFrames(2);
+  it('swells towards live gradually, never in one jump', () => {
+    const after = stepMotion(rest, true, 0.1);
+    expect(after.liveness).toBeGreaterThan(0);
+    expect(after.liveness).toBeLessThan(0.5);
 
-    expect(ctx.beginPath).toHaveBeenCalledTimes(2);
-    expect(ctx.stroke).toHaveBeenCalledTimes(2);
-    expect(ctx.quadraticCurveTo).toHaveBeenCalled();
-    expect(ctx.strokeStyle).toContain('30%');
+    let motion = rest;
+    for (let i = 0; i < 300; i++) motion = stepMotion(motion, true, 1 / 60);
+    expect(motion.liveness).toBeGreaterThan(0.99);
   });
 
-  it('draws a stronger line while the stream plays', () => {
+  it('drifts the two traces against each other, faster while live', () => {
+    const atRest = stepMotion(rest, false, 1);
+    expect(Math.sign(atRest.drift[0] ?? 0)).toBe(-Math.sign(atRest.drift[1] ?? 0));
+
+    const live = stepMotion({ ...rest, liveness: 1 }, true, 1);
+    expect(Math.abs(live.drift[0] ?? 0)).toBeGreaterThan(Math.abs(atRest.drift[0] ?? 0));
+  });
+});
+
+describe('HorizonLine', () => {
+  it('draws the two traces on every frame', () => {
     const ctx = fakeContext();
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
       ctx as unknown as CanvasRenderingContext2D
     );
 
-    render(<HorizonLine isPlaying songId={1} />);
-    runFrames(1);
+    render(<HorizonLine isPlaying={false} />);
+    runFrames(2);
 
-    expect(ctx.strokeStyle).toContain('78%');
+    expect(ctx.beginPath).toHaveBeenCalledTimes(4);
+    expect(ctx.stroke).toHaveBeenCalledTimes(4);
+    expect(ctx.lineTo).toHaveBeenCalled();
   });
 
   it('stops drawing on unmount', () => {
@@ -82,7 +91,7 @@ describe('HorizonLine', () => {
       ctx as unknown as CanvasRenderingContext2D
     );
 
-    const { unmount } = render(<HorizonLine isPlaying={false} songId={1} />);
+    const { unmount } = render(<HorizonLine isPlaying={false} />);
     unmount();
 
     expect(cancelAnimationFrame).toHaveBeenCalled();

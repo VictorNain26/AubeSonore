@@ -7,7 +7,6 @@ class MockAudio {
   src = '';
   volume = 1;
   preload = 'none';
-  crossOrigin = 'anonymous';
   play = vi.fn().mockResolvedValue(undefined);
   pause = vi.fn();
   load = vi.fn();
@@ -21,22 +20,6 @@ class MockAudio {
   }
 }
 
-class MockAudioContext {
-  state: AudioContextState = 'running';
-  destination = {};
-  analyser = {
-    fftSize: 0,
-    smoothingTimeConstant: 0,
-    frequencyBinCount: 64,
-    connect: vi.fn(),
-    getByteFrequencyData: vi.fn(),
-  };
-  sourceNode = { connect: vi.fn() };
-  createAnalyser = vi.fn(() => this.analyser);
-  createMediaElementSource = vi.fn(() => this.sourceNode);
-  resume = vi.fn().mockResolvedValue(undefined);
-}
-
 let mockAudioInstance: MockAudio;
 
 beforeEach(() => {
@@ -48,13 +31,7 @@ beforeEach(() => {
       return mockAudioInstance;
     })
   );
-  vi.stubGlobal(
-    'AudioContext',
-    vi.fn().mockImplementation(function () {
-      return new MockAudioContext();
-    })
-  );
-  // Default to a non-iOS environment; iOS-specific tests re-stub this.
+  // A desktop browser by default.
   vi.stubGlobal('navigator', {
     userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/126',
     maxTouchPoints: 0,
@@ -73,54 +50,17 @@ describe('player store', () => {
     expect(usePlayer.getState().playError).toBeNull();
   });
 
-  it('play() routes audio through a Web Audio analyser on non-iOS platforms', async () => {
-    // The antenna waveform reads real frequency data from this graph.
-    const AudioContextSpy = vi.fn().mockImplementation(function () {
-      return new MockAudioContext();
-    });
-    vi.stubGlobal('AudioContext', AudioContextSpy);
-    const { usePlayer, getAnalyser } = await import('./player');
-    await usePlayer.getState().play();
-    expect(usePlayer.getState().isPlaying).toBe(true);
-    expect(AudioContextSpy).toHaveBeenCalledOnce();
-    const analyser = getAnalyser();
-    expect(analyser).not.toBeNull();
-    expect(analyser?.fftSize).toBe(128);
-  });
-
-  it('play() never routes audio through Web Audio on iOS (keeps lock-screen playback alive)', async () => {
+  it('plays on the bare <audio> element, never through Web Audio (keeps lock-screen playback alive)', async () => {
     // Regression guard for the locked-screen silence bug: routing the stream
-    // through createMediaElementSource makes the AudioContext the sole output,
-    // and iOS suspends it seconds after lock (WebKit #231105). On iOS the
-    // player must stay on the bare <audio> element.
-    vi.stubGlobal('navigator', {
-      userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15',
-      maxTouchPoints: 5,
-    });
-    const AudioContextSpy = vi.fn().mockImplementation(function () {
-      return new MockAudioContext();
-    });
+    // through createMediaElementSource makes the AudioContext its only output,
+    // and iOS suspends it seconds after lock (WebKit #231105).
+    const AudioContextSpy = vi.fn();
     vi.stubGlobal('AudioContext', AudioContextSpy);
-    const { usePlayer, getAnalyser } = await import('./player');
+    const { usePlayer } = await import('./player');
     await usePlayer.getState().play();
     expect(usePlayer.getState().isPlaying).toBe(true);
+    expect(mockAudioInstance.play).toHaveBeenCalledOnce();
     expect(AudioContextSpy).not.toHaveBeenCalled();
-    expect(getAnalyser()).toBeNull();
-  });
-
-  it('detects iPadOS (Macintosh UA with touch) as iOS', async () => {
-    vi.stubGlobal('navigator', {
-      userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
-      maxTouchPoints: 5,
-    });
-    const AudioContextSpy = vi.fn().mockImplementation(function () {
-      return new MockAudioContext();
-    });
-    vi.stubGlobal('AudioContext', AudioContextSpy);
-    const { usePlayer, getAnalyser } = await import('./player');
-    await usePlayer.getState().play();
-    expect(AudioContextSpy).not.toHaveBeenCalled();
-    expect(getAnalyser()).toBeNull();
   });
 
   it('does NOT set playError on AbortError (double-click race)', async () => {

@@ -1,4 +1,4 @@
-import { ChevronDown, ExternalLink, Heart } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getLocale } from '@/paraglide/runtime.js';
 import { Modal } from './Modal';
@@ -14,8 +14,9 @@ interface LikedTrackViewModel {
   artworkUrl?: string;
   /** ISO date the track was kept. */
   keptAt: string;
-  /** Direct platform link, or `null` while links are still resolving. */
-  linkHref: string | null;
+  /** Direct platform link, or `null` while links are still resolving; `isPreferred`
+   *  is false when the track is not on the chosen platform and opens elsewhere. */
+  link: { href: string; platform: string; isPreferred: boolean } | null;
   /** Row is pending removal (grayed, showing Undo). */
   pendingRemoval: boolean;
   /** Remaining share of the removal grace period (1 → 0), drives the countdown bar. */
@@ -46,7 +47,7 @@ export interface LikedTracksModalViewProps {
 }
 
 const ICON_ACTION =
-  'ease-out-quart focus-visible:outline-accent flex size-11 items-center justify-center rounded-full transition-opacity duration-150 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2';
+  'ease-out-quart focus-visible:outline-accent flex size-11 items-center justify-center rounded-full transition-[opacity,scale] duration-150 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-90';
 
 // One formatter per locale: building one per row costs ~0.5 ms each, and a
 // library holds up to 500 rows.
@@ -189,7 +190,7 @@ export function LikedTracksModalView({
             <li
               key={track.id}
               className={cn(
-                'border-border grid grid-cols-[4rem_minmax(0,1fr)_2.75rem_2.75rem] items-center gap-x-4 border-b py-3.5',
+                'border-border grid grid-cols-[4rem_minmax(0,1fr)_2.75rem_auto] items-center gap-x-3 border-b py-3.5 md:gap-x-4',
                 track.pendingRemoval && 'opacity-60'
               )}
             >
@@ -206,6 +207,9 @@ export function LikedTracksModalView({
                 <span className="text-text-muted truncate">{track.artist}</span>
                 <span className="text-caption text-text-muted mt-0.5 font-normal">
                   {track.pendingRemoval ? m.liked_track_removed() : keptOn(track.keptAt)}
+                  {!track.pendingRemoval && track.link && !track.link.isPreferred
+                    ? ` · ${m.library_only_on({ platform: track.link.platform })}`
+                    : null}
                 </span>
                 {track.pendingRemoval ? (
                   <span
@@ -233,21 +237,29 @@ export function LikedTracksModalView({
                 </button>
               ) : (
                 <>
-                  {track.linkHref ? (
+                  {track.link ? (
                     <a
-                      href={track.linkHref}
+                      href={track.link.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      aria-label={m.library_open_on({ title: track.title, platform: platformName })}
+                      aria-label={m.library_open_on({
+                        title: track.title,
+                        platform: track.link.platform,
+                      })}
+                      title={m.library_open_on({
+                        title: track.title,
+                        platform: track.link.platform,
+                      })}
                       className={ICON_ACTION}
                     >
                       <ExternalLink className="size-4.5" strokeWidth={1.6} aria-hidden="true" />
                     </a>
                   ) : (
                     <span
-                      aria-disabled="true"
+                      role="img"
                       aria-label={m.library_links_resolving({ title: track.title })}
-                      className={cn(ICON_ACTION, 'opacity-40')}
+                      title={m.library_links_resolving({ title: track.title })}
+                      className={cn(ICON_ACTION, 'cursor-help opacity-40')}
                     >
                       <ExternalLink className="size-4.5" strokeWidth={1.6} aria-hidden="true" />
                     </span>
@@ -256,9 +268,9 @@ export function LikedTracksModalView({
                     type="button"
                     onClick={() => onDeleteTrack(track.id)}
                     aria-label={m.track_unkeep_aria({ title: track.title })}
-                    className={ICON_ACTION}
+                    className="text-ui text-text-muted ease-out-quart hover:text-text focus-visible:outline-accent min-h-11 rounded-sm px-1 font-normal transition-[color,scale] duration-150 focus-visible:outline-2 active:scale-97"
                   >
-                    <Heart className="size-4.5 fill-current" strokeWidth={1.5} aria-hidden="true" />
+                    {m.library_remove()}
                   </button>
                 </>
               )}

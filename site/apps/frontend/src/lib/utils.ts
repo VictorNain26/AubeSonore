@@ -14,6 +14,7 @@ const twMerge = extendTailwindMerge({
         'caption',
         'hero',
         'logo',
+        'mark',
         'section',
         'headline',
         'intro',

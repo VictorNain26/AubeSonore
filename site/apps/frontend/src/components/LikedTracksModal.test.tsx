@@ -149,6 +149,22 @@ describe('LikedTracksModal', () => {
     );
   });
 
+  it('names the platform a track really opens on when it is not on the chosen one', () => {
+    useLikedTracksStore.setState({
+      tracks: [{ ...makeTrack(0), platformLinks: { deezer: 'https://www.deezer.com/track/y' } }],
+    });
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+
+    expect(screen.getByRole('link', { name: 'Ouvrir « Track 0 » sur Deezer' })).toHaveAttribute(
+      'href',
+      'https://www.deezer.com/track/y'
+    );
+    expect(screen.getByText('gardé le 1 janvier · sur Deezer')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ne plus garder « Track 0 »' })).toHaveTextContent(
+      'Retirer'
+    );
+  });
+
   it('counts nothing when the library is empty', async () => {
     render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 

@@ -8,15 +8,15 @@ type ModalVariant = 'center' | 'split' | 'drawer';
 
 const POPUP: Record<ModalVariant, string> = {
   center:
-    'border-border bg-surface top-1/2 left-1/2 max-h-[calc(100dvh-2rem)] w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border p-6 data-[ending-style]:scale-95 data-[starting-style]:scale-95',
+    'border-border bg-surface top-1/2 left-1/2 max-h-[calc(100dvh-2rem)] w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border p-6 data-[ending-style]:scale-95 data-[starting-style]:scale-95 starting:scale-95',
   split:
-    'bg-surface inset-0 md:grid md:grid-cols-[minmax(0,1fr)_35rem] data-[ending-style]:translate-y-2 data-[starting-style]:translate-y-2',
+    'bg-surface inset-0 md:grid md:grid-cols-[minmax(0,1fr)_35rem] data-[ending-style]:translate-y-2 data-[starting-style]:translate-y-2 starting:translate-y-2',
   drawer:
-    'bg-surface shadow-lift inset-y-0 right-0 w-full md:max-w-drawer data-[ending-style]:translate-x-8 data-[starting-style]:translate-x-8',
+    'bg-surface shadow-lift inset-y-0 right-0 w-full md:max-w-drawer data-[ending-style]:translate-x-8 data-[starting-style]:translate-x-8 starting:translate-x-8',
 };
 
 const CLOSE =
-  'ease-out-quart hover:bg-surface-raised focus-visible:outline-accent inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2';
+  'ease-out-quart hover:bg-surface-raised focus-visible:outline-accent inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-[background-color,scale] duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-90';
 
 export interface ModalProps {
   /** Titre de la fenêtre (nom accessible du dialogue). */
@@ -54,14 +54,16 @@ export function Modal({
   // The drawer opens on its close button, not on the first link of its header.
   const closeRef = useRef<HTMLButtonElement>(null);
   const focusTarget = initialFocus ?? (variant === 'drawer' ? closeRef : undefined);
+  // Base UI sets data-starting-style only when `open` toggles; `starting:`
+  // (@starting-style) also lets a dialog mounted already open enter.
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Backdrop className="bg-scrim ease-out-quart fixed inset-0 transition-opacity duration-300 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+        <Dialog.Backdrop className="bg-scrim ease-out-quart fixed inset-0 z-50 transition-opacity duration-300 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 starting:opacity-0" />
         <Dialog.Popup
           {...(focusTarget ? { initialFocus: focusTarget } : {})}
           className={cn(
-            'text-text ease-out-soft fixed z-50 flex flex-col overflow-hidden transition-[opacity,translate,scale] duration-300 focus-visible:outline-none data-[ending-style]:opacity-0 data-[starting-style]:opacity-0',
+            'text-text ease-out-soft fixed z-50 flex flex-col overflow-hidden transition-[opacity,translate,scale] duration-300 focus-visible:outline-none data-[ending-style]:opacity-0 data-[starting-style]:opacity-0 starting:opacity-0',
             POPUP[variant]
           )}
         >
