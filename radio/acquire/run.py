@@ -125,6 +125,7 @@ def acquire_pass(
     sockseek, rsgain = binaries
     rep = AcquireReport()
     wanted: list[Wanted] = []
+    keys: set[tuple[str, str, int]] = set()
     for tid in pending(conn, cfg):
         got = deezer.track(tid)
         if got is None:
@@ -132,6 +133,14 @@ def acquire_pass(
             _save(conn, tid, None, "disparu de Deezer", now)
             continue
         t = got[0]
+        key = (t.artist_name, t.title_short, t.duration_s)
+        if key in keys:
+            # L'index de Sockseek se lit par (artiste, titre, durée) : un second titre de même clé
+            # n'aurait jamais d'issue.
+            rep.failures["doublon d'artiste, titre et durée"] += 1
+            _save(conn, tid, None, "doublon d'artiste, titre et durée", now)
+            continue
+        keys.add(key)
         wanted.append(Wanted(tid, t.artist_name, t.title_short, t.duration_s))
     rep.n_wanted = len(wanted)
     if not wanted:

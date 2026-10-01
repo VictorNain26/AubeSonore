@@ -162,6 +162,30 @@ def test_excess_removes_worst_old_discoveries_but_never_busy_ones(
     assert (rep.n_removed, rep.n_total) == (2, 3)
 
 
+def test_a_discovery_added_to_the_library_leaves_last(tmp_path: Path, no_tools: None) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    old = (LATER - timedelta(days=90)).isoformat()
+    ids = [int(r[0]) for r in conn.execute("SELECT deezer_track_id FROM scores ORDER BY score")][:3]
+    for i, tid in enumerate(ids):
+        conn.execute(
+            "INSERT INTO antenne VALUES (?, 'decouverte', ?, ?, ?, ?)",
+            (tid, i, f"s{tid}", f"antenne/{tid}.mp3", old),
+        )
+    # Ajoutée à Plex par Victor, la moins bien notée n'est plus notée : elle lui plaît.
+    conn.execute("UPDATE tracks SET origin = 'library' WHERE deezer_track_id = ?", (ids[0],))
+    conn.execute("DELETE FROM scores WHERE deezer_track_id = ?", (ids[0],))
+    conn.commit()
+    station = FakeStation([Media(i, f"s{t}", f"antenne/{t}.mp3") for i, t in enumerate(ids)])
+    cfg = AntenneConfig(target_max=2, reference_share=0, max_removals_per_pass=10)
+
+    antenne_pass(
+        conn, station, FakeDeezer(), cfg, ROOT, Path("/r"), np.random.default_rng(0), LATER
+    )
+
+    assert station.deleted == [f"antenne/{ids[1]}.mp3"]
+
+
 def test_upload_refusal_is_reported_and_file_kept(tmp_path: Path, no_tools: None) -> None:
     conn = make_model_db(tmp_path)
     _ready(conn, tmp_path, [200000])

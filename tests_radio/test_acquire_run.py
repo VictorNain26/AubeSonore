@@ -277,3 +277,24 @@ def test_deezer_outage_still_cleans_the_pass_folder(
     with pytest.raises(DeezerUnavailable):
         _pass(conn, tmp_path, found, 1, Outage())
     assert not (tmp_path / "work1").exists()
+
+
+def test_two_titles_with_the_same_sockseek_key_do_not_loop(
+    tmp_path: Path, fake_audio: dict[int, float]
+) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    first, second = pending(conn, CFG)[:2]
+
+    class SameKey(FakeDeezer):
+        def track_page(self, tid: int) -> TrackPage | None:
+            page = super().track_page(tid)
+            if page is None or tid != second:
+                return page
+            twin = DeezerTrack(tid, f"T{first}", f"T{first}", 200, 1, 1, "Art", True)
+            return TrackPage(twin, page.preview_url, page.album)
+
+    rep = _pass(conn, tmp_path, {first, second}, 1, SameKey())
+    assert rep.failures["doublon d'artiste, titre et durée"] == 1
+    status = dict(conn.execute("SELECT deezer_track_id, status FROM acquisitions").fetchall())
+    assert status[first] == "ready" and status[second] == "failed"
