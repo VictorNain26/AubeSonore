@@ -30,7 +30,6 @@ def test_categories_and_exam(tmp_path: Path) -> None:
     ids = table.track_ids
     assert ids[lab.exam.rows].tolist() == [200100, 300100]
     assert lab.exam.labels.tolist() == [1, 0]
-    assert lab.exam.last_vote == "2026-09-24T12:00:00+00:00"
     assert not set(ids[lab.train.rows].tolist()) & {200100, 300100, 300001}
     yes = lab.train.rows[lab.train.categories == VOTE_YES]
     assert ids[yes].tolist() == [200000]

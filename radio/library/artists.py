@@ -17,7 +17,6 @@ from radio.library.match import normalize
 class LibraryArtist:
     deezer_artist_id: int
     name: str
-    plex_names: tuple[str, ...]
     plays: int
 
 
@@ -46,7 +45,7 @@ def library_artists(conn: sqlite3.Connection) -> list[LibraryArtist]:
     for aid, c in sorted(names.items()):
         # Le nom le plus fréquent, puis l'ordre alphabétique : déterministe.
         name = min(c, key=lambda n: (-c[n], n))
-        out.append(LibraryArtist(aid, name, tuple(sorted(c)), sum(plays[n] for n in c)))
+        out.append(LibraryArtist(aid, name, sum(plays[n] for n in c)))
     return out
 
 

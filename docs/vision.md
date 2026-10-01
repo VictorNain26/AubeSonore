@@ -4,9 +4,8 @@ Seul document de conception et d'exploitation du pipeline. Les preuves (mesures,
 sont dans `docs/recherches/`. Quand le système réel contredit ce document, le système a raison et
 ce document se corrige.
 
-État au 2026-09-30 : les étapes 1 à 7 tournent chaque semaine, la CI et Gatus surveillent. Les
-découvertes s'accumulent dans `antenne/` ; l'antenne diffuse encore en natif AzuraCast les 369
-titres de l'ancienne version, jusqu'à la bascule (§7.2).
+État au 2026-10-01 : les étapes 1 à 7 tournent chaque semaine, la CI et Gatus surveillent, la
+page de vote est en service. L'antenne ne diffuse plus que `antenne/` depuis la bascule (§7.2).
 
 ## 1. But
 
@@ -52,12 +51,12 @@ suivante reprend.
 | Étape | Rôle | Outils | État |
 |---|---|---|---|
 | 1 Bibliothèque | Lire Plex, rapprocher chaque titre de Deezer (strict : artiste, titre, durée ±3 s) | python-plexapi, API Deezer | fait |
-| 2 Découverte | 15 graines par semaine, tirées selon l'écoute ; voisins confirmés par Deezer `related` ET Last.fm `getSimilar` ; 10 titres par voisin | API Deezer, Last.fm | fait |
+| 2 Découverte | 15 graines par semaine, tirées selon l'écoute ; voisins confirmés par Deezer `related` ET Last.fm `getSimilar` (`recherches/2026-09-24-sources-decouverte.md`) ; 10 titres par voisin | API Deezer, Last.fm | fait |
 | 3 Empreinte | Empreinte Discogs-EffNet de l'extrait Deezer de 30 s | essentia-tensorflow, modèle MTG épinglé | fait |
 | 4 Goût | Régression logistique sur l'empreinte ; chaque fournée est classée et son tiers le mieux noté est retenu | scikit-learn | fait |
 | 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | en service |
 | 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | en service |
-| 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | en service ; la bascule reste à écrire |
+| 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | en service |
 | 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | — | plus tard (§7.3) |
 
 ## 4. Le goût (étapes 1 à 4)
@@ -65,12 +64,16 @@ suivante reprend.
 - **Positifs.** Les titres de la bibliothèque, pondérés par l'écoute (`1 + log(1 + écoutes)`,
   plafonné à 4), et les « oui » de leçon.
 - **Négatifs.** Les « non » de leçon, et les négatifs faibles de démarrage
-  (`config/negatives.toml`) au poids de 0,1.
+  (`config/negatives.toml`, curation sourcée dans `recherches/2026-09-24-negatifs-curation.md`)
+  au poids de 0,1.
 - **Poids des classes.** Chacune pèse 1 au total. C = 0,1. Les réglages ont été fixés sur les
   159 votes du banc.
 - **Signaux retirés.** Popularité, tags et proximité étaient au niveau du hasard (AUC 0,52 à 0,58).
   L'empreinte seule donne une AUC d'examen de 0,82, contre 0,76 pour l'ancien modèle empilé.
 - **Rétention.** Pour chaque fournée, le tiers le mieux noté est retenu (`keep_fraction`).
+- **Pistes écartées après mesure** : ressemblance kNN sur l'empreinte (AUC 0,67), filtre
+  « couleur » à négatifs par catégories, têtes de style Essentia, modèle Jev (texte seul). Leurs
+  recherches sont dans l'historique git (`git show f7d7081:docs/recherches/`).
 
 **Votes.** Chaque semaine, 10 titres d'examen et 10 de leçon, présentés à l'aveugle.
 
@@ -159,18 +162,16 @@ Justification : `recherches/…-observabilite.md` §3.
 - **Réalignement à chaque passe.** On compare la base au contenu de `antenne/` et on rapporte les
   écarts.
 
-Avant la bascule, `antenne/` n'est rattaché à aucune playlist : ce qu'on y dépose ne passe pas
-à l'antenne (doc AzuraCast : un média doit appartenir à une playlist pour être joué).
+- **Interdit aussi.** `POST /station/1/art/{id}` : il finit par la même réécriture
+  (`StationMediaRepository::updateAlbumArt` → `writeToFile`). La pochette est intégrée au fichier
+  à la préparation (§6) ; redéposer un fichier sur le même chemin remplace le média en place
+  (`MediaProcessor::processAndUpload`, `findByPath`).
 
-**Bascule.** Elle a lieu quand `antenne/` atteint 400 titres (`cutover_min`, environ une journée
-d'antenne sans répétition). La commande sera écrite à ce moment-là, sur la base des appels
-vérifiés :
-
-1. sauvegarde JSON des 8 playlists actuelles ;
-2. désactivation de ces 8 playlists ;
-3. suppression des 369 anciens titres, avec l'accord de Victor du 2026-09-23.
-
-Retour arrière possible : réactiver les playlists depuis la sauvegarde.
+**Bascule, faite le 2026-10-01** par appels directs, sans attendre 400 titres puisque la radio
+n'avait pas encore d'auditeurs : sauvegarde des 8 anciennes playlists et de la liste des médias
+dans `~/radio/archives/*-avant-bascule-2026-10-01.json`, création de la playlist « AubeSonore »
+(id 10) rattachée à `antenne/`, désactivation des 8 anciennes, suppression des 369 anciens
+titres. Les playlists se réactivent depuis la sauvegarde ; les fichiers supprimés sont perdus.
 
 ### 7.3 Enchaînement (plus tard)
 
@@ -185,7 +186,7 @@ Déjà décidé le 2026-09-23 :
   devant.
 
 L'analyse nécessaire (tempo, énergie) et la comparaison avec AudioMuse-AI feront l'objet d'une
-étude à part, après la bascule.
+étude à part.
 
 ## 8. Observabilité
 
@@ -230,8 +231,8 @@ plus toutes les 24 h et un message de retour à la normale.
 1. **Observabilité.** CI, Dependabot, Gatus sur l'antenne actuelle et battement de cœur de la
    passe. On voit ce qui marche avant d'ajouter quoi que ce soit.
 2. **Acquisition** (§5), une fois le compte Soulseek créé.
-3. **Préparation et antenne** (§6, §7.1, §7.2), jusqu'à la bascule.
-4. **Page de vote** (§4).
+3. **Préparation et antenne** (§6, §7.1, §7.2) : fait, bascule le 2026-10-01.
+4. **Page de vote** (§4) : en service le 2026-10-01.
 5. **Enchaînement** (§7.3).
 
 ## 10. Exploitation

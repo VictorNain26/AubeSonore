@@ -2,8 +2,8 @@
 
 ## Ce que fait ce dépôt
 
-Le pipeline de la radio AubeSonore : goût, découverte, puis bientôt acquisition et publication
-sur AzuraCast. **`docs/vision.md` est l'unique document de conception et d'exploitation** : le
+Le pipeline de la radio AubeSonore : goût, découverte, acquisition, publication sur AzuraCast
+et page de vote. **`docs/vision.md` est l'unique document de conception et d'exploitation** : le
 lire avant toute modification, et le tenir à jour dans le même commit que le code. Les mesures et
 sources qui fondent chaque décision sont dans `docs/recherches/`.
 

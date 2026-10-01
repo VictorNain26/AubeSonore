@@ -13,8 +13,8 @@ from tests_radio.factories import make_library
 def test_library_artists(tmp_path: Path) -> None:
     conn = make_library(tmp_path)
     assert library_artists(conn) == [
-        LibraryArtist(70, "Wire", ("Wire",), 1),
-        LibraryArtist(83, "M83", ("M83", "M83 feat. Susanne Sundfør"), 13),
+        LibraryArtist(70, "Wire", 1),
+        LibraryArtist(83, "M83", 13),
     ]
 
 
