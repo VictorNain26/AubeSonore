@@ -57,14 +57,15 @@ d'acceptation se donne en nombre ou en code de sortie. « le chiffre `density` d
 
 - Les sorties du pipeline (`data/`) ne sont pas versionnées — seules les
   empreintes et les fixtures le sont.
-- La CI passe le lint, les types et la suite rapide ; la suite lente exige le
-  dump et tourne à la demande.
+- La CI (`.github/workflows/musilogy.yml`, à la racine d'AubeSonore) passe le
+  lint, les types et la suite rapide ; la suite lente exige le dump et tourne
+  à la demande.
 
 ## Commandes
 
 ```bash
+cd musilogy                   # toutes les commandes partent d'ici
 uv sync
-uv run pre-commit install     # une fois par clone : ruff check --fix et format à chaque commit
 uv run pytest                 # suite rapide, sur les témoins
 uv run pytest -m slow         # ligne de base sur le dump réel, exige data/work/
 uv run musilogy run           # fetch → extract → transform → validate → publish
