@@ -133,5 +133,7 @@
   "alert_aria": "Me prévenir quand un artiste gardé repasse à l'antenne",
   "alert_denied": "Les notifications sont bloquées pour ce site dans votre navigateur.",
   "alert_unsupported": "Votre navigateur ne reçoit pas les notifications. Sur iPhone, ajoutez d'abord le site à l'écran d'accueil.",
-  "alert_failed": "L'alerte n'a pas pu être activée. Réessayez dans un instant."
+  "alert_failed": "L'alerte n'a pas pu être activée. Réessayez dans un instant.",
+  "meta_title": "AubeSonore — une radio de découverte, choisie titre par titre",
+  "meta_description": "Une radio de découverte, choisie titre par titre. Gratuite. Sans publicité. Jour et nuit. Gardez ce qui vous arrête, retrouvez-le sur votre plateforme."
 }
