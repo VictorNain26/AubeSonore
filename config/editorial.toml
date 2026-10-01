@@ -47,8 +47,6 @@ target_max = 2000
 reference_share = 0.2
 min_age_days = 60
 max_removals_per_pass = 50
-# La bascule (fin des 8 anciennes playlists) attend au moins ce nombre de titres à l'antenne.
-cutover_min = 400
 
 [votes]
 # Titres d'examen par sélection hebdomadaire, tirés au hasard parmi les retenus.

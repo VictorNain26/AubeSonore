@@ -86,7 +86,6 @@ class AntenneConfig(BaseModel):
     reference_share: float = Field(default=0.2, ge=0, lt=1)
     min_age_days: int = Field(default=60, ge=0)
     max_removals_per_pass: int = Field(default=50, ge=0)
-    cutover_min: int = Field(default=400, ge=1)
 
 
 class VotesConfig(BaseModel):

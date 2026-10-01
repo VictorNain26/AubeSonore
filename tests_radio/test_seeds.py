@@ -9,7 +9,7 @@ from radio.core.db import connect
 from radio.discover.seeds import draw_seeds, finish_run, recently_used, start_run
 from radio.library.artists import LibraryArtist
 
-A = [LibraryArtist(i, f"A{i}", (f"A{i}",), plays) for i, plays in [(1, 0), (2, 100), (3, 5)]]
+A = [LibraryArtist(i, f"A{i}", plays) for i, plays in [(1, 0), (2, 100), (3, 5)]]
 NOW = datetime(2026, 9, 25, tzinfo=UTC)
 CFG = DiscoverConfig(seeds_per_run=2, seed_cooldown_days=30)
 

@@ -47,7 +47,6 @@ class Dataset:
 class ExamSet:
     rows: Ints
     labels: Ints
-    last_vote: str | None
 
 
 @dataclass(frozen=True)
@@ -131,7 +130,6 @@ def build_labels(conn: sqlite3.Connection, table: SignalTable, exam_window: int)
     exam_set = ExamSet(
         rows=np.array([index[v["tid"]] for v in exam], dtype=np.int64),
         labels=np.array([int(v["vote"] == "oui") for v in exam], dtype=np.int64),
-        last_vote=exam[-1]["voted_at"] if exam else None,
     )
     return Labels(train, exam_set, unmeasured, excluded)
 

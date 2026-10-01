@@ -2,7 +2,7 @@ from radio.discover.neighbours import neighbours
 from radio.library.artists import LibraryArtist
 from radio.sources.deezer import DeezerArtist
 
-SEED = LibraryArtist(83, "M83", ("M83",), 13)
+SEED = LibraryArtist(83, "M83", 13)
 
 
 class FakeLastfm:
