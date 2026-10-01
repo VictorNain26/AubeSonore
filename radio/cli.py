@@ -22,6 +22,7 @@ from pydantic import ValidationError
 from radio.acquire.run import acquire_pass
 from radio.acquire.sockseek import SockseekError
 from radio.antenna.sync import antenne_pass
+from radio.core.backup import BackupError, backup
 from radio.core.config import Editorial, Settings, load_editorial
 from radio.core.db import connect
 from radio.core.report import invocation_stages, last_stages, record_stage
@@ -618,6 +619,25 @@ def check() -> None:
         _fail(f"Étapes sans rapport (tuées ?) : {', '.join(missing)} (journal systemd)", 1)
     if published == 0:
         _fail("Aucune découverte publiée cette semaine (radio report)", 1)
+
+
+@app.command("backup")
+def backup_command() -> None:
+    """Copie la base (API de sauvegarde SQLite, vérifiée) et les modèles dans RADIO_BACKUP_DIR."""
+    settings = _settings()
+    if settings.backup_dir is None:
+        _fail("RADIO_BACKUP_DIR doit être défini dans .env", 2)
+    try:
+        target = backup(
+            settings.data_dir / "radio.db",
+            settings.data_dir / "models",
+            settings.backup_dir,
+            datetime.now(UTC).date(),
+            _editorial(settings).backup.keep_days,
+        )
+    except (BackupError, sqlite3.Error, OSError) as e:
+        _fail(f"Sauvegarde ratée : {e}", 1)
+    _echo([f"Sauvegarde : {target}"])
 
 
 @app.command()
