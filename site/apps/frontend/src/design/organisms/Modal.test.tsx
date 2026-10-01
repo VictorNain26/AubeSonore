@@ -1,34 +1,12 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { Button } from '../atoms/Button';
 import { Modal } from './Modal';
 
 describe('Modal', () => {
-  it('opens from the trigger and shows the title', () => {
+  it('opens when controlled and names the dialog after its title', () => {
     render(
-      <Modal title="Se connecter" trigger={<Button variant="ghost">Compte</Button>}>
-        <p>Contenu</p>
-      </Modal>
-    );
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Compte' }));
-    expect(screen.getByRole('dialog', { name: 'Se connecter' })).toBeInTheDocument();
-  });
-  it('closes via the close button', () => {
-    render(
-      <Modal title="Se connecter" trigger={<Button variant="ghost">Compte</Button>}>
-        <p>Contenu</p>
-      </Modal>
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Compte' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  });
-
-  it('opens without a trigger when controlled via the open prop', () => {
-    render(
-      <Modal title="Panneau artiste" open>
+      <Modal title="Panneau artiste" open onOpenChange={vi.fn()}>
         <p>Contenu</p>
       </Modal>
     );
@@ -46,21 +24,44 @@ describe('Modal', () => {
     expect(onOpenChange).toHaveBeenCalledWith(false, expect.anything());
   });
 
-  it('caps the popup height to the viewport so scrolled content stays reachable', () => {
+  it('caps the centered popup to the viewport so scrolled content stays reachable', () => {
     render(
-      <Modal title="Panneau artiste" open>
+      <Modal title="Panneau artiste" open onOpenChange={vi.fn()}>
         <p>Contenu</p>
       </Modal>
     );
     expect(screen.getByRole('dialog').className).toContain('max-h-[calc(100dvh-2rem)]');
   });
 
-  it('widens the popup with size lg', () => {
+  it('shows the aside of the split variant next to the form', () => {
     render(
-      <Modal title="Panneau artiste" open size="lg">
-        <p>Contenu</p>
+      <Modal
+        title="Se connecter"
+        open
+        onOpenChange={vi.fn()}
+        variant="split"
+        aside={<p>Ambiance</p>}
+      >
+        <p>Formulaire</p>
       </Modal>
     );
-    expect(screen.getByRole('dialog').className).toContain('w-[min(92vw,36rem)]');
+    expect(screen.getByText('Ambiance')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Se connecter' })).toHaveTextContent('Formulaire');
+  });
+
+  it('puts the custom header above the title in the drawer variant', () => {
+    render(
+      <Modal
+        title="Ma bibliothèque"
+        open
+        onOpenChange={vi.fn()}
+        variant="drawer"
+        header={<p>Jane</p>}
+      >
+        <p>Liste</p>
+      </Modal>
+    );
+    expect(screen.getByText('Jane')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Ma bibliothèque' })).toHaveTextContent('Liste');
   });
 });

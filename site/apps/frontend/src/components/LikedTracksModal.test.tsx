@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
-import { renderWithProviders } from '../test-utils';
+import { useAuthStore } from '../stores/authStore';
 import { LikedTracksModal } from './LikedTracksModal';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
@@ -26,7 +26,23 @@ function makeTrack(index: number): LikedTrack {
   };
 }
 
+const signOut = vi.fn().mockResolvedValue(undefined);
+
 beforeEach(() => {
+  useAuthStore.setState({
+    user: {
+      id: 'u1',
+      email: 'jane@example.com',
+      name: 'Jane',
+      image: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    isAuthenticated: true,
+    isLoading: false,
+    authError: null,
+    signOut,
+  });
   useLikedTracksStore.setState({
     tracks: [],
     isLoading: false,
@@ -52,7 +68,7 @@ beforeEach(() => {
 describe('LikedTracksModal', () => {
   it('renders only 50 rows plus a button to reveal the remaining tracks', async () => {
     useLikedTracksStore.setState({ tracks: Array.from({ length: 60 }, (_, i) => makeTrack(i)) });
-    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
     expect(screen.getAllByRole('listitem')).toHaveLength(50);
     const showMoreButton = screen.getByRole('button', { name: /afficher les 10 autres/i });
@@ -68,7 +84,7 @@ describe('LikedTracksModal', () => {
 
   it('resets the visible-count bound to 50 when the modal is closed and reopened', async () => {
     useLikedTracksStore.setState({ tracks: Array.from({ length: 60 }, (_, i) => makeTrack(i)) });
-    const { rerender } = renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+    const { rerender } = render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
     const showMoreButton = screen.getByRole('button', { name: /afficher les 10 autres/i });
     await userEvent.click(showMoreButton);
@@ -83,7 +99,7 @@ describe('LikedTracksModal', () => {
 
   it('does not render the show-more button when there are 50 or fewer tracks', () => {
     useLikedTracksStore.setState({ tracks: Array.from({ length: 50 }, (_, i) => makeTrack(i)) });
-    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
     expect(screen.getAllByRole('listitem')).toHaveLength(50);
     expect(
@@ -91,49 +107,63 @@ describe('LikedTracksModal', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('keeps every row action visible without hover or focus', () => {
+  it('heads the drawer with the account and signs out from it', async () => {
     useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
-    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+    const onClose = vi.fn();
+    render(<LikedTracksModal isOpen={true} onClose={onClose} />);
 
-    const actions = screen.getByTestId('row-actions');
-    expect(actions.className).not.toContain('opacity-0');
+    expect(screen.getByText('Jane')).toBeInTheDocument();
+    expect(screen.getByText('1 morceau gardé')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
+
+    expect(onClose).toHaveBeenCalled();
+    expect(signOut).toHaveBeenCalled();
   });
 
-  it('applies scroll-pt-16 to the modal scroll container so a focused row clears the sticky header', () => {
-    useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
-    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+  it('dates each kept track and links it to the preferred platform', () => {
+    useLikedTracksStore.setState({
+      tracks: [
+        {
+          ...makeTrack(0),
+          songlinkUrl: null,
+          platformLinks: { spotify: 'https://open.spotify.com/track/x' },
+        },
+      ],
+    });
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    expect(screen.getByTestId('modal-scroll-container').className).toContain('scroll-pt-16');
+    expect(screen.getByText('gardé le 1 janvier')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Ouvrir « Track 0 » sur Spotify' })).toHaveAttribute(
+      'href',
+      'https://open.spotify.com/track/x'
+    );
   });
 
-  it('hides the scrollbar on the scroll container', () => {
-    useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
-    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+  it('counts nothing when the library is empty', async () => {
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    expect(screen.getByTestId('modal-scroll-container').className).toContain('scrollbar-none');
+    expect(await screen.findByText("Rien de gardé pour l'instant.")).toBeInTheDocument();
+    expect(screen.queryByText(/morceaux? gardés?$/)).not.toBeInTheDocument();
   });
 
-  it('highlights the hovered row so the revealed actions read as one unit', () => {
-    useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
-    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+  it('explains why the alert cannot be switched on when the browser has no push', async () => {
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    expect(screen.getByRole('listitem').className).toContain('hover:bg-surface');
-  });
-
-  it('marks the platform picker as a dropdown with a chevron that rotates when open', () => {
-    useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
-    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
-
-    const picker = screen.getByRole('button', { name: 'Sélectionner la plateforme préférée' });
-    expect(within(picker).getByTestId('platform-picker-chevron')).toBeInTheDocument();
-    expect(picker.className).toContain('[&[data-popup-open]>svg]:rotate-180');
+    await waitFor(() =>
+      expect(
+        screen.getByRole('switch', {
+          name: "Me prévenir quand un artiste gardé repasse à l'antenne",
+        })
+      ).toBeDisabled()
+    );
+    expect(screen.getByText(/ajoutez d'abord le site à l'écran d'accueil/)).toBeInTheDocument();
   });
 
   it('keeps the track visible with an inline Undo on delete, and cancels the removal on undo', async () => {
     useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
-    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Retirer de ma bibliothèque' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ne plus garder « Track 0 »' }));
 
     // The track stays in the store (pending), the row shows the inline Undo.
     expect(useLikedTracksStore.getState().tracks).toHaveLength(1);
@@ -147,9 +177,9 @@ describe('LikedTracksModal', () => {
 
   it('shows a countdown bar while a removal is pending, and removes it on undo', async () => {
     useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
-    renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Retirer de ma bibliothèque' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Ne plus garder « Track 0 »' }));
 
     const bar = await screen.findByRole('progressbar', {
       name: 'Temps restant avant suppression',
@@ -174,9 +204,9 @@ describe('LikedTracksModal', () => {
     vi.useFakeTimers();
     try {
       useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
-      renderWithProviders(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+      render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-      fireEvent.click(screen.getByRole('button', { name: 'Retirer de ma bibliothèque' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Ne plus garder « Track 0 »' }));
       // Within the grace period the removal has not been committed yet.
       expect(deleteCalled).toBe(false);
 

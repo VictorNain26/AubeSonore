@@ -5,7 +5,6 @@ import { useAuthStore } from '../stores/authStore';
 import { useAuthModalStore } from '../stores/authModalStore';
 import { ModalErrorFallback } from '../design/organisms/ErrorFallback';
 import { LikedTracksModal } from '../components/LikedTracksModal';
-import { AccountMenu } from './AccountMenu';
 import { PlayerPill } from './PlayerPill';
 import * as m from '@/paraglide/messages.js';
 
@@ -16,13 +15,8 @@ const OUTLINE_PILL =
   'text-ui border-accent ease-out-quart hover:bg-accent hover:text-on-accent focus-visible:outline-accent inline-flex min-h-11 items-center rounded-full border px-4.5 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2';
 
 export function SiteHeader() {
-  const { user, isAuthenticated, isLoading, signOut } = useAuthStore(
-    useShallow((s) => ({
-      user: s.user,
-      isAuthenticated: s.isAuthenticated,
-      isLoading: s.isLoading,
-      signOut: s.signOut,
-    }))
+  const { isAuthenticated, isLoading } = useAuthStore(
+    useShallow((s) => ({ isAuthenticated: s.isAuthenticated, isLoading: s.isLoading }))
   );
   const openAuthModal = useAuthModalStore((s) => s.open);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -37,13 +31,10 @@ export function SiteHeader() {
         </a>
         {isLoading ? (
           <span aria-hidden="true" className="bg-surface-raised h-11 w-32 rounded-full" />
-        ) : isAuthenticated && user ? (
-          <>
-            <button type="button" onClick={() => setIsLibraryOpen(true)} className={NAV_LINK}>
-              {m.nav_my_tracks()}
-            </button>
-            <AccountMenu user={user} onSignOut={() => void signOut()} />
-          </>
+        ) : isAuthenticated ? (
+          <button type="button" onClick={() => setIsLibraryOpen(true)} className={OUTLINE_PILL}>
+            {m.nav_my_tracks()}
+          </button>
         ) : (
           <button type="button" onClick={() => openAuthModal()} className={OUTLINE_PILL}>
             {m.nav_sign_in()}

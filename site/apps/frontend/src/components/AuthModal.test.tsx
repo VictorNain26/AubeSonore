@@ -19,8 +19,8 @@ describe('AuthModal', () => {
   it('switches to signup mode when clicking the switch button', async () => {
     renderWithProviders(<AuthModal isOpen={true} onClose={vi.fn()} defaultMode="signin" />);
 
-    // In signin mode the switch button reads "Pas encore de compte ? S'inscrire"
-    const switchBtn = screen.getByRole('button', { name: /pas encore de compte/i });
+    // In signin mode the switch link reads "Créer un compte"
+    const switchBtn = screen.getByRole('button', { name: 'Créer un compte' });
     await userEvent.click(switchBtn);
 
     // In signup mode the title changes and a "Nom" field appears
@@ -33,7 +33,7 @@ describe('AuthModal', () => {
     const onClose = vi.fn();
     renderWithProviders(<AuthModal isOpen={true} onClose={onClose} defaultMode="signin" />);
 
-    const emailInput = screen.getByLabelText('Email');
+    const emailInput = screen.getByLabelText('Adresse e-mail');
     const passwordInput = screen.getByLabelText('Mot de passe');
 
     await userEvent.type(emailInput, 'a@b.c');
@@ -47,7 +47,7 @@ describe('AuthModal', () => {
 
   it('associates a visible label with the email field', () => {
     renderWithProviders(<AuthModal isOpen={true} onClose={vi.fn()} />);
-    expect(screen.getByLabelText('Email')).toBeInTheDocument();
+    expect(screen.getByLabelText('Adresse e-mail')).toBeInTheDocument();
   });
 
   it('flags mismatched passwords on the confirmation field, not via toast', async () => {

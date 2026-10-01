@@ -38,7 +38,7 @@ describe('SiteHeader', () => {
     expect(useAuthModalStore.getState().isOpen).toBe(true);
   });
 
-  it('shows the user menu when authenticated, revealing name, email and sign-out', async () => {
+  it('opens the library of a signed-in listener, where they can sign out', async () => {
     useAuthStore.setState({
       user: {
         id: '1',
@@ -57,12 +57,11 @@ describe('SiteHeader', () => {
 
     render(<SiteHeader />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Réglages et compte' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Mes morceaux' }));
+    expect(await screen.findByRole('dialog', { name: 'Ma bibliothèque' })).toBeInTheDocument();
+    expect(screen.getByText('Jane')).toBeInTheDocument();
 
-    expect(await screen.findByText('Jane')).toBeInTheDocument();
-    expect(screen.getByText('jane@example.com')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByText('Déconnexion'));
+    await userEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
     expect(signOut).toHaveBeenCalled();
   });
 
@@ -72,7 +71,7 @@ describe('SiteHeader', () => {
     render(<SiteHeader />);
 
     expect(screen.queryByRole('button', { name: 'Se connecter' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Réglages et compte' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mes morceaux' })).not.toBeInTheDocument();
   });
 
   it('opens my tracks only for a signed-in listener', () => {

@@ -44,8 +44,8 @@ export function createLikedArtistNotifier(deps: WatcherDeps): () => Promise<void
 
     await deps.send(
       toNotify,
-      'En ce moment sur AubeSonore',
-      `« ${track.title} » — ${track.artist}, un artiste de votre bibliothèque, passe en direct.`,
+      'AubeSonore',
+      `${track.artist} repasse à l'antenne : « ${track.title} ».`,
       '/'
     );
 
