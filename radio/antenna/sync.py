@@ -234,9 +234,10 @@ def remove_excess(
         for r in conn.execute(
             """
             SELECT n.path, n.song_id FROM antenne n
+            JOIN tracks t USING (deezer_track_id)
             LEFT JOIN scores s USING (deezer_track_id)
             WHERE n.origin = 'decouverte' AND n.published_at < ?
-            ORDER BY COALESCE(s.score, 0), n.deezer_track_id
+            ORDER BY t.origin = 'library', COALESCE(s.score, 0), n.deezer_track_id
             """,
             (before,),
         )

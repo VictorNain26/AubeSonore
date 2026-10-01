@@ -117,8 +117,9 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
      refusée, compte banni), fait échouer l'étape sans enregistrer aucune tentative. Un titre
      absent d'un index partiel (Sockseek interrompu) n'est pas une tentative : il est compté
      « non tenté » et l'étape échoue.
-   - Le dossier de la passe (`data/acquisition/<date>/`) est supprimé à la fin, même si la passe
-     s'interrompt.
+   - Le dossier de la passe (`data/acquisition/<date>/`) est supprimé à la fin, même sur
+     exception ; pas si systemd tue le processus (délai de 12 h), car Python n'exécute alors pas
+     son `finally`.
 3. **Contrôle de chaque fichier.** Il est rejeté, compté et supprimé s'il échoue à l'un de ces
    points :
    - `ffprobe` : codec MP3 ou FLAC, durée à ±3 s de Deezer, et pour un MP3 un débit moyen
@@ -182,7 +183,9 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
   - Le titre en cours (`GET /nowplaying/{station}`, `now_playing.song.id`) et la file de
     l'AutoDJ (`GET /station/{id}/queue`) sont toujours épargnés, y compris pour un vote « non » :
     le titre sort à la passe suivante.
-  - `radio remove` permet un retrait manuel.
+  - Retrait manuel : supprimer le fichier dans AzuraCast ; la passe suivante l'oublie et ne le
+    republie jamais.
+  - Une découverte entrée depuis dans la bibliothèque Plex sort en dernier.
 
 ### 7.2 Publication sur AzuraCast
 
@@ -239,7 +242,8 @@ Seuils, par étape : taux d'acquisition au-dessus de `min_success_rate` dès
 
 `acquire` est préfixée de `-` dans l'unité : son échec n'empêche pas `antenne` de publier ce qui
 est prêt. La dernière étape, `radio check`, juge la passe entière : une étape en échec, ou aucune
-découverte publiée, la fait échouer, et Gatus alerte (§8.2).
+découverte publiée, ou une étape sans ligne de rapport (processus tué), la fait échouer, et Gatus
+alerte (§8.2).
 
 ### 8.2 Gatus
 

@@ -593,6 +593,10 @@ def _stage_lines(stages: list[tuple[str, str, bool, dict[str, object]]]) -> list
     ]
 
 
+# Étapes de deploy/systemd/radio-weekly.service : chacune doit avoir laissé sa ligne de rapport.
+PASS_STAGES = ("library-sync", "discover", "signals", "train", "votes-select", "acquire", "antenne")
+
+
 @app.command()
 def check() -> None:
     """Juge la passe systemd en cours : une étape en échec, ou aucune découverte publiée, la fait
@@ -603,12 +607,15 @@ def check() -> None:
     with _db(_settings()) as conn:
         stages = invocation_stages(conn, invocation)
     failed = [s for s, ok, _ in stages if not ok]
+    missing = [s for s in PASS_STAGES if s not in {name for name, _, _ in stages}]
     published = sum(int(str(c.get("publiés", 0))) for s, _, c in stages if s == "antenne")
     _echo(
         [f"Passe : {_n(len(stages))} étapes, {_n(len(failed))} en échec, {_n(published)} publiés"]
     )
     if failed:
         _fail(f"Étapes en échec : {', '.join(failed)} (radio report)", 1)
+    if missing:
+        _fail(f"Étapes sans rapport (tuées ?) : {', '.join(missing)} (journal systemd)", 1)
     if published == 0:
         _fail("Aucune découverte publiée cette semaine (radio report)", 1)
 
@@ -627,6 +634,7 @@ def report() -> None:
 
 
 @app.command("votes-select")
+@_stage("votes-select")
 def votes_select() -> None:
     """Tire la sélection de la semaine : examen au hasard sur toute la fournée, leçon par
     incertitude."""
@@ -642,12 +650,19 @@ def votes_select() -> None:
                 _now(),
             )
         except PendingBallotsError as e:
+            _record(conn, "votes-select", True, {"en attente de vote": e.n})
             typer.echo(f"{_n(e.n)} titres encore en attente de vote : pas de nouvelle sélection")
             return
         except NoServingModelError:
             _fail("Aucun modèle en service : lancer radio train", 1)
         except NoScoresError:
             _fail("Le modèle en service n'a noté aucun candidat : lancer radio train", 1)
+        _record(
+            conn,
+            "votes-select",
+            True,
+            {"examen": len(sel.exam), "leçon": len(sel.lesson), "fournée": sel.n_batch},
+        )
     if sel.selection_id is None:
         typer.echo("Rien à présenter : tous les candidats notés ont déjà été présentés")
         return

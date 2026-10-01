@@ -1,3 +1,4 @@
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -108,6 +109,17 @@ def test_votes_select_draws_then_waits(full: Path) -> None:
     res = runner.invoke(cli.app, ["votes-select"])
     assert res.exit_code == 0, res.output
     assert "20 titres encore en attente de vote : pas de nouvelle sélection" in res.output
+    stages = (
+        sqlite3.connect(full / "data" / "radio.db")
+        .execute(
+            "SELECT ok, counts FROM stage_reports WHERE stage = 'votes-select' ORDER BY report_id"
+        )
+        .fetchall()
+    )
+    assert stages == [
+        (1, '{"examen": 10, "leçon": 10, "fournée": 48}'),
+        (1, '{"en attente de vote": 20}'),
+    ]
 
 
 def test_votes_select_without_model_fails(full: Path) -> None:
@@ -115,6 +127,12 @@ def test_votes_select_without_model_fails(full: Path) -> None:
     res = runner.invoke(cli.app, ["votes-select"])
     assert res.exit_code == 1
     assert "Aucun modèle en service" in res.output
+    row = (
+        sqlite3.connect(full / "data" / "radio.db")
+        .execute("SELECT ok, counts FROM stage_reports WHERE stage = 'votes-select'")
+        .fetchone()
+    )
+    assert row == (0, '{"erreur": "Aucun modèle en service : lancer radio train"}')
 
 
 def test_votes_serve_requires_access_settings(

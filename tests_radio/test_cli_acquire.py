@@ -31,8 +31,9 @@ def _env(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, editorial: str = "") -
 
 
 def _stage(db: Path) -> tuple[int, str] | None:
-    row = sqlite3.connect(db).execute("SELECT ok, counts FROM stage_reports").fetchone()
-    return None if row is None else (int(row[0]), str(row[1]))
+    rows = sqlite3.connect(db).execute("SELECT ok, counts FROM stage_reports").fetchall()
+    assert len(rows) <= 1  # une seule ligne par étape, même quand elle enregistre puis échoue
+    return None if not rows else (int(rows[0][0]), str(rows[0][1]))
 
 
 def _report(rep: AcquireReport) -> Any:
@@ -114,21 +115,20 @@ def _stages(db: Path, rows: list[tuple[str, str, int, str]]) -> None:
     conn.commit()
 
 
+def _pass(**over: tuple[int, str]) -> list[tuple[str, str, int, str]]:
+    stages = {name: (1, "{}") for name in cli.PASS_STAGES} | {"antenne": (1, '{"publiés": 3}')}
+    stages |= {k.replace("_", "-"): v for k, v in over.items()}
+    return [("p", name, ok, counts) for name, (ok, counts) in stages.items()]
+
+
 @pytest.mark.parametrize(
     ("rows", "code", "message"),
     [
-        ([("p", "acquire", 1, "{}"), ("p", "antenne", 1, '{"publiés": 3}')], 0, ""),
-        (
-            [("p", "acquire", 0, "{}"), ("p", "antenne", 1, '{"publiés": 3}')],
-            1,
-            "Étapes en échec : acquire",
-        ),
-        ([("p", "antenne", 1, '{"publiés": 0}')], 1, "Aucune découverte publiée"),
-        (
-            [("autre", "acquire", 0, "{}"), ("p", "antenne", 1, '{"publiés": 1}')],
-            0,
-            "",
-        ),
+        (_pass(), 0, "7 étapes, 0 en échec, 3 publiés"),
+        (_pass(acquire=(0, "{}")), 1, "Étapes en échec : acquire"),
+        (_pass(antenne=(1, '{"publiés": 0}')), 1, "Aucune découverte publiée"),
+        ([r for r in _pass() if r[1] != "acquire"], 1, "Étapes sans rapport (tuées ?) : acquire"),
+        ([("autre", "acquire", 0, "{}"), *_pass()], 0, ""),
     ],
 )
 def test_check_judges_only_the_current_pass(
