@@ -85,7 +85,13 @@ export function PlayerPillView({
               <span className="text-on-accent-muted"> — {artist}</span>
             </span>
           </>
-        ) : null}
+        ) : (
+          // Holds the second line on phones until the track arrives, so the
+          // pinned bar does not grow and shift the page (CLS).
+          <span aria-hidden="true" className="text-caption md:hidden">
+            {'\u00a0'}
+          </span>
+        )}
       </div>
 
       <div className="hidden items-center pointer-fine:flex">
