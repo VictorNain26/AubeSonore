@@ -18,6 +18,7 @@ function props(overrides: Partial<NowPlayingViewProps> = {}): NowPlayingViewProp
     onToggleKeep: vi.fn(),
     onShare: vi.fn(),
     onOpenArtist: undefined,
+    before: [],
     ...overrides,
   };
 }
@@ -79,5 +80,35 @@ describe('NowPlayingView', () => {
   it('says radio silence when the station is off air', () => {
     render(<NowPlayingView {...props({ isOnline: false })} />);
     expect(screen.getByText('Silence radio. Retour dans un instant.')).toBeInTheDocument();
+  });
+
+  it('shows the tracks just before the live, linked to the whole thread', () => {
+    render(
+      <NowPlayingView
+        {...props({
+          before: [
+            { id: 2, playedAt: playedAt - 240, title: 'Tango Whiskyman', artist: 'CAN' },
+            { id: 1, playedAt: playedAt - 480, title: 'Hunnybee', artist: 'UMO' },
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByText('Juste avant')).toBeInTheDocument();
+    expect(screen.getByText('Tango Whiskyman')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: "Tout le fil depuis l'aube" })).toHaveAttribute(
+      'href',
+      '#depuis-l-aube'
+    );
+  });
+
+  it('beats the heart when a track is kept, not when it loads kept', () => {
+    const { rerender } = render(<NowPlayingView {...props({ isKept: true })} />);
+    const keep = () => screen.getByRole('button', { name: 'Garder' });
+    expect(keep()).not.toContainHTML('keep-pop');
+
+    rerender(<NowPlayingView {...props({ isKept: false })} />);
+    rerender(<NowPlayingView {...props({ isKept: true })} />);
+    expect(keep()).toContainHTML('keep-pop');
   });
 });

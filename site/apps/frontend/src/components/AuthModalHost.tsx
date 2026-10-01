@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useAuthModalStore } from '../stores/authModalStore';
@@ -24,7 +24,16 @@ export function AuthModalHost() {
     }))
   );
 
-  if (!isOpen) return null;
+  // Remounted at each opening (it reads its mode then), kept mounted while it
+  // closes so the exit transition can play.
+  const [session, setSession] = useState(0);
+  const [wasOpen, setWasOpen] = useState(false);
+  if (isOpen !== wasOpen) {
+    setWasOpen(isOpen);
+    if (isOpen) setSession((n) => n + 1);
+  }
+
+  if (session === 0) return null;
 
   // Closed without signing in: forget the track they wanted to keep.
   const onClose = () => {
@@ -38,6 +47,7 @@ export function AuthModalHost() {
     >
       <Suspense fallback={null}>
         <AuthModal
+          key={session}
           isOpen={isOpen}
           onClose={onClose}
           defaultMode={mode}

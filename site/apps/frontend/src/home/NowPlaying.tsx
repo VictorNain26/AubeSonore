@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { Heart, Share2 } from 'lucide-react';
+import { Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { KeepHeart } from './KeepHeart';
 import { useNowPlayingStore } from '../lib/azuracast';
 import { usePlayer } from '../lib/player';
 import { useTrackActions } from '../hooks/player/useTrackActions';
@@ -23,6 +24,13 @@ import * as m from '@/paraglide/messages.js';
 // Past this length the title would take three lines at hero size.
 const LONG_TITLE = 28;
 
+export interface BeforeRow {
+  id: number;
+  playedAt: number;
+  title: string;
+  artist: string;
+}
+
 export interface NowPlayingViewProps {
   track: {
     title: string;
@@ -42,6 +50,10 @@ export interface NowPlayingViewProps {
   onToggleKeep: () => void;
   onShare: () => void;
   onOpenArtist: (() => void) | undefined;
+  /** The last tracks before this one, newest first: the thread the live belongs to. */
+  before: BeforeRow[];
+  /** True once the live has moved past the track shown at load: changes then animate. */
+  hasChanged?: boolean;
 }
 
 /**
@@ -60,17 +72,21 @@ export function NowPlayingView({
   onToggleKeep,
   onShare,
   onOpenArtist,
+  before,
+  hasChanged = false,
 }: NowPlayingViewProps) {
+  const trackKey = track ? `${track.artist}|${track.title}` : 'none';
   return (
-    <div className="grid gap-6 md:grid-cols-12 md:items-end md:gap-x-10">
+    <div className="grid gap-6 md:grid-cols-12 md:items-center md:gap-x-10">
       <div className="lift-in md:col-span-5 lg:col-span-4">
         {track ? (
           <Cover
+            key={trackKey}
             src={track.art}
             alt={m.now_cover_alt({ title: track.title, artist: track.artist })}
             seed={`${track.artist}|${track.title}`}
             priority
-            className="artwork-size shadow-cover aspect-square"
+            className={cn('artwork-size shadow-cover aspect-square', hasChanged && 'swap-in')}
           />
         ) : (
           <div
@@ -86,7 +102,7 @@ export function NowPlayingView({
             {m.off_air()}
           </p>
         ) : track ? (
-          <>
+          <div key={trackKey} className={cn('flex flex-col gap-2', hasChanged && 'swap-in-late')}>
             <span className="text-label text-text-muted font-mono uppercase">
               {m.now_on_air({ time: formatClock(track.playedAt) })}
               {listeners !== undefined && listeners >= 2
@@ -102,7 +118,7 @@ export function NowPlayingView({
               {track.title}
             </h2>
             <p className="text-headline text-text-muted m-0 font-normal">{track.artist}</p>
-          </>
+          </div>
         ) : (
           <div aria-busy="true" className="flex flex-col gap-2">
             <span className="bg-surface-raised h-4 w-40 rounded-sm" />
@@ -132,11 +148,7 @@ export function NowPlayingView({
                 aria-pressed={isKept}
                 className={TEXT_ACTION}
               >
-                <Heart
-                  className={cn('size-4', isKept && 'fill-current')}
-                  strokeWidth={1.6}
-                  aria-hidden="true"
-                />
+                <KeepHeart isKept={isKept} className="size-4" />
                 {m.track_keep()}
               </button>
               <button type="button" onClick={onShare} className={TEXT_ACTION}>
@@ -151,14 +163,42 @@ export function NowPlayingView({
             </span>
           ) : null}
         </div>
+
+        {before.length > 0 ? (
+          <div className="mt-8 flex flex-col md:mt-10 md:max-w-xl">
+            <span className="text-label text-text-muted mb-2 font-mono uppercase">
+              {m.now_before()}
+            </span>
+            <ol className="border-border m-0 list-none border-t p-0">
+              {before.map((row) => (
+                <li
+                  key={row.id}
+                  className="thread-in border-border grid grid-cols-[3.5rem_minmax(0,1fr)] items-baseline gap-x-3 border-b py-2.5"
+                >
+                  <span className="text-ui text-text-muted font-mono font-normal tabular-nums">
+                    {formatClock(row.playedAt)}
+                  </span>
+                  <span className="text-ui truncate">
+                    <span className="font-semibold">{row.title}</span>
+                    <span className="text-text-muted font-normal"> — {row.artist}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <a href="#depuis-l-aube" className={cn(TEXT_ACTION, 'self-start')}>
+              {m.now_before_all()}
+            </a>
+          </div>
+        ) : null}
       </div>
     </div>
   );
 }
 
 export function NowPlaying() {
-  const { title, artist, art, playedAt, isOnline, listeners } = useNowPlayingStore(
+  const { title, artist, art, playedAt, isOnline, listeners, history } = useNowPlayingStore(
     useShallow((s) => ({
+      history: s.data?.song_history,
       title: s.data?.now_playing?.song.title,
       artist: s.data?.now_playing?.song.artist,
       art: s.data?.now_playing?.song.art,
@@ -175,6 +215,9 @@ export function NowPlaying() {
   const openArtistPanel = useArtistPanelStore((s) => s.open);
   const setListenVisible = useHeroListenVisible((s) => s.setVisible);
   const listenRef = useRef<HTMLButtonElement>(null);
+  const trackKey = title && artist ? `${artist}|${title}` : null;
+  const [firstTrackKey, setFirstTrackKey] = useState<string | null>(null);
+  if (firstTrackKey === null && trackKey !== null) setFirstTrackKey(trackKey);
 
   useEffect(() => {
     const button = listenRef.current;
@@ -202,6 +245,13 @@ export function NowPlaying() {
       onToggleKeep={handleToggleLike}
       onShare={handleShare}
       onOpenArtist={artistInfo?.bio && artist ? () => openArtistPanel(artist) : undefined}
+      hasChanged={firstTrackKey !== null && trackKey !== firstTrackKey}
+      before={(history ?? []).slice(0, 3).map((e) => ({
+        id: e.sh_id,
+        playedAt: e.played_at,
+        title: e.song.title,
+        artist: e.song.artist,
+      }))}
     />
   );
 }

@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Popover } from '@base-ui/react/popover';
-import { Airplay, Heart, Volume2, VolumeX } from 'lucide-react';
+import { Airplay, Volume2, VolumeX } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { KeepHeart } from './KeepHeart';
 import { useNowPlayingStore } from '../lib/azuracast';
 import { usePlayer } from '../lib/player';
 import { useAirPlayStore } from '../stores/airplayStore';
@@ -58,8 +59,8 @@ function VolumeControl({
         )}
       </Popover.Trigger>
       <Popover.Portal>
-        <Popover.Positioner side="top" sideOffset={12}>
-          <Popover.Popup className="bg-accent text-on-accent shadow-bar flex flex-col items-center gap-1 rounded-full px-1 py-3 focus:outline-none">
+        <Popover.Positioner side="top" sideOffset={12} className="z-50">
+          <Popover.Popup className="bg-accent text-on-accent shadow-bar ease-out-quart flex origin-(--transform-origin) flex-col items-center gap-1 rounded-full px-1 py-3 transition-[opacity,scale] duration-150 focus:outline-none data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
             <Slider
               label={m.volume_slider()}
               value={isMuted ? 0 : volume}
@@ -161,11 +162,7 @@ export function PlayerBarView({
           aria-label={m.track_keep_aria({ title: track.title })}
           className={ICON_BUTTON}
         >
-          <Heart
-            className={cn('size-4', isKept && 'fill-current')}
-            strokeWidth={1.6}
-            aria-hidden="true"
-          />
+          <KeepHeart isKept={isKept} className="size-4" />
         </button>
       ) : null}
 

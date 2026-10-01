@@ -52,7 +52,7 @@ describe('HomePage', () => {
     renderWithProviders(<Root />);
 
     expect(
-      screen.getByRole('heading', { name: "Des titres à l'aube de vous plaire." })
+      screen.getByRole('heading', { name: /Des titres à l'aube de vous plaire\./ })
     ).toBeInTheDocument();
     expect(screen.getAllByText('Nüchtern').length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: "Depuis l'aube" })).toBeInTheDocument();
@@ -66,7 +66,7 @@ describe('HomePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'en' }));
 
     expect(
-      await screen.findByRole('heading', { name: 'The first light of your next favourite songs.' })
+      await screen.findByRole('heading', { name: /The first light of your next favourite songs\./ })
     ).toBeInTheDocument();
   });
 

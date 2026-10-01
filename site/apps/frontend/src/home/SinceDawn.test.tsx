@@ -10,6 +10,7 @@ function rows(count: number): ThreadRow[] {
     playedAt: Math.floor(new Date(2026, 9, 1, 17, 0).getTime() / 1000) - i * 240,
     title: `Titre ${i + 1}`,
     artist: `Artiste ${i + 1}`,
+    art: null,
     isNow: i === 0,
     isKept: false,
     isKeeping: false,
@@ -48,5 +49,18 @@ describe('SinceDawnView', () => {
 
     rerender(<SinceDawnView rows={[]} status="error" onToggleKeep={vi.fn()} />);
     expect(screen.getByText("Le fil est indisponible pour l'instant.")).toBeInTheDocument();
+  });
+
+  it('lets a track that joins the thread slide in, but not the ones already there', () => {
+    const first = rows(3).map((r) => ({ ...r, id: r.id + 1 }));
+    const { rerender } = render(
+      <SinceDawnView rows={first} status="ready" onToggleKeep={vi.fn()} />
+    );
+    screen.getAllByRole('listitem').forEach((li) => expect(li).not.toHaveClass('thread-in'));
+
+    rerender(<SinceDawnView rows={[...rows(1), ...first]} status="ready" onToggleKeep={vi.fn()} />);
+    const [arrived, ...others] = screen.getAllByRole('listitem');
+    expect(arrived).toHaveClass('thread-in');
+    others.forEach((li) => expect(li).not.toHaveClass('thread-in'));
   });
 });

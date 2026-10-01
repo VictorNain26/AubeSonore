@@ -1,68 +1,106 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
-import { getAnalyser } from '../lib/player';
-import { sampleBin, waveOffset } from '../lib/waveform';
 
 // ─────────────────────────────────────────────
-// Antenna trace — an audio-reactive waveform with internal rAF.
+// The horizon line: two traces drifting against each other, each a sum of
+// three sines. At rest they barely ripple and drift slowly; while the live
+// plays they swell and speed up. Amplitude and speed ease between the two, so
+// pressing Écouter never makes the line jump.
+//
+// One period spans the visible width, so the drift loops seamlessly. The rAF
+// loop lives in the canvas: a frame never re-renders the React tree, and
+// `isPlaying` is read from a ref so a change does not restart the loop.
 // ─────────────────────────────────────────────
-// This is NOT a progress bar. A live broadcast can't be scrubbed and you
-// can't rewind it, so there is no elapsed/remaining and no played/unplayed
-// split — every point is drawn the same way. It signals one thing: the
-// antenna is on air, and this is the shape of its sound.
-//
-// Frequencies come from the player's Web Audio analyser — except on iOS,
-// where the stream stays off Web Audio (locked-screen playback would die,
-// see lib/player.ts) and getAnalyser() returns null: the trace then keeps
-// its time-based procedural motion.
-//
-// The rAF loop lives inside the canvas so the React tree is never
-// re-rendered on a frame tick. `isPlaying`/`songId` are read from refs so
-// prop changes don't tear the loop down.
-//
-// Rendering is a single continuous ink line in `--color-text`: 78% alpha
-// while live, a quiet 30% flat line when stopped. No gradients, no glow —
-// a thin trace, not a light show.
+
+type Sine = readonly [harmonic: number, weight: number, phase: number];
+
+export interface WaveLayer {
+  sines: readonly Sine[];
+  /** Share of the common amplitude this trace gets. */
+  gain: number;
+  /** Seconds to drift one width, at rest and while playing. */
+  period: { rest: number; live: number };
+  /** 1 drifts left, -1 drifts right. */
+  direction: 1 | -1;
+  /** Ink opacity and stroke width (CSS px). */
+  alpha: number;
+  width: number;
+}
+
+export const LAYERS: readonly WaveLayer[] = [
+  {
+    sines: [
+      [2, 0.55, 0],
+      [5, 0.3, 1.3],
+      [11, 0.15, 0.4],
+    ],
+    gain: 1,
+    period: { rest: 28, live: 9 },
+    direction: 1,
+    alpha: 1,
+    width: 1.4,
+  },
+  {
+    sines: [
+      [3, 0.5, 2.1],
+      [7, 0.35, 0.2],
+      [13, 0.15, 1.9],
+    ],
+    gain: 0.8,
+    period: { rest: 36, live: 13 },
+    direction: -1,
+    alpha: 0.3,
+    width: 1,
+  },
+];
+
+/** Peak offset as a share of the canvas height, at rest and while playing. */
+export const AMPLITUDE = { rest: 5 / 120, live: 30 / 120 };
+
+/** Seconds for amplitude and speed to cover about two thirds of a change. */
+const EASE_SECONDS = 0.6;
+
+/** Signed offset of a trace (about -1..1) at `u`, a position in widths. */
+export function traceOffset(sines: readonly Sine[], u: number): number {
+  return sines.reduce((y, [n, w, p]) => y + w * Math.sin(2 * Math.PI * n * u + p), 0);
+}
+
+export interface WaveMotion {
+  /** Eased 0 (rest) .. 1 (live). */
+  liveness: number;
+  /** Drift of each layer, in widths. */
+  drift: number[];
+}
+
+/** Advances the motion by `dt` seconds towards rest or live. */
+export function stepMotion(motion: WaveMotion, isPlaying: boolean, dt: number): WaveMotion {
+  const target = isPlaying ? 1 : 0;
+  const liveness = target + (motion.liveness - target) * Math.exp(-dt / EASE_SECONDS);
+  const drift = LAYERS.map((layer, i) => {
+    const period = layer.period.rest + (layer.period.live - layer.period.rest) * liveness;
+    return ((motion.drift[i] ?? 0) + (layer.direction * dt) / period) % 1;
+  });
+  return { liveness, drift };
+}
 
 interface HorizonLineProps {
   isPlaying: boolean;
-  songId: number | undefined;
   className?: string;
 }
 
-export function HorizonLine({ isPlaying, songId, className }: HorizonLineProps) {
+export function HorizonLine({ isPlaying, className }: HorizonLineProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const animationRef = useRef<number>(0);
-  const timeRef = useRef<number>(0);
-  const frequencyDataRef = useRef<Uint8Array | null>(null);
-  const smoothedDataRef = useRef<number[]>([]);
-  const textColorRef = useRef<string>('');
-
-  // Read latest props from refs inside the rAF callback so changes to
-  // `isPlaying`/`songId` don't tear down the loop.
   const isPlayingRef = useRef(isPlaying);
-  const songIdRef = useRef(songId);
 
   useLayoutEffect(() => {
     isPlayingRef.current = isPlaying;
-    songIdRef.current = songId;
   });
-
-  const pointsCount = 72;
-
-  useEffect(() => {
-    if (smoothedDataRef.current.length !== pointsCount) {
-      smoothedDataRef.current = new Array(pointsCount).fill(0.3) as number[];
-    }
-  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
 
-    // Le canvas est dessiné en pixels physiques (taille CSS × dpr) pour que
-    // le trait reste net sur écran haute densité, quelle que soit la largeur.
+    // Drawn in device pixels so the stroke stays crisp on dense screens.
     let dpr = 1;
     const resize = () => {
       dpr = window.devicePixelRatio || 1;
@@ -74,96 +112,56 @@ export function HorizonLine({ isPlaying, songId, className }: HorizonLineProps) 
     resizeObserver.observe(canvas);
 
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-
+    const ink = getComputedStyle(document.documentElement).getPropertyValue('--color-text').trim();
+    let motion: WaveMotion = {
+      liveness: isPlayingRef.current ? 1 : 0,
+      drift: LAYERS.map(() => 0),
+    };
+    let frame = 0;
     let lastTime = performance.now();
-    let paused = typeof document !== 'undefined' && document.hidden;
+
+    const draw = (now: number): void => {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+      // Reduced motion: a still line at rest.
+      if (!reducedMotion.matches) motion = stepMotion(motion, isPlayingRef.current, dt);
+
+      const { width, height } = canvas;
+      const mid = height / 2;
+      const amplitude =
+        height * (AMPLITUDE.rest + (AMPLITUDE.live - AMPLITUDE.rest) * motion.liveness);
+      const step = 4 * dpr;
+
+      ctx.clearRect(0, 0, width, height);
+      LAYERS.forEach((layer, i) => {
+        const drift = motion.drift[i] ?? 0;
+        ctx.beginPath();
+        for (let x = 0; x <= width + step; x += step) {
+          const y = mid + amplitude * layer.gain * traceOffset(layer.sines, x / width + drift);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.lineWidth = layer.width * dpr;
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = `color-mix(in srgb, ${ink} ${Math.round(layer.alpha * 100)}%, transparent)`;
+        ctx.stroke();
+      });
+
+      frame = requestAnimationFrame(draw);
+    };
 
     const handleVisibility = () => {
-      paused = document.hidden;
-      if (!paused) {
+      cancelAnimationFrame(frame);
+      if (!document.hidden) {
         lastTime = performance.now();
-        animationRef.current = requestAnimationFrame(draw);
+        frame = requestAnimationFrame(draw);
       }
     };
     document.addEventListener('visibilitychange', handleVisibility);
-
-    const draw = (currentTime: number): void => {
-      if (paused) return;
-      const deltaTime = (currentTime - lastTime) / 1000;
-      lastTime = currentTime;
-      // Mouvement réduit : la ligne reste figée (le temps interne
-      // n'avance plus).
-      if (!reducedMotion.matches) timeRef.current += deltaTime;
-
-      const time = timeRef.current;
-      const width = canvas.width;
-      const height = canvas.height;
-      const isPlaying = isPlayingRef.current;
-
-      ctx.clearRect(0, 0, width, height);
-
-      if (!textColorRef.current) {
-        textColorRef.current = getComputedStyle(document.documentElement)
-          .getPropertyValue('--color-text')
-          .trim();
-      }
-      const textColor = textColorRef.current;
-
-      const analyser = getAnalyser();
-      let frequencyData: Uint8Array | null = null;
-
-      if (isPlaying && analyser && !reducedMotion.matches) {
-        if (!frequencyDataRef.current) {
-          frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount);
-        }
-        analyser.getByteFrequencyData(frequencyDataRef.current as Uint8Array<ArrayBuffer>);
-        frequencyData = frequencyDataRef.current;
-      }
-
-      const mid = height / 2;
-      const values: number[] = smoothedDataRef.current;
-      ctx.beginPath();
-      ctx.lineWidth = (isPlaying ? 1.6 : 1) * dpr;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = isPlaying
-        ? `color-mix(in srgb, ${textColor} 78%, transparent)`
-        : `color-mix(in srgb, ${textColor} 30%, transparent)`;
-      const stepX = width / (pointsCount - 1);
-      const amplitude = height * 0.42;
-
-      for (let i = 0; i < pointsCount; i++) {
-        if (frequencyData) {
-          const binIndex = sampleBin(i, pointsCount, 2, 35);
-          const value = frequencyData[binIndex] ?? 0;
-          const normalized = 0.15 + (value / 255) * 0.8;
-          const smoothingFactor = 0.35;
-          const prevValue = values[i] || 0.3;
-          values[i] = prevValue * (1 - smoothingFactor) + normalized * smoothingFactor;
-        }
-
-        const currentValue = values[i] || 0.3;
-        const signed = waveOffset(currentValue, i, time, isPlaying);
-        const y = mid + signed * amplitude;
-        const x = i * stepX;
-        if (i === 0) ctx.moveTo(x, y);
-        else {
-          const prevX = (i - 1) * stepX;
-          const prevValuePt = values[i - 1] || 0.3;
-          const prevSigned = waveOffset(prevValuePt, i - 1, time, isPlaying);
-          const prevY = mid + prevSigned * amplitude;
-          ctx.quadraticCurveTo(prevX + stepX / 2, (prevY + y) / 2, x, y);
-        }
-      }
-      ctx.stroke();
-
-      animationRef.current = requestAnimationFrame(draw);
-    };
-
-    animationRef.current = requestAnimationFrame(draw);
+    frame = requestAnimationFrame(draw);
 
     return () => {
-      cancelAnimationFrame(animationRef.current);
+      cancelAnimationFrame(frame);
       resizeObserver.disconnect();
       document.removeEventListener('visibilitychange', handleVisibility);
     };

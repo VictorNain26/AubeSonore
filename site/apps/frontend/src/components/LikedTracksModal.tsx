@@ -1,9 +1,10 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { PLATFORMS } from '@aubesonore/shared-types/client';
+import { PLATFORM_NAMES, PLATFORMS } from '@aubesonore/shared-types/client';
 import type { PreferredPlatform } from '../lib/api';
 import { getPlatformLink } from '@aubesonore/core/share';
 import { toast } from 'sonner';
 import { useShallow } from 'zustand/react/shallow';
+import { toastError } from '../lib/appToast';
 import { disableAlert, enableAlert, getAlertState, type AlertState } from '../lib/push';
 import { useAuthStore } from '../stores/authStore';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
@@ -124,7 +125,9 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
   const handleUpdatePlatform = useCallback(
     (platform: PreferredPlatform) => {
-      void updatePlatform(platform);
+      void updatePlatform(platform).then((saved) => {
+        if (!saved) toastError(m.library_platform_error());
+      });
     },
     [updatePlatform]
   );
@@ -138,6 +141,18 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const visibleTracks = sortedTracks.slice(0, visibleCount);
   const hiddenCount = sortedTracks.length - visibleTracks.length;
 
+  const preferredKey = preferredPlatform === 'youtube' ? 'youtubeMusic' : preferredPlatform;
+  const linkOf = (track: (typeof visibleTracks)[number]) => {
+    const link = getPlatformLink(track, preferredPlatform);
+    return link
+      ? {
+          href: link.href,
+          platform: PLATFORM_NAMES[link.platform],
+          isPreferred: link.platform === preferredKey,
+        }
+      : null;
+  };
+
   const trackViewModels = visibleTracks.map((track) => {
     const removalEndsAt = pendingRemovals.get(track.id);
     return {
@@ -146,7 +161,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
       artist: track.artist,
       keptAt: track.createdAt,
       ...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {}),
-      linkHref: getPlatformLink(track, preferredPlatform),
+      link: linkOf(track),
       pendingRemoval: removalEndsAt !== undefined,
       ...(removalEndsAt !== undefined
         ? { removalFraction: Math.max(0, Math.min(1, (removalEndsAt - now) / REMOVAL_DELAY_MS)) }
