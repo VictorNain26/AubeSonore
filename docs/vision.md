@@ -263,6 +263,7 @@ toutes les 24 h et un message de retour à la normale, sur deux canaux :
 | `antenne` : `nowplaying` AzuraCast, chaque minute | HTTP 200 et `is_online == true` (en place) |
 | `flux-public` : `radio.aubesonore.fr/listen/aubesonore/radio.mp3`, toutes les 5 min | HTTP 200 : vérifie aussi le tunnel Cloudflare (en place) |
 | `passe-hebdo` (endpoint externe) | Poussée par `ExecStopPost=` avec `$SERVICE_RESULT` ; alerte au premier échec ou après 8 jours de silence (en place) |
+| `sauvegarde` (endpoint externe) | Même mécanisme pour `radio-backup` ; alerte au premier échec ou après 2 jours de silence |
 | Playlist en cours ≠ secours | Après l'enchaînement (§7.3) |
 | `page-de-vote` : `127.0.0.1:8040`, toutes les 5 min | HTTP 403 sans jeton Access : la page tourne (en place) |
 | `page-de-vote-publique` : `votes.aubesonore.fr`, toutes les 5 min, redirection non suivie | HTTP 302 vers la connexion Access : la règle Access et la route du tunnel tiennent |
@@ -290,6 +291,7 @@ toutes les 24 h et un message de retour à la normale, sur deux canaux :
 | Quand | Unité systemd utilisateur | Ce qui se passe |
 |---|---|---|
 | dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train`, `votes-select`, `acquire`, `antenne`, `check` ; bornée à 12 h, battement de cœur Gatus |
+| chaque jour 04:30 | `radio-backup` | copie de `data/radio.db` (API de sauvegarde SQLite, `integrity_check` vérifié) et de `data/models/` dans `RADIO_BACKUP_DIR` (`/media/plex/.backups/radio`, autre disque physique), 14 jours gardés ; battement de cœur Gatus |
 | dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote |
 | en continu | `radio-votes` | page de vote, `127.0.0.1:8040`, publiée sur `votes.aubesonore.fr` |
 
@@ -306,7 +308,7 @@ Gatus : `cd deploy/gatus && docker compose up -d` (son `.env` est un lien vers c
 ```bash
 for u in deploy/systemd/*; do systemctl --user link "$PWD/$u"; done
 systemctl --user daemon-reload
-systemctl --user enable --now radio-weekly.timer radio-remind.timer radio-votes.service
+systemctl --user enable --now radio-weekly.timer radio-remind.timer radio-backup.timer radio-votes.service
 loginctl enable-linger
 ```
 
@@ -335,4 +337,5 @@ après la déconnexion, ce qui fait tourner les unités sans session ouverte (`m
 
 - Le site d'écoute, qui a son propre dépôt.
 - Les likes du site comme signal : cela coupleraient le site et le pipeline.
-- La sauvegarde des médias de l'antenne.
+- La sauvegarde des médias de l'antenne : ils se retéléchargent. La base, elle, est sauvegardée
+  chaque jour (§10) : les votes ne se reconstituent pas.

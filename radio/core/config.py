@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     plex_music_root: Path = Path("/media/plex/Musique")
     lastfm_api_key: SecretStr | None = Field(default=None, repr=False)
     data_dir: Path = Field(default=REPO_ROOT / "data", validation_alias="RADIO_DATA_DIR")
+    # Copie quotidienne de la base, sur un autre disque physique que data_dir.
+    backup_dir: Path | None = Field(default=None, validation_alias="RADIO_BACKUP_DIR")
     config_dir: Path = Field(default=REPO_ROOT / "config", validation_alias="RADIO_CONFIG_DIR")
     effnet_model: Path = Field(
         default=REPO_ROOT / "models" / "discogs-effnet-bs64-1.pb",
@@ -101,6 +103,11 @@ class VotesConfig(BaseModel):
     quiet_days: int = Field(default=7, ge=1, le=60)
 
 
+class BackupConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    keep_days: int = Field(default=14, ge=1)
+
+
 class Editorial(BaseModel):
     model_config = ConfigDict(extra="forbid")
     library: LibraryConfig = LibraryConfig()
@@ -109,6 +116,7 @@ class Editorial(BaseModel):
     acquisition: AcquisitionConfig = AcquisitionConfig()
     antenne: AntenneConfig = AntenneConfig()
     votes: VotesConfig = VotesConfig()
+    backup: BackupConfig = BackupConfig()
 
 
 def load_editorial(path: Path) -> Editorial:

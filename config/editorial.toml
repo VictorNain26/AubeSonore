@@ -58,3 +58,7 @@ lesson_per_selection = 10
 # Fenêtre des votes récents du rapport. Page de vote publiée et aucun titre en attente : une
 # sélection plus ancienne déclenche une alerte (passe hebdomadaire en échec ?).
 quiet_days = 7
+
+[backup]
+# Jours de copies quotidiennes de la base gardés dans RADIO_BACKUP_DIR.
+keep_days = 14
