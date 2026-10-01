@@ -19,13 +19,16 @@ RuntimeDirectory=radio-weekly
 RuntimeDirectoryMode=0700
 # Une étape en échec arrête la suite : pas de sélection sur des notes périmées.
 # train ne réentraîne que s'il y a de nouveaux votes ; il note toujours les candidats.
+# acquire préfixé de « - » : son échec n'empêche pas antenne de publier ce qui est prêt
+# (systemd.service(5), « Command lines ») ; check fait échouer la passe en fin de course.
 ExecStart=%h/radio/pipeline/.venv/bin/radio library-sync
 ExecStart=%h/radio/pipeline/.venv/bin/radio discover
 ExecStart=%h/radio/pipeline/.venv/bin/radio signals
 ExecStart=%h/radio/pipeline/.venv/bin/radio train
 ExecStart=%h/radio/pipeline/.venv/bin/radio votes-select
-ExecStart=%h/radio/pipeline/.venv/bin/radio acquire
+ExecStart=-%h/radio/pipeline/.venv/bin/radio acquire
 ExecStart=%h/radio/pipeline/.venv/bin/radio antenne
+ExecStart=%h/radio/pipeline/.venv/bin/radio check
 # Battement de cœur vers Gatus, même en échec : $SERVICE_RESULT vaut « success » ou la cause
 # (systemd.exec(5), « Environment Variables Set or Propagated by the Service Manager »).
 ExecStopPost=/bin/sh -c 'curl -fsS -m 10 -X POST -H "Authorization: Bearer $GATUS_TOKEN" "http://127.0.0.1:8050/api/v1/endpoints/radio_passe-hebdo/external?success=$([ "$SERVICE_RESULT" = success ] && echo true || echo false)&error=$SERVICE_RESULT"'

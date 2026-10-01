@@ -1,13 +1,16 @@
 """Commandes AubeSonore : goût, découverte, acquisition, antenne et votes."""
 
+import functools
 import logging
+import os
 import sqlite3
 import sys
 from collections import Counter
+from collections.abc import Callable
 from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import PurePosixPath
-from typing import NoReturn
+from typing import NoReturn, ParamSpec, TypeVar
 
 import numpy as np
 import requests
@@ -21,7 +24,7 @@ from radio.acquire.sockseek import SockseekError
 from radio.antenna.sync import antenne_pass
 from radio.core.config import Editorial, Settings, load_editorial
 from radio.core.db import connect
-from radio.core.report import last_stages, record_stage
+from radio.core.report import invocation_stages, last_stages, record_stage
 from radio.discover.negatives import import_negatives, load_negatives
 from radio.discover.run import NoLibraryArtistsError, discover_pass
 from radio.library.artists import register_library
@@ -59,9 +62,57 @@ _REASONS = (
 )
 
 
+_P = ParamSpec("_P")
+_R = TypeVar("_R")
+_last_error: str | None = None
+_stage_recorded = False
+
+
 def _fail(message: str, code: int) -> NoReturn:
+    global _last_error
+    _last_error = message
     typer.echo(message, err=True)
     raise typer.Exit(code)
+
+
+def _record(conn: sqlite3.Connection, stage: str, ok: bool, counts: dict[str, object]) -> None:
+    global _stage_recorded
+    record_stage(conn, stage, ok, counts)
+    _stage_recorded = True
+
+
+def _record_failure(stage: str, error: str) -> None:
+    try:
+        settings = _settings()
+    except typer.Exit:
+        return  # .env invalide : pas de base où écrire, le message est déjà sorti
+    with _db(settings) as conn:
+        record_stage(conn, stage, False, {"erreur": error})
+
+
+def _stage(name: str) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]:
+    """Une étape de la passe qui échoue écrit quand même sa ligne de rapport (§8.1). D'une
+    exception imprévue, seul le type est gardé : son message peut porter une URL signée."""
+
+    def wrap(fn: Callable[_P, _R]) -> Callable[_P, _R]:
+        @functools.wraps(fn)
+        def run(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+            global _last_error, _stage_recorded
+            _last_error, _stage_recorded = None, False
+            try:
+                return fn(*args, **kwargs)
+            except typer.Exit as e:
+                if e.exit_code != 0 and not _stage_recorded:
+                    _record_failure(name, _last_error or f"code {e.exit_code}")
+                raise
+            except Exception as e:
+                if not _stage_recorded:
+                    _record_failure(name, type(e).__name__)
+                raise
+
+        return run
+
+    return wrap
 
 
 def _n(x: int) -> str:
@@ -126,6 +177,7 @@ def main() -> None:
 
 
 @app.command("library-sync")
+@_stage("library-sync")
 def library_sync() -> None:
     """Lit la bibliothèque Plex et la rapproche de Deezer."""
     settings = _settings()
@@ -153,7 +205,7 @@ def library_sync() -> None:
         except DeezerUnavailable as e:
             _fail(_unavailable(e), 1)
         done, total = coverage(conn)
-        record_stage(
+        _record(
             conn,
             "library-sync",
             True,
@@ -183,6 +235,7 @@ def library_sync() -> None:
 
 
 @app.command()
+@_stage("discover")
 def discover() -> None:
     """Tire des graines dans la bibliothèque et découvre des titres candidats."""
     settings = _settings()
@@ -204,7 +257,7 @@ def discover() -> None:
             )
         except (DeezerUnavailable, LastfmUnavailable) as e:
             _fail(_unavailable(e), 1)
-        record_stage(
+        _record(
             conn,
             "discover",
             True,
@@ -258,6 +311,7 @@ def negatives_sync() -> None:
 
 
 @app.command()
+@_stage("signals")
 def signals() -> None:
     """Mesure l'empreinte audio de tous les titres connus (bibliothèque, candidats, négatifs)."""
     settings = _settings()
@@ -273,7 +327,7 @@ def signals() -> None:
         except DeezerUnavailable as e:
             _fail(_unavailable(e), 1)
         origins = Counter(load_signals(conn).origins)
-        record_stage(
+        _record(
             conn,
             "signals",
             True,
@@ -302,6 +356,7 @@ def signals() -> None:
 
 
 @app.command()
+@_stage("acquire")
 def acquire() -> None:
     """Télécharge les titres retenus sur Soulseek, prouve leur identité et les prépare."""
     settings = _settings()
@@ -332,7 +387,7 @@ def acquire() -> None:
             _fail(f"Sockseek en échec ({e}) : aucune tentative comptée, relancer plus tard", 1)
         rate = rep.n_ready / rep.n_attempted if rep.n_attempted else 1.0
         rate_ok = rep.n_attempted < cfg.min_attempts_for_rate or rate >= cfg.min_success_rate
-        record_stage(
+        _record(
             conn,
             "acquire",
             rate_ok and not rep.n_unindexed,
@@ -364,6 +419,7 @@ def acquire() -> None:
 
 
 @app.command()
+@_stage("antenne")
 def antenne() -> None:
     """Publie les titres prêts et les repères sur AzuraCast, retire l'excédent."""
     settings = _settings()
@@ -391,7 +447,7 @@ def antenne() -> None:
             _fail(f"AzuraCast indisponible ({e}) : le travail fait est gardé", 1)
         except DeezerUnavailable as e:
             _fail(_unavailable(e), 1)
-        record_stage(
+        _record(
             conn,
             "antenne",
             not rep.errors,
@@ -444,6 +500,7 @@ def _batch_line(b: Batch) -> str:
 
 
 @app.command("train")
+@_stage("train")
 def train_command() -> None:
     """Entraîne le modèle s'il y a de nouveaux votes, puis note les candidats."""
     settings = _settings()
@@ -465,7 +522,7 @@ def train_command() -> None:
                 )
         model_id = rescore(conn, models_dir, cfg)
         batch = last_batch(conn)
-        record_stage(
+        _record(
             conn,
             "train",
             model_id is not None,
@@ -534,6 +591,26 @@ def _stage_lines(stages: list[tuple[str, str, bool, dict[str, object]]]) -> list
         + ", ".join(f"{k} {v}" for k, v in counts.items())
         for stage, at, ok, counts in stages
     ]
+
+
+@app.command()
+def check() -> None:
+    """Juge la passe systemd en cours : une étape en échec, ou aucune découverte publiée, la fait
+    échouer (et Gatus alerte)."""
+    invocation = os.environ.get("INVOCATION_ID")
+    if not invocation:
+        _fail("INVOCATION_ID absent : radio check juge une passe lancée par systemd", 2)
+    with _db(_settings()) as conn:
+        stages = invocation_stages(conn, invocation)
+    failed = [s for s, ok, _ in stages if not ok]
+    published = sum(int(str(c.get("publiés", 0))) for s, _, c in stages if s == "antenne")
+    _echo(
+        [f"Passe : {_n(len(stages))} étapes, {_n(len(failed))} en échec, {_n(published)} publiés"]
+    )
+    if failed:
+        _fail(f"Étapes en échec : {', '.join(failed)} (radio report)", 1)
+    if published == 0:
+        _fail("Aucune découverte publiée cette semaine (radio report)", 1)
 
 
 @app.command()

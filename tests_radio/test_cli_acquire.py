@@ -39,7 +39,7 @@ def _report(rep: AcquireReport) -> Any:
     return lambda *a, **k: rep
 
 
-def test_sockseek_failure_exits_1_without_recording(
+def test_sockseek_failure_exits_1_and_reports_the_failed_stage(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     db = _env(tmp_path, monkeypatch)
@@ -51,7 +51,8 @@ def test_sockseek_failure_exits_1_without_recording(
     result = runner.invoke(cli.app, ["acquire"])
     assert result.exit_code == 1
     assert "Sockseek en échec (aucun index écrit) : aucune tentative comptée" in result.output
-    assert _stage(db) is None
+    stage = _stage(db)
+    assert stage is not None and stage[0] == 0 and "Sockseek en échec" in stage[1]
 
 
 def test_interrupted_sockseek_fails_the_stage(
@@ -87,3 +88,66 @@ def test_missing_cover_is_reported_not_failed(
     assert "prêts sans pochette : 1" in result.output
     stage = _stage(db)
     assert stage is not None and stage[0] == 1 and '"sans pochette": 1' in stage[1]
+
+
+def test_an_unexpected_error_is_reported_without_its_message(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    db = _env(tmp_path, monkeypatch)
+
+    def boom(*a: Any, **k: Any) -> AcquireReport:
+        raise RuntimeError("https://cdn.example/preview?hdnea=SECRET")
+
+    monkeypatch.setattr(cli, "acquire_pass", boom)
+    result = runner.invoke(cli.app, ["acquire"])
+    assert result.exit_code == 1
+    assert _stage(db) == (0, '{"erreur": "RuntimeError"}')
+
+
+def _stages(db: Path, rows: list[tuple[str, str, int, str]]) -> None:
+    conn = sqlite3.connect(db)
+    conn.executemany(
+        "INSERT INTO stage_reports (invocation, stage, finished_at, ok, counts) "
+        "VALUES (?, ?, 'd', ?, ?)",
+        rows,
+    )
+    conn.commit()
+
+
+@pytest.mark.parametrize(
+    ("rows", "code", "message"),
+    [
+        ([("p", "acquire", 1, "{}"), ("p", "antenne", 1, '{"publiés": 3}')], 0, ""),
+        (
+            [("p", "acquire", 0, "{}"), ("p", "antenne", 1, '{"publiés": 3}')],
+            1,
+            "Étapes en échec : acquire",
+        ),
+        ([("p", "antenne", 1, '{"publiés": 0}')], 1, "Aucune découverte publiée"),
+        (
+            [("autre", "acquire", 0, "{}"), ("p", "antenne", 1, '{"publiés": 1}')],
+            0,
+            "",
+        ),
+    ],
+)
+def test_check_judges_only_the_current_pass(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    rows: list[tuple[str, str, int, str]],
+    code: int,
+    message: str,
+) -> None:
+    db = _env(tmp_path, monkeypatch)
+    runner.invoke(cli.app, ["report"])  # crée la base
+    _stages(db, rows)
+    monkeypatch.setenv("INVOCATION_ID", "p")
+    result = runner.invoke(cli.app, ["check"])
+    assert result.exit_code == code
+    assert message in result.output
+
+
+def test_check_needs_systemd(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _env(tmp_path, monkeypatch)
+    monkeypatch.delenv("INVOCATION_ID", raising=False)
+    assert runner.invoke(cli.app, ["check"]).exit_code == 2

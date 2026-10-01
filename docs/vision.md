@@ -230,21 +230,29 @@ Justification : `recherches/…-observabilite.md` §4.
 ### 8.1 Rapport de passe
 
 Chaque étape écrit une ligne en base (`stage_reports`) avec ses compteurs, rattachée à la passe
-par `$INVOCATION_ID` de systemd. `radio report` affiche le dernier rapport de chaque étape. Le rapport est aussi comparé à des seuils
-(`editorial.toml`) :
+par `$INVOCATION_ID` de systemd, y compris quand elle échoue : la ligne porte alors l'erreur (le
+message de la commande, ou seulement le type d'une exception imprévue, dont le texte peut
+contenir une URL signée). `radio report` affiche le dernier rapport de chaque étape.
 
-- au moins un titre publié ;
-- un taux d'acquisition au-dessus d'un plancher ;
-- aucune étape en erreur.
+Seuils, par étape : taux d'acquisition au-dessus de `min_success_rate` dès
+`min_attempts_for_rate` tentatives (`editorial.toml`) ; aucune erreur à l'antenne.
 
-Un seuil franchi fait échouer la passe.
+`acquire` est préfixée de `-` dans l'unité : son échec n'empêche pas `antenne` de publier ce qui
+est prêt. La dernière étape, `radio check`, juge la passe entière : une étape en échec, ou aucune
+découverte publiée, la fait échouer, et Gatus alerte (§8.2).
 
 ### 8.2 Gatus
 
 Gatus 5.37.0 est un conteneur dont la configuration YAML est versionnée dans `deploy/gatus/`. Il
 est le seul outil de surveillance. Tableau de bord sur `127.0.0.1:8050` (tunnel SSH). Chaîne
-d'alerte testée de bout en bout le 2026-09-30. Il alerte par WhatsApp (CallMeBot) après 3 échecs, avec un rappel au
-plus toutes les 24 h et un message de retour à la normale.
+d'alerte testée de bout en bout le 2026-09-30. Il alerte après 3 échecs, avec un rappel au plus
+toutes les 24 h et un message de retour à la normale, sur deux canaux :
+
+- WhatsApp (CallMeBot) ;
+- ntfy.sh, sujet aléatoire `NTFY_TOPIC` (le nom du sujet fait office de secret), abonné dans
+  l'application ntfy du téléphone. CallMeBot répond 210 quand son quota est épuisé, et Gatus ne
+  compte comme échec d'envoi qu'un statut supérieur à 399 (`custom.go:94`, v5.37.0) : sans ce
+  second canal, une alerte pouvait se perdre en silence.
 
 | Sonde | Condition |
 |---|---|
@@ -253,6 +261,7 @@ plus toutes les 24 h et un message de retour à la normale.
 | `passe-hebdo` (endpoint externe) | Poussée par `ExecStopPost=` avec `$SERVICE_RESULT` ; alerte au premier échec ou après 8 jours de silence (en place) |
 | Playlist en cours ≠ secours | Après l'enchaînement (§7.3) |
 | `page-de-vote` : `127.0.0.1:8040`, toutes les 5 min | HTTP 403 sans jeton Access : la page tourne (en place) |
+| `page-de-vote-publique` : `votes.aubesonore.fr`, toutes les 5 min, redirection non suivie | HTTP 302 vers la connexion Access : la règle Access et la route du tunnel tiennent |
 
 ### 8.3 Non-régression
 
@@ -276,7 +285,7 @@ plus toutes les 24 h et un message de retour à la normale.
 
 | Quand | Unité systemd utilisateur | Ce qui se passe |
 |---|---|---|
-| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train`, `votes-select`, `acquire`, `antenne` ; bornée à 12 h, battement de cœur Gatus |
+| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train`, `votes-select`, `acquire`, `antenne`, `check` ; bornée à 12 h, battement de cœur Gatus |
 | dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote |
 | en continu | `radio-votes` | page de vote, `127.0.0.1:8040`, publiée sur `votes.aubesonore.fr` |
 

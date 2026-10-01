@@ -12,6 +12,7 @@ services:
       WHATSAPP_PHONE: ${WHATSAPP_PHONE}
       CALLMEBOT_APIKEY: ${CALLMEBOT_APIKEY}
       GATUS_TOKEN: ${GATUS_TOKEN}
+      NTFY_TOPIC: ${NTFY_TOPIC}
     volumes:
       - ./config.yaml:/config/config.yaml:ro
       - gatus-data:/data

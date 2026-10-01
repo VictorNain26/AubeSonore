@@ -15,7 +15,7 @@ uv sync                                  # dépendances (.venv)
 .venv/bin/ruff check radio tests_radio && .venv/bin/ruff format --check radio tests_radio
 .venv/bin/mypy                           # strict
 .venv/bin/radio --help                   # library-sync, discover, negatives-sync, signals,
-                                         # train, acquire, antenne, report, votes-select,
+                                         # train, acquire, antenne, check, report, votes-select,
                                          # votes-serve, votes-remind
 ```
 
