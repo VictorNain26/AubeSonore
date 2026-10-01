@@ -43,7 +43,7 @@ describe('authApi.signInWithProvider', () => {
   let location: { origin: string; href: string };
 
   beforeEach(() => {
-    location = { origin: 'http://localhost:3000', href: '' };
+    location = { origin: 'http://localhost:3000', href: 'http://localhost:3000/en/' };
     vi.stubGlobal('window', { location });
   });
 
@@ -51,7 +51,7 @@ describe('authApi.signInWithProvider', () => {
     vi.unstubAllGlobals();
   });
 
-  it('redirects the browser to the provider authorize URL', async () => {
+  it('redirects to the provider and comes back to the page the listener was on', async () => {
     const authorizeUrl = 'https://accounts.google.com/o/oauth2/auth?client_id=x';
     let receivedBody: unknown;
     server.use(
@@ -63,7 +63,7 @@ describe('authApi.signInWithProvider', () => {
 
     await authApi.signInWithProvider('google');
 
-    expect(receivedBody).toEqual({ provider: 'google', callbackURL: 'http://localhost:3000' });
+    expect(receivedBody).toEqual({ provider: 'google', callbackURL: 'http://localhost:3000/en/' });
     expect(location.href).toBe(authorizeUrl);
   });
 
@@ -74,7 +74,7 @@ describe('authApi.signInWithProvider', () => {
     await expect(authApi.signInWithProvider('google')).rejects.toThrow(
       'URL de redirection manquante'
     );
-    expect(location.href).toBe('');
+    expect(location.href).toBe('http://localhost:3000/en/');
   });
 
   it('surfaces the server error message on failure', async () => {

@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -51,12 +51,15 @@ export function Modal({
   eyebrow,
   initialFocus,
 }: ModalProps) {
+  // The drawer opens on its close button, not on the first link of its header.
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const focusTarget = initialFocus ?? (variant === 'drawer' ? closeRef : undefined);
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Backdrop className="bg-scrim ease-out-quart fixed inset-0 transition-opacity duration-300 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
         <Dialog.Popup
-          {...(initialFocus ? { initialFocus } : {})}
+          {...(focusTarget ? { initialFocus: focusTarget } : {})}
           className={cn(
             'text-text ease-out-soft fixed z-50 flex flex-col overflow-hidden transition-[opacity,translate,scale] duration-300 focus-visible:outline-none data-[ending-style]:opacity-0 data-[starting-style]:opacity-0',
             POPUP[variant]
@@ -85,7 +88,7 @@ export function Modal({
               <div className="dawn-rise relative px-6 pt-4 pb-8 md:px-8 md:pt-6">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">{header}</div>
-                  <Dialog.Close aria-label={m.close()} className={CLOSE}>
+                  <Dialog.Close ref={closeRef} aria-label={m.close()} className={CLOSE}>
                     <X className="size-4.5" strokeWidth={1.8} aria-hidden="true" />
                   </Dialog.Close>
                 </div>

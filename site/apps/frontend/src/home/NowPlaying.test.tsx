@@ -11,6 +11,8 @@ function props(overrides: Partial<NowPlayingViewProps> = {}): NowPlayingViewProp
     track: { title: 'Mimoun', artist: 'Mickey 3D', art: undefined, playedAt },
     isOnline: true,
     listeners: undefined,
+    listen: 'idle',
+    onToggleListen: vi.fn(),
     isKept: false,
     isKeeping: false,
     onToggleKeep: vi.fn(),
@@ -21,12 +23,30 @@ function props(overrides: Partial<NowPlayingViewProps> = {}): NowPlayingViewProp
 }
 
 describe('NowPlayingView', () => {
-  it('shows the start time, the title and the artist', () => {
+  it('shows the start time, the title as a heading and the artist', () => {
     render(<NowPlayingView {...props()} />);
 
     expect(screen.getByText("17:01 — à l'antenne")).toBeInTheDocument();
-    expect(screen.getByText('Mimoun')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Mimoun' })).toBeInTheDocument();
     expect(screen.getByText('Mickey 3D')).toBeInTheDocument();
+  });
+
+  it('puts Écouter under the title and shows the connecting and listening states', async () => {
+    const onToggleListen = vi.fn();
+    const { rerender } = render(<NowPlayingView {...props({ onToggleListen })} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Écouter le direct' }));
+    expect(onToggleListen).toHaveBeenCalledOnce();
+
+    rerender(<NowPlayingView {...props({ listen: 'connecting' })} />);
+    expect(screen.getByText('Un instant…')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mettre en pause' })).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+
+    rerender(<NowPlayingView {...props({ listen: 'playing' })} />);
+    expect(screen.getByText('En écoute')).toBeInTheDocument();
   });
 
   it('shows the listener count only from two listeners upwards', () => {
@@ -37,7 +57,7 @@ describe('NowPlayingView', () => {
     expect(screen.getByText(/3 à l'écoute/)).toBeInTheDocument();
   });
 
-  it('toggles keep and reflects the kept state', async () => {
+  it('keeps a constant label and carries the kept state in aria-pressed', async () => {
     const onToggleKeep = vi.fn();
     const { rerender } = render(<NowPlayingView {...props({ onToggleKeep })} />);
 
@@ -45,7 +65,7 @@ describe('NowPlayingView', () => {
     expect(onToggleKeep).toHaveBeenCalledOnce();
 
     rerender(<NowPlayingView {...props({ isKept: true })} />);
-    expect(screen.getByRole('button', { name: 'Gardé' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Garder' })).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('offers the artist panel only when there is a biography', () => {

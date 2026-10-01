@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { SinceDawnView, type ThreadRow } from './SinceDawn';
 
@@ -30,8 +30,8 @@ describe('SinceDawnView', () => {
     render(<SinceDawnView rows={rows(2)} status="ready" onToggleKeep={vi.fn()} />);
 
     const [first, second] = screen.getAllByRole('listitem');
-    expect(within(first!).getByText(/● 17:00/)).toBeInTheDocument();
-    expect(within(second!).queryByText(/●/)).not.toBeInTheDocument();
+    expect(first).toHaveTextContent("● À l'antenne : 17:00");
+    expect(second).not.toHaveTextContent('●');
   });
 
   it('keeps a track by its id', async () => {

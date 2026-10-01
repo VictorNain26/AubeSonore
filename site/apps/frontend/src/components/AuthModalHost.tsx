@@ -2,6 +2,8 @@ import { lazy, Suspense } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { ErrorBoundary } from 'react-error-boundary';
 import { useAuthModalStore } from '../stores/authModalStore';
+import { useAuthStore } from '../stores/authStore';
+import { takePendingKeep } from '../lib/pendingKeep';
 import { ModalErrorFallback } from '../design/organisms/ErrorFallback';
 // Loaded on first open: the sign-in code is not needed to listen.
 const AuthModal = lazy(() => import('./AuthModal').then((mod) => ({ default: mod.AuthModal })));
@@ -12,25 +14,35 @@ const AuthModal = lazy(() => import('./AuthModal').then((mod) => ({ default: mod
 // the store so we never have two AuthModal instances open at once.
 
 export function AuthModalHost() {
-  const { isOpen, mode, resetToken, close } = useAuthModalStore(
+  const { isOpen, mode, resetToken, keepTitle, close } = useAuthModalStore(
     useShallow((s) => ({
       isOpen: s.isOpen,
       mode: s.mode,
       resetToken: s.resetToken,
+      keepTitle: s.keepTitle,
       close: s.close,
     }))
   );
 
   if (!isOpen) return null;
 
+  // Closed without signing in: forget the track they wanted to keep.
+  const onClose = () => {
+    if (!useAuthStore.getState().isAuthenticated) takePendingKeep();
+    close();
+  };
+
   return (
-    <ErrorBoundary FallbackComponent={(props) => <ModalErrorFallback {...props} onClose={close} />}>
+    <ErrorBoundary
+      FallbackComponent={(props) => <ModalErrorFallback {...props} onClose={onClose} />}
+    >
       <Suspense fallback={null}>
         <AuthModal
           isOpen={isOpen}
-          onClose={close}
+          onClose={onClose}
           defaultMode={mode}
           {...(resetToken && { resetToken })}
+          {...(keepTitle && { keepTitle })}
         />
       </Suspense>
     </ErrorBoundary>

@@ -1,6 +1,6 @@
 # AubeSonore
 
-> Webradio de découverte, choisie titre par titre. Gratuite, sans publicité, en continu jour et nuit.
+> Webradio de découverte, un titre après l'autre. Gratuite, sans publicité, en continu jour et nuit.
 > Site en français et en anglais.
 
 AubeSonore diffuse des titres que l'auditeur ne connaît probablement pas encore. Chaque semaine,

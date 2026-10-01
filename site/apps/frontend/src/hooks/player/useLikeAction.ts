@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
 import { useArtistPanelStore } from '../../stores/artistPanelStore';
 import { getArtistInfo } from '../../lib/artistInfo';
+import { keepRequest, savePendingKeep } from '../../lib/pendingKeep';
 import * as m from '@/paraglide/messages.js';
 
 // Encapsulates the like / unlike flow used by both TrackArtwork (current
@@ -31,7 +32,8 @@ export function useLikeAction(): UseLikeAction {
   const toggleLike = useCallback(
     async (title: string, artist: string, artworkUrl?: string): Promise<void> => {
       if (!isAuthenticated) {
-        openAuthModal();
+        savePendingKeep(keepRequest(title, artist, artworkUrl));
+        openAuthModal({ keepTitle: title });
         return;
       }
 
@@ -54,15 +56,7 @@ export function useLikeAction(): UseLikeAction {
             toast.success(m.toast_unkept());
           }
         } else {
-          const requestData: Parameters<typeof likeTrack>[0] = {
-            title,
-            artist,
-            youtubeUrl: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${title} ${artist}`)}`,
-          };
-          if (artworkUrl) {
-            requestData.artworkUrl = artworkUrl;
-          }
-          await likeTrack(requestData);
+          await likeTrack(keepRequest(title, artist, artworkUrl));
           const info = await getArtistInfo(artist);
           if (info?.bio) {
             toast.success(m.toast_kept(), {

@@ -135,7 +135,7 @@ export const authApi = {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider, callbackURL: window.location.origin }),
+      body: JSON.stringify({ provider, callbackURL: window.location.href }),
     });
     if (!response.ok) {
       const error = (await response.json().catch(() => ({ message: m.error_signin_failed() }))) as {

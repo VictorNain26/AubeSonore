@@ -141,6 +141,37 @@ describe('player store', () => {
     expect(err?.message).toContain('Network down');
   });
 
+  it('is connecting between the click and the first sound', async () => {
+    let resolvePlay: () => void = () => {};
+    mockAudioInstance.play.mockReturnValueOnce(new Promise<void>((r) => (resolvePlay = r)));
+    const { usePlayer } = await import('./player');
+
+    const playing = usePlayer.getState().play();
+    expect(usePlayer.getState().isConnecting).toBe(true);
+    expect(usePlayer.getState().isPlaying).toBe(false);
+
+    resolvePlay();
+    await playing;
+    expect(usePlayer.getState().isConnecting).toBe(false);
+    expect(usePlayer.getState().isPlaying).toBe(true);
+  });
+
+  it('toggle() while connecting cancels, and the late resolve does not start playing', async () => {
+    let resolvePlay: () => void = () => {};
+    mockAudioInstance.play.mockReturnValueOnce(new Promise<void>((r) => (resolvePlay = r)));
+    const { usePlayer } = await import('./player');
+
+    usePlayer.getState().toggle();
+    expect(usePlayer.getState().isConnecting).toBe(true);
+    usePlayer.getState().toggle();
+    expect(usePlayer.getState().isConnecting).toBe(false);
+
+    resolvePlay();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(usePlayer.getState().isPlaying).toBe(false);
+  });
+
   it('stop() clears isPlaying and playError', async () => {
     const { usePlayer } = await import('./player');
     await usePlayer.getState().play();

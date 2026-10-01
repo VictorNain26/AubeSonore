@@ -69,7 +69,12 @@ export function SinceDawnView({ rows, status, onToggleKeep }: SinceDawnViewProps
                     row.isNow ? 'text-text' : 'text-text-muted font-normal'
                   )}
                 >
-                  {row.isNow ? '● ' : ''}
+                  {row.isNow ? (
+                    <>
+                      <span aria-hidden="true">● </span>
+                      <span className="sr-only">{m.on_air_sr()} </span>
+                    </>
+                  ) : null}
                   {formatClock(row.playedAt)}
                 </span>
                 <span className="flex min-w-0 flex-col md:contents">
@@ -81,11 +86,7 @@ export function SinceDawnView({ rows, status, onToggleKeep }: SinceDawnViewProps
                   onClick={() => onToggleKeep(row.id)}
                   disabled={row.isKeeping}
                   aria-pressed={row.isKept}
-                  aria-label={
-                    row.isKept
-                      ? m.track_unkeep_aria({ title: row.title })
-                      : m.track_keep_aria({ title: row.title })
-                  }
+                  aria-label={m.track_keep_aria({ title: row.title })}
                   className="group ease-out-quart focus-visible:outline-accent flex size-11 items-center justify-center rounded-full focus-visible:outline-2 disabled:opacity-50"
                 >
                   <Heart

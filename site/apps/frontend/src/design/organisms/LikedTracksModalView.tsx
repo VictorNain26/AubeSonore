@@ -132,17 +132,8 @@ export function LikedTracksModalView({
           <span className="bg-accent text-on-accent flex size-9 shrink-0 items-center justify-center rounded-full font-semibold">
             {initial}
           </span>
-          <span className="flex min-w-0 flex-col">
-            <span className="text-ui truncate font-semibold">
-              {user.name || m.header_user_fallback()}
-            </span>
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="text-caption text-text-muted focus-visible:outline-accent self-start rounded-sm underline decoration-1 underline-offset-4 hover:decoration-2 focus-visible:outline-2"
-            >
-              {m.library_sign_out()}
-            </button>
+          <span className="text-ui truncate font-semibold">
+            {user.name || m.header_user_fallback()}
           </span>
         </span>
       }
@@ -279,6 +270,13 @@ export function LikedTracksModalView({
           {m.library_show_more({ count: hiddenCount })}
         </button>
       ) : null}
+      <button
+        type="button"
+        onClick={onSignOut}
+        className="text-ui text-text-muted ease-out-quart hover:text-text focus-visible:outline-accent mx-6 mt-auto mb-6 inline-flex min-h-11 items-center self-start rounded-sm pt-6 underline decoration-1 underline-offset-4 focus-visible:outline-2 md:mx-8"
+      >
+        {m.library_sign_out()}
+      </button>
     </Modal>
   );
 }

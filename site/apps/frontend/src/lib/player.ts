@@ -16,6 +16,8 @@ export interface PlayError {
 
 interface PlayerState {
   isPlaying: boolean;
+  /** Between the click on Écouter and the first sound (stream buffering). */
+  isConnecting: boolean;
   volume: number;
   isMuted: boolean;
   playError: PlayError | null;
@@ -24,6 +26,8 @@ interface PlayerState {
 interface PlayerActions {
   play: () => Promise<void>;
   stop: () => void;
+  /** The one play button: starts, or stops (also while still connecting). */
+  toggle: () => void;
   setVolume: (value: number) => void;
   toggleMute: () => void;
   clearPlayError: () => void;
@@ -142,15 +146,20 @@ function reconnect(): void {
 }
 
 let prevVolume = 0.5;
+// Each play() gets a number; a stop() or a newer play() makes older attempts
+// stale, so a late resolve or reject cannot overwrite the current state.
+let playAttempt = 0;
 
 export const usePlayer = create<PlayerStore>((set, get) => ({
   isPlaying: false,
+  isConnecting: false,
   volume: 1,
   isMuted: false,
   playError: null,
 
   play: async () => {
-    set({ playError: null });
+    const attempt = ++playAttempt;
+    set({ playError: null, isConnecting: true });
     wantsPlayback = true;
     reconnectAttempts = 0;
     const audio = getAudioElement();
@@ -162,16 +171,19 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
       audio.src = STREAM_URL;
       audio.load();
       await audio.play();
-      set({ isPlaying: true });
+      if (attempt !== playAttempt) return;
+      set({ isPlaying: true, isConnecting: false });
     } catch (error) {
+      if (attempt !== playAttempt) return;
       wantsPlayback = false;
       const playError = classifyPlayError(error);
       console.error('[Player] Playback failed:', error);
-      set({ isPlaying: false, playError });
+      set({ isPlaying: false, isConnecting: false, playError });
     }
   },
 
   stop: () => {
+    playAttempt++;
     wantsPlayback = false;
     clearStallTimer();
     reconnectAttempts = 0;
@@ -179,10 +191,16 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
     const audio = getAudioElement();
     audio.pause();
     audio.src = '';
-    set({ isPlaying: false, playError: null });
+    set({ isPlaying: false, isConnecting: false, playError: null });
     queueMicrotask(() => {
       isStopping = false;
     });
+  },
+
+  toggle: () => {
+    const { isPlaying, isConnecting, play, stop } = get();
+    if (isPlaying || isConnecting) stop();
+    else void play();
   },
 
   setVolume: (value: number) => {

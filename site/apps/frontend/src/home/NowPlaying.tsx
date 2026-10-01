@@ -1,14 +1,27 @@
+import { useEffect, useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { Heart, Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useNowPlayingStore } from '../lib/azuracast';
+import { usePlayer } from '../lib/player';
 import { useTrackActions } from '../hooks/player/useTrackActions';
 import { useArtistInfo } from '../hooks/useArtistInfo';
 import { useArtistPanelStore } from '../stores/artistPanelStore';
 import { Cover } from './Cover';
 import { formatClock } from './time';
 import { TEXT_ACTION } from './styles';
+import {
+  ListenDisc,
+  listenAria,
+  listenLabel,
+  listenState,
+  useHeroListenVisible,
+  type ListenState,
+} from './listen';
 import * as m from '@/paraglide/messages.js';
+
+// Past this length the title would take three lines at hero size.
+const LONG_TITLE = 28;
 
 export interface NowPlayingViewProps {
   track: {
@@ -20,6 +33,10 @@ export interface NowPlayingViewProps {
   isOnline: boolean;
   /** Unique listeners; shown only from two upwards. */
   listeners: number | undefined;
+  listen: ListenState;
+  onToggleListen: () => void;
+  /** Ref on the Écouter button, watched to hide the player bar while it is visible. */
+  listenRef?: React.Ref<HTMLButtonElement>;
   isKept: boolean;
   isKeeping: boolean;
   onToggleKeep: () => void;
@@ -27,88 +44,115 @@ export interface NowPlayingViewProps {
   onOpenArtist: (() => void) | undefined;
 }
 
+/**
+ * What plays now, the biggest thing on the page: the cover, the title, and
+ * Écouter right under it, then Garder, Partager and L'artiste.
+ */
 export function NowPlayingView({
   track,
   isOnline,
   listeners,
+  listen,
+  onToggleListen,
+  listenRef,
   isKept,
   isKeeping,
   onToggleKeep,
   onShare,
   onOpenArtist,
 }: NowPlayingViewProps) {
-  if (!isOnline) {
-    return (
-      <p className="text-intro text-text-muted" aria-live="polite">
-        {m.off_air()}
-      </p>
-    );
-  }
+  return (
+    <div className="grid gap-6 md:grid-cols-12 md:items-end md:gap-x-10">
+      <div className="lift-in md:col-span-5 lg:col-span-4">
+        {track ? (
+          <Cover
+            src={track.art}
+            alt={m.now_cover_alt({ title: track.title, artist: track.artist })}
+            seed={`${track.artist}|${track.title}`}
+            priority
+            className="artwork-size shadow-cover aspect-square"
+          />
+        ) : (
+          <div
+            aria-hidden="true"
+            className="artwork-size bg-surface-raised aspect-square rounded-sm"
+          />
+        )}
+      </div>
 
-  if (!track) {
-    return (
-      <div
-        className="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-4 md:flex md:flex-col md:items-start md:gap-3.5"
-        aria-busy="true"
-      >
-        <div className="bg-surface-raised aspect-square w-24 rounded-sm md:w-72" />
-        <div className="flex w-full flex-col gap-1">
-          <div className="bg-surface-raised h-4 w-32 rounded-sm" />
-          <div className="bg-surface-raised h-6 w-48 rounded-sm" />
-          <div className="bg-surface-raised h-5 w-24 rounded-sm" />
-          <div className="mt-1.5 h-11" />
+      <div className="lift-in-late flex min-w-0 flex-col gap-2 md:col-span-7 lg:col-span-8">
+        {!isOnline ? (
+          <p className="text-intro text-text-muted m-0" aria-live="polite">
+            {m.off_air()}
+          </p>
+        ) : track ? (
+          <>
+            <span className="text-label text-text-muted font-mono uppercase">
+              {m.now_on_air({ time: formatClock(track.playedAt) })}
+              {listeners !== undefined && listeners >= 2
+                ? ` · ${m.now_listeners({ count: listeners })}`
+                : null}
+            </span>
+            <h2
+              className={cn(
+                'm-0 text-balance',
+                track.title.length > LONG_TITLE ? 'text-section' : 'text-hero'
+              )}
+            >
+              {track.title}
+            </h2>
+            <p className="text-headline text-text-muted m-0 font-normal">{track.artist}</p>
+          </>
+        ) : (
+          <div aria-busy="true" className="flex flex-col gap-2">
+            <span className="bg-surface-raised h-4 w-40 rounded-sm" />
+            <span className="bg-surface-raised h-16 w-3/4 rounded-sm" />
+            <span className="bg-surface-raised h-7 w-1/3 rounded-sm" />
+          </div>
+        )}
+
+        <div className="mt-6 flex flex-col gap-3 md:mt-8 md:flex-row md:items-center md:gap-6">
+          <button
+            ref={listenRef}
+            type="button"
+            onClick={onToggleListen}
+            aria-label={listenAria(listen)}
+            aria-busy={listen === 'connecting'}
+            className="bg-accent text-on-accent ease-out-quart focus-visible:outline-accent flex h-14 w-full items-center gap-3 rounded-full py-1.5 pr-6 pl-1.5 transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-95 md:w-auto"
+          >
+            <ListenDisc state={listen} className="size-11" />
+            <span className="text-ui font-semibold">{listenLabel(listen)}</span>
+          </button>
+          {track && isOnline ? (
+            <span className="flex flex-wrap gap-x-5">
+              <button
+                type="button"
+                onClick={onToggleKeep}
+                disabled={isKeeping}
+                aria-pressed={isKept}
+                className={TEXT_ACTION}
+              >
+                <Heart
+                  className={cn('size-4', isKept && 'fill-current')}
+                  strokeWidth={1.6}
+                  aria-hidden="true"
+                />
+                {m.track_keep()}
+              </button>
+              <button type="button" onClick={onShare} className={TEXT_ACTION}>
+                <Share2 className="size-4" strokeWidth={1.6} aria-hidden="true" />
+                {m.track_share()}
+              </button>
+              {onOpenArtist ? (
+                <button type="button" onClick={onOpenArtist} className={TEXT_ACTION}>
+                  {m.track_artist()}
+                </button>
+              ) : null}
+            </span>
+          ) : null}
         </div>
       </div>
-    );
-  }
-
-  const label = m.now_on_air({ time: formatClock(track.playedAt) });
-
-  return (
-    <figure className="m-0 grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-4 md:flex md:flex-col md:items-start md:gap-3.5">
-      <Cover
-        src={track.art}
-        alt={m.now_cover_alt({ title: track.title, artist: track.artist })}
-        seed={`${track.artist}|${track.title}`}
-        priority
-        className="shadow-cover aspect-square w-24 md:w-72"
-      />
-      <figcaption className="flex min-w-0 flex-col gap-1">
-        <span className="text-label text-text-muted font-mono uppercase">
-          {label}
-          {listeners !== undefined && listeners >= 2
-            ? ` · ${m.now_listeners({ count: listeners })}`
-            : null}
-        </span>
-        <span className="text-headline">{track.title}</span>
-        <span className="text-sub text-text-muted">{track.artist}</span>
-        <span className="mt-1.5 flex flex-wrap gap-x-5">
-          <button
-            type="button"
-            onClick={onToggleKeep}
-            disabled={isKeeping}
-            aria-pressed={isKept}
-            className={TEXT_ACTION}
-          >
-            <Heart
-              className={cn('size-4', isKept && 'fill-current')}
-              strokeWidth={1.6}
-              aria-hidden="true"
-            />
-            {isKept ? m.track_kept() : m.track_keep()}
-          </button>
-          <button type="button" onClick={onShare} className={TEXT_ACTION}>
-            <Share2 className="size-4" strokeWidth={1.6} aria-hidden="true" />
-            {m.track_share()}
-          </button>
-          {onOpenArtist ? (
-            <button type="button" onClick={onOpenArtist} className={TEXT_ACTION}>
-              {m.track_artist()}
-            </button>
-          ) : null}
-        </span>
-      </figcaption>
-    </figure>
+    </div>
   );
 }
 
@@ -123,15 +167,36 @@ export function NowPlaying() {
       listeners: s.data?.listeners?.unique,
     }))
   );
+  const { isPlaying, isConnecting, toggle } = usePlayer(
+    useShallow((s) => ({ isPlaying: s.isPlaying, isConnecting: s.isConnecting, toggle: s.toggle }))
+  );
   const { isLiked, isLiking, handleToggleLike, handleShare } = useTrackActions();
   const { data: artistInfo } = useArtistInfo(artist);
   const openArtistPanel = useArtistPanelStore((s) => s.open);
+  const setListenVisible = useHeroListenVisible((s) => s.setVisible);
+  const listenRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const button = listenRef.current;
+    if (!button) return;
+    // The bar slides in once this button has left the screen; the top margin
+    // keeps it from flickering at the edge.
+    const observer = new IntersectionObserver(
+      ([entry]) => setListenVisible(entry?.isIntersecting ?? true),
+      { rootMargin: '-80px 0px 0px 0px' }
+    );
+    observer.observe(button);
+    return () => observer.disconnect();
+  }, [setListenVisible]);
 
   return (
     <NowPlayingView
       track={title && artist && playedAt !== undefined ? { title, artist, art, playedAt } : null}
       isOnline={isOnline}
       listeners={listeners}
+      listen={listenState(isPlaying, isConnecting)}
+      onToggleListen={toggle}
+      listenRef={listenRef}
       isKept={isLiked}
       isKeeping={isLiking}
       onToggleKeep={handleToggleLike}

@@ -26,7 +26,8 @@ describe('MostKeptView', () => {
     expect(screen.getByText('Nüchtern')).toBeInTheDocument();
     expect(screen.getByText('01')).toBeInTheDocument();
     expect(screen.getByText('gardé 3 fois')).toBeInTheDocument();
-    expect(screen.getByText('gardé 1 fois')).toBeInTheDocument();
+    // A single keep is not shown: it says how quiet it is, not what people like.
+    expect(screen.queryByText(/gardé 1 fois/)).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', { name: 'Depuis le début' }));
     expect(await screen.findByText('Sleep Apnea')).toBeInTheDocument();
