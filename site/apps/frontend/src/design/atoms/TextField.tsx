@@ -18,15 +18,15 @@ export interface TextFieldProps extends ComponentProps<typeof Field.Control> {
 export function TextField({ label, error, trailing, className, ...props }: TextFieldProps) {
   return (
     <Field.Root invalid={error !== undefined} className="flex w-full flex-col gap-1.5">
-      <Field.Label className="text-caption text-text-muted">{label}</Field.Label>
+      <Field.Label className="text-ui">{label}</Field.Label>
       <div className="relative">
         <Field.Control
           className={cn(
-            'border-border bg-surface text-body text-text h-11 w-full rounded-md border px-3',
+            'border-accent text-sub text-text h-13 w-full rounded-none border-0 border-b bg-transparent px-0',
             'ease-out-quart placeholder:text-text-faint transition-colors duration-150',
             'focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',
-            error !== undefined && 'border-accent',
+            error !== undefined && 'border-b-2',
             trailing !== undefined && 'pr-11',
             className
           )}
@@ -37,7 +37,7 @@ export function TextField({ label, error, trailing, className, ...props }: TextF
         ) : null}
       </div>
       {error !== undefined ? (
-        <Field.Error className="text-caption text-accent" match>
+        <Field.Error className="text-caption text-text font-medium" match>
           {error}
         </Field.Error>
       ) : null}

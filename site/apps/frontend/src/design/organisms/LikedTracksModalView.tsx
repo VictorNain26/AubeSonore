@@ -1,15 +1,19 @@
-import { ChevronDown, Loader2 } from 'lucide-react';
+import { ChevronDown, ExternalLink, Heart } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { getLocale } from '@/paraglide/runtime.js';
 import { Modal } from './Modal';
 import { Menu } from '../molecules/Menu';
-import { Button } from '../atoms/Button';
-import { LikedTrackRowView } from '../molecules/LikedTrackRow';
-import * as i18n from '@/paraglide/messages.js';
+import { Cover } from '../../home/Cover';
+import type { AlertState } from '../../lib/push';
+import * as m from '@/paraglide/messages.js';
 
 interface LikedTrackViewModel {
   id: string;
   title: string;
   artist: string;
   artworkUrl?: string;
+  /** ISO date the track was kept. */
+  keptAt: string;
   /** Direct platform link, or `null` while links are still resolving. */
   linkHref: string | null;
   /** Row is pending removal (grayed, showing Undo). */
@@ -18,7 +22,7 @@ interface LikedTrackViewModel {
   removalFraction?: number;
 }
 
-export interface PlatformOption {
+interface PlatformOption {
   id: string;
   name: string;
 }
@@ -26,6 +30,9 @@ export interface PlatformOption {
 export interface LikedTracksModalViewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  user: { name: string | null; email: string };
+  onSignOut: () => void;
+  alert: { state: AlertState | null; isBusy: boolean; onToggle: () => void };
   totalCount: number;
   isLoading: boolean;
   tracks: LikedTrackViewModel[];
@@ -34,20 +41,66 @@ export interface LikedTracksModalViewProps {
   platforms: readonly PlatformOption[];
   selectedPlatformId: string;
   onSelectPlatform: (platformId: string) => void;
-  onShareTrack: (id: string) => void;
   onDeleteTrack: (id: string) => void;
   onUndoTrack: (id: string) => void;
 }
 
+const ICON_ACTION =
+  'ease-out-quart focus-visible:outline-accent flex size-11 items-center justify-center rounded-full transition-opacity duration-150 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2';
+
+function keptOn(iso: string): string {
+  return m.library_kept_on({
+    date: new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'long' }).format(
+      new Date(iso)
+    ),
+  });
+}
+
+function AlertSwitch({ alert }: Pick<LikedTracksModalViewProps, 'alert'>) {
+  const isOn = alert.state === 'on';
+  const blocked = alert.state === 'unsupported' || alert.state === 'denied';
+  return (
+    <div className="border-border flex flex-col gap-2 border-b px-6 py-4.5 md:px-8">
+      <div className="flex items-center justify-between gap-4">
+        <span className="flex flex-col">
+          <span className="font-semibold">{m.alert_title()}</span>
+          <span className="text-ui text-text-muted font-normal">{m.alert_body()}</span>
+        </span>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isOn}
+          aria-label={m.alert_aria()}
+          onClick={alert.onToggle}
+          disabled={alert.state === null || alert.isBusy || blocked}
+          className={cn(
+            'ease-out-quart focus-visible:outline-accent flex h-8 w-13 shrink-0 rounded-full p-0.75 transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-50',
+            isOn ? 'bg-accent justify-end' : 'bg-border justify-start'
+          )}
+        >
+          <span className="bg-surface size-6.5 rounded-full" />
+        </button>
+      </div>
+      {blocked ? (
+        <p className="text-caption text-text-muted m-0">
+          {alert.state === 'denied' ? m.alert_denied() : m.alert_unsupported()}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /**
- * Presentational body of the "Ma bibliothèque" modal: a preferred-platform
- * picker, the track list (loading / empty / populated), and the "show more"
- * pagination control. The container owns all store reads, link resolution,
- * the pending-removal timer, and pagination state.
+ * "Ma bibliothèque": the listener's account, the alert switch, the preferred
+ * platform, and every kept track with a link to open it there. The container
+ * owns the stores, link resolution, the removal timer and the push subscription.
  */
 export function LikedTracksModalView({
   open,
   onOpenChange,
+  user,
+  onSignOut,
+  alert,
   totalCount,
   isLoading,
   tracks,
@@ -56,90 +109,176 @@ export function LikedTracksModalView({
   platforms,
   selectedPlatformId,
   onSelectPlatform,
-  onShareTrack,
   onDeleteTrack,
   onUndoTrack,
 }: LikedTracksModalViewProps) {
-  const selectedPlatformName = platforms.find((p) => p.id === selectedPlatformId)?.name;
+  const platformName = platforms.find((p) => p.id === selectedPlatformId)?.name ?? '';
+  const initial = (user.name?.charAt(0) || user.email.charAt(0)).toUpperCase();
 
   return (
-    <Modal title={i18n.library_modal_title()} open={open} onOpenChange={onOpenChange} size="lg">
-      <p className="text-caption text-text-faint -mt-3">
-        {totalCount > 1
-          ? i18n.library_track_count_other({ count: totalCount })
-          : i18n.library_track_count_one({ count: totalCount })}
-      </p>
+    <Modal
+      title={m.library_modal_title()}
+      open={open}
+      onOpenChange={onOpenChange}
+      variant="drawer"
+      {...(totalCount > 0
+        ? {
+            eyebrow:
+              totalCount > 1 ? m.library_count_other({ count: totalCount }) : m.library_count_one(),
+          }
+        : {})}
+      header={
+        <span className="flex items-center gap-3">
+          <span className="bg-accent text-on-accent flex size-9 shrink-0 items-center justify-center rounded-full font-semibold">
+            {initial}
+          </span>
+          <span className="flex min-w-0 flex-col">
+            <span className="text-ui truncate font-semibold">
+              {user.name || m.header_user_fallback()}
+            </span>
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="text-caption text-text-muted focus-visible:outline-accent self-start rounded-sm underline decoration-1 underline-offset-4 hover:decoration-2 focus-visible:outline-2"
+            >
+              {m.library_sign_out()}
+            </button>
+          </span>
+        </span>
+      }
+    >
+      <AlertSwitch alert={alert} />
 
-      <div
-        data-testid="modal-scroll-container"
-        className="max-h-[70dvh] min-h-0 scroll-pt-16 scrollbar-none overflow-y-auto"
-      >
-        {totalCount > 0 && (
-          <div className="border-border bg-surface-raised sticky top-0 z-10 flex items-center justify-end gap-2 border-b pb-4">
-            <span className="text-caption text-text-faint">{i18n.library_open_with()}</span>
-            <Menu
-              trigger={
-                <Button
-                  variant="ghost"
-                  className="border-border text-caption data-[popup-open]:bg-surface border [&[data-popup-open]>svg]:rotate-180"
-                  aria-label={i18n.library_platform_picker()}
+      {totalCount > 0 ? (
+        <div className="border-border text-ui text-text-muted flex items-center justify-between border-b px-6 py-1.5 font-normal md:px-8">
+          <span>{m.library_open_with()}</span>
+          <Menu
+            trigger={
+              <button
+                type="button"
+                aria-label={m.library_platform_picker()}
+                className="text-text focus-visible:outline-accent flex min-h-11 items-center gap-1.5 rounded-sm font-semibold focus-visible:outline-2 [&[data-popup-open]>svg]:rotate-180"
+              >
+                {platformName}
+                <ChevronDown className="ease-out-quart size-3.5 transition-transform duration-150" />
+              </button>
+            }
+            items={platforms.map((platform) => ({
+              label: platform.name,
+              onSelect: () => onSelectPlatform(platform.id),
+              selected: platform.id === selectedPlatformId,
+            }))}
+          />
+        </div>
+      ) : null}
+
+      {isLoading ? (
+        <ul aria-busy="true" className="m-0 list-none px-6 md:px-8">
+          {Array.from({ length: 4 }, (_, i) => (
+            <li key={i} className="border-border flex items-center gap-4 border-b py-3.5">
+              <span className="bg-surface-raised size-16 rounded-sm" />
+              <span className="bg-surface-raised h-4 w-1/2 rounded-sm" />
+            </li>
+          ))}
+        </ul>
+      ) : totalCount === 0 ? (
+        <div className="flex flex-col gap-1 px-6 py-10 md:px-8">
+          <p className="text-row m-0">{m.library_empty_title()}</p>
+          <p className="text-text-muted m-0">{m.library_empty_body()}</p>
+        </div>
+      ) : (
+        <ul className="m-0 list-none px-6 md:px-8">
+          {tracks.map((track) => (
+            <li
+              key={track.id}
+              className={cn(
+                'border-border grid grid-cols-[4rem_minmax(0,1fr)_2.75rem_2.75rem] items-center gap-x-4 border-b py-3.5',
+                track.pendingRemoval && 'opacity-60'
+              )}
+            >
+              <Cover
+                src={track.artworkUrl}
+                alt=""
+                seed={`${track.artist}|${track.title}`}
+                className={cn('size-16', track.pendingRemoval && 'grayscale')}
+              />
+              <span className="flex min-w-0 flex-col">
+                <span className={cn('text-row truncate', track.pendingRemoval && 'line-through')}>
+                  {track.title}
+                </span>
+                <span className="text-text-muted truncate">{track.artist}</span>
+                <span className="text-caption text-text-muted mt-0.5 font-normal">
+                  {track.pendingRemoval ? m.liked_track_removed() : keptOn(track.keptAt)}
+                </span>
+                {track.pendingRemoval ? (
+                  <span
+                    role="progressbar"
+                    aria-label={m.liked_track_removal_countdown()}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round((track.removalFraction ?? 1) * 100)}
+                    className="bg-border mt-2 h-0.5 overflow-hidden rounded-full"
+                  >
+                    <span
+                      className="bg-accent block h-full transition-[width] duration-250 ease-linear"
+                      style={{ width: `${(track.removalFraction ?? 1) * 100}%` }}
+                    />
+                  </span>
+                ) : null}
+              </span>
+              {track.pendingRemoval ? (
+                <button
+                  type="button"
+                  onClick={() => onUndoTrack(track.id)}
+                  className="text-ui focus-visible:outline-accent col-span-2 min-h-11 rounded-sm underline decoration-1 underline-offset-4 hover:decoration-2 focus-visible:outline-2"
                 >
-                  {selectedPlatformName}
-                  <ChevronDown
-                    data-testid="platform-picker-chevron"
-                    className="text-text-faint ease-out-quart size-3.5 transition-transform duration-150"
-                  />
-                </Button>
-              }
-              items={platforms.map((platform) => ({
-                label: platform.name,
-                onSelect: () => onSelectPlatform(platform.id),
-                selected: platform.id === selectedPlatformId,
-              }))}
-            />
-          </div>
-        )}
+                  {m.liked_track_undo()}
+                </button>
+              ) : (
+                <>
+                  {track.linkHref ? (
+                    <a
+                      href={track.linkHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={m.library_open_on({ title: track.title, platform: platformName })}
+                      className={ICON_ACTION}
+                    >
+                      <ExternalLink className="size-4.5" strokeWidth={1.6} aria-hidden="true" />
+                    </a>
+                  ) : (
+                    <span
+                      aria-disabled="true"
+                      aria-label={m.library_links_resolving({ title: track.title })}
+                      className={cn(ICON_ACTION, 'opacity-40')}
+                    >
+                      <ExternalLink className="size-4.5" strokeWidth={1.6} aria-hidden="true" />
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => onDeleteTrack(track.id)}
+                    aria-label={m.track_unkeep_aria({ title: track.title })}
+                    className={ICON_ACTION}
+                  >
+                    <Heart className="size-4.5 fill-current" strokeWidth={1.5} aria-hidden="true" />
+                  </button>
+                </>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="text-text-faint size-8 animate-spin" aria-label={i18n.loading()} />
-          </div>
-        ) : totalCount === 0 ? (
-          <div className="space-y-1 py-10 text-center">
-            <p className="text-lead text-text">{i18n.library_empty_title()}</p>
-            <p className="text-body text-text-muted">{i18n.library_empty_body()}</p>
-          </div>
-        ) : (
-          <div className="divide-border divide-y pt-4" role="list">
-            {tracks.map((track) => (
-              <div key={track.id} className="-mx-2 overflow-hidden px-2">
-                <LikedTrackRowView
-                  title={track.title}
-                  artist={track.artist}
-                  {...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {})}
-                  linkHref={track.linkHref}
-                  {...(selectedPlatformName ? { platformName: selectedPlatformName } : {})}
-                  pendingRemoval={track.pendingRemoval}
-                  {...(track.removalFraction !== undefined
-                    ? { removalFraction: track.removalFraction }
-                    : {})}
-                  onShare={() => onShareTrack(track.id)}
-                  onDelete={() => onDeleteTrack(track.id)}
-                  onUndo={() => onUndoTrack(track.id)}
-                />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {hiddenCount > 0 && (
-          <div className="flex justify-center pt-4">
-            <Button variant="ghost" onClick={onShowMore}>
-              {i18n.library_show_more({ count: hiddenCount })}
-            </Button>
-          </div>
-        )}
-      </div>
+      {hiddenCount > 0 ? (
+        <button
+          type="button"
+          onClick={onShowMore}
+          className="text-ui focus-visible:outline-accent mx-6 my-5 min-h-11 self-start rounded-sm underline decoration-1 underline-offset-4 hover:decoration-2 focus-visible:outline-2 md:mx-8"
+        >
+          {m.library_show_more({ count: hiddenCount })}
+        </button>
+      ) : null}
     </Modal>
   );
 }

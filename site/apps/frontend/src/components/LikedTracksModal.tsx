@@ -2,10 +2,14 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { PLATFORMS } from '@aubesonore/shared-types/client';
 import type { PreferredPlatform } from '../lib/api';
 import { getPlatformLink } from '@aubesonore/core/share';
-import { shareTrackWithToast, getRadioShareUrl } from '../lib/shareTrack';
+import { toast } from 'sonner';
+import { useShallow } from 'zustand/react/shallow';
+import { disableAlert, enableAlert, getAlertState, type AlertState } from '../lib/push';
+import { useAuthStore } from '../stores/authStore';
 import { useLikedTracksStore } from '../stores/likedTracksStore';
 import { usePreferencesStore } from '../stores/preferencesStore';
 import { LikedTracksModalView } from '../design/organisms/LikedTracksModalView';
+import * as m from '@/paraglide/messages.js';
 
 interface LikedTracksModalProps {
   isOpen: boolean;
@@ -16,7 +20,28 @@ interface LikedTracksModalProps {
 // affordance before the unlike request actually fires.
 const REMOVAL_DELAY_MS = 5000;
 
+function useAlert() {
+  const [state, setState] = useState<AlertState | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
+
+  useEffect(() => {
+    void getAlertState().then(setState);
+  }, []);
+
+  const onToggle = () => {
+    setIsBusy(true);
+    (state === 'on' ? disableAlert() : enableAlert())
+      .then(setState)
+      .catch(() => toast(m.alert_failed()))
+      .finally(() => setIsBusy(false));
+  };
+
+  return { state, isBusy, onToggle };
+}
+
 export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
+  const { user, signOut } = useAuthStore(useShallow((s) => ({ user: s.user, signOut: s.signOut })));
+  const alert = useAlert();
   const tracks = useLikedTracksStore((s) => s.tracks);
   const isLoading = useLikedTracksStore((s) => s.isLoading);
   const unlikeTrack = useLikedTracksStore((s) => s.unlikeTrack);
@@ -97,19 +122,6 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
     });
   }, []);
 
-  const handleShare = useCallback(
-    (id: string) => {
-      const track = tracks.find((t) => t.id === id);
-      if (!track) return;
-      void shareTrackWithToast({
-        title: track.title,
-        artist: track.artist,
-        url: getRadioShareUrl(track.title, track.artist),
-      });
-    },
-    [tracks]
-  );
-
   const handleUpdatePlatform = useCallback(
     (platform: PreferredPlatform) => {
       void updatePlatform(platform);
@@ -132,6 +144,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
       id: track.id,
       title: track.title,
       artist: track.artist,
+      keptAt: track.createdAt,
       ...(track.artworkUrl ? { artworkUrl: track.artworkUrl } : {}),
       linkHref: getPlatformLink(track, preferredPlatform),
       pendingRemoval: removalEndsAt !== undefined,
@@ -141,8 +154,16 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
     };
   });
 
+  if (!user) return null;
+
   return (
     <LikedTracksModalView
+      user={user}
+      onSignOut={() => {
+        onClose();
+        void signOut();
+      }}
+      alert={alert}
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) onClose();
@@ -155,7 +176,6 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
       platforms={PLATFORMS}
       selectedPlatformId={preferredPlatform}
       onSelectPlatform={(platformId) => handleUpdatePlatform(platformId as PreferredPlatform)}
-      onShareTrack={handleShare}
       onDeleteTrack={handleDelete}
       onUndoTrack={handleUndo}
     />

@@ -137,6 +137,9 @@
   /* Mesures de lecture : l'accroche tient sur trois lignes, une légende sur deux. */
   --container-hero: 13ch;
   --container-blurb: 28ch;
+  --container-form: 24rem;
+  --container-drawer: 32.5rem;
+  --container-aside: 34rem;
 
   @keyframes breathe {
     0%,
@@ -203,6 +206,22 @@
     bottom: -3.75rem;
     height: 28.75rem;
   }
+}
+
+/* La même aube, vue depuis le bas d'un panneau (connexion, bibliothèque). */
+@utility dawn-rise {
+  background:
+    radial-gradient(
+      70% 34% at 50% 100%,
+      color-mix(in oklab, var(--dawn) 75%, transparent) 0%,
+      transparent 72%
+    ),
+    radial-gradient(
+      40% 24% at 25% 96%,
+      color-mix(in oklab, var(--dawn-rose) 55%, transparent) 0%,
+      transparent 72%
+    ),
+    var(--surface);
 }
 
 /* L'écran d'ouverture remplit la fenêtre sans dépasser 50rem sur les grands écrans. */

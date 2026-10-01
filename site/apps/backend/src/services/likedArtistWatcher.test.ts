@@ -42,10 +42,8 @@ describe('createLikedArtistNotifier', () => {
 
     expect(sent).toHaveLength(1);
     expect(sent[0]!.userIds).toEqual(['user-1']);
-    expect(sent[0]!.title).toBe('En ce moment sur AubeSonore');
-    expect(sent[0]!.body).toBe(
-      '« F Major » — Hania Rani, un artiste de votre bibliothèque, passe en direct.'
-    );
+    expect(sent[0]!.title).toBe('AubeSonore');
+    expect(sent[0]!.body).toBe("Hania Rani repasse à l'antenne : « F Major ».");
     expect(sent[0]!.url).toBe('/');
   });
 

@@ -1,5 +1,5 @@
 import type { RefObject } from 'react';
-import { Eye, EyeOff, MailCheck, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Modal } from './Modal';
 import { Button } from '../atoms/Button';
 import { TextField } from '../atoms/TextField';
@@ -73,7 +73,22 @@ function GoogleLogo({ className }: { className?: string }) {
 }
 
 const TEXT_LINK_CLASSES =
-  'inline-flex min-h-11 cursor-pointer items-center rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-80';
+  'inline-flex min-h-11 items-center rounded-sm underline decoration-1 underline-offset-4 hover:decoration-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent active:opacity-80';
+
+/** What an account brings, said once, next to the form on wide screens. */
+function AuthAside() {
+  return (
+    <>
+      <p className="text-headline condensed relative m-0 font-bold">aubesonore</p>
+      <p className="text-hero max-w-hero relative m-0">{m.auth_aside_title()}</p>
+      <ul className="border-accent text-sub max-w-aside relative m-0 flex list-none flex-col gap-3 border-t p-0 pt-5">
+        <li>{m.auth_aside_library()}</li>
+        <li>{m.auth_aside_alert()}</li>
+        <li>{m.auth_aside_ranking()}</li>
+      </ul>
+    </>
+  );
+}
 
 /**
  * Corps présentationnel de la modale d'authentification : en-tête, boutons
@@ -110,13 +125,10 @@ export function AuthModalView({
   onSwitchMode,
 }: AuthModalViewProps) {
   const headerCopy = {
-    signin: { title: m.auth_signin_title(), desc: m.auth_signin_desc() },
-    signup: { title: m.auth_signup_title(), desc: m.auth_signup_desc() },
+    signin: { title: m.auth_signin_title(), desc: null },
+    signup: { title: m.auth_signup_title(), desc: null },
     forgot: { title: m.auth_forgot_title(), desc: m.auth_forgot_desc() },
-    'verification-sent': {
-      title: m.auth_verification_title(),
-      desc: m.auth_verification_desc(),
-    },
+    'verification-sent': { title: m.auth_verification_title(), desc: null },
     'reset-password': { title: m.auth_new_password(), desc: m.auth_reset_desc() },
   }[mode];
 
@@ -139,8 +151,11 @@ export function AuthModalView({
       onOpenChange={(open) => {
         if (!open) onClose();
       }}
+      variant="split"
+      aside={<AuthAside />}
+      initialFocus={mode === 'reset-password' ? passwordRef : emailRef}
     >
-      <p className="text-caption text-text-faint -mt-3">{headerCopy.desc}</p>
+      {headerCopy.desc ? <p className="text-text-muted -mt-2">{headerCopy.desc}</p> : null}
 
       {(mode === 'forgot' || mode === 'reset-password') && (
         <Button
@@ -148,7 +163,7 @@ export function AuthModalView({
           variant="icon"
           aria-label={m.auth_back_to_signin()}
           onClick={() => onSwitchMode('signin')}
-          className="-mt-2"
+          className="-mt-2 -ml-3"
         >
           <ArrowLeft className="size-5" />
         </Button>
@@ -157,7 +172,7 @@ export function AuthModalView({
       {mode === 'verification-sent' ? (
         <VerificationSentBody email={pendingEmail} onClose={onClose} />
       ) : (
-        <form onSubmit={onSubmit} className="space-y-4">
+        <form onSubmit={onSubmit} className="flex flex-col gap-5">
           {mode !== 'forgot' && mode !== 'reset-password' && (
             <>
               <Button
@@ -165,15 +180,15 @@ export function AuthModalView({
                 variant="ghost"
                 onClick={onOAuthGoogle}
                 disabled={isLoading}
-                className="border-border w-full justify-center gap-3 border"
+                className="border-accent h-13 w-full justify-center gap-2.5 border hover:bg-transparent hover:opacity-80"
               >
-                <GoogleLogo className="size-5" />
+                <GoogleLogo className="size-4.5" />
                 {m.auth_oauth_google()}
               </Button>
 
-              <div className="flex items-center gap-3 py-1">
+              <div className="text-label text-text-muted flex items-center gap-3.5 font-mono uppercase">
                 <div className="border-border flex-1 border-t" />
-                <span className="text-caption text-text-faint uppercase">{m.auth_or()}</span>
+                {m.auth_or()}
                 <div className="border-border flex-1 border-t" />
               </div>
             </>
@@ -196,7 +211,7 @@ export function AuthModalView({
             <TextField
               id="email"
               ref={emailRef}
-              label="Email"
+              label={m.auth_email_label()}
               type="email"
               placeholder={m.auth_email_placeholder()}
               value={email}
@@ -242,18 +257,18 @@ export function AuthModalView({
           )}
 
           {mode === 'signin' && (
-            <div className="-mt-2 text-right">
+            <div className="-mt-3 text-right">
               <button
                 type="button"
                 onClick={() => onSwitchMode('forgot')}
-                className={`${TEXT_LINK_CLASSES} text-caption text-accent hover:underline`}
+                className={`${TEXT_LINK_CLASSES} text-ui font-normal`}
               >
                 {m.auth_forgot_link()}
               </button>
             </div>
           )}
 
-          <Button type="submit" loading={isLoading} className="w-full justify-center">
+          <Button type="submit" loading={isLoading} className="mt-2 h-14 w-full justify-center">
             {isLoading
               ? m.auth_loading()
               : mode === 'signin'
@@ -266,25 +281,16 @@ export function AuthModalView({
           </Button>
 
           {mode !== 'forgot' && mode !== 'reset-password' && (
-            <div className="pt-2 text-center">
+            <p className="text-ui text-text-muted m-0 font-normal">
+              {mode === 'signin' ? m.auth_no_account() : m.auth_have_account()}{' '}
               <button
                 type="button"
                 onClick={() => onSwitchMode(mode === 'signin' ? 'signup' : 'signin')}
-                className={`${TEXT_LINK_CLASSES} text-body text-text-muted`}
+                className={`${TEXT_LINK_CLASSES} text-text font-semibold`}
               >
-                {mode === 'signin' ? (
-                  <>
-                    {m.auth_no_account()}{' '}
-                    <span className="text-accent hover:underline">{m.auth_submit_signup()}</span>
-                  </>
-                ) : (
-                  <>
-                    {m.auth_have_account()}{' '}
-                    <span className="text-accent hover:underline">{m.auth_submit_signin()}</span>
-                  </>
-                )}
+                {mode === 'signin' ? m.auth_create_account() : m.auth_submit_signin()}
               </button>
-            </div>
+            </p>
           )}
         </form>
       )}
@@ -294,21 +300,14 @@ export function AuthModalView({
 
 function VerificationSentBody({ email, onClose }: { email: string; onClose: () => void }) {
   return (
-    <div className="space-y-4 text-center">
-      <div className="border-accent/20 bg-accent/10 mx-auto flex size-14 items-center justify-center rounded-full border">
-        <MailCheck className="text-accent size-7" />
-      </div>
+    <div className="flex flex-col gap-4">
       <p className="text-body text-text-muted">
         {m.auth_verification_sent_to()}{' '}
         <span className="text-text font-medium break-all">{email}</span>.{' '}
         {m.auth_verification_click_link()}
       </p>
       <p className="text-caption text-text-faint">{m.auth_verification_spam_hint()}</p>
-      <Button
-        variant="ghost"
-        onClick={onClose}
-        className="border-border w-full justify-center border"
-      >
+      <Button onClick={onClose} className="mt-2 h-14 w-full justify-center">
         {m.auth_verification_dismiss()}
       </Button>
     </div>

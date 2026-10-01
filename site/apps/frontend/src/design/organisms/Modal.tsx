@@ -1,57 +1,116 @@
-import type { ReactElement, ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { Dialog } from '@base-ui/react/dialog';
+import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import * as m from '@/paraglide/messages.js';
 
-type ModalSize = 'md' | 'lg';
+type ModalVariant = 'center' | 'split' | 'drawer';
 
-const SIZE_CLASSES: Record<ModalSize, string> = {
-  md: 'w-[min(92vw,28rem)]',
-  lg: 'w-[min(92vw,36rem)]',
+const POPUP: Record<ModalVariant, string> = {
+  center:
+    'border-border bg-surface top-1/2 left-1/2 max-h-[calc(100dvh-2rem)] w-[min(92vw,28rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-md border p-6 data-[ending-style]:scale-95 data-[starting-style]:scale-95',
+  split:
+    'bg-surface inset-0 md:grid md:grid-cols-[minmax(0,1fr)_35rem] data-[ending-style]:translate-y-2 data-[starting-style]:translate-y-2',
+  drawer:
+    'bg-surface shadow-lift inset-y-0 right-0 w-full md:max-w-drawer data-[ending-style]:translate-x-8 data-[starting-style]:translate-x-8',
 };
 
+const CLOSE =
+  'ease-out-quart hover:bg-surface-raised focus-visible:outline-accent inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2';
+
 export interface ModalProps {
-  /** Titre affiché dans l'en-tête de la fenêtre. */
+  /** Titre de la fenêtre (nom accessible du dialogue). */
   title: string;
-  /** Élément déclencheur ; omis pour un contrôle entièrement piloté par `open`. */
-  trigger?: ReactElement;
-  /** Contenu de la fenêtre. */
   children: ReactNode;
-  /** État ouvert/fermé contrôlé (utiliser avec `onOpenChange`, sans `trigger`). */
-  open?: boolean;
-  /** Appelé quand l'état ouvert/fermé change. */
-  onOpenChange?: (open: boolean) => void;
-  /** Largeur : `md` (défaut, formulaires) ou `lg` (contenus en liste). */
-  size?: ModalSize;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /**
+   * `center` : petite fenêtre (à propos, erreurs). `split` : plein écran, panneau
+   * d'ambiance `aside` à gauche sur grand écran (connexion). `drawer` : panneau à
+   * droite, plein écran sur téléphone (bibliothèque).
+   */
+  variant?: ModalVariant;
+  /** Panneau d'ambiance de la variante `split`, masqué sur téléphone. */
+  aside?: ReactNode;
+  /** Contenu de la ligne du haut de la variante `drawer` (compte), face au bouton fermer. */
+  header?: ReactNode;
+  /** Petite ligne en capitales au-dessus du titre de la variante `drawer`. */
+  eyebrow?: string;
+  /** Élément focalisé à l'ouverture (par défaut : le premier élément focalisable). */
+  initialFocus?: RefObject<HTMLElement | null>;
 }
 
-/**
- * Fenêtre modale basée sur Base UI Dialog. Utilisable en mode non contrôlé (avec `trigger`)
- * ou contrôlé (`open`/`onOpenChange`, trigger externe). La hauteur est plafonnée au
- * viewport : à charge du contenu de scroller (`overflow-y-auto` + `min-h-0`).
- */
-export function Modal({ title, trigger, children, open, onOpenChange, size = 'md' }: ModalProps) {
+export function Modal({
+  title,
+  children,
+  open,
+  onOpenChange,
+  variant = 'center',
+  aside,
+  header,
+  eyebrow,
+  initialFocus,
+}: ModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      {trigger ? <Dialog.Trigger render={trigger} /> : null}
       <Dialog.Portal>
-        <Dialog.Backdrop className="bg-scrim ease-out-quart fixed inset-0 backdrop-blur-sm transition-opacity duration-300 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
+        <Dialog.Backdrop className="bg-scrim ease-out-quart fixed inset-0 transition-opacity duration-300 data-[ending-style]:opacity-0 data-[starting-style]:opacity-0" />
         <Dialog.Popup
+          {...(initialFocus ? { initialFocus } : {})}
           className={cn(
-            'border-border bg-surface-raised text-text ease-out-quart fixed top-1/2 left-1/2 flex max-h-[calc(100dvh-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col gap-4 rounded-md border p-6 transition-[opacity,transform] duration-300 focus-visible:outline-none data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0',
-            SIZE_CLASSES[size]
+            'text-text ease-out-soft fixed z-50 flex flex-col overflow-hidden transition-[opacity,translate,scale] duration-300 focus-visible:outline-none data-[ending-style]:opacity-0 data-[starting-style]:opacity-0',
+            POPUP[variant]
           )}
         >
-          <div className="flex items-start justify-between gap-4">
-            <Dialog.Title className="font-display text-title">{title}</Dialog.Title>
-            <Dialog.Close
-              aria-label={m.close()}
-              className="text-text-muted ease-out-quart hover:bg-surface focus-visible:outline-accent inline-flex size-11 shrink-0 items-center justify-center rounded-full transition-opacity duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:opacity-80"
-            >
-              ✕
-            </Dialog.Close>
-          </div>
-          {children}
+          {variant === 'split' ? (
+            <>
+              <div className="dawn-rise relative hidden flex-col justify-between overflow-hidden p-10 md:flex">
+                {aside}
+              </div>
+              <div className="relative flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-16 md:justify-center md:px-16">
+                <Dialog.Close
+                  aria-label={m.close()}
+                  className={cn(CLOSE, 'absolute top-4 right-4 md:top-6 md:right-6')}
+                >
+                  <X className="size-4.5" strokeWidth={1.8} aria-hidden="true" />
+                </Dialog.Close>
+                <div className="max-w-form mx-auto flex w-full flex-col gap-6">
+                  <Dialog.Title className="text-section m-0">{title}</Dialog.Title>
+                  {children}
+                </div>
+              </div>
+            </>
+          ) : variant === 'drawer' ? (
+            <>
+              <div className="dawn-rise relative px-6 pt-4 pb-8 md:px-8 md:pt-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0">{header}</div>
+                  <Dialog.Close aria-label={m.close()} className={CLOSE}>
+                    <X className="size-4.5" strokeWidth={1.8} aria-hidden="true" />
+                  </Dialog.Close>
+                </div>
+                <div className="mt-10 flex flex-col gap-1.5">
+                  {eyebrow ? (
+                    <span className="text-label text-text-muted font-mono uppercase">
+                      {eyebrow}
+                    </span>
+                  ) : null}
+                  <Dialog.Title className="text-section m-0">{title}</Dialog.Title>
+                </div>
+              </div>
+              <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-start justify-between gap-4">
+                <Dialog.Title className="text-title m-0">{title}</Dialog.Title>
+                <Dialog.Close aria-label={m.close()} className={CLOSE}>
+                  <X className="size-4.5" strokeWidth={1.8} aria-hidden="true" />
+                </Dialog.Close>
+              </div>
+              {children}
+            </>
+          )}
         </Dialog.Popup>
       </Dialog.Portal>
     </Dialog.Root>
