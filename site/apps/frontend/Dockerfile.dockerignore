@@ -20,5 +20,4 @@ apps/frontend/src/paraglide
 
 # Local-only build artefacts
 coverage
-storybook-static
 apps/frontend/stats.html

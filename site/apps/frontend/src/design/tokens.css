@@ -1,53 +1,32 @@
 /*
   AubeSonore — design system. Source unique des tokens.
+  Un seul style : papier clair, encre, et une seule lumière abricot (l'aube).
   Couche primitive (--p-*) : jamais consommée par les composants.
   Couche sémantique : la seule API, exposée à Tailwind via @theme inline.
-  AA prouvé par scripts/check-contrast.mjs sur les 2 thèmes.
+  AA prouvé par scripts/check-contrast.mjs.
 */
 
 :root {
   color-scheme: light;
 
-  --p-font-stack: 'Inter Variable', system-ui, sans-serif;
-  --p-font-display: 'Instrument Sans Variable', 'Inter Variable', system-ui, sans-serif;
+  --p-font-stack: 'Bricolage Grotesque Variable', system-ui, sans-serif;
 
-  --surface: oklch(0.975 0.008 80);
-  --surface-raised: oklch(0.94 0.012 80);
-  --text: oklch(0.24 0.02 60);
-  --text-muted: oklch(0.4 0.02 60);
-  --text-faint: oklch(0.47 0.015 60);
-  --border: oklch(0.86 0.012 80);
-  --accent: oklch(0.47 0.12 25);
-  --on-accent: oklch(0.98 0.008 80);
-  --dawn-tint: oklch(0.88 0.05 25);
+  --surface: oklch(0.968 0.006 75.4);
+  --surface-raised: oklch(0.939 0.01 72.7);
+  --text: oklch(0.204 0.012 293);
+  --text-muted: oklch(0.406 0.019 302.1);
+  --text-faint: oklch(0.513 0.02 308);
+  --border: oklch(0.885 0.019 67.6);
+  --accent: oklch(0.204 0.012 293);
+  --on-accent: oklch(0.968 0.006 75.4);
+  --dawn: oklch(0.834 0.088 54.9);
   /* Voile de modale (overlay, jamais de texte dessus → pas de paire AA). */
-  --scrim: oklch(0.22 0.02 60 / 0.5);
-  --glyph-1: oklch(0.82 0.07 25);
-  --glyph-2: oklch(0.8 0.08 200);
-  --glyph-3: oklch(0.82 0.07 140);
-  --glyph-4: oklch(0.8 0.08 300);
+  --scrim: oklch(0.204 0.012 293 / 0.5);
+  --glyph-1: oklch(0.834 0.088 54.9);
+  --glyph-2: oklch(0.855 0.045 352.7);
+  --glyph-3: oklch(0.878 0.027 290.4);
+  --glyph-4: oklch(0.885 0.019 67.6);
 }
-
-[data-theme='dark'] {
-  color-scheme: dark;
-
-  --surface: oklch(0.19 0.025 265);
-  --surface-raised: oklch(0.235 0.025 265);
-  --text: oklch(0.93 0.012 80);
-  --text-muted: oklch(0.72 0.015 80);
-  --text-faint: oklch(0.63 0.012 80);
-  --border: oklch(0.32 0.02 265);
-  --accent: oklch(0.76 0.1 25);
-  --on-accent: oklch(0.18 0.03 265);
-  --dawn-tint: oklch(0.35 0.06 25);
-  --scrim: oklch(0.1 0.02 265 / 0.6);
-  --glyph-1: oklch(0.33 0.05 25);
-  --glyph-2: oklch(0.32 0.06 200);
-  --glyph-3: oklch(0.33 0.05 140);
-  --glyph-4: oklch(0.32 0.06 300);
-}
-
-@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 
 @theme inline {
   --color-*: initial;
@@ -67,7 +46,7 @@
 
   --font-*: initial;
   --font-sans: var(--p-font-stack);
-  --font-display: var(--p-font-display);
+  --font-display: var(--p-font-stack);
 
   --text-*: initial;
   --text-display: clamp(2.25rem, 1.2rem + 4.5vw, 4rem);
@@ -89,7 +68,7 @@
   --text-caption--letter-spacing: 0.01em;
 
   --radius-*: initial;
-  --radius-sm: 0.25rem;
+  --radius-sm: 0.1875rem;
   --radius-md: 0.5rem;
   --radius-full: 9999px;
 
@@ -107,7 +86,7 @@
 @utility dawn-glow {
   background-image: linear-gradient(
     to bottom,
-    color-mix(in oklab, var(--dawn-tint) 30%, var(--surface)),
+    color-mix(in oklab, var(--dawn) 30%, var(--surface)),
     var(--surface) 14rem
   );
 }

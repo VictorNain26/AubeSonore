@@ -31,7 +31,7 @@ aubesonore/
 | Couche    | Technologies                                                |
 | --------- | ----------------------------------------------------------- |
 | Backend   | Bun, Elysia, Drizzle ORM + PostgreSQL, Better Auth, Valibot |
-| Frontend  | React 19, Vite 8, Tailwind CSS 4, Zustand, Storybook        |
+| Frontend  | React 19, Vite 8, Tailwind CSS 4, Zustand                   |
 | Outillage | pnpm 10, Turbo, ESLint 9 (flat), Vitest + bun test          |
 
 Auth : Better Auth (email vérifié + OAuth Google/Spotify). Liens multi-plateformes : Songlink/Odesli. Pochettes : iTunes vérifiée (artiste) ou visuel « onde » généré côté client.
@@ -76,7 +76,6 @@ pnpm typecheck                 # turbo typecheck
 pnpm format:check              # prettier --check
 
 pnpm --filter @aubesonore/frontend test          # Vitest
-pnpm --filter @aubesonore/frontend storybook     # Storybook (design system) sur :6006
 pnpm --filter @aubesonore/backend test           # bun test
 ```
 

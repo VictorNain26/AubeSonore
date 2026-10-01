@@ -15,8 +15,8 @@
       content="Une radio de découverte, choisie titre par titre. Gratuite. Sans publicité. Jour et nuit. Gardez ce qui vous arrête, retrouvez-le sur votre plateforme."
     />
     <meta name="author" content="AubeSonore" />
-    <meta name="theme-color" content="#15151e" />
-    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#f7f4f0" />
+    <meta name="color-scheme" content="light" />
     <link rel="canonical" href="https://aubesonore.fr/" />
 
     <!-- Structured data — RadioStation + WebSite (schema.org).
@@ -91,16 +91,6 @@
     <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png" />
-
-    <script>
-      try {
-        var stored = localStorage.getItem('aubesonore-theme');
-        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        var theme =
-          stored === 'light' || stored === 'dark' ? stored : prefersDark ? 'dark' : 'light';
-        if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-      } catch (_) {}
-    </script>
   </head>
 
   <body>

@@ -44,32 +44,28 @@ const ratio = (fg, bg) => {
 };
 const mix = (a, b, w) => a.map((v, i) => v * w + b[i] * (1 - w));
 
-const themes = {
-  light: parseVars(block(':root')),
-  dark: parseVars(block("[data-theme='dark']")),
+const vars = parseVars(block(':root'));
+const c = (key) => {
+  if (!vars[key]) throw new Error(`missing --${key}`);
+  return oklchToLinearSrgb(vars[key]);
 };
-
+const glow = mix(c('dawn'), c('surface'), 0.3);
+const pairs = [
+  ['text/surface', c('text'), c('surface'), 4.5],
+  ['text-muted/surface', c('text-muted'), c('surface'), 4.5],
+  ['text-faint/surface', c('text-faint'), c('surface'), 4.5],
+  ['text/surface-raised', c('text'), c('surface-raised'), 4.5],
+  ['text-muted/surface-raised', c('text-muted'), c('surface-raised'), 4.5],
+  ['text-faint/surface-raised', c('text-faint'), c('surface-raised'), 4.5],
+  ['accent/surface', c('accent'), c('surface'), 3.0],
+  ['on-accent/accent', c('on-accent'), c('accent'), 4.5],
+  ['text/dawn-glow', c('text'), glow, 4.5],
+];
 let fail = false;
-for (const [name, vars] of Object.entries(themes)) {
-  const c = (key) => {
-    if (!vars[key]) throw new Error(`missing --${key} in ${name}`);
-    return oklchToLinearSrgb(vars[key]);
-  };
-  const glow = mix(c('dawn-tint'), c('surface'), 0.3);
-  const pairs = [
-    ['text/surface', c('text'), c('surface'), 4.5],
-    ['text-muted/surface', c('text-muted'), c('surface'), 4.5],
-    ['text-faint/surface', c('text-faint'), c('surface'), 4.5],
-    ['text/surface-raised', c('text'), c('surface-raised'), 4.5],
-    ['accent/surface', c('accent'), c('surface'), 3.0],
-    ['on-accent/accent', c('on-accent'), c('accent'), 4.5],
-    ['text/dawn-glow', c('text'), glow, 4.5],
-  ];
-  for (const [label, fg, bg, floor] of pairs) {
-    const r = ratio(fg, bg);
-    const ok = r >= floor;
-    if (!ok) fail = true;
-    console.log(`${ok ? 'PASS' : 'FAIL'} ${name} ${label} ${r.toFixed(2)} (min ${floor})`);
-  }
+for (const [label, fg, bg, floor] of pairs) {
+  const r = ratio(fg, bg);
+  const ok = r >= floor;
+  if (!ok) fail = true;
+  console.log(`${ok ? 'PASS' : 'FAIL'} ${label} ${r.toFixed(2)} (min ${floor})`);
 }
 process.exit(fail ? 1 : 0);
