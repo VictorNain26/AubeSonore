@@ -3,6 +3,12 @@
 -- alone, group by NULL does not let it slip through under count(*) = 1.
 CREATE OR REPLACE VIEW duplicate_artist AS
   SELECT mbid FROM artists GROUP BY mbid HAVING count(*) > 1 OR mbid IS NULL;
+-- An absent comment is NULL, never ''. A consumer testing `IS NULL` to decide
+-- whether two homonyms can be told apart would otherwise read the
+-- artists whose dump record carries "" (1 407 587 on the reference dump,
+-- descriptive) as distinguished.
+CREATE OR REPLACE VIEW empty_disambiguation AS
+  SELECT mbid FROM artists WHERE disambiguation = '';
 -- [1850, 2026] is the reference dump's contractual window, hardcoded here on
 -- purpose at BOTH ends, independently of the min_year/dump_year session
 -- variables used by the production rules: this invariant re-asserts the

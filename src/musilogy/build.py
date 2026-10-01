@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 RAW_ARTIST_COLUMNS = (
-    "{mbid:'VARCHAR', name:'VARCHAR', type:'VARCHAR', begin:'VARCHAR', "
+    "{mbid:'VARCHAR', name:'VARCHAR', disambiguation:'VARCHAR', type:'VARCHAR', begin:'VARCHAR', "
     "\"end\":'VARCHAR', ended:'BOOLEAN', country:'VARCHAR', begin_area:'VARCHAR', "
     "genres:'STRUCT(mbid VARCHAR, name VARCHAR, votes INTEGER)[]', "
     "relations:'STRUCT(type VARCHAR, direction VARCHAR, mbid VARCHAR, begin VARCHAR, "
@@ -86,6 +86,7 @@ def build(
 
 INVARIANTS = (
     "duplicate_artist",
+    "empty_disambiguation",
     "artist_unexpected_type",
     "birth_misread",
     "artist_out_of_window",

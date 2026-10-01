@@ -24,7 +24,7 @@ Mesurées sur le dump de référence `20260909-001002` :
 
 Colonnes réelles (voir `src/musilogy/sql/`) :
 
-- **`artists`** : `mbid`, `name`, `type`, `y0_declared`, `y_end_declared`, `y_birth`, `ended`, `country`, `begin_area`, `genres_declared` et `genres_from_albums` (listes de `{mbid, name, votes}`, triées), `genres`, `genre_source`, `y_first_album`, `y_last_album`, `y0`, `y0_source`, `y_end`, `y_end_source`, `y_presence_end`.
+- **`artists`** : `mbid`, `name`, `disambiguation`, `name_key`, `type`, `y0_declared`, `y_end_declared`, `y_birth`, `ended`, `country`, `begin_area`, `genres_declared` et `genres_from_albums` (listes de `{mbid, name, votes}`, triées), `genres`, `genre_source`, `y_first_album`, `y_last_album`, `y0`, `y0_source`, `y_end`, `y_end_source`, `y_presence_end`.
 - **`albums`** : `artist_mbid`, `rg_mbid`, `title`, `y`, `soundtrack`.
 - **`genres`** : `genre_mbid`, `name`, `n_artists`, `density_eligible`, `n_candidate_credits`, `multi_artist_drop_pct`.
 - **`links`** : `src_mbid`, `dst_mbid`, `type`, `y_begin`, `y_end`.

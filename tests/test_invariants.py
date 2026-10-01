@@ -730,10 +730,7 @@ def test_corrections_invalid_survives_a_null_mbid_in_raw_artists(con):
         ("DELETE FROM raw_artists WHERE mbid IS NULL", []),
         ("DELETE FROM corrections WHERE mbid = 'inconnu-null-poison'", []),
     ):
-        con.execute(
-            "INSERT INTO raw_artists VALUES "
-            "(NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL)"
-        )
+        con.execute("INSERT INTO raw_artists (mbid) VALUES (NULL)")
         con.execute(
             "INSERT INTO corrections VALUES ('inconnu-null-poison', 'begin', '2000', 'j', 's')"
         )

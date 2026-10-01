@@ -47,6 +47,15 @@ def test_reduce_artist_keeps_genre_mbid_and_votes():
     ]
 
 
+def test_reduce_artist_keeps_the_disambiguation_comment_as_written():
+    # Breaks if the projection drops the field or normalises it here: turning
+    # "" into NULL is a rule, and rules live in 10_bands.sql.
+    for comment in ("Tampa death metal", ""):
+        out = reduce_artist({**GROUP, "disambiguation": comment})
+        assert out is not None
+        assert out["disambiguation"] == comment
+
+
 def test_reduce_artist_drops_area_no_table_consumes():
     # `area` is present in the source record above and must not survive the
     # projection: it duplicated `country` and `begin_area`, both published,

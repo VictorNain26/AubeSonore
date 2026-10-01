@@ -13,7 +13,11 @@
 -- birth_below_min_year, which 30_bands_lifespan.sql reads as a guard.
 CREATE OR REPLACE TABLE dated AS
 SELECT
-  mbid, name, type, ended, country, begin_area, genres,
+  mbid, name,
+  -- MusicBrainz writes an absent comment as an empty string: NULL says
+  -- "none" in one way only.
+  nullif(disambiguation, '') AS disambiguation,
+  type, ended, country, begin_area, genres,
   CASE WHEN type <> 'Person'
         AND yr(begin) BETWEEN getvariable('min_year') AND getvariable('dump_year')
        THEN yr(begin) END AS y0_declared,
@@ -69,7 +73,13 @@ SELECT
 FROM dated;
 
 CREATE OR REPLACE TABLE artists AS
-SELECT mbid, name, type, y0_declared, y_end_declared, y_birth, ended, country, begin_area,
+SELECT mbid, name, disambiguation,
+  -- The lookup key for a typed name: "bjork" finds Björk. strip_accents
+  -- leaves ligatures and ß as they are (æ, œ, ß): a reader typing "ae" for
+  -- "æ" is not served, which the lookup accepts rather than hand-writing a
+  -- transliteration table.
+  strip_accents(lower(name)) AS name_key,
+  type, y0_declared, y_end_declared, y_birth, ended, country, begin_area,
   -- Explicit sort (votes descending, then name), never inherited from
   -- the source (alphabetical). list_sort does not accept a lambda comparator
   -- in 1.5.5: sort by key, projecting each genre onto {k: [-votes], n: name,

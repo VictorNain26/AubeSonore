@@ -22,6 +22,7 @@ def reduce_artist(rec: dict[str, Any]) -> dict[str, Any] | None:
     return {
         "mbid": rec.get("id"),
         "name": rec.get("name"),
+        "disambiguation": rec.get("disambiguation"),
         "type": rec.get("type"),
         "begin": span.get("begin"),
         "end": span.get("end"),
