@@ -1,4 +1,4 @@
-/data/
+/data
 *.parquet
 *.jsonl
 !tests/fixtures/*.jsonl
