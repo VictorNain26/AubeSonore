@@ -18,8 +18,8 @@
     "lint": "pnpm --filter=@aubesonore/frontend compile:i18n && eslint .",
     "lint:fix": "pnpm --filter=@aubesonore/frontend compile:i18n && eslint . --fix",
     "typecheck": "turbo typecheck",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "clean": "turbo clean && rm -rf node_modules .turbo",
     "prepare": "husky"
   },

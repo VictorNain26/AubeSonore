@@ -2,7 +2,7 @@
 # Hosts frontend + backend + Postgres.
 # Public exposure (aubesonore.fr / api / radio) is handled by the host-level
 # cloudflared systemd service, not by this compose.
-# AzuraCast runs from its own compose (~/azuracast) and is reached via the host gateway.
+# AzuraCast runs from its own compose (~/radio/azuracast) and is reached via the host gateway.
 
 name: aubesonore
 
@@ -12,7 +12,7 @@ services:
   pg-cert-init:
     image: alpine:3
     container_name: aubesonore-pg-cert-init
-    restart: "no"
+    restart: 'no'
     volumes:
       - ./certs:/src:ro
       - pg_certs:/dst
@@ -45,13 +45,19 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - pg_certs:/certs:ro
+    # This box is a shared homelab running ~22 containers; a runaway here must
+    # not take Plex down with it. The ceilings sit ~20x above observed steady
+    # state, so they cap accidents without throttling normal work.
+    cpus: 1.0
+    mem_limit: 1g
+    pids_limit: 256
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aubesonore}"]
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-aubesonore}']
       interval: 10s
       timeout: 5s
       retries: 5
     logging:
-      options: { max-size: "10m", max-file: "3" }
+      options: { max-size: '10m', max-file: '3' }
 
   backend:
     build:
@@ -63,11 +69,11 @@ services:
       postgres:
         condition: service_healthy
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - 'host.docker.internal:host-gateway'
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-aubesonore}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-aubesonore}
-      DATABASE_SSL: "true"
+      DATABASE_SSL: 'true'
       DATABASE_CA_CERT_FILE: /certs/ca.crt
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-https://api.aubesonore.fr}
@@ -79,6 +85,11 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID:-}
       SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-AubeSonore <noreply@aubesonore.fr>}
       DISABLE_EMAILS: ${DISABLE_EMAILS:-false}
       ENABLE_CRON: ${ENABLE_CRON:-false}
       AZURACAST_BASE_URL: ${AZURACAST_BASE_URL:-http://host.docker.internal:8080}
@@ -87,15 +98,24 @@ services:
     volumes:
       - pg_certs:/certs:ro
     ports:
-      - "127.0.0.1:3001:3000"
+      - '127.0.0.1:3001:3000'
+    cpus: 2.0
+    mem_limit: 1g
+    pids_limit: 512
     healthcheck:
-      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      test:
+        [
+          'CMD',
+          'bun',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 15s
     logging:
-      options: { max-size: "10m", max-file: "3" }
+      options: { max-size: '10m', max-file: '3' }
 
   # Static SPA served by nginx. Published on loopback only: public exposure
   # goes through the host-level cloudflared tunnel, same as the backend.
@@ -112,15 +132,18 @@ services:
     # Deliberately no depends_on: nginx resolves the backend at request time,
     # so the static site stays servable even when the API is down.
     ports:
-      - "127.0.0.1:3002:80"
+      - '127.0.0.1:3002:80'
+    cpus: 0.5
+    mem_limit: 128m
+    pids_limit: 128
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/"]
+      test: ['CMD', 'wget', '-q', '--spider', 'http://127.0.0.1/']
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 10s
     logging:
-      options: { max-size: "10m", max-file: "3" }
+      options: { max-size: '10m', max-file: '3' }
 
 volumes:
   postgres_data:

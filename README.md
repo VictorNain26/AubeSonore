@@ -82,9 +82,11 @@ pnpm --filter @aubesonore/backend test           # bun test
 
 Détails par app : [backend](apps/backend/README.md) · [frontend](apps/frontend/README.md).
 
-## Dépendances (Renovate)
+## Dépendances
 
-Les mises à jour sont gérées par **Renovate** (`renovate.json`, source de vérité de la policy). Les updates sûres (patch/minor des devDependencies, patches runtime stables, GitHub Actions) sont **auto-mergées après CI verte** ; majors et images Docker passent en **revue manuelle**. Les alertes de sécurité restent gérées par Dependabot. Le _Dependency Dashboard_ (issue GitHub) liste ce qui est en attente.
+Les PR de dépendances viennent des **mises à jour de sécurité Dependabot** (alertes et correctifs automatiques activés dans les réglages du dépôt, sans `.github/dependabot.yml`, donc sans mises à jour de version planifiées). Elles passent la CI et sont mergées **à la main** : aucune n'est auto-mergée. Les autres montées de version se font manuellement.
+
+`renovate.json` décrit une policy Renovate (auto-merge des updates sûres, revue manuelle des majors), mais Renovate n'a jamais ouvert de PR ni de _Dependency Dashboard_ sur ce dépôt : cette configuration n'est pas active.
 
 ## Déploiement
 
@@ -94,13 +96,26 @@ Toute la stack est auto-hébergée sur le même serveur et exposée via Cloudfla
 - **Backend** : Bun/Elysia (`api.aubesonore.fr`), publié en `127.0.0.1:3001`.
 - **Base de données** : PostgreSQL.
 
-Déploiement manuel depuis le checkout du serveur :
+Le déploiement est automatique et _pull-based_ : merger sur `master` suffit. Sur le serveur, le timer systemd utilisateur `aubesonore-deploy.timer` lance toutes les 2 minutes [`scripts/deploy.sh`](scripts/deploy.sh), qui compare le checkout à `origin/master` (`git ls-remote`) et, quand `master` a bougé :
+
+1. `git merge --ff-only` vers la nouvelle révision ;
+2. `docker compose up -d --build --remove-orphans` ;
+3. attend que tous les healthchecks soient verts (échec au-delà de 300 s) ;
+4. supprime les images de plus de 72 h.
+
+Aucun runner self-hosted ni webhook entrant : le dépôt est public, et le polling ne demande ni credential ni port ouvert. Un changement de `apps/backend/src/db/schema.ts` bloque le déploiement, car `bun db:push` reste manuel (il peut supprimer des colonnes) : appliquer le push à la main, puis relancer `systemctl --user start aubesonore-deploy`.
+
+Installation, une fois, sur le serveur (unités et script supposent le checkout dans `~/radio/aubesonore` ; ailleurs, ajuster `ExecStart` et définir `REPO_DIR`) :
 
 ```bash
-cd /home/victormoi/AubeSonore
-git pull
-docker compose up -d --build
+ln -s <checkout>/scripts/systemd/* ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now aubesonore-deploy.timer aubesonore-backup.timer
+loginctl enable-linger <utilisateur>   # les timers tournent sans session ouverte
+journalctl --user -u aubesonore-deploy # logs
 ```
+
+`aubesonore-backup.timer` lance chaque nuit (03:30) [`scripts/backup-db.sh`](scripts/backup-db.sh) : un `pg_dump -Fc` vers un disque physiquement séparé de celui du volume Docker, vérifié par `pg_restore --list` et conservé 14 jours.
 
 Les variables `VITE_*` sont inlinées **au build** (ce ne sont pas des secrets) : changer l'URL de l'API impose un `--build`, pas un simple restart.
 

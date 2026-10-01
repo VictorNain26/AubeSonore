@@ -66,7 +66,6 @@ MIGRATION.md
 *.log
 *.pid
 .turbo
-.vercel
 certs/
 
 *storybook.log
@@ -75,5 +74,6 @@ storybook-static
 # Bundle analyzer output (ANALYZE=true build)
 apps/frontend/stats.html
 
-# Subagent-driven-development scratch (progress ledger, task briefs/reports)
-.superpowers/
+# Sauvegardes locales de .env (jamais versionnées)
+.env.bak*
+.env.pre-*

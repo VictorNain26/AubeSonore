@@ -1,7 +1,5 @@
 # Player Redesign Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
-
 **Goal:** Refondre le player now-playing en « manchette + fil d'onde » : play hors cover, titre robuste, barre d'actions unifiée à icônes agrandies, waveform pleine largeur/lissée, bouton play/stop révisé.
 
 **Architecture:** On conserve la séparation vue (design system, props-in) / container (store). Le play sort de la cover et devient l'ancre d'une ligne de transport (`play + waveform`) recomposée dans `Player/index.tsx`. Les actions like/partage quittent `TrackMeta` pour un nouveau couple `TrackActions(View)` regroupé avec le volume dans une barre d'actions.
