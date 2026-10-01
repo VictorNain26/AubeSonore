@@ -26,7 +26,22 @@ jobs:
           python-version: "3.12"
           working-directory: pipeline
       # Outils audio de l'acquisition : le test d'intégration les fait tourner pour de vrai.
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg libchromaprint-tools
+      # Le miroir Ubuntu d'Azure sert parfois à ~180 Ko/s (jusqu'à 11 min pour ffmpeg) : les .deb
+      # restent en cache (Dir::Cache::archives, apt.conf(5)) et apt ne télécharge que les nouveaux.
+      # ImageOS/ImageVersion viennent de /etc/environment (actions/runner-images).
+      - id: image
+        run: echo "version=$ImageOS-$ImageVersion" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/apt-archives
+          key: apt-ffmpeg-chromaprint-${{ steps.image.outputs.version }}
+          restore-keys: apt-ffmpeg-chromaprint-
+      - run: |
+          mkdir -p "$RUNNER_TEMP/apt-archives/partial"
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends -o Dir::Cache::Archives="$RUNNER_TEMP/apt-archives" ffmpeg libchromaprint-tools
+          sudo apt-get autoclean -o Dir::Cache::Archives="$RUNNER_TEMP/apt-archives"
+          sudo chown -R "$USER" "$RUNNER_TEMP/apt-archives"
       # rsgain 3.8, la version figée en production (docs/vision.md §6), et non la 3.4 d'apt.
       - run: |
           curl -fsSL -o "$RUNNER_TEMP/rsgain.tar.xz" https://github.com/complexlogic/rsgain/releases/download/v3.8/rsgain-3.8-Linux.tar.xz
