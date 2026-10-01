@@ -50,7 +50,7 @@ suivante reprend.
 
 | Étape | Rôle | Outils | État |
 |---|---|---|---|
-| 1 Bibliothèque | Lire Plex, rapprocher chaque titre de Deezer (strict : artiste, titre, durée ±3 s) | python-plexapi, API Deezer | fait |
+| 1 Bibliothèque | Lire Plex, rapprocher chaque titre de Deezer (strict : artiste, titre, durée ±3 s ; un seul des artistes d'un crédit « A & B » ou « A, B » suffit, jamais sur « and ») | python-plexapi, API Deezer | fait |
 | 2 Découverte | 15 graines par semaine, tirées selon l'écoute ; voisins confirmés par Deezer `related` ET Last.fm `getSimilar` (`recherches/2026-09-24-sources-decouverte.md`) ; 10 titres par voisin | API Deezer, Last.fm | fait |
 | 2b Nouveautés | Titres récents choisis par des humains, ajoutés à la fournée (§3.1) | API Hype Machine v2, API Deezer | en service |
 | 3 Empreinte | Empreinte Discogs-EffNet de l'extrait Deezer de 30 s | essentia-tensorflow, modèle MTG épinglé | fait |

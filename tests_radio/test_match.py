@@ -280,3 +280,25 @@ def test_unavailable_with_batch_one_flushes_mid_loop(tmp_path: Path) -> None:
     fake = BatchProbeDeezer(tmp_path / "db")
     with pytest.raises(DeezerUnavailable):
         match_library(conn, fake, 3, "d1", batch=1)  # type: ignore[arg-type]
+
+
+def test_pick_accepts_one_artist_of_a_shared_credit() -> None:
+    bill = dz(1, "Bill Wells", "Glasgow Jubilee", 238)
+    got = pick_match("Aidan Moffat & Bill Wells", "Glasgow Jubilee", 238000, [bill], 3)
+    assert got is not None and got.id == 1
+    eagle = dz(2, "Open Mike Eagle", "Concrete", 174)
+    assert pick_match("Kenny Segal, Open Mike Eagle", "Concrete", 175000, [eagle], 3) is not None
+    # Le crédit complet passe avant un seul de ses artistes.
+    both = dz(3, "Aidan Moffat & Bill Wells", "Glasgow Jubilee", 239)
+    got = pick_match("Aidan Moffat & Bill Wells", "Glasgow Jubilee", 238000, [bill, both], 3)
+    assert got is not None and got.id == 3
+
+
+def test_a_shared_credit_still_needs_the_same_title_and_duration() -> None:
+    assert pick_match("A & B", "Song", 200000, [dz(1, "B", "Other", 200)], 3) is None
+    assert pick_match("A & B", "Song", 200000, [dz(1, "B", "Song", 210)], 3) is None
+    # « and » ne découpe jamais un nom.
+    assert (
+        pick_match("Florence and the Machine", "Song", 200000, [dz(1, "Florence", "Song", 200)], 3)
+        is None
+    )
