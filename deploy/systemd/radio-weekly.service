@@ -19,6 +19,7 @@ ExecStart=%h/radio/pipeline/.venv/bin/radio library-sync
 ExecStart=%h/radio/pipeline/.venv/bin/radio discover
 ExecStart=%h/radio/pipeline/.venv/bin/radio signals
 ExecStart=%h/radio/pipeline/.venv/bin/radio train
+ExecStart=%h/radio/pipeline/.venv/bin/radio votes-select
 ExecStart=%h/radio/pipeline/.venv/bin/radio acquire
 ExecStart=%h/radio/pipeline/.venv/bin/radio antenne
 # Battement de cœur vers Gatus, même en échec : $SERVICE_RESULT vaut « success » ou la cause

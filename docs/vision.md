@@ -81,9 +81,8 @@ suivante reprend.
 - **Promotion.** Un nouveau modèle n'est mis en service que si son AUC d'examen égale au moins
   celle du modèle en service.
 
-La page de vote (FastAPI derrière Cloudflare Access, rappel WhatsApp) est codée et testée. Elle
-sera activée quand des découvertes passeront à l'antenne (§9) : voter n'a de sens que pour
-affiner ce qu'on entend.
+La page de vote (FastAPI derrière Cloudflare Access, rappel WhatsApp) est en service depuis le
+2026-10-01 sur `votes.aubesonore.fr`. Chaque passe tire une nouvelle sélection après `train`.
 
 ## 5. Acquisition (étape 5)
 
@@ -217,7 +216,7 @@ plus toutes les 24 h et un message de retour à la normale.
 | `flux-public` : `radio.aubesonore.fr/listen/aubesonore/radio.mp3`, toutes les 5 min | HTTP 200 : vérifie aussi le tunnel Cloudflare (en place) |
 | `passe-hebdo` (endpoint externe) | Poussée par `ExecStopPost=` avec `$SERVICE_RESULT` ; alerte au premier échec ou après 8 jours de silence (en place) |
 | Playlist en cours ≠ secours | Après l'enchaînement (§7.3) |
-| Page de vote | Après son activation |
+| `page-de-vote` : `127.0.0.1:8040`, toutes les 5 min | HTTP 403 sans jeton Access : la page tourne (en place) |
 
 ### 8.3 Non-régression
 
@@ -239,9 +238,9 @@ plus toutes les 24 h et un message de retour à la normale.
 
 | Quand | Unité systemd utilisateur | Ce qui se passe |
 |---|---|---|
-| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train`, `acquire`, `antenne` ; `votes-select` s'ajoutera avec la page ; bornée à 12 h, battement de cœur Gatus |
-| dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote (quand la page sera active) |
-| en continu | `radio-votes` | page de vote, `127.0.0.1:8040` (quand elle sera active) |
+| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `signals`, `train`, `votes-select`, `acquire`, `antenne` ; bornée à 12 h, battement de cœur Gatus |
+| dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote |
+| en continu | `radio-votes` | page de vote, `127.0.0.1:8040`, publiée sur `votes.aubesonore.fr` |
 
 - État : `.venv/bin/radio report`.
 - Journaux : `journalctl --user -u radio-weekly`.

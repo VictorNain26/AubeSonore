@@ -43,6 +43,17 @@ endpoints:
       - type: custom
         minimum-reminder-interval: 24h
 
+  # Sans jeton Access, la page répond 403 : elle tourne. Le tunnel est couvert par flux-public.
+  - name: page-de-vote
+    group: radio
+    url: "http://127.0.0.1:8040/"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 403"
+    alerts:
+      - type: custom
+        minimum-reminder-interval: 24h
+
 external-endpoints:
   - name: passe-hebdo
     group: radio
