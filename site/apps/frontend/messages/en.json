@@ -133,5 +133,7 @@
   "alert_aria": "Let me know when a kept artist is back on air",
   "alert_denied": "Notifications are blocked for this site in your browser.",
   "alert_unsupported": "Your browser can't receive notifications. On iPhone, add the site to your home screen first.",
-  "alert_failed": "The alert couldn't be turned on. Try again in a moment."
+  "alert_failed": "The alert couldn't be turned on. Try again in a moment.",
+  "meta_title": "AubeSonore — a discovery radio, chosen track by track",
+  "meta_description": "A discovery radio, chosen track by track. Free. No ads. Day and night. Keep what stops you, find it again on your platform."
 }

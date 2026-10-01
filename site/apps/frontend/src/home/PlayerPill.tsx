@@ -134,17 +134,19 @@ export function PlayerPill() {
       art: s.data?.now_playing?.song.art,
     }))
   );
-  const { isPlaying, play, stop, volume, isMuted, setVolume, toggleMute } = usePlayer(
-    useShallow((s) => ({
-      isPlaying: s.isPlaying,
-      play: s.play,
-      stop: s.stop,
-      volume: s.volume,
-      isMuted: s.isMuted,
-      setVolume: s.setVolume,
-      toggleMute: s.toggleMute,
-    }))
-  );
+  const { isPlaying, play, stop, volume, isMuted, setVolume, toggleMute, restoreVolume } =
+    usePlayer(
+      useShallow((s) => ({
+        isPlaying: s.isPlaying,
+        play: s.play,
+        stop: s.stop,
+        volume: s.volume,
+        isMuted: s.isMuted,
+        setVolume: s.setVolume,
+        toggleMute: s.toggleMute,
+        restoreVolume: s.restoreVolume,
+      }))
+    );
   const { airPlayAvailable, airPlayActive, initAirPlay, openAirPlay } = useAirPlayStore(
     useShallow((s) => ({
       airPlayAvailable: s.available,
@@ -155,8 +157,9 @@ export function PlayerPill() {
   );
 
   useEffect(() => {
+    restoreVolume();
     initAirPlay();
-  }, [initAirPlay]);
+  }, [restoreVolume, initAirPlay]);
 
   return (
     <PlayerPillView

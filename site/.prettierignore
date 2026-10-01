@@ -4,6 +4,7 @@ pnpm-lock.yaml
 # Build and tool output. The Quality job formats *after* building the workspace
 # packages, so these exist at check time and would otherwise be linted.
 dist/
+dist-ssr/
 coverage/
 .turbo/
 apps/frontend/src/paraglide/

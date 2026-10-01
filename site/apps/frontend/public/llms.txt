@@ -20,5 +20,6 @@ CC BY-NC-SA 4.0. AubeSonore est un projet non commercial.
 ## Écouter
 
 - [Site](https://aubesonore.fr/): le direct, les titres depuis l'aube et les plus gardés
+- [Site in English](https://aubesonore.fr/en/): the same page in English
 - [Flux MP3](https://radio.aubesonore.fr/listen/aubesonore/radio.mp3): le direct, sans le site
 - [Titre en cours (JSON)](https://radio.aubesonore.fr/api/nowplaying_static/aubesonore.json): métadonnées du direct

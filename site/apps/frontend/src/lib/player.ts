@@ -27,6 +27,8 @@ interface PlayerActions {
   setVolume: (value: number) => void;
   toggleMute: () => void;
   clearPlayError: () => void;
+  /** Read the saved volume once mounted (the pre-rendered page starts at 1). */
+  restoreVolume: () => void;
 }
 
 type PlayerStore = PlayerState & PlayerActions;
@@ -38,19 +40,28 @@ type PlayerStore = PlayerState & PlayerActions;
 // the stream is routed through Web Audio so the antenna waveform can read
 // real frequency data; on iOS it falls back to its procedural motion.
 // Lock-screen controls come from Media Session either way.
-const isIOS =
-  /iP(hone|ad|od)/.test(navigator.userAgent) ||
-  (navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1);
-const canAnalyze = !isIOS && typeof AudioContext !== 'undefined';
+function canAnalyze(): boolean {
+  const isIOS =
+    /iP(hone|ad|od)/.test(navigator.userAgent) ||
+    (navigator.userAgent.includes('Mac') && navigator.maxTouchPoints > 1);
+  return !isIOS && typeof AudioContext !== 'undefined';
+}
 
-const audio = new Audio();
-audio.preload = 'none';
-audio.crossOrigin = 'anonymous';
-audio.setAttribute('x-webkit-airplay', 'allow');
-audio.setAttribute('airplay', 'allow');
+// Created on first use, never at import: the page is pre-rendered at build
+// time, where there is no window, no Audio and no localStorage.
+let audioElement: HTMLAudioElement | null = null;
 
 export function getAudioElement(): HTMLAudioElement {
-  return audio;
+  if (!audioElement) {
+    audioElement = new Audio();
+    audioElement.preload = 'none';
+    audioElement.crossOrigin = 'anonymous';
+    audioElement.setAttribute('x-webkit-airplay', 'allow');
+    audioElement.setAttribute('airplay', 'allow');
+    audioElement.volume = getStoredVolume();
+    attachResilience(audioElement);
+  }
+  return audioElement;
 }
 
 let audioContext: AudioContext | null = null;
@@ -74,10 +85,8 @@ const getStoredVolume = (): number => {
   }
 };
 
-audio.volume = getStoredVolume();
-
-const initAudioContext = () => {
-  if (!canAnalyze || (audioContext && sourceNode)) return;
+const initAudioContext = (audio: HTMLAudioElement) => {
+  if ((audioContext && sourceNode) || !canAnalyze()) return;
   audioContext = new AudioContext();
   analyser = audioContext.createAnalyser();
   analyser.fftSize = 128;
@@ -123,6 +132,7 @@ function reconnect(): void {
   setTimeout(() => {
     if (!wantsPlayback) return;
     console.debug('[Player] auto-reconnect attempt', reconnectAttempts);
+    const audio = getAudioElement();
     audio.src = STREAM_URL;
     audio.load();
     void audio.play().catch((err: unknown) => {
@@ -135,7 +145,7 @@ let prevVolume = 0.5;
 
 export const usePlayer = create<PlayerStore>((set, get) => ({
   isPlaying: false,
-  volume: getStoredVolume(),
+  volume: 1,
   isMuted: false,
   playError: null,
 
@@ -143,8 +153,9 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
     set({ playError: null });
     wantsPlayback = true;
     reconnectAttempts = 0;
+    const audio = getAudioElement();
     try {
-      initAudioContext();
+      initAudioContext(audio);
       if (audioContext?.state === 'suspended') {
         await audioContext.resume();
       }
@@ -165,6 +176,7 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
     clearStallTimer();
     reconnectAttempts = 0;
     isStopping = true;
+    const audio = getAudioElement();
     audio.pause();
     audio.src = '';
     set({ isPlaying: false, playError: null });
@@ -175,7 +187,7 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
 
   setVolume: (value: number) => {
     const clamped = Math.max(0, Math.min(1, value));
-    audio.volume = clamped;
+    getAudioElement().volume = clamped;
     try {
       localStorage.setItem(STORAGE_KEY, clamped.toString());
     } catch {
@@ -196,6 +208,12 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
   },
 
   clearPlayError: () => set({ playError: null }),
+
+  restoreVolume: () => {
+    const volume = getStoredVolume();
+    if (volume > 0) prevVolume = volume;
+    set({ volume, isMuted: volume === 0 });
+  },
 }));
 
 // ─────────────────────────────────────────────
@@ -204,46 +222,48 @@ export const usePlayer = create<PlayerStore>((set, get) => ({
 // Without these, the user hears 1+ second of dead air with no recovery.
 // ─────────────────────────────────────────────
 
-audio.addEventListener('playing', () => {
-  // Decoder is producing samples again — stream is healthy, cancel any
-  // pending stall recovery and reset backoff for the next incident.
-  clearStallTimer();
-  reconnectAttempts = 0;
-});
+function attachResilience(audio: HTMLAudioElement): void {
+  audio.addEventListener('playing', () => {
+    // Decoder is producing samples again — stream is healthy, cancel any
+    // pending stall recovery and reset backoff for the next incident.
+    clearStallTimer();
+    reconnectAttempts = 0;
+  });
 
-audio.addEventListener('waiting', () => {
-  if (!wantsPlayback || isStopping) return;
-  // The browser ran out of buffered samples but hasn't given up yet.
-  // Give it a short grace period before forcing a reconnect.
-  clearStallTimer();
-  stallTimer = setTimeout(() => {
-    console.warn('[Player] sustained waiting state, forcing reconnect');
+  audio.addEventListener('waiting', () => {
+    if (!wantsPlayback || isStopping) return;
+    // The browser ran out of buffered samples but hasn't given up yet.
+    // Give it a short grace period before forcing a reconnect.
+    clearStallTimer();
+    stallTimer = setTimeout(() => {
+      console.warn('[Player] sustained waiting state, forcing reconnect');
+      reconnect();
+    }, STALL_RECOVERY_MS);
+  });
+
+  audio.addEventListener('stalled', () => {
+    if (!wantsPlayback || isStopping) return;
+    console.warn('[Player] stalled (no data received)');
+    // Same grace period as waiting — they often fire together.
+    if (!stallTimer) {
+      stallTimer = setTimeout(() => reconnect(), STALL_RECOVERY_MS);
+    }
+  });
+
+  audio.addEventListener('ended', () => {
+    if (!wantsPlayback || isStopping) return;
+    // A live stream should never "end". When it does, the upstream closed
+    // the connection (encoder restart, Liquidsoap reload). Reconnect now.
+    console.warn('[Player] stream ended unexpectedly, reconnecting');
     reconnect();
-  }, STALL_RECOVERY_MS);
-});
+  });
 
-audio.addEventListener('stalled', () => {
-  if (!wantsPlayback || isStopping) return;
-  console.warn('[Player] stalled (no data received)');
-  // Same grace period as waiting — they often fire together.
-  if (!stallTimer) {
-    stallTimer = setTimeout(() => reconnect(), STALL_RECOVERY_MS);
-  }
-});
-
-audio.addEventListener('ended', () => {
-  if (!wantsPlayback || isStopping) return;
-  // A live stream should never "end". When it does, the upstream closed
-  // the connection (encoder restart, Liquidsoap reload). Reconnect now.
-  console.warn('[Player] stream ended unexpectedly, reconnecting');
-  reconnect();
-});
-
-audio.addEventListener('error', () => {
-  if (isStopping) return;
-  console.error('[Player] Audio element error:', audio.error);
-  if (wantsPlayback) reconnect();
-});
+  audio.addEventListener('error', () => {
+    if (isStopping) return;
+    console.error('[Player] Audio element error:', audio.error);
+    if (wantsPlayback) reconnect();
+  });
+}
 
 if (import.meta.hot) {
   import.meta.hot.accept(() => {
