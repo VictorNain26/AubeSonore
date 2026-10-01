@@ -93,7 +93,9 @@ def serve_scores(conn: sqlite3.Connection) -> None:
         step = 0.0625 * (tid % 100 + 1)
         score = 0.5 + step if aid < 3000 else 0.5 - step
         conn.execute(
-            "INSERT INTO candidates VALUES (?, ?, 1000, ?)", (tid, 2 if aid % 100 >= 6 else 1, aid)
+            "INSERT INTO candidates (deezer_track_id, run_id, source, seed_artist_id, "
+            "neighbour_artist_id) VALUES (?, ?, 'voisin', 1000, ?)",
+            (tid, 2 if aid % 100 >= 6 else 1, aid),
         )
         conn.execute("INSERT INTO scores VALUES (?, 1, ?, ?)", (tid, score, int(score >= 0.5)))
     conn.commit()
@@ -104,7 +106,8 @@ def seed_run(conn: sqlite3.Connection) -> None:
     candidats y entrent."""
     conn.execute("INSERT INTO discover_runs VALUES (1, 'd', 'd', 'done')")
     conn.execute(
-        "INSERT INTO candidates SELECT deezer_track_id, 1, 1000, deezer_artist_id FROM tracks "
-        "WHERE origin = 'candidate'"
+        "INSERT INTO candidates (deezer_track_id, run_id, source, seed_artist_id, "
+        "neighbour_artist_id) SELECT deezer_track_id, 1, 'voisin', 1000, deezer_artist_id "
+        "FROM tracks WHERE origin = 'candidate'"
     )
     conn.commit()

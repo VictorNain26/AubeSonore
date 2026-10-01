@@ -14,6 +14,18 @@ tracks_per_neighbour = 10
 # Similaires demandés à Last.fm pour chaque artiste.
 lastfm_similar_limit = 100
 
+[nouveautes]
+# Titres récents choisis par des humains, ajoutés à la fournée de la semaine et jugés par le modèle.
+# Hype Machine : pages du classement « lastweek » des blogs (API v2 non documentée, cf. vision §3).
+hypem_pages = 2
+# Titres les plus écoutés retenus par album des sélections éditoriales Deezer.
+tracks_per_album = 3
+
+[nouveautes.deezer_editorial]
+# Genres Deezer (/editorial) dont la sélection d'albums est lue ; nom = libellé du rapport.
+alternative = 85
+electro = 106
+
 [model]
 # Régression logistique sur l'empreinte audio. C, poids des négatifs faibles : fixés le
 # 2026-09-30 par validation croisée groupée par artiste sur les 159 votes du banc

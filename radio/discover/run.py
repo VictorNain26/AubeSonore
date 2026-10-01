@@ -87,7 +87,8 @@ def discover_pass(
             with conn:
                 added = add_tracks(conn, n.id, n.name, kept, "candidate", stamp)
                 conn.executemany(
-                    "INSERT INTO candidates VALUES (?, ?, ?, ?)",
+                    "INSERT INTO candidates (deezer_track_id, run_id, source, seed_artist_id, "
+                    "neighbour_artist_id) VALUES (?, ?, 'voisin', ?, ?)",
                     [(tid, run.run_id, seed.deezer_artist_id, n.id) for tid in added],
                 )
             rep.n_seen += len(top)

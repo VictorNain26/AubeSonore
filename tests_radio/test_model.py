@@ -22,8 +22,9 @@ def test_decide_keeps_the_serving_model_unless_the_new_one_is_as_good() -> None:
 def _two_batches(conn: Any) -> None:
     conn.execute("INSERT INTO discover_runs VALUES (1, 'd', 'd', 'done'), (2, 'd', 'd', 'done')")
     conn.execute(
-        "INSERT INTO candidates SELECT deezer_track_id, 1 + (deezer_artist_id >= 3000), 1000, "
-        "deezer_artist_id FROM tracks WHERE origin = 'candidate'"
+        "INSERT INTO candidates (deezer_track_id, run_id, source, seed_artist_id, "
+        "neighbour_artist_id) SELECT deezer_track_id, 1 + (deezer_artist_id >= 3000), "
+        "'voisin', 1000, deezer_artist_id FROM tracks WHERE origin = 'candidate'"
     )
     conn.commit()
 
