@@ -1,0 +1,37 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: lint, type-check, test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          enable-cache: true
+
+      - name: Install the project
+        run: uv sync --locked --dev
+
+      - name: Ruff check
+        run: uv run ruff check
+
+      - name: Ruff format check
+        run: uv run ruff format --check
+
+      - name: Mypy
+        run: uv run mypy
+
+      # The slow suite (pytest -m slow) replays the pipeline against the real
+      # MusicBrainz dump: it needs the ~600 MB extractions under
+      # data/work/, which are not versioned and take ~10 min to produce, so it
+      # is not run here. The default addopts ("-m 'not slow'") skips it.
+      - name: Test
+        run: uv run pytest
+

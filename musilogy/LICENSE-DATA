@@ -1,0 +1,12 @@
+The data produced by this pipeline is licensed under
+Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported
+(CC BY-NC-SA 3.0).
+
+https://creativecommons.org/licenses/by-nc-sa/3.0/
+
+MusicBrainz core data is CC0, but genres and tags are CC-BY-NC-SA 3.0.
+`bands` and `genres` depend on them, so the produced dataset inherits that
+licence: attribution, non-commercial use, share alike. The versioned test
+fixtures and the published blobs follow the same terms.
+
+The code in this repository is under the MIT licence; see LICENSE.
