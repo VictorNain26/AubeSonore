@@ -120,8 +120,9 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
 - **Conversion.** Un FLAC passe en MP3 V0 :
   `ffmpeg -af aresample=resampler=soxr:osr=44100 -c:a libmp3lame -q:a 0`. Un MP3 n'est jamais
   réencodé.
-- **ReplayGain.** `rsgain custom -s i -c p`, avec rsgain 3.8 en binaire figé (sha256
-  `4939de3b…65a0` vérifié). Sans ces balises,
+- **ReplayGain.** `rsgain custom -s i -c p`, avec rsgain 3.8 en binaire figé, extrait de
+  l'archive de release `rsgain-3.8-Linux.tar.xz`, dont la sha256 `4939de3b…65a0` a été
+  vérifiée ; la CI installe la même. Sans ces balises,
   Liquidsoap recalcule le gain à chaque titre, ce qui coûte beaucoup de CPU (doc AzuraCast,
   « optimizing »).
 - **Balises** (ffmpeg, qui remplace toutes les balises d'origine) : artiste et titre Deezer,

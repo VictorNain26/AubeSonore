@@ -18,12 +18,25 @@ jobs:
           version: "0.11.19"
           python-version: "3.12"
       # Outils audio de l'acquisition : le test d'intégration les fait tourner pour de vrai.
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg libchromaprint-tools rsgain
-      # Modèle EffNet officiel, somme de contrôle épinglée dans radio/signals/audio.py.
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg libchromaprint-tools
+      # rsgain 3.8, la version figée en production (docs/vision.md §6), et non la 3.4 d'apt.
       - run: |
+          curl -fsSL -o "$RUNNER_TEMP/rsgain.tar.xz" https://github.com/complexlogic/rsgain/releases/download/v3.8/rsgain-3.8-Linux.tar.xz
+          echo "4939de3b2022a50edc0751343b10a791ea8c1c9ca6505012f21413bf8de365a0  $RUNNER_TEMP/rsgain.tar.xz" | sha256sum -c
+          tar -xJf "$RUNNER_TEMP/rsgain.tar.xz" -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/rsgain-3.8-Linux" >> "$GITHUB_PATH"
+      # Modèle EffNet officiel, somme de contrôle épinglée dans radio/signals/audio.py.
+      - id: effnet
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: models/discogs-effnet-bs64-1.pb
+          key: effnet-3ed9af50d5367c0b9c795b294b00e7599e4943244f4cbd376869f3bfc87721b1
+      - if: steps.effnet.outputs.cache-hit != 'true'
+        run: |
           mkdir -p models
           curl -fsSL -o models/discogs-effnet-bs64-1.pb https://essentia.upf.edu/models/feature-extractors/discogs-effnet/discogs-effnet-bs64-1.pb
-          echo "3ed9af50d5367c0b9c795b294b00e7599e4943244f4cbd376869f3bfc87721b1  models/discogs-effnet-bs64-1.pb" | sha256sum -c
+      - run: echo "3ed9af50d5367c0b9c795b294b00e7599e4943244f4cbd376869f3bfc87721b1  models/discogs-effnet-bs64-1.pb" | sha256sum -c
+      - run: rsgain --version
       - run: uv sync --locked
       - run: uv run ruff check radio tests_radio
       - run: uv run ruff format --check radio tests_radio
