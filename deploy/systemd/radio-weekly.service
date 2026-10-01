@@ -13,6 +13,10 @@ Nice=19
 CPUWeight=20
 IOSchedulingClass=idle
 TimeoutStartSec=12h
+# Config Sockseek (mot de passe Soulseek) sur tmpfs, sous $XDG_RUNTIME_DIR ; exportée en
+# $RUNTIME_DIRECTORY et supprimée à l'arrêt de l'unité, même tuée au délai (systemd.exec(5)).
+RuntimeDirectory=radio-weekly
+RuntimeDirectoryMode=0700
 # Une étape en échec arrête la suite : pas de sélection sur des notes périmées.
 # train ne réentraîne que s'il y a de nouveaux votes ; il note toujours les candidats.
 ExecStart=%h/radio/pipeline/.venv/bin/radio library-sync

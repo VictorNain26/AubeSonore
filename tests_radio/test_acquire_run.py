@@ -6,28 +6,38 @@ import numpy as np
 import pytest
 
 import radio.acquire.run as run_mod
-from radio.acquire.audio import Probe
+from radio.acquire.audio import Probe, Tags
 from radio.acquire.run import acquire_pass, pending
+from radio.acquire.sockseek import SockseekError
 from radio.core.config import AcquisitionConfig
-from radio.sources.deezer import DeezerAlbum, DeezerTrack
-from tests_radio.model_factory import NOW, make_model_db, serve_scores
+from radio.sources.deezer import DeezerAlbum, DeezerError, DeezerTrack, DeezerUnavailable, TrackPage
+from tests_radio.model_factory import NOW, add_vote, make_model_db, serve_scores
 
 CFG = AcquisitionConfig(max_per_pass=4, max_attempts=2)
 
 
 class FakeDeezer:
-    def __init__(self, gone: frozenset[int] = frozenset()) -> None:
+    def __init__(self, gone: frozenset[int] = frozenset(), cover_status: int = 200) -> None:
         self.gone = gone
+        self.cover_status = cover_status
+        self.requests: list[str] = []
 
     def track(self, tid: int) -> tuple[DeezerTrack, str | None] | None:
+        page = self.track_page(tid)
+        return None if page is None else (page.track, page.preview_url)
+
+    def track_page(self, tid: int) -> TrackPage | None:
+        self.requests.append(f"/track/{tid}")
         if tid in self.gone:
             return None
-        return DeezerTrack(tid, f"T{tid}", f"T{tid}", 200, 1, 1, "Art", True), "https://signed"
-
-    def album(self, tid: int) -> DeezerAlbum | None:
-        return DeezerAlbum("Album", None)
+        track = DeezerTrack(tid, f"T{tid}", f"T{tid}", 200, 1, 1, "Art", True)
+        return TrackPage(track, "https://signed", DeezerAlbum("Album", "https://cover"))
 
     def download(self, url: str) -> bytes:
+        if url == "https://cover":
+            if self.cover_status == 404:
+                raise DeezerError("download HTTP 404")
+            return b"jpeg"
         return b"preview"
 
 
@@ -57,12 +67,14 @@ def _sockseek(found: set[int]) -> Any:
 def fake_audio(monkeypatch: pytest.MonkeyPatch) -> dict[int, float]:
     """Score Chromaprint simulé par id Deezer (0,95 par défaut) ; préparation = copie."""
     scores: dict[int, float] = {}
+    prepared.clear()
 
     def fingerprint(p: Path) -> Any:
         return np.array([int(p.stem) if p.stem.isdigit() else 0], dtype=np.uint32)
 
-    def prepare(src: Path, dest: Path, *rest: Any) -> None:
+    def prepare(src: Path, dest: Path, codec: str, tags: Tags, rsgain: Path) -> None:
         dest.write_bytes(src.read_bytes())
+        prepared[int(dest.stem)] = tags
 
     monkeypatch.setattr(run_mod, "probe", lambda p: Probe("mp3", 200.0, 320))
     monkeypatch.setattr(run_mod, "fingerprint", fingerprint)
@@ -71,12 +83,14 @@ def fake_audio(monkeypatch: pytest.MonkeyPatch) -> dict[int, float]:
     return scores
 
 
-def _pass(conn: Any, tmp: Path, found: set[int], n: int) -> Any:
+prepared: dict[int, Tags] = {}
+
+
+def _pass(conn: Any, tmp: Path, found: set[int], n: int, deezer: Any = None) -> Any:
     return acquire_pass(
         conn,
-        FakeDeezer(),
-        tmp / f"work{n}",
-        tmp / "antenne",
+        deezer or FakeDeezer(),
+        (tmp / f"work{n}", tmp / "antenne", tmp),
         (Path("/sockseek"), Path("/rsgain")),
         ("radio", "pw"),
         CFG,
@@ -99,7 +113,8 @@ def test_acquire_prepares_verified_files_and_retries_failures(
     assert (rep.n_wanted, rep.n_ready) == (4, 1)
     assert dict(rep.failures) == {"identité": 1, "aucun résultat": 2}
     assert (tmp_path / "antenne" / f"{ok}.mp3").exists()
-    assert not list((tmp_path / "work1").glob("*.mp3"))  # fichiers bruts effacés
+    assert not (tmp_path / "work1").exists()  # dossier de la passe effacé
+    assert prepared[ok].album == "Album" and prepared[ok].cover == b"jpeg"
 
     # Deuxième passe : les échecs sont retentés (1 tentative < 2), le prêt ne l'est plus.
     again = pending(conn, CFG)
@@ -117,8 +132,7 @@ def test_a_title_gone_from_deezer_is_counted(tmp_path: Path, fake_audio: dict[in
     rep = acquire_pass(
         conn,
         FakeDeezer(frozenset({gone})),
-        tmp_path / "w",
-        tmp_path / "antenne",
+        (tmp_path / "w", tmp_path / "antenne", tmp_path),
         (Path("/s"), Path("/r")),
         ("u", "p"),
         CFG,
@@ -127,3 +141,139 @@ def test_a_title_gone_from_deezer_is_counted(tmp_path: Path, fake_audio: dict[in
     )
     assert rep.failures["disparu de Deezer"] == 1
     assert rep.n_wanted == 3
+
+
+def test_one_track_request_per_title_after_the_wanted_list(
+    tmp_path: Path, fake_audio: dict[int, float]
+) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    ok = pending(conn, CFG)[0]
+    deezer = FakeDeezer()
+    _pass(conn, tmp_path, {ok}, 1, deezer)
+    # Une lecture pour la liste, une seule ensuite : extrait frais, album et pochette ensemble.
+    assert deezer.requests.count(f"/track/{ok}") == 2
+
+
+def test_a_title_voted_no_is_never_acquired(tmp_path: Path, fake_audio: dict[int, float]) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    first, second = pending(conn, CFG)[:2]
+    add_vote(conn, first, "exam", "non")
+    add_vote(conn, second, "lesson", "non")
+    left = pending(conn, CFG)
+    assert first not in left and second not in left and len(left) == 4
+
+
+def test_missing_cover_keeps_the_verified_file(
+    tmp_path: Path, fake_audio: dict[int, float]
+) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    ok = pending(conn, CFG)[0]
+    rep = _pass(conn, tmp_path, {ok}, 1, FakeDeezer(cover_status=404))
+    assert (rep.n_ready, rep.n_no_cover) == (1, 1)
+    assert (tmp_path / "antenne" / f"{ok}.mp3").exists()
+    assert prepared[ok].cover is None and prepared[ok].album == "Album"
+
+
+def _no_attempt_recorded(conn: Any) -> bool:
+    return conn.execute("SELECT COUNT(*) FROM acquisitions").fetchone()[0] == 0
+
+
+def test_sockseek_without_index_consumes_no_attempt(
+    tmp_path: Path, fake_audio: dict[int, float]
+) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    with pytest.raises(SockseekError):
+        acquire_pass(
+            conn,
+            FakeDeezer(),
+            (tmp_path / "w", tmp_path / "antenne", tmp_path),
+            (Path("/s"), Path("/r")),
+            ("u", "p"),
+            CFG,
+            NOW,
+            lambda args: 1,
+        )
+    assert _no_attempt_recorded(conn)
+    assert not (tmp_path / "w").exists()
+
+
+def test_sockseek_fatal_code_consumes_no_attempt(
+    tmp_path: Path, fake_audio: dict[int, float]
+) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    found = set(pending(conn, CFG))
+    run = _sockseek(found)
+
+    def usage_error(args: Sequence[str]) -> int:
+        run(args)
+        return 2
+
+    with pytest.raises(SockseekError):
+        acquire_pass(
+            conn,
+            FakeDeezer(),
+            (tmp_path / "w", tmp_path / "antenne", tmp_path),
+            (Path("/s"), Path("/r")),
+            ("u", "p"),
+            CFG,
+            NOW,
+            usage_error,
+        )
+    assert _no_attempt_recorded(conn)
+    assert not (tmp_path / "w").exists()
+
+
+def test_titles_missing_from_a_partial_index_are_not_attempts(
+    tmp_path: Path, fake_audio: dict[int, float]
+) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    first = pending(conn, CFG)[0]
+    run = _sockseek({first})
+
+    def interrupted(args: Sequence[str]) -> int:
+        run(args)
+        index = Path(args[args.index("--output-dir") + 1]) / "retenus" / "_index.csv"
+        index.write_text("\n".join(index.read_text().splitlines()[:2]))
+        return 1
+
+    rep = acquire_pass(
+        conn,
+        FakeDeezer(),
+        (tmp_path / "w", tmp_path / "antenne", tmp_path),
+        (Path("/s"), Path("/r")),
+        ("u", "p"),
+        CFG,
+        NOW,
+        interrupted,
+    )
+    assert (rep.n_ready, rep.n_unindexed, rep.n_attempted) == (1, 3, 1)
+    rows = conn.execute("SELECT deezer_track_id, status FROM acquisitions").fetchall()
+    assert [tuple(r) for r in rows] == [(first, "ready")]
+
+
+def test_deezer_outage_still_cleans_the_pass_folder(
+    tmp_path: Path, fake_audio: dict[int, float]
+) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    found = set(pending(conn, CFG))
+
+    class Outage(FakeDeezer):
+        def track_page(self, tid: int) -> TrackPage | None:
+            if self.requests:
+                raise DeezerUnavailable("HTTP 503")
+            return super().track_page(tid)
+
+        def track(self, tid: int) -> tuple[DeezerTrack, str | None] | None:
+            t = DeezerTrack(tid, f"T{tid}", f"T{tid}", 200, 1, 1, "Art", True)
+            return t, "https://signed"
+
+    with pytest.raises(DeezerUnavailable):
+        _pass(conn, tmp_path, found, 1, Outage())
+    assert not (tmp_path / "work1").exists()

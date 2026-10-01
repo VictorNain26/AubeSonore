@@ -3,7 +3,7 @@
 Quota documenté : 50 requêtes / 5 s par IP ; on vise 40 / 5 s.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 import requests
@@ -41,6 +41,14 @@ class DeezerTrack:
 class DeezerAlbum:
     title: str
     cover_url: str | None
+
+
+@dataclass(frozen=True)
+class TrackPage:
+    track: DeezerTrack
+    # Signée et expirante : jamais stockée, journalisée ni affichée.
+    preview_url: str | None = field(repr=False)
+    album: DeezerAlbum | None
 
 
 @dataclass(frozen=True)
@@ -94,19 +102,21 @@ class DeezerClient:
     def track(self, track_id: int) -> tuple[DeezerTrack, str | None] | None:
         """Le titre et une URL d'extrait fraîche. L'URL est signée et expire : ne jamais la
         stocker, la journaliser ni la mettre dans un message."""
+        page = self.track_page(track_id)
+        return None if page is None else (page.track, page.preview_url)
+
+    def track_page(self, track_id: int) -> TrackPage | None:
+        """`GET /track` en entier : le titre, une URL d'extrait fraîche et l'album avec sa
+        pochette, en une seule requête."""
         body = self._get(f"/track/{track_id}", {})
         if "id" not in body:
             return None
-        preview = body.get("preview")
-        return _track(body), (str(preview) if preview else None)
-
-    def album(self, track_id: int) -> DeezerAlbum | None:
-        body = self._get(f"/track/{track_id}", {})
-        album = body.get("album")
-        if "id" not in body or not isinstance(album, dict):
-            return None
-        cover = album.get("cover_xl")
-        return DeezerAlbum(str(album.get("title") or ""), str(cover) if cover else None)
+        preview, album = body.get("preview"), body.get("album")
+        info = None
+        if isinstance(album, dict):
+            cover = album.get("cover_xl")
+            info = DeezerAlbum(str(album.get("title") or ""), str(cover) if cover else None)
+        return TrackPage(_track(body), str(preview) if preview else None, info)
 
     @stamina.retry(on=DeezerUnavailable, attempts=5, wait_initial=1.0, wait_max=30.0)
     def download(self, url: str) -> bytes:

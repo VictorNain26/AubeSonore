@@ -167,14 +167,23 @@ def test_gone_track_is_none() -> None:
 
 
 @responses.activate
-def test_album_of_a_track() -> None:
+def test_track_page_carries_preview_and_album_in_one_request() -> None:
     album = {"id": 1, "title": "Discovery", "cover_xl": "https://cdn/cover.jpg"}
-    responses.get(API + "/track/1", json=item(album=album))
-    responses.get(API + "/track/2", json=item(album={"id": 2, "title": "Sans image"}))
+    responses.get(API + "/track/1", json=item(id=1, album=album))
+    responses.get(API + "/track/2", json=item(id=2, album={"id": 2, "title": "Sans image"}))
+    responses.get(API + "/track/4", json=item(id=4))
     responses.get(API + "/track/3", json={"error": {"type": "DataException", "code": 800}})
-    assert client().album(1) == DeezerAlbum("Discovery", "https://cdn/cover.jpg")
-    assert client().album(2) == DeezerAlbum("Sans image", None)
-    assert client().album(3) is None
+    page = client().track_page(1)
+    assert page is not None
+    assert page.track.id == 1 and page.preview_url == "https://cdnt-preview.dzcdn.net/signed"
+    assert page.album == DeezerAlbum("Discovery", "https://cdn/cover.jpg")
+    assert "dzcdn" not in repr(page)
+    second = client().track_page(2)
+    assert second is not None and second.album == DeezerAlbum("Sans image", None)
+    fourth = client().track_page(4)
+    assert fourth is not None and fourth.album is None
+    assert client().track_page(3) is None
+    assert len(responses.calls) == 4
 
 
 @responses.activate

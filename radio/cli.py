@@ -17,6 +17,7 @@ from plexapi.exceptions import PlexApiException
 from pydantic import ValidationError
 
 from radio.acquire.run import acquire_pass
+from radio.acquire.sockseek import SockseekError
 from radio.antenna.sync import antenne_pass
 from radio.core.config import Editorial, Settings, load_editorial
 from radio.core.db import connect
@@ -307,14 +308,19 @@ def acquire() -> None:
     cfg = _editorial(settings).acquisition
     if not settings.soulseek_user or settings.soulseek_password is None:
         _fail("SOULSEEK_USER et SOULSEEK_PASSWORD doivent être définis dans .env", 2)
+    if settings.runtime_dir is None:
+        _fail("ni RUNTIME_DIRECTORY ni XDG_RUNTIME_DIR : pas de tmpfs pour la config Sockseek", 2)
     now = _now()
     with _db(settings) as conn:
         try:
             rep = acquire_pass(
                 conn,
                 DeezerClient(),
-                settings.data_dir / "acquisition" / now[:19].replace(":", ""),
-                settings.data_dir / "antenne",
+                (
+                    settings.data_dir / "acquisition" / now[:19].replace(":", ""),
+                    settings.data_dir / "antenne",
+                    settings.runtime_dir,
+                ),
                 (settings.sockseek_bin, settings.rsgain_bin),
                 (settings.soulseek_user, settings.soulseek_password.get_secret_value()),
                 cfg,
@@ -322,23 +328,38 @@ def acquire() -> None:
             )
         except DeezerUnavailable as e:
             _fail(_unavailable(e), 1)
+        except SockseekError as e:
+            _fail(f"Sockseek en échec ({e}) : aucune tentative comptée, relancer plus tard", 1)
         rate = rep.n_ready / rep.n_attempted if rep.n_attempted else 1.0
-        ok = rep.n_attempted < 20 or rate >= cfg.min_success_rate
+        rate_ok = rep.n_attempted < cfg.min_attempts_for_rate or rate >= cfg.min_success_rate
         record_stage(
             conn,
             "acquire",
-            ok,
-            {"demandés": rep.n_wanted, "prêts": rep.n_ready, "échecs": dict(rep.failures)},
+            rate_ok and not rep.n_unindexed,
+            {
+                "demandés": rep.n_wanted,
+                "prêts": rep.n_ready,
+                "sans pochette": rep.n_no_cover,
+                "non tentés": rep.n_unindexed,
+                "échecs": dict(rep.failures),
+            },
         )
     _echo(
         [
             f"Acquisition : {_n(rep.n_wanted)} demandés → {_n(rep.n_ready)} prêts "
             f"({_pct(rep.n_ready, rep.n_attempted)} des tentés), "
             f"{_n(sum(rep.failures.values()))} en échec",
+            f"  prêts sans pochette : {_n(rep.n_no_cover)}",
             *(f"  {reason} : {_n(n)}" for reason, n in rep.failures.most_common()),
         ]
     )
-    if not ok:
+    if rep.n_unindexed:
+        _fail(
+            f"Sockseek s'est arrêté avant {_n(rep.n_unindexed)} titres, non comptés comme "
+            "tentatives : voir le journal",
+            1,
+        )
+    if not rate_ok:
         _fail(f"Taux d'acquisition sous {_rate(cfg.min_success_rate)} : à examiner", 1)
 
 
@@ -377,6 +398,9 @@ def antenne() -> None:
             {
                 "publiés": rep.n_published,
                 "repères": rep.n_references,
+                "repères sans pochette": rep.n_references_no_cover,
+                "repères sautés": len(rep.skipped_references),
+                "votés non écartés": rep.n_voted_out,
                 "retirés": rep.n_removed,
                 "oubliés": rep.n_forgotten,
                 "inconnus": rep.n_unknown,
@@ -388,8 +412,11 @@ def antenne() -> None:
         [
             f"Antenne : {_n(rep.n_total)} titres ({_n(rep.n_published)} publiés, "
             f"{_n(rep.n_references)} repères ajoutés, {_n(rep.n_removed)} retirés)",
+            f"  votés « non » écartés : {_n(rep.n_voted_out)}",
             f"  réalignement : {_n(rep.n_forgotten)} disparus d'AzuraCast oubliés, "
             f"{_n(rep.n_unknown)} fichiers inconnus dans antenne/",
+            f"  repères sans pochette : {_n(rep.n_references_no_cover)}",
+            *(f"  sauté : {s}" for s in rep.skipped_references),
             *(f"  erreur : {e}" for e in rep.errors),
         ]
     )

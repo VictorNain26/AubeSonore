@@ -3,7 +3,7 @@
 import tomllib
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     # Compte Soulseek propre à la radio : celui de slskd l'éjecterait, et les deux Lidarr avec.
     soulseek_user: str | None = None
     soulseek_password: SecretStr | None = Field(default=None, repr=False)
+    # Config Sockseek (mot de passe) sur tmpfs : le `RuntimeDirectory=` de l'unité systemd,
+    # supprimé à l'arrêt du service même tué ; à la main, le `$XDG_RUNTIME_DIR` de la session.
+    runtime_dir: Path | None = Field(
+        default=None, validation_alias=AliasChoices("RUNTIME_DIRECTORY", "XDG_RUNTIME_DIR")
+    )
     azuracast_url: str = "http://127.0.0.1:8080"
     azuracast_api_key: SecretStr | None = Field(default=None, repr=False)
     azuracast_station_id: int = 1
@@ -78,6 +83,7 @@ class AcquisitionConfig(BaseModel):
     searches_per_time: int = Field(default=10, ge=1, le=34)
     searches_renew_s: int = Field(default=220, ge=60)
     min_success_rate: float = Field(default=0.2, ge=0, le=1)
+    min_attempts_for_rate: int = Field(default=20, ge=1)
 
 
 class AntenneConfig(BaseModel):

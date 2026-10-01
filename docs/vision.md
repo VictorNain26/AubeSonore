@@ -93,25 +93,42 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
 §2.
 
 1. **Entrée.** Les titres retenus pas encore acquis, écrits en CSV (Artist, Title, Length).
+   Un titre voté « non » (examen ou leçon) n'est jamais acquis.
 2. **Sockseek 3.0.5** (binaire figé dans `~/.local/bin`, sha256 `d0a1e909…1b66` vérifié) sur un
    **compte Soulseek dédié à la radio** (`SOULSEEK_USER`, `SOULSEEK_PASSWORD`). Le compte de slskd est interdit : il éjecterait slskd et les deux Lidarr.
    - Options : `--format mp3,flac --pref-format mp3 --length-tol 3 --name-format {uri}`, avec
      l'id Deezer en colonne URI du CSV : chaque fichier porte l'id du titre demandé.
-   - Le mot de passe passe par un fichier de config en 0600, supprimé après la passe, jamais par
-     la ligne de commande.
+   - Le mot de passe passe par un fichier de config en 0600, jamais par la ligne de commande.
+     Ce fichier est écrit sur tmpfs, dans le `RuntimeDirectory=` de `radio-weekly` (exporté en
+     `$RUNTIME_DIRECTORY`, 0700), que systemd supprime à l'arrêt de l'unité, même tuée au délai
+     (`systemd.exec(5)`, vérifié sur une unité transitoire). À la main, il va dans
+     `$XDG_RUNTIME_DIR`, effacé en fin de commande.
    - Une recherche à la fois, au plus 10 recherches par 220 s.
    - Le pipeline lit `_index.csv` : les échecs sont comptés par raison et ne sont pas relancés
      avant la passe suivante.
+   - **Panne de Sockseek.** Codes de sortie au tag v3.0.5 (`Sockseek.Cli/Program.cs`) : 0 tout
+     réussi, 1 au moins un échec, 2 erreur d'usage, 130 annulé. L'index est réécrit à chaque titre
+     terminé (`M3uEditor.Update`). Un code autre que 0 ou 1, ou l'absence d'index (connexion
+     refusée, compte banni), fait échouer l'étape sans enregistrer aucune tentative. Un titre
+     absent d'un index partiel (Sockseek interrompu) n'est pas une tentative : il est compté
+     « non tenté » et l'étape échoue.
+   - Le dossier de la passe (`data/acquisition/<date>/`) est supprimé à la fin, même si la passe
+     s'interrompt.
 3. **Contrôle de chaque fichier.** Il est rejeté, compté et supprimé s'il échoue à l'un de ces
    points :
    - `ffprobe` : codec MP3 ou FLAC, durée à ±3 s de Deezer, et pour un MP3 un débit moyen
-     ≥ 200 kbit/s (un V0 tourne autour de 220–260 ; à revoir sur les premiers fichiers réels) ;
+     ≥ 200 kbit/s (un V0 tourne autour de 220–260 ; à revoir sur les premiers fichiers réels).
+     C'est le débit du flux audio (`stream=bit_rate`, que ffprobe donne aussi pour un VBR), pas
+     celui du fichier, qu'une pochette intégrée gonfle : mesuré sur un MP3 à 128 kbit/s avec une
+     image de 1000 × 1000, le débit du fichier dépassait le seuil ;
    - **Chromaprint** : `fpcalc -raw` sur le fichier et sur l'extrait Deezer. Le taux de bits
      identiques au meilleur décalage doit être ≥ 0,70. La mesure a donné 0 erreur sur 38 + 1 406
      paires ; la durée seule laissait passer un autre titre du même artiste pour 18 fichiers sur 38.
 4. **Pas de YouTube.** Un titre introuvable reste un échec compté, et on retente à la passe
    suivante.
-5. **Premier essai réel** (2026-09-30, 10 retenus, sans port ouvert sur la box) : 10 prêts, tous
+5. **Plancher.** Le taux de fichiers prêts n'est jugé qu'à partir de `min_attempts_for_rate`
+   tentatives (`config/editorial.toml`, 20).
+6. **Premier essai réel** (2026-09-30, 10 retenus, sans port ouvert sur la box) : 10 prêts, tous
    en MP3 320 kbit/s, identité Chromaprint de 0,925 à 0,982, durée à ±2 s. Le port d'écoute de
    Sockseek reste fermé tant qu'un taux d'échec ne justifie pas de l'ouvrir.
 
@@ -127,13 +144,18 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
 - **Balises** (ffmpeg, qui remplace toutes les balises d'origine) : artiste et titre Deezer,
   commentaire `deezer:<id>`, album et pochette (`album.cover_xl`, 1000 × 1000) lus sur
   `/track/<id>` : l'id exact donne le bon album, là où la recherche native d'AzuraCast
-  (MusicBrainz par artiste et titre) prend le premier venu. La pochette est un flux image
-  intégré en APIC (ffmpeg-formats, muxer mp3) ; `-map 0:a:0` seul la perdait. Fichier prêt :
-  `data/antenne/<id Deezer>.mp3`.
+  (MusicBrainz par artiste et titre) prend le premier venu. La lecture de `/track/<id>` qui donne
+  l'extrait frais du contrôle d'identité donne aussi l'album : une seule requête par fichier. La
+  pochette est un flux image intégré en APIC (ffmpeg-formats, muxer mp3) ; `-map 0:a:0` seul la
+  perdait. Une pochette refusée par Deezer ne rejette pas un fichier dont l'identité est
+  prouvée : il est préparé sans pochette et compté « sans pochette ». Fichier prêt :
+  `data/antenne/<id Deezer>.mp3`. Un échec de ffmpeg ou de rsgain ne laisse aucun fichier
+  temporaire.
 - **Repères.** Des titres de la bibliothèque Plex, copiés sans jamais y écrire, préparés de la
   même façon et étiquetés `repère` dans la base. Ils représentent au plus 20 % de l'antenne.
   Le chemin du fichier vient de Plex (`Media/Part`) ; un chemin hors de `/media/plex/Musique`
-  n'est jamais lu.
+  n'est jamais lu. Un repère qui échoue (outil, Deezer) est sauté, compté et nommé, sans faire
+  échouer l'étape : un autre sera tiré à la passe suivante.
 - **Conversion.** Tout ce qui n'est pas du MP3 (FLAC, AAC, OGG…) passe en V0.
 
 ## 7. Antenne (étape 7)
@@ -142,11 +164,19 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
 
 - **Taille.** Cible de 1 500 à 2 000 titres (`config/editorial.toml`).
 - **Entrées.** Chaque passe publie tout ce qui a été acquis. Des repères sont ajoutés pour rester
-  sous 20 %, tirés selon l'écoute.
+  sous 20 %, tirés selon l'écoute. Une découverte passe à « publiée » dans la transaction de son
+  entrée à l'antenne : sortie ensuite (excédent, vote, suppression dans AzuraCast), elle n'est
+  jamais republiée.
+- **Votes « non ».** Un titre voté « non » sort de l'antenne à la passe suivante, avant le calcul
+  de l'excédent, repères compris (aucun vote ne porte aujourd'hui sur un titre de la
+  bibliothèque : les bulletins sont tirés parmi les candidats). Un fichier prêt voté « non »
+  n'est jamais publié. Un repère voté « non » n'est jamais tiré.
 - **Sorties.** Au-delà de la cible, chaque entrée retire le titre le moins bien noté parmi ceux
   qui sont à l'antenne depuis plus de 60 jours, repères exclus.
   - Le nombre de suppressions par passe est plafonné.
-  - Le titre en cours et la file de l'AutoDJ sont toujours épargnés.
+  - Le titre en cours (`GET /nowplaying/{station}`, `now_playing.song.id`) et la file de
+    l'AutoDJ (`GET /station/{id}/queue`) sont toujours épargnés, y compris pour un vote « non » :
+    le titre sort à la passe suivante.
   - `radio remove` permet un retrait manuel.
 
 ### 7.2 Publication sur AzuraCast

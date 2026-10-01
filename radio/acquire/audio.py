@@ -36,7 +36,8 @@ def _run(args: list[str]) -> str:
 class Probe:
     codec: str
     duration_s: float
-    kbps: int
+    # Débit du flux audio seul, sans la pochette intégrée ; ffprobe ne le donne pas pour un FLAC.
+    kbps: int | None
 
 
 def probe(path: Path) -> Probe:
@@ -49,7 +50,7 @@ def probe(path: Path) -> Probe:
                 "-select_streams",
                 "a:0",
                 "-show_entries",
-                "stream=codec_name:format=duration,bit_rate",
+                "stream=codec_name,bit_rate:format=duration",
                 "-of",
                 "json",
                 str(path),
@@ -58,10 +59,11 @@ def probe(path: Path) -> Probe:
     )
     stream = (out.get("streams") or [{}])[0]
     fmt = out.get("format", {})
+    rate = stream.get("bit_rate")
     return Probe(
         codec=str(stream.get("codec_name", "")),
         duration_s=float(fmt.get("duration", 0.0)),
-        kbps=int(fmt.get("bit_rate", 0)) // 1000,
+        kbps=int(rate) // 1000 if rate else None,
     )
 
 
@@ -71,7 +73,7 @@ def check(p: Probe, expected_s: int, cfg: AcquisitionConfig) -> str | None:
         return f"format {p.codec or 'inconnu'}"
     if abs(p.duration_s - expected_s) > 3:
         return "durée"
-    if p.codec == "mp3" and p.kbps < cfg.min_mp3_kbps:
+    if p.codec == "mp3" and (p.kbps is None or p.kbps < cfg.min_mp3_kbps):
         return "débit"
     return None
 
@@ -151,7 +153,8 @@ def prepare(src: Path, dest: Path, codec: str, tags: Tags, rsgain: Path) -> None
                 str(tmp),
             ]
         )
+        _run([str(rsgain), "custom", "-s", "i", "-c", "p", str(tmp)])
+        tmp.replace(dest)
     finally:
         cover.unlink(missing_ok=True)
-    _run([str(rsgain), "custom", "-s", "i", "-c", "p", str(tmp)])
-    tmp.replace(dest)
+        tmp.unlink(missing_ok=True)
