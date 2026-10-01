@@ -8,7 +8,7 @@ import { LikedTrackRowView } from '../molecules/LikedTrackRow';
 import { useRowExit } from '../../lib/motion';
 import * as i18n from '@/paraglide/messages.js';
 
-export interface LikedTrackViewModel {
+interface LikedTrackViewModel {
   id: string;
   title: string;
   artist: string;

@@ -1,10 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
-import '@fontsource-variable/inter';
-import '@fontsource-variable/instrument-sans';
+import '@fontsource-variable/bricolage-grotesque/wdth.css';
 import './index.css';
-import { initTheme } from './lib/theme';
 import { handlePreloadError } from './lib/preloadReload';
 
 const root = document.getElementById('root');
@@ -16,8 +14,6 @@ if (!root) {
 window.addEventListener('vite:preloadError', () => {
   handlePreloadError(sessionStorage, () => window.location.reload(), Date.now());
 });
-
-initTheme();
 
 createRoot(root).render(
   <StrictMode>
