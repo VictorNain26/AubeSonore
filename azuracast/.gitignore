@@ -1,0 +1,11 @@
+# Live station state — 2+ GB of media, config rewritten by the AzuraCast UI,
+# broadcast logs. Never versioned: this is what the backups are for.
+stations/
+
+# Secrets. azuracast.env carries MYSQL_PASSWORD.
+# .env holds no secret today, but stays local by convention — .env.example
+# mirrors it and is the file to read.
+.env
+azuracast.env
+
+*.log
