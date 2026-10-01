@@ -37,8 +37,10 @@ identity_threshold = 0.70
 # Rythme des recherches Soulseek : le serveur bannit 30 min en cas de rafale.
 searches_per_time = 10
 searches_renew_s = 220
-# Sous ce taux de fichiers prêts (sur au moins 20 tentatives), la passe échoue et Gatus alerte.
+# Sous ce taux de fichiers prêts, la passe échoue et Gatus alerte ; le taux n'est jugé qu'à partir
+# de min_attempts_for_rate tentatives.
 min_success_rate = 0.2
+min_attempts_for_rate = 20
 
 [antenne]
 # Au-delà, chaque entrée fait sortir le titre le moins bien noté de plus de min_age_days jours.

@@ -1,7 +1,8 @@
 """Bibliothèque d'antenne (docs/vision.md §7) : ce que le pipeline publie dans `antenne/`.
 
 AzuraCast fait autorité : un titre de la base absent d'AzuraCast est oublié et compté ; un
-fichier d'`antenne/` inconnu du pipeline est compté, jamais supprimé.
+fichier d'`antenne/` inconnu du pipeline est compté, jamais supprimé. Une découverte n'est publiée
+qu'une fois : sortie de l'antenne, elle n'y revient pas. Un titre voté « non » en sort.
 """
 
 import math
@@ -38,10 +39,13 @@ class Station(Protocol):
 class AntenneReport:
     n_forgotten: int = 0
     n_unknown: int = 0
+    n_voted_out: int = 0
     n_published: int = 0
     n_references: int = 0
+    n_references_no_cover: int = 0
     n_removed: int = 0
     n_total: int = 0
+    skipped_references: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
 
 
@@ -51,6 +55,12 @@ def _insert(conn: sqlite3.Connection, tid: int, origin: str, m: Media, now: str)
             "INSERT INTO antenne VALUES (?, ?, ?, ?, ?, ?)",
             (tid, origin, m.id, m.song_id, m.path, now),
         )
+        if origin == "decouverte":
+            conn.execute(
+                "UPDATE acquisitions SET status = 'published', file = NULL "
+                "WHERE deezer_track_id = ?",
+                (tid,),
+            )
 
 
 def reconcile(conn: sqlite3.Connection, media: list[Media], rep: AntenneReport) -> None:
@@ -79,6 +89,49 @@ def _upload(
         return False
     _insert(conn, tid, origin, m, now)
     return True
+
+
+def _remove(
+    conn: sqlite3.Connection, station: Station, paths: list[str], rep: AntenneReport
+) -> int:
+    """Supprime de l'antenne ; renvoie le nombre de retraits réussis."""
+    if not paths:
+        return 0
+    errors = station.delete(paths)
+    rep.errors += [f"retrait : {e}" for e in errors]
+    done = [p for p in paths if not any(e.startswith(f"{p}:") for e in errors)]
+    with conn:
+        conn.executemany("DELETE FROM antenne WHERE path = ?", [(p,) for p in done])
+    return len(done)
+
+
+def withdraw_rejected(conn: sqlite3.Connection, station: Station, rep: AntenneReport) -> None:
+    """Un titre voté « non » sort de l'antenne (repères compris), sauf s'il est en cours ou en
+    file : il sortira à la passe suivante. Un fichier prêt voté « non » n'est jamais publié."""
+    rows = conn.execute(
+        """
+        SELECT n.path, n.song_id FROM antenne n JOIN votes v USING (deezer_track_id)
+        WHERE v.vote = 'non' ORDER BY n.deezer_track_id
+        """
+    ).fetchall()
+    if rows:
+        busy = station.busy_song_ids()
+        rep.n_voted_out += _remove(conn, station, [str(p) for p, s in rows if s not in busy], rep)
+    ready = conn.execute(
+        """
+        SELECT a.deezer_track_id, a.file FROM acquisitions a JOIN votes v USING (deezer_track_id)
+        WHERE a.status = 'ready' AND v.vote = 'non'
+        """
+    ).fetchall()
+    for tid, file in ready:
+        with conn:
+            conn.execute(
+                "UPDATE acquisitions SET status = 'failed', reason = 'voté non', file = NULL "
+                "WHERE deezer_track_id = ?",
+                (tid,),
+            )
+        Path(file).unlink(missing_ok=True)
+        rep.n_voted_out += 1
 
 
 def publish_ready(conn: sqlite3.Connection, station: Station, now: str, rep: AntenneReport) -> None:
@@ -130,6 +183,7 @@ def add_references(
             FROM deezer_matches m JOIN library_tracks t USING (plex_key)
             LEFT JOIN antenne n ON n.deezer_track_id = m.deezer_track_id
             WHERE m.status = 'matched' AND t.file IS NOT NULL AND n.deezer_track_id IS NULL
+              AND m.deezer_track_id NOT IN (SELECT deezer_track_id FROM votes WHERE vote = 'non')
             GROUP BY m.deezer_track_id ORDER BY m.deezer_track_id
             """
         )
@@ -144,13 +198,20 @@ def add_references(
             tid, artist, title, file = int(pool[i][0]), str(pool[i][1]), str(pool[i][2]), pool[i][3]
             dest = Path(tmp) / f"{tid}.mp3"
             try:
+                page = deezer.track_page(tid)
+                if page is None:
+                    rep.skipped_references.append(f"repère {tid} : disparu de Deezer")
+                    continue
                 p = probe(Path(file))
-                prepare(Path(file), dest, p.codec, tags_for(deezer, tid, artist, title), rsgain)
+                tags = tags_for(deezer, tid, artist, title, page.album)
+                prepare(Path(file), dest, p.codec, tags, rsgain)
             except (ToolError, DeezerError) as e:
-                rep.errors.append(f"repère {tid} : {e}")
+                rep.skipped_references.append(f"repère {tid} : {e}")
                 continue
             if _upload(conn, station, tid, "repere", dest, now, rep):
                 rep.n_references += 1
+                if tags.cover is None:
+                    rep.n_references_no_cover += 1
 
 
 def remove_excess(
@@ -180,16 +241,8 @@ def remove_excess(
             (before,),
         )
     ]
-    paths = [p for p, song in rows if song not in busy][:excess]
-    if not paths:
-        return
-    errors = station.delete(paths)
-    rep.errors += [f"retrait : {e}" for e in errors]
-    failed = {p for p in paths if any(e.startswith(f"{p}:") for e in errors)}
-    done = [p for p in paths if p not in failed]
-    with conn:
-        conn.executemany("DELETE FROM antenne WHERE path = ?", [(p,) for p in done])
-    rep.n_removed = len(done)
+    worst = [p for p, song in rows if song not in busy][:excess]
+    rep.n_removed = _remove(conn, station, worst, rep)
 
 
 def antenne_pass(
@@ -205,6 +258,7 @@ def antenne_pass(
     rep = AntenneReport()
     stamp = now.isoformat()
     reconcile(conn, station.files(), rep)
+    withdraw_rejected(conn, station, rep)
     publish_ready(conn, station, stamp, rep)
     add_references(conn, station, deezer, cfg, root, rsgain, rng, stamp, rep)
     remove_excess(conn, station, cfg, now, rep)

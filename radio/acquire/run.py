@@ -1,10 +1,12 @@
 """Passe d'acquisition (docs/vision.md §5, §6) : retenus → Sockseek → contrôle → fichier prêt.
 
 Chaque issue est écrite dès qu'elle est connue : une panne de Deezer arrête la passe sans perdre
-le travail fait. Un titre en échec est retenté aux passes suivantes, jusqu'à `max_attempts`.
+le travail fait. Un titre en échec est retenté aux passes suivantes, jusqu'à `max_attempts`. Un
+titre voté « non » n'est jamais acquis.
 """
 
 import logging
+import shutil
 import sqlite3
 import tempfile
 from collections import Counter
@@ -14,7 +16,7 @@ from pathlib import Path
 from radio.acquire.audio import Tags, ToolError, check, fingerprint, prepare, probe, similarity
 from radio.acquire.sockseek import Runner, Wanted, download, run_command
 from radio.core.config import AcquisitionConfig
-from radio.sources.deezer import DeezerClient, DeezerError
+from radio.sources.deezer import DeezerAlbum, DeezerClient, DeezerError
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +25,8 @@ logger = logging.getLogger(__name__)
 class AcquireReport:
     n_wanted: int = 0
     n_ready: int = 0
+    n_no_cover: int = 0
+    n_unindexed: int = 0
     failures: Counter[str] = field(default_factory=Counter)
 
     @property
@@ -31,7 +35,7 @@ class AcquireReport:
 
 
 def pending(conn: sqlite3.Connection, cfg: AcquisitionConfig) -> list[int]:
-    """Retenus pas encore prêts ni abandonnés, les mieux notés d'abord."""
+    """Retenus pas encore prêts ni abandonnés ni votés « non », les mieux notés d'abord."""
     return [
         int(r[0])
         for r in conn.execute(
@@ -40,6 +44,7 @@ def pending(conn: sqlite3.Connection, cfg: AcquisitionConfig) -> list[int]:
             LEFT JOIN acquisitions a USING (deezer_track_id)
             WHERE s.accepted = 1
               AND (a.deezer_track_id IS NULL OR (a.status = 'failed' AND a.attempts < ?))
+              AND s.deezer_track_id NOT IN (SELECT deezer_track_id FROM votes WHERE vote = 'non')
             ORDER BY s.score DESC, s.deezer_track_id LIMIT ?
             """,
             (cfg.max_attempts, cfg.max_per_pass),
@@ -62,13 +67,18 @@ def _save(
         )
 
 
-def tags_for(deezer: DeezerClient, tid: int, artist: str, title: str) -> Tags:
-    """Balises d'antenne : l'album et sa pochette viennent de Deezer, par l'id exact du titre."""
-    album = deezer.album(tid)
-    if album is None:
-        return Tags(artist, title, tid, "", None)
-    cover = deezer.download(album.cover_url) if album.cover_url else None
-    return Tags(artist, title, tid, album.title, cover)
+def tags_for(
+    deezer: DeezerClient, tid: int, artist: str, title: str, album: DeezerAlbum | None
+) -> Tags:
+    """Balises d'antenne : l'album et sa pochette viennent de `GET /track` par l'id exact du
+    titre. Une pochette refusée par Deezer laisse le fichier sans pochette."""
+    cover = None
+    if album is not None and album.cover_url:
+        try:
+            cover = deezer.download(album.cover_url)
+        except DeezerError as e:
+            logger.warning("pochette de %d refusée par Deezer : %s", tid, e)
+    return Tags(artist, title, tid, album.title if album else "", cover)
 
 
 def _verify_and_prepare(
@@ -78,37 +88,40 @@ def _verify_and_prepare(
     ready_dir: Path,
     rsgain: Path,
     cfg: AcquisitionConfig,
-) -> tuple[Path | None, str | None]:
+) -> tuple[Path | None, str | None, Tags | None]:
     p = probe(file)
     refusal = check(p, want.duration_s, cfg)
     if refusal is not None:
-        return None, refusal
-    fresh = deezer.track(want.deezer_track_id)
-    if fresh is None or fresh[1] is None:
-        return None, "extrait Deezer indisponible"
+        return None, refusal, None
+    # L'URL d'extrait est signée et expire : relue juste avant usage, avec l'album.
+    page = deezer.track_page(want.deezer_track_id)
+    if page is None or page.preview_url is None:
+        return None, "extrait Deezer indisponible", None
     with tempfile.NamedTemporaryFile(suffix=".mp3") as preview:
-        preview.write(deezer.download(fresh[1]))
+        preview.write(deezer.download(page.preview_url))
         preview.flush()
         score = similarity(fingerprint(file), fingerprint(Path(preview.name)))
     if score < cfg.identity_threshold:
-        return None, "identité"
+        return None, "identité", None
     dest = ready_dir / f"{want.deezer_track_id}.mp3"
-    tags = tags_for(deezer, want.deezer_track_id, want.artist, want.title)
+    tags = tags_for(deezer, want.deezer_track_id, want.artist, want.title, page.album)
     prepare(file, dest, p.codec, tags, rsgain)
-    return dest, None
+    return dest, None, tags
 
 
 def acquire_pass(
     conn: sqlite3.Connection,
     deezer: DeezerClient,
-    workdir: Path,
-    ready_dir: Path,
+    dirs: tuple[Path, Path, Path],
     binaries: tuple[Path, Path],
     credentials: tuple[str, str],
     cfg: AcquisitionConfig,
     now: str,
     run: Runner = run_command,
 ) -> AcquireReport:
+    """`dirs` : dossier de travail de la passe (supprimé à la fin, quoi qu'il arrive), dossier
+    des fichiers prêts, dossier de la config Sockseek (tmpfs, effacé par systemd)."""
+    workdir, ready_dir, conf_dir = dirs
     sockseek, rsgain = binaries
     rep = AcquireReport()
     wanted: list[Wanted] = []
@@ -124,21 +137,29 @@ def acquire_pass(
     if not wanted:
         return rep
     ready_dir.mkdir(parents=True, exist_ok=True)
+    workdir.mkdir(parents=True)
     by_id = {w.deezer_track_id: w for w in wanted}
-    for out in download(wanted, workdir, sockseek, *credentials, cfg, run):
-        file, reason = None, out.reason
-        if out.file is not None:
-            try:
-                file, reason = _verify_and_prepare(
-                    out.file, by_id[out.deezer_track_id], deezer, ready_dir, rsgain, cfg
-                )
-            except (ToolError, DeezerError) as e:
-                reason = f"{type(e).__name__} : {e}"
-            finally:
-                out.file.unlink(missing_ok=True)
-        _save(conn, out.deezer_track_id, file, reason, now)
-        if file is not None:
-            rep.n_ready += 1
-        else:
-            rep.failures[str(reason)] += 1
+    try:
+        outcomes = download(wanted, workdir, conf_dir, sockseek, *credentials, cfg, run)
+        rep.n_unindexed = len(wanted) - len(outcomes)
+        for out in outcomes:
+            file, reason = None, out.reason
+            if out.file is not None:
+                try:
+                    file, reason, tags = _verify_and_prepare(
+                        out.file, by_id[out.deezer_track_id], deezer, ready_dir, rsgain, cfg
+                    )
+                    if tags is not None and tags.cover is None:
+                        rep.n_no_cover += 1
+                except (ToolError, DeezerError) as e:
+                    reason = f"{type(e).__name__} : {e}"
+                finally:
+                    out.file.unlink(missing_ok=True)
+            _save(conn, out.deezer_track_id, file, reason, now)
+            if file is not None:
+                rep.n_ready += 1
+            else:
+                rep.failures[str(reason)] += 1
+    finally:
+        shutil.rmtree(workdir)
     return rep

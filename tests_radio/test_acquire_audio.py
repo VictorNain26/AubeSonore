@@ -6,7 +6,16 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from radio.acquire.audio import Probe, Tags, check, fingerprint, prepare, probe, similarity
+from radio.acquire.audio import (
+    Probe,
+    Tags,
+    ToolError,
+    check,
+    fingerprint,
+    prepare,
+    probe,
+    similarity,
+)
 from radio.core.config import AcquisitionConfig
 
 CFG = AcquisitionConfig()
@@ -29,6 +38,8 @@ def test_check_reasons() -> None:
     assert check(Probe("mp3", 200.0, 320), 204, CFG) == "durée"
     assert check(Probe("mp3", 200.0, 128), 200, CFG) == "débit"
     assert check(Probe("aac", 200.0, 256), 200, CFG) == "format aac"
+    assert check(Probe("flac", 200.0, None), 200, CFG) is None
+    assert check(Probe("mp3", 200.0, None), 200, CFG) == "débit"
 
 
 def _melody(path: Path, seed: int) -> None:
@@ -68,7 +79,7 @@ def test_real_tools_identity_and_preparation(tmp_path: Path) -> None:
     assert similarity(fingerprint(other), preview) < CFG.identity_threshold
 
     p = probe(full)
-    assert (p.codec, round(p.duration_s)) == ("flac", 60)
+    assert (p.codec, round(p.duration_s), p.kbps) == ("flac", 60, None)
     cover = tmp_path / "cover.jpg"
     subprocess.run(
         [
@@ -103,6 +114,52 @@ def test_real_tools_identity_and_preparation(tmp_path: Path) -> None:
     bare = tmp_path / "124.mp3"
     prepare(dest, bare, "mp3", Tags("Artiste", "Titre", 124, "", None), rsgain)
     assert _pictures(bare) == 0
+
+
+def _ffmpeg(*args: str) -> None:
+    subprocess.run(["ffmpeg", "-v", "error", "-y", *args], check=True)
+
+
+@pytest.mark.skipif(not TOOLS, reason="ffmpeg requis")
+def test_mp3_bitrate_ignores_an_embedded_cover(tmp_path: Path) -> None:
+    low, covered, cover = tmp_path / "low.mp3", tmp_path / "covered.mp3", tmp_path / "c.png"
+    _ffmpeg("-f", "lavfi", "-i", "anoisesrc=d=10", "-c:a", "libmp3lame", "-b:a", "128k", str(low))
+    _ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "nullsrc=s=1000x1000,geq=random(1)*255:128:128",
+        "-frames:v",
+        "1",
+        str(cover),
+    )
+    _ffmpeg(
+        "-i",
+        str(low),
+        "-i",
+        str(cover),
+        "-map",
+        "0:a",
+        "-map",
+        "1:0",
+        "-c",
+        "copy",
+        "-id3v2_version",
+        "3",
+        str(covered),
+    )
+    p = probe(covered)
+    assert p.kbps == 128
+    assert check(p, 10, CFG) == "débit"
+
+
+@pytest.mark.skipif(not TOOLS, reason="ffmpeg requis")
+def test_failed_preparation_leaves_no_temporary_file(tmp_path: Path) -> None:
+    src = tmp_path / "src.flac"
+    _melody(src, 1)
+    with pytest.raises(ToolError):
+        prepare(src, tmp_path / "1.mp3", "flac", Tags("A", "T", 1, "", b"jpeg"), Path("/bin/false"))
+    assert sorted(f.name for f in tmp_path.iterdir()) == ["src.flac"]
 
 
 def _tags(f: Path) -> dict[str, str]:

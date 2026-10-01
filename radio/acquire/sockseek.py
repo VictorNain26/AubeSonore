@@ -3,7 +3,10 @@
 Sockseek fait la recherche, le classement, le téléchargement et la limite de rythme ; ici, on ne
 fait que lui passer la liste et lire son index. Les fichiers sont nommés par l'id Deezer
 (`--name-format {uri}`, colonne URI du CSV). Codes d'état et d'échec de l'index :
-`Sockseek.Core/Common/Enums.cs` (JobStateOld, JobFailureReason) au tag v3.0.5.
+`Sockseek.Core/Common/Enums.cs` (JobStateOld, JobFailureReason) au tag v3.0.5. Codes de sortie
+(`Sockseek.Cli/Program.cs`, CliExitCode) : 0 tout réussi, 1 au moins un échec, 2 erreur d'usage,
+130 annulé. L'index est réécrit à chaque titre terminé (`M3uEditor.Update`) : sans index, aucun
+titre n'a été tenté (connexion refusée, compte banni).
 """
 
 import csv
@@ -16,6 +19,7 @@ from pathlib import Path
 from radio.core.config import AcquisitionConfig
 
 _DONE, _ALREADY = 1, 3
+_RAN = (0, 1)
 _REASONS = {
     1: "recherche invalide",
     2: "essais de téléchargement épuisés",
@@ -26,6 +30,10 @@ _REASONS = {
     9: "aucun résultat",
     10: "aucun fichier conforme",
 }
+
+
+class SockseekError(Exception):
+    """Sockseek n'a rien tenté de fiable : aucune issue n'est enregistrée."""
 
 
 @dataclass(frozen=True)
@@ -60,22 +68,22 @@ def _write_config(path: Path, user: str, password: str) -> None:
 def download(
     wanted: list[Wanted],
     workdir: Path,
+    conf_dir: Path,
     binary: Path,
     user: str,
     password: str,
     cfg: AcquisitionConfig,
     run: Runner = run_command,
 ) -> list[Outcome]:
-    workdir.mkdir(parents=True, exist_ok=True)
     listing = workdir / "retenus.csv"
     with listing.open("w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
         w.writerow(["Artist", "Title", "Length", "URI"])
         w.writerows([t.artist, t.title, t.duration_s, t.deezer_track_id] for t in wanted)
-    conf = workdir / "sockseek.conf"
+    conf = conf_dir / "sockseek.conf"
     _write_config(conf, user, password)
     try:
-        run(
+        code = run(
             [
                 str(binary),
                 str(listing),
@@ -101,27 +109,28 @@ def download(
         )
     finally:
         conf.unlink()
-    return read_index(workdir / "retenus" / "_index.csv", wanted)
+    if code not in _RAN:
+        raise SockseekError(f"code de sortie {code}")
+    index = workdir / "retenus" / "_index.csv"
+    if not index.exists():
+        raise SockseekError("aucun index écrit, aucun titre tenté (connexion ou compte refusé ?)")
+    return read_index(index, wanted)
 
 
 def read_index(index: Path, wanted: list[Wanted]) -> list[Outcome]:
-    """Une issue par titre demandé. Un titre absent de l'index (Sockseek interrompu) est un échec
-    nommé, jamais un succès supposé."""
+    """Les issues des titres terminés, dans l'ordre de l'index. Un titre absent de l'index n'a
+    pas été tenté (Sockseek interrompu) : il n'a pas d'issue."""
     by_key = {(t.artist, t.title, t.duration_s): t.deezer_track_id for t in wanted}
     found: dict[int, Outcome] = {}
-    if index.exists():
-        with index.open(encoding="utf-8", newline="") as f:
-            for row in csv.DictReader(f):
-                tid = by_key.get((row["artist"], row["title"], int(row["length"])))
-                if tid is None:
-                    continue
-                state = int(row["state"])
-                if state in (_DONE, _ALREADY) and row["filepath"]:
-                    found[tid] = Outcome(tid, Path(row["filepath"]), None)
-                else:
-                    reason = _REASONS.get(int(row["failurereason"]), f"état {state}")
-                    found[tid] = Outcome(tid, None, reason)
-    return [
-        found.get(t.deezer_track_id, Outcome(t.deezer_track_id, None, "absent de l'index"))
-        for t in wanted
-    ]
+    with index.open(encoding="utf-8", newline="") as f:
+        for row in csv.DictReader(f):
+            tid = by_key.get((row["artist"], row["title"], int(row["length"])))
+            if tid is None:
+                continue
+            state = int(row["state"])
+            if state in (_DONE, _ALREADY) and row["filepath"]:
+                found[tid] = Outcome(tid, Path(row["filepath"]), None)
+            else:
+                reason = _REASONS.get(int(row["failurereason"]), f"état {state}")
+                found[tid] = Outcome(tid, None, reason)
+    return list(found.values())
