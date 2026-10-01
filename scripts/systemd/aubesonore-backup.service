@@ -1,8 +1,0 @@
-[Unit]
-Description=Dump the AubeSonore database to a separate disk
-
-[Service]
-Type=oneshot
-Nice=15
-ExecStart=%h/radio/aubesonore/scripts/backup-db.sh
-TimeoutStartSec=30m

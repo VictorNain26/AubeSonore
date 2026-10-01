@@ -1,0 +1,375 @@
+# AubeSonore — vision
+
+Seul document de conception et d'exploitation du pipeline. Les preuves (mesures, sources datées)
+sont dans `docs/recherches/`. Quand le système réel contredit ce document, le système a raison et
+ce document se corrige.
+
+État au 2026-10-01 : les étapes 1 à 7 tournent chaque semaine, la CI et Gatus surveillent, la
+page de vote est en service. L'antenne ne diffuse plus que `antenne/` depuis la bascule (§7.2).
+
+## 1. But
+
+AubeSonore est une webradio de découverte dans la couleur de Victor : des titres qu'il ne connaît
+pas, qu'il aurait pu choisir, enchaînés selon le moment de la journée.
+
+**Critères de réussite**
+
+- **Goût.** Taux de « oui » à l'aveugle sur les titres retenus, mesuré avec son intervalle de
+  Wilson. L'horizon est 90 %, mais Victor ne se répète lui-même qu'à 85 % [64–95 %] : c'est le
+  plafond (`recherches/2026-09-30-modele-audio-seul.md`).
+- **Antenne.** Le flux ne s'arrête jamais et joue la bibliothèque d'antenne, pas le secours.
+- **Renouvellement.** Chaque semaine, des découvertes entrent à l'antenne.
+
+## 2. Principes
+
+- **Plex est la seule vérité du goût, en lecture seule.** Section `Musique`, racine
+  `/media/plex/Musique`. Jamais « Musique second wave ». Jamais le disque de Maël
+  (`/media/musique`), pas même un `find`.
+- **AzuraCast fait autorité sur l'antenne.** La base du pipeline s'y réaligne. Un média inconnu
+  du pipeline est signalé, jamais supprimé.
+- **Rien d'inventé.** Un outil existant, maintenu et vérifié le jour du choix, plutôt que du code
+  maison. Le code du pipeline n'est que la colle entre ces outils.
+- **Un repli silencieux est pire qu'une panne.** Tout ce qui est sauté est compté et nommé dans
+  le rapport de passe.
+- **Tout se mesure.** Un signal ou un mécanisme qui ne prouve pas son utilité est retiré.
+- **Aucun secret** dans les journaux, les exceptions, les tests ou les commits : jeton Plex, clés
+  Last.fm, CallMeBot et Soulseek, URL d'extraits Deezer signées.
+
+## 3. La chaîne
+
+```
+Plex ─► 1 bibliothèque ─► 2 découverte ─► 3 empreinte ─► 4 goût ─► 5 acquisition
+                                                           ▲             │
+                                              votes ───────┘             ▼
+                                                            6 préparation ─► 7 antenne ─► AzuraCast
+```
+
+Une passe hebdomadaire enchaîne les étapes. Chacune écrit ses compteurs dans le rapport de passe
+(§8.1) et s'arrête proprement si une source tombe : le travail fait est gardé et la passe
+suivante reprend.
+
+| Étape | Rôle | Outils | État |
+|---|---|---|---|
+| 1 Bibliothèque | Lire Plex, rapprocher chaque titre de Deezer (strict : artiste, titre, durée ±3 s ; un seul des artistes d'un crédit « A & B » ou « A, B » suffit, jamais sur « and ») | python-plexapi, API Deezer | fait |
+| 2 Découverte | 15 graines par semaine, tirées selon l'écoute ; voisins confirmés par Deezer `related` ET Last.fm `getSimilar` (`recherches/2026-09-24-sources-decouverte.md`) ; 10 titres par voisin | API Deezer, Last.fm | fait |
+| 2b Nouveautés | Titres récents choisis par des humains, ajoutés à la fournée (§3.1) | API Hype Machine v2, API Deezer | en service |
+| 3 Empreinte | Empreinte Discogs-EffNet de l'extrait Deezer de 30 s | essentia-tensorflow, modèle MTG épinglé | fait |
+| 4 Goût | Régression logistique sur l'empreinte ; chaque fournée est classée et son tiers le mieux noté est retenu | scikit-learn | fait |
+| 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | en service |
+| 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | en service |
+| 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | en service |
+| 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | — | plus tard (§7.3) |
+
+### 3.1 Sources et nouveautés
+
+La qualité des sources fait celle de l'antenne : le modèle trie, il n'invente rien. Deux
+familles de sources alimentent chaque fournée, et chaque candidat garde la sienne
+(`candidates.source`, avec le blog ou le genre dans `detail`) :
+
+- **Voisins** (découverte) : voisins confirmés de tes artistes, leurs titres les plus écoutés.
+- **Nouveautés** : des titres récents choisis par des humains, pour un mélange de découverte et
+  de nouveauté (décision de Victor, 2026-10-01).
+  - **Hype Machine**, classement « lastweek » des blogs (`hypem_pages`), retrouvé sur Deezer
+    par la règle stricte de la bibliothèque. L'API v2 n'a pas de documentation publique et
+    `api.hypem.com/robots.txt` refuse les robots : usage choisi en connaissance de cause, à
+    quelques requêtes par semaine, User-Agent identifié ; une réponse hors format est une
+    source sautée et nommée, jamais une liste vide.
+  - **Sélections éditoriales Deezer** (`/editorial/{genre}/selection`), genres
+    `deezer_editorial` (Alternative et Electro au départ ; Rap, Pop et Chanson française
+    écartés, trop grand public), les `tracks_per_album` titres les plus écoutés de chaque album.
+    Deezer exclut la musique générée par IA de ses playlists éditoriales (page « AI-generated
+    music labelling », consultée le 2026-10-01).
+  - Écartés : les « dernières sorties » Deezer d'un voisin (compilations d'archives, et place
+    idéale d'un faux album IA, que l'API ne signale pas) ; `/editorial/{genre}/releases`
+    (vide) ; les flux RSS de Hype Machine (réservés aux abonnés).
+  - Un titre déjà dans la bibliothèque, même sous une autre version, n'est pas une nouveauté.
+
+**Jugement des sources.** L'examen tire uniformément dans la fournée : il juge donc la source
+elle-même, avant le modèle. `radio report` donne le taux de « oui » à l'examen par source et
+par blog ou genre, avec son intervalle de Wilson. Une source qui reste nettement sous les
+autres après une vingtaine de votes est retirée ; une autre peut être essayée à sa place.
+
+## 4. Le goût (étapes 1 à 4)
+
+- **Positifs.** Les titres de la bibliothèque, pondérés par l'écoute (`1 + log(1 + écoutes)`,
+  plafonné à 4), et les « oui » de leçon.
+- **Négatifs.** Les « non » de leçon, et les négatifs faibles de démarrage
+  (`config/negatives.toml`, curation sourcée dans `recherches/2026-09-24-negatifs-curation.md`)
+  au poids de 0,1.
+- **Poids des classes.** Chacune pèse 1 au total. C = 0,1. Les réglages ont été fixés sur les
+  159 votes du banc.
+- **Signaux retirés.** Popularité, tags et proximité étaient au niveau du hasard (AUC 0,52 à 0,58).
+  L'empreinte seule donne une AUC d'examen de 0,82, contre 0,76 pour l'ancien modèle empilé.
+- **Rétention.** Pour chaque fournée, le tiers le mieux noté est retenu (`keep_fraction`). Un
+  candidat entré depuis dans la bibliothèque n'est plus noté : ce n'est plus une découverte.
+- **Pistes écartées après mesure** : ressemblance kNN sur l'empreinte (AUC 0,67), filtre
+  « couleur » à négatifs par catégories, têtes de style Essentia, modèle Jev (texte seul). Leurs
+  recherches sont dans l'historique git (`git show f7d7081:docs/recherches/`).
+
+**Votes.** Chaque semaine, 10 titres d'examen et 10 de leçon, présentés à l'aveugle.
+
+- **Examen.** Tirage uniforme sur toute la fournée. Le verdict « retenu » au moment du tirage est
+  gardé. Ces votes jugent le modèle et ne servent jamais à l'entraîner.
+- **Leçon.** Les titres les plus proches de la coupure, un par artiste, jamais d'un artiste déjà
+  tiré à l'examen : le modèle candidat l'aurait vu et pas celui en service. Ces votes entraînent
+  le modèle, avec un gain décroissant : AUC 0,76 sans vote, 0,79 avec 50, 0,82 avec 99. Une
+  autre version d'un titre d'examen (même titre normalisé) n'entre pas non plus à
+  l'entraînement.
+- **Promotion.** Un nouveau modèle n'est mis en service que si son AUC d'examen égale au moins
+  celle du modèle en service.
+
+La page de vote (FastAPI derrière Cloudflare Access, rappel WhatsApp) est en service depuis le
+2026-10-01 sur `votes.aubesonore.fr`. Chaque passe tire une nouvelle sélection après `train`.
+
+## 5. Acquisition (étape 5)
+
+Justification des choix : `recherches/2026-09-30-acquisition-publication-observabilite.md` §1 et
+§2.
+
+1. **Entrée.** Les titres retenus pas encore acquis, écrits en CSV (Artist, Title, Length).
+   Un titre voté « non » (examen ou leçon) n'est jamais acquis.
+2. **Sockseek 3.0.5** (binaire figé dans `~/.local/bin`, extrait de l'archive de release
+   `sockseek_3.0.5_linux-x64.tar.gz`, dont la sha256 `d0a1e909…1b66` a été vérifiée) sur un
+   **compte Soulseek dédié à la radio** (`SOULSEEK_USER`, `SOULSEEK_PASSWORD`). Le compte de slskd est interdit : il éjecterait slskd et les deux Lidarr.
+   - Options : `--format mp3,flac --pref-format mp3 --length-tol 3 --name-format {uri}`, avec
+     l'id Deezer en colonne URI du CSV : chaque fichier porte l'id du titre demandé.
+   - Le mot de passe passe par un fichier de config en 0600, jamais par la ligne de commande.
+     Ce fichier est écrit sur tmpfs, dans le `RuntimeDirectory=` de `radio-weekly` (exporté en
+     `$RUNTIME_DIRECTORY`, 0700), que systemd supprime à l'arrêt de l'unité, même tuée au délai
+     (`systemd.exec(5)`, vérifié sur une unité transitoire). À la main, il va dans
+     `$XDG_RUNTIME_DIR`, effacé en fin de commande.
+   - Une recherche à la fois, au plus 10 recherches par 220 s.
+   - Le pipeline lit `_index.csv` : les échecs sont comptés par raison et ne sont pas relancés
+     avant la passe suivante.
+   - **Panne de Sockseek.** Codes de sortie au tag v3.0.5 (`Sockseek.Cli/Program.cs`) : 0 tout
+     réussi, 1 au moins un échec, 2 erreur d'usage, 130 annulé. L'index est réécrit à chaque titre
+     terminé (`M3uEditor.Update`). Un code autre que 0 ou 1, ou l'absence d'index (connexion
+     refusée, compte banni), fait échouer l'étape sans enregistrer aucune tentative. Un titre
+     absent d'un index partiel (Sockseek interrompu) n'est pas une tentative : il est compté
+     « non tenté » et l'étape échoue.
+   - Le dossier de la passe (`data/acquisition/<date>/`) est supprimé à la fin, même sur
+     exception ; pas si systemd tue le processus (délai de 12 h), car Python n'exécute alors pas
+     son `finally`.
+3. **Contrôle de chaque fichier.** Il est rejeté, compté et supprimé s'il échoue à l'un de ces
+   points :
+   - `ffprobe` : codec MP3 ou FLAC, durée à ±3 s de Deezer, et pour un MP3 un débit moyen
+     ≥ 200 kbit/s (un V0 tourne autour de 220–260 ; à revoir sur les premiers fichiers réels).
+     C'est le débit du flux audio (`stream=bit_rate`, que ffprobe donne aussi pour un VBR), pas
+     celui du fichier, qu'une pochette intégrée gonfle : mesuré sur un MP3 à 128 kbit/s avec une
+     image de 1000 × 1000, le débit du fichier dépassait le seuil ;
+   - **Chromaprint** : `fpcalc -raw` sur le fichier et sur l'extrait Deezer. Le taux de bits
+     identiques au meilleur décalage doit être ≥ 0,70. La mesure a donné 0 erreur sur 38 + 1 406
+     paires ; la durée seule laissait passer un autre titre du même artiste pour 18 fichiers sur 38.
+4. **Pas de YouTube.** Un titre introuvable reste un échec compté, et on retente à la passe
+   suivante.
+5. **Plancher.** Le taux de fichiers prêts n'est jugé qu'à partir de `min_attempts_for_rate`
+   tentatives (`config/editorial.toml`, 20).
+6. **Premier essai réel** (2026-09-30, 10 retenus, sans port ouvert sur la box) : 10 prêts, tous
+   en MP3 320 kbit/s, identité Chromaprint de 0,925 à 0,982, durée à ±2 s. Le port d'écoute de
+   Sockseek reste fermé tant qu'un taux d'échec ne justifie pas de l'ouvrir.
+
+## 6. Préparation (étape 6)
+
+- **Conversion.** Tout ce qui n'est pas du MP3 (FLAC, AAC, OGG…) passe en MP3 V0 :
+  `ffmpeg -af aresample=resampler=soxr:osr=44100 -c:a libmp3lame -q:a 0`. Un MP3 n'est jamais
+  réencodé.
+- **ReplayGain.** `rsgain custom -s i -c p`, avec rsgain 3.8 en binaire figé, extrait de
+  l'archive de release `rsgain-3.8-Linux.tar.xz`, dont la sha256 `4939de3b…65a0` a été
+  vérifiée ; la CI installe la même. Sans ces balises,
+  Liquidsoap recalcule le gain à chaque titre, ce qui coûte beaucoup de CPU (doc AzuraCast,
+  « optimizing »).
+- **Balises** (ffmpeg, qui remplace toutes les balises d'origine) : artiste et titre Deezer,
+  commentaire `deezer:<id>`, album et pochette (`album.cover_xl`, 1000 × 1000) lus sur
+  `/track/<id>` : l'id exact donne le bon album, là où la recherche native d'AzuraCast
+  (MusicBrainz par artiste et titre) prend le premier venu. La lecture de `/track/<id>` qui donne
+  l'extrait frais du contrôle d'identité donne aussi l'album : une seule requête par fichier. La
+  pochette est un flux image intégré en APIC (ffmpeg-formats, muxer mp3) ; `-map 0:a:0` seul la
+  perdait. Une pochette refusée par Deezer ne rejette pas un fichier dont l'identité est
+  prouvée : il est préparé sans pochette et compté « sans pochette ». Fichier prêt :
+  `data/antenne/<id Deezer>.mp3`. Un échec de ffmpeg ou de rsgain ne laisse aucun fichier
+  temporaire.
+- **Repères.** Des titres de la bibliothèque Plex, copiés sans jamais y écrire, préparés de la
+  même façon et étiquetés `repère` dans la base. Ils représentent au plus 20 % de l'antenne.
+  Le chemin du fichier vient de Plex (`Media/Part`) ; un chemin hors de `/media/plex/Musique`
+  n'est jamais lu. Un repère qui échoue (outil, Deezer) est sauté, compté et nommé, sans faire
+  échouer l'étape : un autre sera tiré à la passe suivante.
+
+## 7. Antenne (étape 7)
+
+### 7.1 Bibliothèque d'antenne
+
+- **Taille.** Plafond de 2 000 titres (`target_max` dans `config/editorial.toml`).
+- **Entrées.** Chaque passe publie tout ce qui a été acquis. Des repères sont ajoutés pour rester
+  sous 20 %, tirés selon l'écoute. Une découverte passe à « publiée » dans la transaction de son
+  entrée à l'antenne : sortie ensuite (excédent, vote, suppression dans AzuraCast), elle n'est
+  jamais republiée.
+- **Votes « non ».** Un titre voté « non » sort de l'antenne à la passe suivante, avant le calcul
+  de l'excédent, repères compris (aucun vote ne porte aujourd'hui sur un titre de la
+  bibliothèque : les bulletins sont tirés parmi les candidats). Un fichier prêt voté « non »
+  n'est jamais publié. Un repère voté « non » n'est jamais tiré.
+- **Sorties.** Au-delà du plafond, chaque entrée retire le titre le moins bien noté parmi ceux
+  qui sont à l'antenne depuis plus de 60 jours, repères exclus.
+  - Le nombre de suppressions par passe est plafonné.
+  - Le titre en cours (`GET /nowplaying/{station}`, `now_playing.song.id`) et la file de
+    l'AutoDJ (`GET /station/{id}/queue`) sont toujours épargnés, y compris pour un vote « non » :
+    le titre sort à la passe suivante.
+  - Retrait manuel : supprimer le fichier dans AzuraCast ; la passe suivante l'oublie et ne le
+    republie jamais.
+  - Une découverte entrée depuis dans la bibliothèque Plex sort en dernier.
+
+### 7.2 Publication sur AzuraCast
+
+Justification : `recherches/…-observabilite.md` §3.
+
+- **Dépôt.** `POST /station/1/files` dans le dossier `antenne/`. L'`id` et l'`unique_id`
+  renvoyés sont gardés en base avec l'origine du titre.
+- **Diffusion.** Le dossier `antenne/` est rattaché à une seule playlist « AubeSonore », non
+  programmée, en `shuffle` avec `avoid_duplicates`. AzuraCast y range lui-même les fichiers.
+- **Retrait.** `PUT /station/1/files/batch` avec `do=delete`.
+- **Interdit.** Jamais de `PUT /file/{id}` : il réécrit et supprime les balises.
+- **Réalignement à chaque passe.** On compare la base au contenu de `antenne/` et on rapporte les
+  écarts.
+
+- **Interdit aussi.** `POST /station/1/art/{id}` : il finit par la même réécriture
+  (`StationMediaRepository::updateAlbumArt` → `writeToFile`). La pochette est intégrée au fichier
+  à la préparation (§6) ; redéposer un fichier sur le même chemin remplace le média en place
+  (`MediaProcessor::processAndUpload`, `findByPath`).
+
+**Bascule, faite le 2026-10-01** par appels directs, sans attendre 400 titres puisque la radio
+n'avait pas encore d'auditeurs : sauvegarde des 8 anciennes playlists et de la liste des médias
+dans `~/radio/archives/*-avant-bascule-2026-10-01.json`, création de la playlist « AubeSonore »
+(id 10) rattachée à `antenne/`, désactivation des 8 anciennes, suppression des 369 anciens
+titres. Les playlists se réactivent depuis la sauvegarde ; les fichiers supprimés sont perdus.
+
+### 7.3 Enchaînement (plus tard)
+
+Déjà décidé le 2026-09-23 :
+
+- un fil qui dérive, chaque titre proche du précédent, tiré vers une grille cible 7 × 24 h
+  (énergie, tempo, dansabilité) ;
+- le vendredi et le samedi, une soirée plus dansante jusqu'à 03:00 ;
+- publication en playlists horaires séquentielles, programmées, avec `loop_once` et sans
+  `avoid_duplicates` ;
+- la playlist « AubeSonore » devient alors le secours, puisque les playlists programmées passent
+  devant.
+
+L'analyse nécessaire (tempo, énergie) et la comparaison avec AudioMuse-AI feront l'objet d'une
+étude à part.
+
+## 8. Observabilité
+
+Justification : `recherches/…-observabilite.md` §4.
+
+### 8.1 Rapport de passe
+
+Chaque étape écrit une ligne en base (`stage_reports`) avec ses compteurs, rattachée à la passe
+par `$INVOCATION_ID` de systemd, y compris quand elle échoue : la ligne porte alors l'erreur (le
+message de la commande, ou seulement le type d'une exception imprévue, dont le texte peut
+contenir une URL signée). `radio report` affiche le dernier rapport de chaque étape.
+
+Seuils, par étape : taux d'acquisition au-dessus de `min_success_rate` dès
+`min_attempts_for_rate` tentatives (`editorial.toml`) ; aucune erreur à l'antenne.
+
+`acquire` est préfixée de `-` dans l'unité : son échec n'empêche pas `antenne` de publier ce qui
+est prêt. La dernière étape, `radio check`, juge la passe entière : une étape en échec, ou aucune
+découverte publiée, ou une étape sans ligne de rapport (processus tué), la fait échouer, et Gatus
+alerte (§8.2).
+
+### 8.2 Gatus
+
+Gatus 5.37.0 est un conteneur dont la configuration YAML est versionnée dans `deploy/gatus/`. Il
+est le seul outil de surveillance. Tableau de bord sur `127.0.0.1:8050` (tunnel SSH). Chaîne
+d'alerte testée de bout en bout le 2026-09-30. Il alerte après 3 échecs, avec un rappel au plus
+toutes les 24 h et un message de retour à la normale, sur deux canaux :
+
+- WhatsApp (CallMeBot) ;
+- ntfy.sh, sujet aléatoire `NTFY_TOPIC` (le nom du sujet fait office de secret), abonné dans
+  l'application ntfy du téléphone. CallMeBot répond 210 quand son quota est épuisé, et Gatus ne
+  compte comme échec d'envoi qu'un statut supérieur à 399 (`custom.go:94`, v5.37.0) : sans ce
+  second canal, une alerte pouvait se perdre en silence.
+
+| Sonde | Condition |
+|---|---|
+| `antenne` : `nowplaying` AzuraCast, chaque minute | HTTP 200 et `is_online == true` (en place) |
+| `flux-public` : `radio.aubesonore.fr/listen/aubesonore/radio.mp3`, toutes les 5 min | HTTP 200 : vérifie aussi le tunnel Cloudflare (en place) |
+| `passe-hebdo` (endpoint externe) | Poussée par `ExecStopPost=` avec `$SERVICE_RESULT` ; alerte au premier échec ou après 8 jours de silence (en place) |
+| `sauvegarde` (endpoint externe) | Même mécanisme pour `radio-backup` ; alerte au premier échec ou après 2 jours de silence |
+| Playlist en cours ≠ secours | Après l'enchaînement (§7.3) |
+| `page-de-vote` : `127.0.0.1:8040`, toutes les 5 min | HTTP 403 sans jeton Access : la page tourne (en place) |
+| `page-de-vote-publique` : `votes.aubesonore.fr`, toutes les 5 min, redirection non suivie | HTTP 302 vers la connexion Access : la règle Access et la route du tunnel tiennent |
+
+### 8.3 Non-régression
+
+- **CI GitHub Actions** (`.github/workflows/pipeline.yml` à la racine du dépôt AubeSonore, qui
+  réunit depuis le 2026-10-01 le site, le pipeline et la config AzuraCast) : ruff, mypy strict
+  et pytest à chaque push et à chaque PR, avec astral-sh/setup-uv. `master` est protégée : rien
+  n'y entre sans CI verte, celle du site comprise.
+- **Renovate** (configuration à la racine) pour `uv.lock`, les actions GitHub et l'image de
+  Gatus. `essentia-tensorflow` en est exclu : ses versions récentes ne publient que des roues
+  cp314, et le projet est en Python 3.12.
+- **Déploiement** : merger sur `master` suffit. `aubesonore-deploy.timer` avance le checkout
+  `~/radio`, jamais pendant une passe hebdomadaire.
+- Les tests tournent sans réseau (~12 s). Tout bug corrigé reçoit son test.
+
+## 9. Ordre de réalisation
+
+1. **Observabilité.** CI, Renovate, Gatus sur l'antenne actuelle et battement de cœur de la
+   passe. On voit ce qui marche avant d'ajouter quoi que ce soit.
+2. **Acquisition** (§5), une fois le compte Soulseek créé.
+3. **Préparation et antenne** (§6, §7.1, §7.2) : fait, bascule le 2026-10-01.
+4. **Page de vote** (§4) : en service le 2026-10-01.
+5. **Enchaînement** (§7.3).
+
+## 10. Exploitation
+
+| Quand | Unité systemd utilisateur | Ce qui se passe |
+|---|---|---|
+| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `nouveautes`, `signals`, `train`, `votes-select`, `acquire`, `antenne`, `check` ; bornée à 12 h, battement de cœur Gatus |
+| chaque jour 04:30 | `radio-backup` | copie de `data/radio.db` (API de sauvegarde SQLite, `integrity_check` vérifié) et de `data/models/` dans `RADIO_BACKUP_DIR` (`/media/plex/.backups/radio`, autre disque physique), 14 jours gardés ; battement de cœur Gatus |
+| dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote |
+| en continu | `radio-votes` | page de vote, `127.0.0.1:8040`, publiée sur `votes.aubesonore.fr` |
+
+- État : `.venv/bin/radio report`.
+- Journaux : `journalctl --user -u radio-weekly`.
+- Un gros rattrapage de `signals` (environ 3 s par titre) se lance à la main, en `nice`.
+
+**Réglages.** Les secrets et les URL sont dans `.env` (modèle : `.env.example`, jamais commité),
+y compris `GATUS_TOKEN` pour le battement de cœur. Le reste est dans `config/editorial.toml`.
+Gatus : `cd deploy/gatus && docker compose up -d` (son `.env` est un lien vers celui du dépôt).
+
+**Installer les unités.**
+
+```bash
+for u in deploy/systemd/*; do systemctl --user link "$PWD/$u"; done
+systemctl --user daemon-reload
+systemctl --user enable --now radio-weekly.timer radio-remind.timer radio-backup.timer radio-votes.service
+loginctl enable-linger
+```
+
+Les liens pointent vers le dépôt : il faut les re-lier si le dépôt change de place. Le linger
+est indispensable : il lance le gestionnaire systemd de l'utilisateur au démarrage et le garde
+après la déconnexion, ce qui fait tourner les unités sans session ouverte (`man loginctl`,
+`enable-linger`). Il est actif sur la machine (`loginctl show-user victormoi -p Linger`).
+
+**Publier la page de vote** (tableau de bord Cloudflare Zero Trust, dans cet ordre) :
+
+1. Access → Applications → Self-hosted : le sous-domaine, et une politique « Allow » limitée à
+   l'adresse de Victor. L'« AUD tag » va dans `CF_ACCESS_AUD`, et
+   `<équipe>.cloudflareaccess.com` dans `CF_ACCESS_TEAM_DOMAIN`.
+2. Networks → Tunnels → tunnel existant → Public hostname : même sous-domaine, `localhost:8040`.
+3. Contrôles : `curl -sI https://<page>` doit rediriger vers Access, et
+   `curl -s 127.0.0.1:8040/` doit renvoyer 403.
+
+**Actions de Victor**
+
+- Plus tard, si les mesures le justifient : ouvrir sur la box le port d'écoute de Sockseek
+  (49998/TCP), ce qui demande aussi une règle `ufw` sur l'hôte.
+- Vérifier que la box ne redirige pas le port 5030 : l'interface de slskd est publiée sur
+  toutes les interfaces de la machine, et Docker contourne `ufw`.
+
+## 11. Hors périmètre
+
+- Le site d'écoute, qui a son propre dépôt.
+- Les likes du site comme signal : cela coupleraient le site et le pipeline.
+- La sauvegarde des médias de l'antenne : ils se retéléchargent. La base, elle, est sauvegardée
+  chaque jour (§10) : les votes ne se reconstituent pas.

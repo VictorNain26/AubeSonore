@@ -1,0 +1,4 @@
+# Hooks run from the repository root: resolve the message file before entering site/.
+msg=$(realpath "$1")
+cd site
+pnpm commitlint --edit "$msg"

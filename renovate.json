@@ -22,6 +22,11 @@
   },
   "packageRules": [
     {
+      "description": "pipeline/ : essentia-tensorflow est figé sur dev1389, dernière roue cp312 ; les versions suivantes ne publient que des roues cp314 (pipeline/docs/vision.md)",
+      "matchPackageNames": ["essentia-tensorflow"],
+      "enabled": false
+    },
+    {
       "description": "Auto-merge pinning and digest re-pins (no functional change)",
       "matchUpdateTypes": ["pin", "pinDigest", "digest"],
       "automerge": true

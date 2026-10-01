@@ -1,0 +1,183 @@
+name: Site
+
+on:
+  push:
+    branches: [master]
+  # Run on every pull request regardless of base branch, so stacked PRs
+  # (e.g. fix/A → fix/B → master) get full CI on each link of the chain
+  # at creation time. Filtering by base would skip everything that does
+  # not directly target master, which was a real foot-gun during the
+  # player-page refactor (PRs B-E had no Quality/Build/Tests until each
+  # one was retargeted and a no-op commit was pushed).
+  pull_request:
+
+# Cancel any in-flight run when a new push lands on the same PR / branch.
+# AI-agent iteration loops can push 5-10 times in a few minutes; without
+# cancellation each push stacks a fresh Quality/Build/Tests run and we
+# race the previous one to no purpose.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+# The repository is the whole radio: the site lives in site/ (pipeline/ has its
+# own workflow). No path filter: the three jobs below are required checks on
+# master, and a workflow skipped by a path filter never reports them.
+defaults:
+  run:
+    working-directory: site
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  quality:
+    name: Quality (lint, typecheck, test, audit)
+    # Skip drafts: AI agents push partial / in-progress work as drafts.
+    # We only burn Actions minutes once the author marks the PR ready.
+    # Push events to master (no `pull_request` payload) always run.
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.0
+          package_json_file: site/package.json
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: site/pnpm-lock.yaml
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v5
+        with:
+          path: site/.turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Workspace packages must be built before lint/typecheck so that their
+      # dist/*.d.ts exist — otherwise the typed ESLint rules resolve the
+      # subpath imports to `error` types and emit hundreds of false-positive
+      # `no-unsafe-*` violations.
+      - name: Build workspace packages
+        run: pnpm turbo build --filter=@aubesonore/shared-types --filter=@aubesonore/core
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm turbo typecheck
+
+      - name: Contrast proof (design tokens)
+        run: pnpm --filter=@aubesonore/frontend check:contrast
+
+      - name: Frontend tests with coverage
+        run: pnpm --filter=@aubesonore/frontend test --run --coverage
+
+      - name: Security audit (prod, critical blocks)
+        run: pnpm audit --prod --audit-level=critical
+
+      - name: Security audit report (high, informational)
+        run: pnpm audit --prod --audit-level=high
+        continue-on-error: true
+
+  backend-test:
+    name: Backend tests (bun)
+    if: github.event.pull_request.draft != true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.0
+          package_json_file: site/package.json
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: site/pnpm-lock.yaml
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build workspace packages
+        run: pnpm turbo build --filter=@aubesonore/shared-types --filter=@aubesonore/core
+
+      - name: Run backend tests
+        run: pnpm --filter=@aubesonore/backend test
+
+  build:
+    name: Build all
+    needs: [quality, backend-test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.28.0
+          package_json_file: site/package.json
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+          cache-dependency-path: site/pnpm-lock.yaml
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.14'
+
+      - name: Restore Turbo cache
+        uses: actions/cache@v5
+        with:
+          path: site/.turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (backend + frontend)
+        run: pnpm turbo build --filter=@aubesonore/backend --filter=@aubesonore/frontend
+
+      # The workspace build above never touches the Dockerfiles, so a broken
+      # image shipped to master unnoticed (a COPY of a directory deleted months
+      # earlier). Deployment builds these images, so CI must too.
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: site
+          file: site/Dockerfile
+          push: false
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,scope=backend,mode=max
+
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: site
+          file: site/apps/frontend/Dockerfile
+          push: false
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,scope=frontend,mode=max

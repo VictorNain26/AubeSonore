@@ -1,0 +1,79 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.cache/
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Private keys and certificates
+*.pem
+*.key
+*.p12
+*.pfx
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code — keep settings.json versioned (team-wide), exclude personal overrides
+.claude/settings.local.json
+.claude/.session*
+.claude/projects/
+.claude/worktrees/
+apps/*/.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Lock files (keep pnpm-lock.yaml at root only)
+apps/*/pnpm-lock.yaml
+packages/*/pnpm-lock.yaml
+apps/*/bun.lock
+packages/*/bun.lock
+
+# Process files
+*.pid
+*.seed
+
+# Drizzle
+drizzle/migrations/meta/
+
+# Testing
+coverage/
+
+# Temporary
+temp-*/
+*.tmp
+
+# Internal documentation (per-developer drafts)
+MIGRATION.md
+*.local.md
+
+# Logs et process
+*.log
+*.pid
+.turbo
+certs/
+
+*storybook.log
+storybook-static
+
+# Bundle analyzer output (ANALYZE=true build)
+apps/frontend/stats.html
+
+# Sauvegardes locales de .env (jamais versionnées)
+.env.bak*
+.env.pre-*

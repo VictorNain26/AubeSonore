@@ -1,0 +1,21 @@
+# Lancer depuis ce dossier : `docker compose up -d`. Le .env de ce dossier est un lien vers celui
+# du dépôt ; Compose n'en passe au conteneur que les variables citées ci-dessous.
+name: gatus
+
+services:
+  gatus:
+    image: ghcr.io/twin/gatus:v5.37.0
+    container_name: gatus
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      WHATSAPP_PHONE: ${WHATSAPP_PHONE}
+      CALLMEBOT_APIKEY: ${CALLMEBOT_APIKEY}
+      GATUS_TOKEN: ${GATUS_TOKEN}
+      NTFY_TOPIC: ${NTFY_TOPIC}
+    volumes:
+      - ./config.yaml:/config/config.yaml:ro
+      - gatus-data:/data
+
+volumes:
+  gatus-data:

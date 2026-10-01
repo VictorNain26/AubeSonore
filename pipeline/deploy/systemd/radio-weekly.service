@@ -1,0 +1,36 @@
+[Unit]
+Description=AubeSonore : passe hebdomadaire
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/radio/pipeline
+# Sockseek et rsgain sont dans ~/.local/bin ; ffmpeg et fpcalc viennent d'apt.
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+EnvironmentFile=%h/radio/pipeline/.env
+# Machine partagée : la diffusion et les autres services passent avant.
+Nice=19
+CPUWeight=20
+IOSchedulingClass=idle
+TimeoutStartSec=12h
+# Config Sockseek (mot de passe Soulseek) sur tmpfs, sous $XDG_RUNTIME_DIR ; exportée en
+# $RUNTIME_DIRECTORY et supprimée à l'arrêt de l'unité, même tuée au délai (systemd.exec(5)).
+RuntimeDirectory=radio-weekly
+RuntimeDirectoryMode=0700
+# Une étape en échec arrête la suite : pas de sélection sur des notes périmées.
+# train ne réentraîne que s'il y a de nouveaux votes ; il note toujours les candidats.
+# nouveautes et acquire préfixés de « - » : une source de nouveautés en panne n'arrête pas la
+# passe, et un échec d'acquire n'empêche pas antenne de publier ce qui est prêt
+# (systemd.service(5), « Command lines ») ; check fait échouer la passe en fin de course.
+ExecStart=%h/radio/pipeline/.venv/bin/radio library-sync
+ExecStart=%h/radio/pipeline/.venv/bin/radio discover
+ExecStart=-%h/radio/pipeline/.venv/bin/radio nouveautes
+ExecStart=%h/radio/pipeline/.venv/bin/radio signals
+ExecStart=%h/radio/pipeline/.venv/bin/radio train
+ExecStart=%h/radio/pipeline/.venv/bin/radio votes-select
+ExecStart=-%h/radio/pipeline/.venv/bin/radio acquire
+ExecStart=%h/radio/pipeline/.venv/bin/radio antenne
+ExecStart=%h/radio/pipeline/.venv/bin/radio check
+# Battement de cœur vers Gatus, même en échec : $SERVICE_RESULT vaut « success » ou la cause
+# (systemd.exec(5), « Environment Variables Set or Propagated by the Service Manager »).
+ExecStopPost=/bin/sh -c 'curl -fsS -m 10 -X POST -H "Authorization: Bearer $GATUS_TOKEN" "http://127.0.0.1:8050/api/v1/endpoints/radio_passe-hebdo/external?success=$([ "$SERVICE_RESULT" = success ] && echo true || echo false)&error=$SERVICE_RESULT"'

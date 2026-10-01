@@ -1,0 +1,89 @@
+#
+# AzuraCast Docker Compose — AubeSonore
+# Adapted from the official sample:
+#  - HTTP/HTTPS/SFTP ports remapped via .env (8080/8443/2022) to avoid host conflicts
+#  - streaming ports trimmed to 8000-8036 (Jellyfin holds 8096; AUTO_ASSIGN_PORT_MAX matched in azuracast.env)
+#  - station media on NVMe (~/radio/azuracast/stations) since 2026-07: HDD IO stalls caused Liquidsoap latency catchups (audible dropouts)
+#  - backups bind-mounted to /media/plex (big disk, separate from media/DB); MariaDB stays on NVMe named volume
+#
+
+name: azuracast
+
+services:
+  web:
+    container_name: azuracast
+    image: "ghcr.io/azuracast/azuracast:${AZURACAST_VERSION:-stable}"
+    labels:
+      - "com.centurylinklabs.watchtower.scope=azuracast"
+    ports:
+      - '${AZURACAST_HTTP_PORT:-80}:${AZURACAST_HTTP_PORT:-80}'
+      - '${AZURACAST_HTTPS_PORT:-443}:${AZURACAST_HTTPS_PORT:-443}'
+      - '${AZURACAST_SFTP_PORT:-2022}:${AZURACAST_SFTP_PORT:-2022}'
+      - '8000:8000'
+      - '8005:8005'
+      - '8006:8006'
+      - '8010:8010'
+      - '8015:8015'
+      - '8016:8016'
+      - '8020:8020'
+      - '8025:8025'
+      - '8026:8026'
+      - '8030:8030'
+      - '8035:8035'
+      - '8036:8036'
+    env_file:
+      - azuracast.env
+      - .env
+    # realtime audio must win CPU contention against batch workloads (slskd, Plex, builds)
+    cpu_shares: 2048
+    # Gate for ~/mediaserver/update-stack.sh (waits for healthy after an update).
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:${AZURACAST_HTTP_PORT:-80}/api/status"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 180s
+    volumes:
+      - /home/victormoi/radio/azuracast/stations:/var/azuracast/stations
+      - /media/plex/azuracast/backups:/var/azuracast/backups
+      - db_data:/var/lib/mysql
+      - www_uploads:/var/azuracast/storage/uploads
+      - shoutcast2_install:/var/azuracast/storage/shoutcast2
+      - stereo_tool_install:/var/azuracast/storage/stereo_tool
+      - rsas_install:/var/azuracast/storage/rsas
+      - geolite_install:/var/azuracast/storage/geoip
+      - sftpgo_data:/var/azuracast/storage/sftpgo
+      - acme:/var/azuracast/storage/acme
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  updater:
+    container_name: azuracast_updater
+    image: ghcr.io/azuracast/updater:latest
+    restart: unless-stopped
+    # Official default: serves only the "Update" button of the web UI. Scheduled
+    # updates of `web` are done by ~/mediaserver/update-stack.sh (Sunday 05:17,
+    # after checking last night's backup), like every other stack on this host.
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  db_data: { }
+  acme: { }
+  shoutcast2_install: { }
+  stereo_tool_install: { }
+  rsas_install: { }
+  geolite_install: { }
+  sftpgo_data: { }
+  www_uploads: { }
