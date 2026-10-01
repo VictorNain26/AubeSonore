@@ -1,37 +1,24 @@
 # AubeSonore
 
-> Radio de découverte musicale émergente, gratuite et sans publicité.
-> Diffusion continue 24h/24 depuis le navigateur ou en application PWA.
+> Webradio de découverte, choisie titre par titre. Gratuite, sans publicité, en continu jour et nuit.
+> Site en français et en anglais.
 
-AubeSonore est une webradio indépendante dédiée à la découverte musicale.
-Elle diffuse en continu des artistes émergents et indépendants, sans critère
-géographique ou linguistique particulier — le seul critère est la qualité et
-l'originalité de la musique. La sélection est faite par curation humaine.
+AubeSonore diffuse des titres que l'auditeur ne connaît probablement pas encore. Chaque semaine,
+des découvertes sont repérées à partir d'artistes voisins et de sélections récentes, puis classées
+une par une par un modèle de goût entraîné sur une bibliothèque de référence et sur des votes à
+l'aveugle. Seul le haut du classement entre à l'antenne.
 
-Les auditeurs peuvent sauvegarder leurs coups de cœur et les retrouver
-directement sur leur plateforme de streaming préférée (Spotify, Apple Music,
-Deezer, YouTube Music, Tidal, Amazon Music, Qobuz, Bandcamp, SoundCloud).
+Sur le site, on écoute le direct, on voit les titres passés depuis l'aube et on garde les morceaux
+qui nous arrêtent. Un morceau gardé se retrouve sur Spotify, Apple Music, Deezer et les autres
+plateformes. Le classement « Les plus gardés » réunit les choix des auditeurs, cette semaine ou
+depuis le début. Avec un compte, on peut être prévenu quand un artiste gardé repasse à l'antenne.
 
-## Caractéristiques
+Le site s'installe sur l'écran d'accueil et fonctionne avec AirPlay. L'analyse audio repose sur les
+modèles Essentia Discogs-EffNet du Music Technology Group (Universitat Pompeu Fabra), sous licence
+CC BY-NC-SA 4.0. AubeSonore est un projet non commercial.
 
-- Accès gratuit, sans publicité, sans inscription obligatoire
-- Diffusion non-stop 24h/24
-- Curation humaine (pas algorithmique)
-- Artistes : émergents, indépendants, toutes origines géographiques
-- Genres : indie, folk, électronique, pop alternative, world, hip-hop indé, et plus
-- Fonctionnalités : like de morceaux, bibliothèque personnelle, export CSV, partage de découvertes, historique des titres joués, biographies d'artistes
-- Installable comme PWA (Progressive Web App) sur mobile et desktop
-- Compatible AirPlay
+## Écouter
 
-## Liens publics
-
-- [Page d'accueil](https://aubesonore.fr/) : le player web de la radio
-- [Flux audio MP3](https://radio.aubesonore.fr/listen/aubesonore/radio.mp3) : stream direct
-- [Now Playing JSON](https://radio.aubesonore.fr/api/nowplaying_static/aubesonore.json) : métadonnées du morceau en cours, rafraîchies toutes les 10 secondes
-
-## À propos
-
-- Type : webradio non-stop, sans publicité, accès libre
-- Langue de l'interface : français
-- Pays d'origine : France
-- Positionnement : découverte musicale émergente, toutes origines
+- [Site](https://aubesonore.fr/): le direct, les titres depuis l'aube et les plus gardés
+- [Flux MP3](https://radio.aubesonore.fr/listen/aubesonore/radio.mp3): le direct, sans le site
+- [Titre en cours (JSON)](https://radio.aubesonore.fr/api/nowplaying_static/aubesonore.json): métadonnées du direct
