@@ -1,21 +1,15 @@
 import { sql } from 'drizzle-orm';
 import { db, schema } from '../db/index';
-import { env } from '../config/env';
 import { logger } from '../lib/logger';
 import { isPushEnabled, sendToUsers } from './pushService';
 import { recordPlay } from './radioPlayService';
-
-export interface NowPlayingTrack {
-  sh_id: number;
-  title: string;
-  artist: string;
-}
+import { fetchNowPlaying, type NowPlayingTrack } from './nowPlaying';
 
 export interface WatcherDeps {
   fetchNowPlaying: () => Promise<NowPlayingTrack | null>;
   findUserIdsByArtist: (artistLower: string) => Promise<string[]>;
   send: (userIds: string[], title: string, body: string, url: string) => Promise<unknown>;
-  recordPlay: (title: string, artist: string) => Promise<void>;
+  recordPlay: (shId: number, title: string, artist: string) => Promise<void>;
   now?: () => number;
 }
 
@@ -39,7 +33,7 @@ export function createLikedArtistNotifier(deps: WatcherDeps): () => Promise<void
     // Recorded for every new track, whether or not anyone is notified — this
     // is the artist page's floor. A write failure must not silence the push.
     try {
-      await deps.recordPlay(track.title, track.artist);
+      await deps.recordPlay(track.sh_id, track.title, track.artist);
     } catch (err) {
       logger.warn('radioPlay.record_failed', {
         artist: track.artist,
@@ -70,34 +64,6 @@ export function createLikedArtistNotifier(deps: WatcherDeps): () => Promise<void
       if (ts < cutoff) lastNotified.delete(key);
     }
   };
-}
-
-const NOWPLAYING_TIMEOUT_MS = 10_000;
-
-async function fetchNowPlaying(): Promise<NowPlayingTrack | null> {
-  const url = `${env.AZURACAST_BASE_URL}/api/station/${env.AZURACAST_STATION_ID}/nowplaying`;
-  const response = await fetch(url, {
-    headers: { 'X-API-Key': env.AZURACAST_API_KEY },
-    signal: AbortSignal.timeout(NOWPLAYING_TIMEOUT_MS),
-  });
-  if (!response.ok) {
-    throw new Error(`AzuraCast nowplaying error: ${response.status}`);
-  }
-
-  const payload: unknown = await response.json();
-  const nowPlaying =
-    Array.isArray(payload) && payload.length > 0
-      ? (payload[0] as { now_playing?: unknown }).now_playing
-      : undefined;
-  if (typeof nowPlaying !== 'object' || nowPlaying === null) return null;
-
-  const { sh_id, song } = nowPlaying as { sh_id?: unknown; song?: unknown };
-  if (typeof sh_id !== 'number' || typeof song !== 'object' || song === null) return null;
-
-  const { title, artist } = song as { title?: unknown; artist?: unknown };
-  if (typeof title !== 'string' || typeof artist !== 'string') return null;
-
-  return { sh_id, title, artist };
 }
 
 async function findUserIdsByArtist(artistLower: string): Promise<string[]> {

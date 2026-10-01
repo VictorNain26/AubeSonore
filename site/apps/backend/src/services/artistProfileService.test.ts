@@ -19,12 +19,15 @@ const baseRow: ArtistRow = {
 };
 
 let rows: ArtistRow[] = [baseRow];
+// Site pages of the similar artists, looked up by Deezer id.
+let pageRows: Array<{ id: string; slug: string; deezerId: string }> = [];
 
 void mock.module('../db', () => ({
   db: {
     select: () => ({
       from: () => ({
-        where: () => ({ limit: () => Promise.resolve(rows) }),
+        where: () =>
+          Object.assign(Promise.resolve(pageRows), { limit: () => Promise.resolve(rows) }),
       }),
     }),
   },
@@ -64,6 +67,7 @@ const { getArtistProfile } = await import('./artistProfileService');
 
 beforeEach(() => {
   rows = [baseRow];
+  pageRows = [];
 });
 
 describe('getArtistProfile', () => {
@@ -78,7 +82,7 @@ describe('getArtistProfile', () => {
     expect(profile?.tags).toEqual(['french house']);
     expect(profile?.listeners).toBe(4200);
     expect(profile?.similar).toEqual([
-      { id: '1', name: 'Justice', image: 'https://cdn.deezer.com/j.jpg' },
+      { name: 'Justice', image: 'https://cdn.deezer.com/j.jpg', page: null },
     ]);
     expect(profile?.topTracks).toEqual([
       { title: 'Around the World', url: 'https://deezer.com/track/1' },
@@ -88,6 +92,20 @@ describe('getArtistProfile', () => {
       { title: 'Around the World', artist: 'Daft Punk', playedAt: '2026-07-27T10:00:00.000Z' },
     ]);
     expect(profile?.resolved).toBe(true);
+  });
+
+  it('links a similar artist to its page on the site when the antenna played them', async () => {
+    pageRows = [{ id: 'artist-2', slug: 'justice', deezerId: '1' }];
+
+    const profile = await getArtistProfile('artist-1');
+
+    expect(profile?.similar).toEqual([
+      {
+        name: 'Justice',
+        image: 'https://cdn.deezer.com/j.jpg',
+        page: { id: 'artist-2', slug: 'justice' },
+      },
+    ]);
   });
 
   it('keeps the radio floor when the artist matched no upstream', async () => {

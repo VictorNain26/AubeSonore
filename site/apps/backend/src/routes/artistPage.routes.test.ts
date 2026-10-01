@@ -48,7 +48,7 @@ void mock.module('../services/artistProfileService', () => ({
     ),
 }));
 
-const { artistPageRoutes, artistShellCache } = await import('./artistPage.routes');
+const { artistPageRoutes, __resetArtistShell } = await import('./artistPage.routes');
 const { env } = await import('../config/env');
 const { __resetRateLimits } = await import('../lib/rateLimit');
 
@@ -57,7 +57,7 @@ const app = new Elysia().use(artistPageRoutes);
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  artistShellCache.dispose();
+  __resetArtistShell();
   __resetRateLimits();
   profileName = 'Daft Punk';
   profileImage = 'https://cdn-images.dzcdn.net/images/artist/dp.jpg';
@@ -177,13 +177,56 @@ describe('GET /artist/:id', () => {
     expect(res.status).toBe(502);
   });
 
-  it('caches the rendered page so a second hit skips the profile lookup', async () => {
-    mockShell();
+  it('revalidates the shell with its ETag and reuses it on 304', async () => {
+    const seen: Array<string | null> = [];
+    globalThis.fetch = ((_: string, init?: RequestInit) => {
+      const etag = new Headers(init?.headers).get('if-none-match');
+      seen.push(etag);
+      return Promise.resolve(
+        etag === '"v1"'
+          ? new Response(null, { status: 304 })
+          : new Response(SHELL, { headers: { etag: '"v1"' } })
+      );
+    }) as unknown as typeof fetch;
 
     await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
-    profileName = 'Changed After Caching';
     const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
 
-    expect(await res.text()).toContain('Daft Punk');
+    expect(seen).toEqual([null, '"v1"']);
+    expect(await res.text()).toContain('Daft Punk — AubeSonore');
+  });
+
+  it('serves the new shell as soon as a deploy changes it', async () => {
+    let version = 'old';
+    globalThis.fetch = (() =>
+      Promise.resolve(
+        new Response(SHELL.replace('<div id="root">', `<div data-build="${version}" id="root">`), {
+          headers: { etag: `"${version}"` },
+        })
+      )) as unknown as typeof fetch;
+
+    await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+    version = 'new';
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+
+    expect(await res.text()).toContain('data-build="new"');
+  });
+
+  it('keeps the last shell when the frontend container is briefly unreachable', async () => {
+    mockShell();
+    await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+    globalThis.fetch = (() => Promise.reject(new Error('ECONNREFUSED'))) as unknown as typeof fetch;
+
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+
+    expect(res.status).toBe(200);
+  });
+
+  it('asks browsers to revalidate the page', async () => {
+    mockShell();
+
+    const res = await app.handle(new Request(`http://localhost/artist/${VALID_ID}`));
+
+    expect(res.headers.get('cache-control')).toBe('no-cache');
   });
 });

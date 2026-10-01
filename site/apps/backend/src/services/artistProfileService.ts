@@ -1,5 +1,5 @@
 import type { ArtistProfile } from '@aubesonore/shared-types/client';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
 import { artist } from '../db/schema';
 import { logger } from '../lib/logger';
@@ -51,6 +51,23 @@ export async function getArtistProfile(id: string): Promise<ArtistProfile | null
     withFallback('radioPlay', getPlaysByArtist(row.normalizedName), []),
   ]);
 
+  const pages = related.length
+    ? await withFallback(
+        'artist.pages',
+        db
+          .select({ id: artist.id, slug: artist.slug, deezerId: artist.deezerId })
+          .from(artist)
+          .where(
+            inArray(
+              artist.deezerId,
+              related.map((entry) => entry.id)
+            )
+          ),
+        []
+      )
+    : [];
+  const pageByDeezerId = new Map(pages.map((page) => [page.deezerId, page]));
+
   return {
     id: row.id,
     name: row.displayName,
@@ -59,7 +76,14 @@ export async function getArtistProfile(id: string): Promise<ArtistProfile | null
     bio: lastfm?.bio || null,
     tags: lastfm?.tags ?? [],
     listeners: lastfm?.listeners ?? null,
-    similar: related.map((entry) => ({ id: entry.id, name: entry.name, image: entry.picture })),
+    similar: related.map((entry) => {
+      const page = pageByDeezerId.get(entry.id);
+      return {
+        name: entry.name,
+        image: entry.picture,
+        page: page ? { id: page.id, slug: page.slug } : null,
+      };
+    }),
     topTracks: topTracks.map((track) => ({ title: track.title, url: track.link })),
     links,
     playedOnRadio,

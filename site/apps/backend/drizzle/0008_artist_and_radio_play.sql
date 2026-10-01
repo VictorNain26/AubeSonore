@@ -26,11 +26,16 @@ CREATE UNIQUE INDEX IF NOT EXISTS artist_mbid_unique
 -- this radio played, so we record it ourselves.
 CREATE TABLE IF NOT EXISTS radio_play (
   id text PRIMARY KEY NOT NULL,
+  sh_id integer NOT NULL,
   title text NOT NULL,
   artist text NOT NULL,
   artist_normalized text NOT NULL,
   played_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+-- AzuraCast's song-history id: a backend restart sees the current track again.
+CREATE UNIQUE INDEX IF NOT EXISTS radio_play_sh_id_unique
+  ON radio_play (sh_id);
 
 -- Backs WHERE artist_normalized = $1 ORDER BY played_at DESC LIMIT N.
 CREATE INDEX IF NOT EXISTS radio_play_artist_played_at_idx

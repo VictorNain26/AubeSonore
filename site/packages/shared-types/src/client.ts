@@ -99,9 +99,10 @@ export interface ArtistLink {
 }
 
 export interface SimilarArtist {
-  id: string;
   name: string;
   image: string | null;
+  /** The artist's page on the site, when the antenna has played them. */
+  page: { id: string; slug: string } | null;
 }
 
 export interface ArtistTopTrack {

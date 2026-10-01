@@ -9,7 +9,7 @@ import { logger } from './lib/logger';
 import { trackRoutes } from './routes/track.routes';
 import { preferencesRoutes } from './routes/preferences.routes';
 import { artistRoutes } from './routes/artist.routes';
-import { artistPageRoutes, artistShellCache } from './routes/artistPage.routes';
+import { artistPageRoutes } from './routes/artistPage.routes';
 import { pushRoutes } from './routes/push.routes';
 import { statsRoutes } from './routes/stats.routes';
 import { trendsRoutes } from './routes/trends.routes';
@@ -43,7 +43,6 @@ radioHistoryCache.startSweep();
 trendsCache.startSweep();
 deezerCache.startSweep();
 musicbrainzCache.startSweep();
-artistShellCache.startSweep();
 
 // Periodic purge of Better Auth's expired session/verification rows.
 // Without this they accumulate indefinitely — Better Auth does not self-clean.
@@ -149,7 +148,6 @@ async function gracefulShutdown(signal: string): Promise<void> {
   trendsCache.dispose();
   deezerCache.dispose();
   musicbrainzCache.dispose();
-  artistShellCache.dispose();
 
   try {
     await pool.end();

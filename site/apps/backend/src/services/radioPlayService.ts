@@ -2,8 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, desc, eq, gte } from 'drizzle-orm';
 import { db } from '../db';
 import { radioPlay } from '../db/schema';
-import { normalize } from '../lib/text/matchScore';
-import { primaryArtistName } from './artistResolver';
+import { normalizeArtistName, primaryArtistName } from './artistResolver';
 
 export interface RadioPlay {
   title: string;
@@ -14,21 +13,24 @@ export interface RadioPlay {
 const RETENTION_MS = 365 * 24 * 60 * 60 * 1000;
 
 export function buildPlayRow(
+  shId: number,
   title: string,
   artist: string
-): { id: string; title: string; artist: string; artistNormalized: string } {
+): { id: string; shId: number; title: string; artist: string; artistNormalized: string } {
   return {
     id: randomUUID(),
+    shId,
     title,
     artist,
-    artistNormalized: normalize(primaryArtistName(artist)),
+    artistNormalized: normalizeArtistName(primaryArtistName(artist)),
   };
 }
 
-export async function recordPlay(title: string, artist: string): Promise<void> {
-  const row = buildPlayRow(title, artist);
+/** Idempotent on AzuraCast's song-history id: a restart sees the current track again. */
+export async function recordPlay(shId: number, title: string, artist: string): Promise<void> {
+  const row = buildPlayRow(shId, title, artist);
   if (!row.artistNormalized) return;
-  await db.insert(radioPlay).values(row);
+  await db.insert(radioPlay).values(row).onConflictDoNothing({ target: radioPlay.shId });
 }
 
 export async function getPlaysByArtist(normalizedName: string, limit = 20): Promise<RadioPlay[]> {

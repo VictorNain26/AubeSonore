@@ -1,6 +1,7 @@
 import {
   pgTable,
   text,
+  integer,
   timestamp,
   unique,
   boolean,
@@ -247,6 +248,8 @@ export const radioPlay = pgTable(
   'radio_play',
   {
     id: text('id').primaryKey(),
+    // AzuraCast's song-history id: one row per play, whatever restarts.
+    shId: integer('sh_id').notNull(),
     title: text('title').notNull(),
     artist: text('artist').notNull(),
     // Denormalised so the artist page filters without recomputing per row.
@@ -254,6 +257,7 @@ export const radioPlay = pgTable(
     playedAt: timestamp('played_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => ({
+    radioPlayShIdUnique: uniqueIndex('radio_play_sh_id_unique').on(table.shId),
     radioPlayArtistPlayedAtIdx: index('radio_play_artist_played_at_idx').on(
       table.artistNormalized,
       table.playedAt

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'bun:test';
 
-import type { NowPlayingTrack, WatcherDeps } from './likedArtistWatcher';
+import type { WatcherDeps } from './likedArtistWatcher';
+import type { NowPlayingTrack } from './nowPlaying';
 
 const { createLikedArtistNotifier } = await import('./likedArtistWatcher');
 
@@ -18,6 +19,7 @@ interface SentCall {
 }
 
 interface RecordedPlay {
+  shId: number;
   title: string;
   artist: string;
 }
@@ -33,8 +35,8 @@ function makeDeps(overrides: Partial<WatcherDeps> = {}) {
       sent.push({ userIds, title, body, url });
       return Promise.resolve({ sent: userIds.length, failed: 0 });
     },
-    recordPlay: (title, artist) => {
-      played.push({ title, artist });
+    recordPlay: (shId, title, artist) => {
+      played.push({ shId, title, artist });
       return Promise.resolve();
     },
     now: () => currentTime,
@@ -144,7 +146,7 @@ describe('radio play recording', () => {
     await check();
 
     expect(sent).toHaveLength(0);
-    expect(played).toEqual([{ title: 'F Major', artist: 'Hania Rani' }]);
+    expect(played).toEqual([{ shId: 1, title: 'F Major', artist: 'Hania Rani' }]);
   });
 
   it('records once per sh_id, not once per poll', async () => {
