@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, mock } from 'bun:test';
+import { afterAll, beforeEach, describe, expect, it, mock } from 'bun:test';
+import { createHash } from 'crypto';
 
 import type { LikedTrack, User } from '../db/schema';
 import * as realSchema from '../db/schema';
@@ -83,6 +84,10 @@ void mock.module('../db/index', () => ({ db: fakeDb, schema: realSchema }));
 const searchSonglinkMock = mock((): Promise<SonglinkResult | null> => Promise.resolve(null));
 void mock.module('./songlinkService', () => ({ searchSonglink: searchSonglinkMock }));
 
+const originalFetch = globalThis.fetch;
+const fetchMock = mock((): Promise<Response> => Promise.reject(new Error('no network in tests')));
+globalThis.fetch = fetchMock as unknown as typeof fetch;
+
 const { likeTrack, refreshTrackLinks, refreshAllLinks } = await import('./trackService');
 
 const fakeUser: User = {
@@ -109,10 +114,37 @@ async function flushBackgroundWork(): Promise<void> {
 beforeEach(() => {
   rows = [];
   searchSonglinkMock.mockClear();
+  fetchMock.mockClear();
+});
+
+afterAll(() => {
+  globalThis.fetch = originalFetch;
 });
 
 describe('likeTrack → background enrichment', () => {
-  it('keeps the AzuraCast artwork when Songlink has no match (emerging artist)', async () => {
+  it('swaps the AzuraCast artwork for our own copy when Songlink has no match', async () => {
+    const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
+    searchSonglinkMock.mockResolvedValueOnce(null);
+    fetchMock.mockResolvedValueOnce(
+      new Response(jpeg, { headers: { 'content-type': 'image/jpeg' } })
+    );
+
+    await likeTrack({
+      user: fakeUser,
+      body: {
+        title: 'Unknown Song',
+        artist: 'Emerging Artist',
+        youtubeUrl: 'https://youtube.example.com/watch?v=abc',
+        artworkUrl: 'https://radio.aubesonore.fr/api/station/aubesonore/art/abc-1790856695.jpg',
+      },
+    });
+    await flushBackgroundWork();
+
+    const sha256 = createHash('sha256').update(jpeg).digest('hex');
+    expect(rows[0]?.artworkUrl).toBe(`http://localhost:3000/api/covers/${sha256}`);
+  });
+
+  it('keeps the AzuraCast artwork when neither Songlink nor the copy succeeds', async () => {
     searchSonglinkMock.mockResolvedValueOnce(null);
 
     await likeTrack({
@@ -151,6 +183,7 @@ describe('likeTrack → background enrichment', () => {
     expect(rows[0]?.artworkUrl).toBe('https://apple-cdn.example.com/art/hd.jpg');
     expect(rows[0]?.songlinkUrl).toBe('https://song.link/abc');
     expect(rows[0]?.platformLinks).toEqual({ spotify: 'https://open.spotify.com/track/abc' });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it('keeps the AzuraCast artwork when a match carries links but no iTunes cover', async () => {
