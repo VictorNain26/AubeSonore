@@ -65,7 +65,8 @@ qu'un cache, AzuraCast fait autorité sur ce qui existe réellement à l'antenne
 ## 3. Application web
 
 ```bash
-git clone <dépôt aubesonore> ~/radio/aubesonore && cd ~/radio/aubesonore
+git clone https://github.com/VictorNain26/AubeSonore.git ~/radio   # dépôt unique : site/, pipeline/, azuracast/
+cd ~/radio/site
 cp .env.example .env                  # secrets d'auth, SMTP, VAPID, base
 docker compose up -d --build
 # installer les timers de déploiement et de sauvegarde (voir scripts/systemd/)

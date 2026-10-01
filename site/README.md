@@ -103,12 +103,12 @@ Le déploiement est automatique et _pull-based_ : merger sur `master` suffit. Su
 3. attend que tous les healthchecks soient verts (échec au-delà de 300 s) ;
 4. supprime les images de plus de 72 h.
 
-Aucun runner self-hosted ni webhook entrant : le dépôt est public, et le polling ne demande ni credential ni port ouvert. Un changement de `apps/backend/src/db/schema.ts` bloque le déploiement, car `bun db:push` reste manuel (il peut supprimer des colonnes) : appliquer le push à la main, puis relancer `systemctl --user start aubesonore-deploy`.
+Aucun runner self-hosted ni webhook entrant : le dépôt est public, et le polling ne demande ni credential ni port ouvert. Un changement de `site/apps/backend/src/db/schema.ts` bloque le déploiement, car `bun db:push` reste manuel (il peut supprimer des colonnes) : appliquer le push à la main, puis relancer `systemctl --user start aubesonore-deploy`.
 
-Installation, une fois, sur le serveur (unités et script supposent le checkout dans `~/radio/aubesonore` ; ailleurs, ajuster `ExecStart` et définir `REPO_DIR`) :
+Installation, une fois, sur le serveur (unités et script supposent le dépôt AubeSonore cloné dans `~/radio`, le site dans `~/radio/site` ; ailleurs, ajuster `ExecStart` et définir `REPO_DIR`) :
 
 ```bash
-ln -s <checkout>/scripts/systemd/* ~/.config/systemd/user/
+ln -s ~/radio/site/scripts/systemd/* ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now aubesonore-deploy.timer aubesonore-backup.timer
 loginctl enable-linger <utilisateur>   # les timers tournent sans session ouverte

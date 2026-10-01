@@ -300,16 +300,20 @@ toutes les 24 h et un message de retour à la normale, sur deux canaux :
 
 ### 8.3 Non-régression
 
-- **CI GitHub Actions** : ruff, mypy strict et pytest à chaque push et à chaque PR, avec
-  astral-sh/setup-uv. `main` est protégée : rien n'y entre sans CI verte.
-- **Dependabot** pour `uv.lock`, les actions GitHub et l'image de Gatus. `essentia-tensorflow`
-  en est exclu : ses versions récentes ne publient que des roues cp314, et le projet est en
-  Python 3.12.
+- **CI GitHub Actions** (`.github/workflows/pipeline.yml` à la racine du dépôt AubeSonore, qui
+  réunit depuis le 2026-10-01 le site, le pipeline et la config AzuraCast) : ruff, mypy strict
+  et pytest à chaque push et à chaque PR, avec astral-sh/setup-uv. `master` est protégée : rien
+  n'y entre sans CI verte, celle du site comprise.
+- **Renovate** (configuration à la racine) pour `uv.lock`, les actions GitHub et l'image de
+  Gatus. `essentia-tensorflow` en est exclu : ses versions récentes ne publient que des roues
+  cp314, et le projet est en Python 3.12.
+- **Déploiement** : merger sur `master` suffit. `aubesonore-deploy.timer` avance le checkout
+  `~/radio`, jamais pendant une passe hebdomadaire.
 - Les tests tournent sans réseau (~12 s). Tout bug corrigé reçoit son test.
 
 ## 9. Ordre de réalisation
 
-1. **Observabilité.** CI, Dependabot, Gatus sur l'antenne actuelle et battement de cœur de la
+1. **Observabilité.** CI, Renovate, Gatus sur l'antenne actuelle et battement de cœur de la
    passe. On voit ce qui marche avant d'ajouter quoi que ce soit.
 2. **Acquisition** (§5), une fois le compte Soulseek créé.
 3. **Préparation et antenne** (§6, §7.1, §7.2) : fait, bascule le 2026-10-01.
