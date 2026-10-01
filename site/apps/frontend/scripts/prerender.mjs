@@ -2,13 +2,26 @@
 // crawlers included) read the real pages. Runs after `vite build` (client)
 // and `vite build --ssr src/entry-server.tsx`.
 // Pre-rendering pattern: https://vite.dev/guide/ssr#pre-rendering-ssg
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
 
 const SITE = 'https://aubesonore.fr';
 const { pageHtml, staticPageHtml, meta } = await import('../dist-ssr/entry-server.js');
 const template = await readFile('dist/index.html', 'utf8');
 const base = meta('fr');
+
+// The stylesheet (~10 KB compressed) is inlined: a <link> would block the first
+// paint for one more round trip, and the fonts would only be found after it.
+// The title font is preloaded for the same reason.
+const stylesheet = template.match(/<link rel="stylesheet"[^>]*href="(\/assets\/[^"]+\.css)"[^>]*>/);
+if (!stylesheet) throw new Error('prerender: no stylesheet link in index.html');
+const css = await readFile(`dist${stylesheet[1]}`, 'utf8');
+const titleFont = (await readdir('dist/assets')).find((f) =>
+  f.startsWith('bricolage-grotesque-latin-wdth-normal-')
+);
+if (!titleFont) throw new Error('prerender: title font not found in dist/assets');
+const head = `<link rel="preload" href="/assets/${titleFont}" as="font" type="font/woff2" crossorigin />
+    <style>${css}</style>`;
 
 function replaceOrFail(html, from, to) {
   if (!html.includes(from)) throw new Error(`prerender: "${from}" not found in index.html`);
@@ -55,6 +68,7 @@ async function write(page, body, { siblings, noindex = false, hydrate = true }) 
       ? '<meta name="robots" content="noindex" />'
       : `<link rel="canonical" href="${SITE}${page.path}" />\n    ${alternates(siblings)}`
   );
+  html = replaceOrFail(html, stylesheet[0], head);
   html = replaceOrFail(html, '<div id="root"></div>', `<div id="root">${body}</div>`);
   if (!hydrate) html = withoutScripts(html);
   await mkdir(dirname(page.file), { recursive: true });
