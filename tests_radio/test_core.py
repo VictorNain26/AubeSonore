@@ -84,6 +84,38 @@ def test_migration_10_gives_existing_candidates_the_neighbour_source(
         conn.execute("INSERT INTO candidates VALUES (2, 1, 'hypem', 83, 1, 'blog')")
 
 
+def test_migration_11_requeues_shared_credits_only(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old = tmp_path / "migrations"
+    old.mkdir()
+    for script in sorted(MIGRATIONS.glob("*.sql")):
+        if int(script.name.split("_", 1)[0]) <= 10:
+            (old / script.name).write_text(script.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr("radio.core.db.MIGRATIONS", old)
+    conn = connect(tmp_path / "radio.db")
+    for key, artist in (("1", "A & B"), ("2", "A, B"), ("3", "Solo"), ("4", "C & D")):
+        conn.execute(
+            "INSERT INTO library_tracks VALUES (?, ?, 'T', 'Al', 1000, 0, 'd', NULL)", (key, artist)
+        )
+    conn.executemany(
+        "INSERT INTO deezer_matches VALUES (?, 'unmatched', ?, NULL, NULL, 'd')",
+        [
+            ("1", "no_exact_match"),
+            ("2", "no_exact_match"),
+            ("3", "no_exact_match"),
+            ("4", "no_result"),
+        ],
+    )
+    conn.commit()
+    conn.close()
+    monkeypatch.setattr("radio.core.db.MIGRATIONS", MIGRATIONS)
+
+    conn = connect(tmp_path / "radio.db")
+    left = sorted(r[0] for r in conn.execute("SELECT plex_key FROM deezer_matches"))
+    assert left == ["3", "4"]
+
+
 def test_failed_migration_leaves_nothing_behind(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

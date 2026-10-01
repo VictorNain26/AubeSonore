@@ -40,6 +40,7 @@ _FEAT = re.compile(
 )
 _PUNCT = re.compile(r"[^\w\s]|_")
 _SPACES = re.compile(r"\s+")
+_CREDITS = re.compile(r"\s*[&,]\s*")
 _LATIN_MAX = 0x250  # au-delà : pas un alphabet latin, on ne touche pas aux marques combinantes.
 
 
@@ -125,23 +126,39 @@ def search_query(artist: str, title: str) -> str:
     return f"{a} {t}"
 
 
+def _credited(artist: str) -> set[str]:
+    """Le nom complet et chaque artiste d'un crédit « A & B » ou « A, B » : Deezer ne garde
+    souvent que l'artiste principal (« Aidan Moffat & Bill Wells » y est « Bill Wells »). Jamais
+    découpé sur « and », que portent trop de noms (Florence and the Machine)."""
+    names = {normalize(artist)} | {normalize(part) for part in _CREDITS.split(artist)}
+    names.discard("")
+    return names
+
+
 def pick_match(
     artist: str, title: str, duration_ms: int, results: list[DeezerTrack], tolerance_s: int
 ) -> DeezerTrack | None:
     na, nt = normalize(artist), normalize(title)
     if not na or not nt:
         return None
+    names = _credited(artist)
     ok = [
         r
         for r in results
-        if normalize(r.artist_name) == na
+        if normalize(r.artist_name) in names
         and normalize(r.title) == nt
         and abs(r.duration_s * 1000 - duration_ms) <= tolerance_s * 1000
     ]
     if not ok:
         return None
     return min(
-        ok, key=lambda r: (not r.has_preview, abs(r.duration_s * 1000 - duration_ms), -r.rank)
+        ok,
+        key=lambda r: (
+            normalize(r.artist_name) != na,  # le crédit complet d'abord
+            not r.has_preview,
+            abs(r.duration_s * 1000 - duration_ms),
+            -r.rank,
+        ),
     )
 
 
