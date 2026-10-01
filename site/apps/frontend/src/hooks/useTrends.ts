@@ -13,17 +13,14 @@ export interface TrendsResult {
   allTime: TrendEntry[];
 }
 
-// Fetches the community trends once per modal open — no polling: the modal
-// is a transient view and the backend already caches the aggregate 5 min.
-// `isLoading` is derived (not a state) so the effect never sets state
-// synchronously in its body.
-export function useTrends(isOpen: boolean) {
+// Fetches the community ranking once on mount — no polling: the backend
+// already caches the aggregate for 5 minutes. `isLoading` is derived (not a
+// state) so the effect never sets state synchronously in its body.
+export function useTrends() {
   const [data, setData] = useState<TrendsResult | null>(null);
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
-    if (!isOpen) return;
-
     const controller = new AbortController();
 
     void fetch(`${API_BASE_URL}/api/trends`, { signal: controller.signal })
@@ -39,7 +36,7 @@ export function useTrends(isOpen: boolean) {
       });
 
     return () => controller.abort();
-  }, [isOpen]);
+  }, []);
 
-  return { data, isLoading: isOpen && data === null && !hasError, hasError };
+  return { data, isLoading: data === null && !hasError, hasError };
 }

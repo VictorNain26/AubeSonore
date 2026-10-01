@@ -1,4 +1,5 @@
 import { Slider as BaseSlider } from '@base-ui/react/slider';
+import { cn } from '@/lib/utils';
 
 export interface SliderProps {
   /** Libellé accessible du curseur (`aria-label`). */
@@ -17,7 +18,18 @@ export interface SliderProps {
   disabled?: boolean;
   /** Sens du curseur. */
   orientation?: 'horizontal' | 'vertical';
+  /** Fond sur lequel le curseur est posé : papier (`surface`) ou encre (`accent`). */
+  tone?: 'surface' | 'accent';
 }
+
+const TONE = {
+  surface: { track: 'bg-border', fill: 'bg-accent', thumb: 'border-accent bg-surface' },
+  accent: {
+    track: 'bg-on-accent/30',
+    fill: 'bg-on-accent',
+    thumb: 'border-on-accent bg-on-accent focus-visible:outline-on-accent',
+  },
+};
 
 /**
  * Curseur de valeur continue (ex. volume) basé sur `Slider` de Base UI,
@@ -32,8 +44,10 @@ export function Slider({
   step = 0.01,
   disabled,
   orientation = 'horizontal',
+  tone = 'surface',
 }: SliderProps) {
   const isVertical = orientation === 'vertical';
+  const colors = TONE[tone];
 
   return (
     <BaseSlider.Root
@@ -58,16 +72,17 @@ export function Slider({
         }
       >
         <BaseSlider.Track
-          className={
-            isVertical ? 'bg-border relative h-full w-1' : 'bg-border relative h-px w-full'
-          }
+          className={cn(colors.track, isVertical ? 'relative h-full w-1' : 'relative h-px w-full')}
         >
           <BaseSlider.Indicator
-            className={isVertical ? 'bg-accent absolute bottom-0 w-1' : 'bg-accent absolute h-px'}
+            className={cn(colors.fill, isVertical ? 'absolute bottom-0 w-1' : 'absolute h-px')}
           />
           <BaseSlider.Thumb
             aria-label={label}
-            className="border-accent bg-surface ease-out-quart focus-visible:outline-accent size-4 rounded-full border transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-110"
+            className={cn(
+              'ease-out-quart focus-visible:outline-accent size-4 rounded-full border transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 active:scale-110',
+              colors.thumb
+            )}
           />
         </BaseSlider.Track>
       </BaseSlider.Control>

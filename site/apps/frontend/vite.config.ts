@@ -104,8 +104,6 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks(id: string) {
             if (id.includes('node_modules')) {
-              if (id.includes('node_modules/framer-motion') || id.includes('node_modules/motion'))
-                return 'motion';
               if (id.includes('react-dom') || id.endsWith('/react/index.js')) return 'react-vendor';
             }
             return undefined;

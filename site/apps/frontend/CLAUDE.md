@@ -9,11 +9,13 @@
 ## Token vocabulary (the ONLY allowed colors)
 
 `bg-surface`, `bg-surface-raised`, `text-text`, `text-text-muted`, `text-text-faint`,
-`border-border`, `bg-accent`, `text-accent`, `text-on-accent`, utility `dawn-glow`.
+`border-border`, `bg-accent`, `text-accent`, `text-on-accent`, `text-on-accent-muted`, utilities
+`dawn-band` and `dawn-glow`. The apricot `dawn` light is decoration only, never under text.
 
 - Never write hex/hsl/oklch values outside `src/design/tokens.css`.
 - Never use arbitrary values for color, spacing, typography (`bg-[#fff]`, `p-[13px]`, `text-[17px]`).
-- Typography: one family, Bricolage Grotesque (Fontsource, self-hosted: the CSP allows `font-src 'self'` only). Sizes: `text-display`, `text-title`, `text-lead`, `text-body`, `text-caption` — nothing else.
+- Typography: Bricolage Grotesque, plus Geist Mono (`font-mono`) for times and labels; both self-hosted with Fontsource (the CSP allows `font-src 'self'` only).
+- Home sizes (v4): `text-hero`, `text-logo` (+ `condensed`), `text-section`, `text-headline`, `text-intro`, `text-row`, `text-sub`, `text-ui`, `text-label`. Modals still use `text-title`, `text-lead`, `text-body`, `text-caption` until they are redrawn. A new size goes in `tokens.css` **and** in the `extendTailwindMerge` list of `src/lib/utils.ts`, or `cn()` drops it next to a text color.
 - Radii: `rounded-sm`, `rounded-md`, `rounded-full` — nothing else.
 - New token needed? Add it to `tokens.css`, add its pair to `scripts/check-contrast.mjs`, run the script.
 
@@ -21,6 +23,6 @@
 
 - `node scripts/check-contrast.mjs` passes (wired in CI Quality).
 - Every interactive element: hover, focus-visible, active, disabled states; touch target ≥ 44px.
-- Decorative motion only under `prefers-reduced-motion: no-preference`; 150–250ms; `ease-out-quart`.
+- Decorative motion only under `prefers-reduced-motion: no-preference` (`motion-safe:` or the `reveal` utility): the light breathes, the now dot pulses, blocks rise; micro-interactions 150–300ms. CSS only, no animation library.
 - Never ship UI blind: before a UI PR, screenshot the real page at 1280 and 390 px wide (headless Chromium `--screenshot`) and look at it.
 - Store-coupled components ship a presentational unit (props in) + a thin store container, so the unit is testable without stores.

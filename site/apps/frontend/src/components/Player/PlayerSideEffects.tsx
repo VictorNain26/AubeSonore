@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { toastError } from '../../lib/appToast';
+import { toast } from 'sonner';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { usePlayer } from '../../lib/player';
 import { useMediaSession } from '../../hooks/player/useMediaSession';
@@ -24,15 +24,19 @@ export function PlayerSideEffects(): null {
   const isPlaying = usePlayer((s) => s.isPlaying);
   const playError = usePlayer((s) => s.playError);
   const clearPlayError = usePlayer((s) => s.clearPlayError);
+  const play = usePlayer((s) => s.play);
 
   useMediaSession({ title, artist, album, artworkUrl: art }, isPlaying);
 
   useEffect(() => {
     if (playError) {
-      toastError(m.toast_playback_failed({ message: playError.message }));
+      toast(m.toast_sound_cut(), {
+        duration: 8000,
+        action: { label: m.toast_sound_retry(), onClick: () => void play() },
+      });
       clearPlayError();
     }
-  }, [playError, clearPlayError]);
+  }, [playError, clearPlayError, play]);
 
   return null;
 }

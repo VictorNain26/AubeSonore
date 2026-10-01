@@ -1,5 +1,33 @@
 import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
+
+// tailwind-merge only knows Tailwind's default scale: without this, a custom
+// size like `text-ui` is read as a color and dropped next to `text-on-accent`.
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      text: [
+        'display',
+        'title',
+        'lead',
+        'body',
+        'caption',
+        'hero',
+        'logo',
+        'section',
+        'headline',
+        'intro',
+        'row',
+        'sub',
+        'ui',
+        'label',
+      ],
+      'font-weight': ['display', 'heading'],
+      shadow: ['cover', 'lift', 'bar'],
+      animate: ['breathe', 'pulse-now', 'rise', 'rise-late'],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]): string {
   return twMerge(clsx(inputs));

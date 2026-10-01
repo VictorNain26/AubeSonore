@@ -8,7 +8,7 @@ const originalFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = originalFetch;
   radioHistoryCache.delete('120');
-  radioHistoryCache.delete('200');
+  radioHistoryCache.delete('400');
   radioHistoryCache.delete('1');
 });
 
@@ -40,7 +40,7 @@ describe('GET /api/radio/history', () => {
 
     await radioRoutes.handle(new Request('http://localhost/api/radio/history?rows=9999'));
 
-    expect(capturedUrl).toContain('per_page=200');
+    expect(capturedUrl).toContain('per_page=400');
   });
 
   it('returns 502 when AzuraCast is unreachable', async () => {
