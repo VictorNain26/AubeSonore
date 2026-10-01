@@ -1,7 +1,7 @@
 {
   "skip_link": "Skip to main content",
   "header_user_fallback": "User",
-  "library_modal_title": "My library",
+  "library_modal_title": "My tracks",
   "trends_tab_week": "This week",
   "trends_tab_all_time": "All time",
   "toast_link_copied": "Link copied",
@@ -129,6 +129,7 @@
   "library_platform_error": "The platform could not be saved. Try again.",
   "library_open_on": "Open “{title}” on {platform}",
   "library_links_resolving": "Looking up links for “{title}”",
+  "account_label": "My account",
   "library_sign_out": "Sign out",
   "alert_title": "Let me know",
   "alert_body": "when a kept artist is back on air",

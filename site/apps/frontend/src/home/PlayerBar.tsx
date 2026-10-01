@@ -10,7 +10,6 @@ import { useAirPlayStore } from '../stores/airplayStore';
 import { useTrackActions } from '../hooks/player/useTrackActions';
 import { Slider } from '../design/atoms/Slider';
 import { Cover } from './Cover';
-import { formatClock } from './time';
 import {
   ListenDisc,
   listenAria,
@@ -106,10 +105,6 @@ export function PlayerBarView({
   onToggleMute,
   airPlay,
 }: PlayerBarViewProps) {
-  const line1 =
-    listen === 'playing' && track
-      ? m.now_on_air({ time: formatClock(track.playedAt) })
-      : listenLabel(listen);
   const [hasFocus, setHasFocus] = useState(false);
   // Never hide the bar while it holds the keyboard focus (WCAG 2.4.11).
   const hidden = isHidden && !hasFocus;
@@ -148,10 +143,12 @@ export function PlayerBarView({
       ) : null}
 
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="text-ui font-semibold">{line1}</span>
-        <span className="text-caption text-on-accent-muted truncate">
-          {track ? `${track.title} — ${track.artist}` : ' '}
+        <span className="text-ui truncate font-semibold">
+          {track ? track.title : listenLabel(listen)}
         </span>
+        {track ? (
+          <span className="text-caption text-on-accent-muted truncate">{track.artist}</span>
+        ) : null}
       </span>
 
       {track ? (

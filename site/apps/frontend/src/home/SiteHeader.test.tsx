@@ -38,7 +38,7 @@ describe('SiteHeader', () => {
     expect(useAuthModalStore.getState().isOpen).toBe(true);
   });
 
-  it('opens the library of a signed-in listener, where they can sign out', async () => {
+  it('opens Mes titres, and keeps the account in its own menu', async () => {
     useAuthStore.setState({
       user: {
         id: '1',
@@ -57,11 +57,13 @@ describe('SiteHeader', () => {
 
     render(<SiteHeader />);
 
-    await userEvent.click(screen.getByRole('button', { name: 'Mes morceaux' }));
-    expect(await screen.findByRole('dialog', { name: 'Ma bibliothèque' })).toBeInTheDocument();
-    expect(screen.getByText('Jane')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Mes titres' }));
+    expect(await screen.findByRole('dialog', { name: 'Mes titres' })).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
 
-    await userEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Mon compte' }));
+    expect(await screen.findByText('jane@example.com')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Se déconnecter' }));
     expect(signOut).toHaveBeenCalled();
   });
 
@@ -71,12 +73,12 @@ describe('SiteHeader', () => {
     render(<SiteHeader />);
 
     expect(screen.queryByRole('button', { name: 'Se connecter' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Mes morceaux' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mes titres' })).not.toBeInTheDocument();
   });
 
   it('opens my tracks only for a signed-in listener', () => {
     render(<SiteHeader />);
-    expect(screen.queryByRole('button', { name: 'Mes morceaux' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Mes titres' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Les plus gardés' })).toHaveAttribute(
       'href',
       '#plus-gardes'

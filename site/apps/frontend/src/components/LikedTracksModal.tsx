@@ -3,7 +3,6 @@ import { PLATFORM_NAMES, PLATFORMS } from '@aubesonore/shared-types/client';
 import type { PreferredPlatform } from '../lib/api';
 import { getPlatformLink } from '@aubesonore/core/share';
 import { toast } from 'sonner';
-import { useShallow } from 'zustand/react/shallow';
 import { toastError } from '../lib/appToast';
 import { disableAlert, enableAlert, getAlertState, type AlertState } from '../lib/push';
 import { useAuthStore } from '../stores/authStore';
@@ -41,7 +40,7 @@ function useAlert() {
 }
 
 export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
-  const { user, signOut } = useAuthStore(useShallow((s) => ({ user: s.user, signOut: s.signOut })));
+  const user = useAuthStore((s) => s.user);
   const alert = useAlert();
   const tracks = useLikedTracksStore((s) => s.tracks);
   const isLoading = useLikedTracksStore((s) => s.isLoading);
@@ -173,11 +172,6 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
 
   return (
     <LikedTracksModalView
-      user={user}
-      onSignOut={() => {
-        onClose();
-        void signOut();
-      }}
       alert={alert}
       open={isOpen}
       onOpenChange={(open) => {

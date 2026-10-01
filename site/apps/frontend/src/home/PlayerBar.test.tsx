@@ -24,17 +24,20 @@ function props(overrides: Partial<PlayerBarViewProps> = {}): PlayerBarViewProps 
 }
 
 describe('PlayerBarView', () => {
-  it('invites to listen, then says what is on air while playing', async () => {
+  it('puts the title and the artist forward, without the time', async () => {
     const onToggleListen = vi.fn();
-    const { rerender } = render(<PlayerBarView {...props({ onToggleListen })} />);
+    render(<PlayerBarView {...props({ onToggleListen })} />);
 
-    expect(screen.getByText('Écouter')).toBeInTheDocument();
-    expect(screen.getByText('Mimoun — Mickey 3D')).toBeInTheDocument();
+    expect(screen.getByText('Mimoun')).toBeInTheDocument();
+    expect(screen.getByText('Mickey 3D')).toBeInTheDocument();
+    expect(screen.queryByText(/à l'antenne/)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Écouter le direct' }));
     expect(onToggleListen).toHaveBeenCalledOnce();
+  });
 
-    rerender(<PlayerBarView {...props({ listen: 'playing' })} />);
-    expect(screen.getByText("17:01 — à l'antenne")).toBeInTheDocument();
+  it('says Écouter while nothing is known of the live', () => {
+    render(<PlayerBarView {...props({ track: null })} />);
+    expect(screen.getByText('Écouter')).toBeInTheDocument();
   });
 
   it('is inert while hidden, so nothing in it can be focused', () => {

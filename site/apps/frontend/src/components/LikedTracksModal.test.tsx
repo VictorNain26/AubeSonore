@@ -117,17 +117,13 @@ describe('LikedTracksModal', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('heads the drawer with the account and signs out from it', async () => {
+  it('names itself like the button that opens it, without the account in it', () => {
     useLikedTracksStore.setState({ tracks: [makeTrack(0)] });
-    const onClose = vi.fn();
-    render(<LikedTracksModal isOpen={true} onClose={onClose} />);
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
-    expect(screen.getByText('Jane')).toBeInTheDocument();
-    expect(screen.getByText('1 morceau gardé')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Se déconnecter' }));
-
-    expect(onClose).toHaveBeenCalled();
-    expect(signOut).toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Mes titres' })).toBeInTheDocument();
+    expect(screen.getByText('1 titre gardé')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Se déconnecter' })).not.toBeInTheDocument();
   });
 
   it('dates each kept track and links it to the preferred platform', () => {
@@ -169,7 +165,7 @@ describe('LikedTracksModal', () => {
     render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
 
     expect(await screen.findByText("Rien de gardé pour l'instant.")).toBeInTheDocument();
-    expect(screen.queryByText(/morceaux? gardés?$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/titres? gardés?$/)).not.toBeInTheDocument();
   });
 
   it('explains why the alert cannot be switched on when the browser has no push', async () => {

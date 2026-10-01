@@ -27,7 +27,7 @@ export interface ModalProps {
   /**
    * `center` : petite fenêtre (à propos, erreurs). `split` : plein écran, panneau
    * d'ambiance `aside` à gauche sur grand écran (connexion). `drawer` : panneau à
-   * droite, plein écran sur téléphone (bibliothèque).
+   * droite, plein écran sur téléphone (Mes titres).
    */
   variant?: ModalVariant;
   /** Panneau d'ambiance de la variante `split`, masqué sur téléphone. */
