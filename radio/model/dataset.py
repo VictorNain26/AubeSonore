@@ -55,6 +55,7 @@ class Labels:
     exam: ExamSet
     n_votes_unmeasured: int
     n_weak_excluded: int
+    n_votes: int
 
 
 def _plays(conn: sqlite3.Connection) -> dict[int, int]:
@@ -85,7 +86,8 @@ def build_labels(conn: sqlite3.Connection, table: SignalTable, exam_window: int)
     keys = {
         int(r[0]): str(r[1]) for r in conn.execute("SELECT deezer_track_id, dedupe_key FROM tracks")
     }
-    protected = {keys[t] for t in lesson} | {keys[t] for t in exam_ids if t in keys}
+    exam_keys = {keys[t] for t in exam_ids if t in keys}
+    protected = {keys[t] for t in lesson} | exam_keys
     protected |= {
         str(r[0]) for r in conn.execute("SELECT dedupe_key FROM tracks WHERE origin = 'library'")
     }
@@ -105,6 +107,8 @@ def build_labels(conn: sqlite3.Connection, table: SignalTable, exam_window: int)
             yes = lesson[tid] == "oui"
             label, weight, cat = int(yes), VOTE_WEIGHT, VOTE_YES if yes else VOTE_NO
         elif origin == "library":
+            if keys[tid] in exam_keys:
+                continue  # autre version d'un titre d'examen : elle le révélerait au modèle
             label, weight, cat = 1, play_weight(plays.get(tid, 0)), LIBRARY
         elif origin == "negative":
             if (
@@ -131,7 +135,7 @@ def build_labels(conn: sqlite3.Connection, table: SignalTable, exam_window: int)
         rows=np.array([index[v["tid"]] for v in exam], dtype=np.int64),
         labels=np.array([int(v["vote"] == "oui") for v in exam], dtype=np.int64),
     )
-    return Labels(train, exam_set, unmeasured, excluded)
+    return Labels(train, exam_set, unmeasured, excluded, len(votes))
 
 
 def weights(ds: Dataset, weak_weight: float) -> Floats:
