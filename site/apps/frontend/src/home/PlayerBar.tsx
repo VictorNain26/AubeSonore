@@ -109,15 +109,22 @@ export function PlayerBarView({
     listen === 'playing' && track
       ? m.now_on_air({ time: formatClock(track.playedAt) })
       : listenLabel(listen);
+  const [hasFocus, setHasFocus] = useState(false);
+  // Never hide the bar while it holds the keyboard focus (WCAG 2.4.11).
+  const hidden = isHidden && !hasFocus;
 
   return (
     <section
       aria-label={m.player_label()}
-      inert={isHidden}
+      inert={hidden}
+      onFocus={() => setHasFocus(true)}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) setHasFocus(false);
+      }}
       className={cn(
         'bg-accent text-on-accent shadow-bar bottom-safe max-w-bar fixed inset-x-3 z-40 mx-auto flex items-center gap-3 rounded-full py-1.5 pr-3 pl-1.5',
         'ease-out-quart transition-[translate,opacity] duration-300',
-        isHidden && 'pointer-events-none translate-y-24 opacity-0'
+        hidden && 'pointer-events-none translate-y-24 opacity-0'
       )}
     >
       <button
@@ -215,7 +222,6 @@ export function PlayerBar() {
   );
   const { isLiked, handleToggleLike } = useTrackActions();
   const heroListenVisible = useHeroListenVisible((s) => s.visible);
-  const [hasFocus, setHasFocus] = useState(false);
   const { restoreVolume } = player;
   const { initialize } = airPlay;
 
@@ -225,28 +231,20 @@ export function PlayerBar() {
   }, [restoreVolume, initialize]);
 
   return (
-    // Never hide the bar while it holds the keyboard focus (WCAG 2.4.11).
-    <div
-      onFocus={() => setHasFocus(true)}
-      onBlur={(e) => {
-        if (!e.currentTarget.contains(e.relatedTarget)) setHasFocus(false);
-      }}
-    >
-      <PlayerBarView
-        isHidden={heroListenVisible && !hasFocus}
-        listen={listenState(player.isPlaying, player.isConnecting)}
-        onToggleListen={player.toggle}
-        track={title && artist && playedAt !== undefined ? { title, artist, art, playedAt } : null}
-        isKept={isLiked}
-        onToggleKeep={handleToggleLike}
-        volume={player.volume}
-        isMuted={player.isMuted}
-        onVolumeChange={player.setVolume}
-        onToggleMute={player.toggleMute}
-        airPlay={
-          airPlay.available ? { isActive: airPlay.isActive, onOpen: airPlay.openPicker } : null
-        }
-      />
-    </div>
+    <PlayerBarView
+      isHidden={heroListenVisible}
+      listen={listenState(player.isPlaying, player.isConnecting)}
+      onToggleListen={player.toggle}
+      track={title && artist && playedAt !== undefined ? { title, artist, art, playedAt } : null}
+      isKept={isLiked}
+      onToggleKeep={handleToggleLike}
+      volume={player.volume}
+      isMuted={player.isMuted}
+      onVolumeChange={player.setVolume}
+      onToggleMute={player.toggleMute}
+      airPlay={
+        airPlay.available ? { isActive: airPlay.isActive, onOpen: airPlay.openPicker } : null
+      }
+    />
   );
 }

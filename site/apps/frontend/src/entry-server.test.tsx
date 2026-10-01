@@ -27,7 +27,7 @@ describe('entry-server', () => {
 
   it('renders a bilingual 404 that leads back to both home pages', async () => {
     const html = await staticPageHtml('notFound', 'fr');
-    expect(html).toContain('Rien à cette adresse.');
+    expect(html).toContain('Un blanc à l&#x27;antenne.');
     expect(html).toContain('href="/en/"');
   });
 

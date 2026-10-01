@@ -42,6 +42,17 @@ describe('PlayerBarView', () => {
     expect(screen.getByRole('region', { hidden: true })).toHaveAttribute('inert');
   });
 
+  it('stays on screen while it holds the keyboard focus', async () => {
+    const { rerender } = render(<PlayerBarView {...props()} />);
+
+    await userEvent.tab();
+    rerender(<PlayerBarView {...props({ isHidden: true })} />);
+    expect(screen.getByRole('region')).not.toHaveAttribute('inert');
+
+    await userEvent.tab({ shift: true });
+    expect(screen.getByRole('region', { hidden: true })).toHaveAttribute('inert');
+  });
+
   it('keeps the track with a constant label', async () => {
     const onToggleKeep = vi.fn();
     render(<PlayerBarView {...props({ onToggleKeep, isKept: true })} />);

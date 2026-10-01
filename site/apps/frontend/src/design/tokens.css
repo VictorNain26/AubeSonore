@@ -131,7 +131,6 @@
 
   /* La lumière respire, le point « maintenant » bat, les sections montent au défilement. */
   --animate-breathe: breathe 14s ease-in-out infinite;
-  --animate-pulse-now: pulse-now 2.4s ease-out infinite;
 
   /* Mesures de lecture : l'accroche tient sur trois lignes, une légende sur deux. */
   --container-hero: 13ch;
@@ -263,9 +262,11 @@
   }
 }
 
-@utility pop-in {
+@utility now-arrive {
   @media (prefers-reduced-motion: no-preference) {
-    animation: pop 0.5s var(--ease-spring) 1.6s both;
+    animation:
+      pop 0.5s var(--ease-spring) 1.6s both,
+      pulse-now 2.4s ease-out 2.1s infinite;
   }
 }
 

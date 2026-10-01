@@ -7,6 +7,12 @@
     <!-- Warm the connection to the media origin (audio stream + now-playing API
          + artwork, the likely LCP) so its TLS/DNS is ready before first paint. -->
     <link rel="preconnect" href="https://radio.aubesonore.fr" />
+    <link
+      rel="preload"
+      href="https://radio.aubesonore.fr/api/nowplaying_static/aubesonore.json"
+      as="fetch"
+      crossorigin
+    />
 
     <!-- SEO -->
     <title>AubeSonore — des titres à l'aube de vous plaire</title>

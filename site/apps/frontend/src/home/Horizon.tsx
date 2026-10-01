@@ -24,7 +24,7 @@ export function HorizonView({ isPlaying, songId }: HorizonViewProps) {
       />
       <span
         aria-hidden="true"
-        className="pop-in bg-accent motion-safe:animate-pulse-now absolute right-5 bottom-10 size-3 translate-y-1/2 rounded-full md:right-12 md:bottom-15"
+        className="now-arrive bg-accent absolute right-5 bottom-10 size-3 translate-y-1/2 rounded-full md:right-12 md:bottom-15"
       />
       <span
         aria-hidden="true"

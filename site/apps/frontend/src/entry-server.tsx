@@ -32,7 +32,10 @@ export function meta(
   page: 'home' | 'legal' | 'notFound' = 'home'
 ): { title: string; description: string } {
   if (page === 'notFound') {
-    return { title: 'Page introuvable — AubeSonore', description: 'Rien à cette adresse.' };
+    return {
+      title: 'Page introuvable — AubeSonore',
+      description: "Un blanc à l'antenne : cette page n'existe pas, ou plus.",
+    };
   }
   if (page === 'legal') {
     const title = m.legal_title({}, { locale });
