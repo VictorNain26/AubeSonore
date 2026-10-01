@@ -3,6 +3,12 @@
 # leaves the machine. Mirrors .github/workflows/ci.yml (format is
 # already enforced by lint-staged at commit; coverage/audit stay in CI).
 set -e
+cd site
+# The repository also holds pipeline/ and azuracast/ (own CI): skip the site
+# gate when nothing under site/ differs from origin/master.
+if git rev-parse -q --verify origin/master >/dev/null && git diff --quiet origin/master...HEAD -- .; then
+  exit 0
+fi
 pnpm turbo build --filter=@aubesonore/shared-types --filter=@aubesonore/core
 pnpm lint
 pnpm turbo typecheck

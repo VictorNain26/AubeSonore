@@ -1,0 +1,3 @@
+# Husky runs hooks from the repository root (README: project not in git root).
+cd site
+pnpm lint-staged

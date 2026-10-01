@@ -21,7 +21,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md,yml,yaml}\"",
     "clean": "turbo clean && rm -rf node_modules .turbo",
-    "prepare": "husky"
+    "prepare": "cd .. && husky site/.husky"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.0.0",

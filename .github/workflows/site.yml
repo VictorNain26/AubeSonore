@@ -1,4 +1,4 @@
-name: CI
+name: Site
 
 on:
   push:
@@ -19,6 +19,13 @@ concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
+# The repository is the whole radio: the site lives in site/ (pipeline/ has its
+# own workflow). No path filter: the three jobs below are required checks on
+# master, and a workflow skipped by a path filter never reports them.
+defaults:
+  run:
+    working-directory: site
+
 env:
   TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
   TURBO_TEAM: ${{ vars.TURBO_TEAM }}
@@ -37,16 +44,18 @@ jobs:
       - uses: pnpm/action-setup@v6
         with:
           version: 10.28.0
+          package_json_file: site/package.json
 
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'pnpm'
+          cache-dependency-path: site/pnpm-lock.yaml
 
       - name: Restore Turbo cache
         uses: actions/cache@v5
         with:
-          path: .turbo
+          path: site/.turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-
@@ -93,11 +102,13 @@ jobs:
       - uses: pnpm/action-setup@v6
         with:
           version: 10.28.0
+          package_json_file: site/package.json
 
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'pnpm'
+          cache-dependency-path: site/pnpm-lock.yaml
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -122,11 +133,13 @@ jobs:
       - uses: pnpm/action-setup@v6
         with:
           version: 10.28.0
+          package_json_file: site/package.json
 
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'pnpm'
+          cache-dependency-path: site/pnpm-lock.yaml
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -135,7 +148,7 @@ jobs:
       - name: Restore Turbo cache
         uses: actions/cache@v5
         with:
-          path: .turbo
+          path: site/.turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-turbo-
@@ -154,8 +167,8 @@ jobs:
       - name: Build backend image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile
+          context: site
+          file: site/Dockerfile
           push: false
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
@@ -163,8 +176,8 @@ jobs:
       - name: Build frontend image
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: apps/frontend/Dockerfile
+          context: site
+          file: site/apps/frontend/Dockerfile
           push: false
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max

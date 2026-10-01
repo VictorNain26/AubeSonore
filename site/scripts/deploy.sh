@@ -1,10 +1,21 @@
 #!/usr/bin/env bash
 # Promotes origin/master onto the running stack when it moves. Driven by
 # aubesonore-deploy.timer; safe to run by hand.
+#
+# The repository is the whole radio (~/radio): site/, pipeline/ and azuracast/.
+# Fast-forwarding it also deploys the pipeline code, which the weekly pass loads
+# from this checkout; the site containers are only rebuilt when site/ changed.
 set -euo pipefail
 
-REPO_DIR="${REPO_DIR:-$HOME/radio/aubesonore}"
+REPO_DIR="${REPO_DIR:-$HOME/radio}"
 cd "$REPO_DIR"
+
+# The weekly pass imports its code from pipeline/ at each step: never move the
+# tree under it. The next timer run promotes once the pass is over.
+if systemctl --user is-active --quiet radio-weekly.service; then
+  echo "radio-weekly is running, deferring the deploy"
+  exit 0
+fi
 
 current=$(git rev-parse HEAD)
 target=$(git ls-remote origin refs/heads/master | cut -f1)
@@ -35,12 +46,19 @@ echo "deploying ${current:0:8} -> ${target:0:8}"
 
 # drizzle push is manual and can drop columns, so a schema change must not ride
 # in on an unattended deploy: the new code would boot against the old tables.
-if ! git diff --quiet "$current" "$target" -- apps/backend/src/db/schema.ts; then
+if ! git diff --quiet "$current" "$target" -- site/apps/backend/src/db/schema.ts; then
   echo "schema.ts changed — apply 'bun db:push' by hand, then: systemctl --user start aubesonore-deploy"
   exit 1
 fi
 
 git merge --ff-only "$target"
+
+if git diff --quiet "$current" "$target" -- site/; then
+  echo "promoted ${target:0:8} (no change under site/, containers left as they are)"
+  exit 0
+fi
+
+cd site
 docker compose up -d --build --remove-orphans
 
 deadline=$((SECONDS + 300))
