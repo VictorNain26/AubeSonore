@@ -45,7 +45,8 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'AubeSonore',
           short_name: 'AubeSonore',
-          description: 'Webradio de découverte musicale indépendante',
+          description: 'Une radio de découverte, choisie titre par titre.',
+          lang: 'fr',
           theme_color: '#f4f7fa',
           background_color: '#f4f7fa',
           display: 'standalone',
