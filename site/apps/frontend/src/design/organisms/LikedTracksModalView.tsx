@@ -48,12 +48,18 @@ export interface LikedTracksModalViewProps {
 const ICON_ACTION =
   'ease-out-quart focus-visible:outline-accent flex size-11 items-center justify-center rounded-full transition-opacity duration-150 hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2';
 
+// One formatter per locale: building one per row costs ~0.5 ms each, and a
+// library holds up to 500 rows.
+const keptOnFormats = new Map<string, Intl.DateTimeFormat>();
+
 function keptOn(iso: string): string {
-  return m.library_kept_on({
-    date: new Intl.DateTimeFormat(getLocale(), { day: 'numeric', month: 'long' }).format(
-      new Date(iso)
-    ),
-  });
+  const locale = getLocale();
+  let format = keptOnFormats.get(locale);
+  if (!format) {
+    format = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' });
+    keptOnFormats.set(locale, format);
+  }
+  return m.library_kept_on({ date: format.format(new Date(iso)) });
 }
 
 function AlertSwitch({ alert }: Pick<LikedTracksModalViewProps, 'alert'>) {
