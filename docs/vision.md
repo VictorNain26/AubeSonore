@@ -223,7 +223,9 @@ plus toutes les 24 h et un message de retour à la normale.
 
 - **CI GitHub Actions** : ruff, mypy strict et pytest à chaque push et à chaque PR, avec
   astral-sh/setup-uv. `main` est protégée : rien n'y entre sans CI verte.
-- **Dependabot** pour `uv.lock` et pour les actions GitHub.
+- **Dependabot** pour `uv.lock`, les actions GitHub et l'image de Gatus. `essentia-tensorflow`
+  en est exclu : ses versions récentes ne publient que des roues cp314, et le projet est en
+  Python 3.12.
 - Les tests tournent sans réseau (~12 s). Tout bug corrigé reçoit son test.
 
 ## 9. Ordre de réalisation
