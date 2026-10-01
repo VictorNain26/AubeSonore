@@ -6,6 +6,10 @@ départ, consignée dans `docs/research/2026-09-06-music-lineage-sources.md` :
 à partir d'un artiste, voir **qui l'a inspiré**, **qui il a inspiré**, et
 **qui jouait à la même époque, dans la même scène**.
 
+Ses tables restent valables ; **sa séquence et son périmètre sont remplacés**
+par `2026-10-02-frieze-lineage-design.md`, qui ramène la frise comme vue
+principale.
+
 Les chiffres sont **descriptifs**, mesurés le 2026-10-01 sur le dump
 `20260909-001002` et sur les sources citées ; le contrat exécutable reste
 `tests/test_baseline.py`.
@@ -199,4 +203,5 @@ qui affiche ces listes porte l'attribution et l'usage reste non commercial.
    Postgres, trois sections sur la page artiste avec leur provenance.
 5. **Phase 2** : extraction Wikipédia sur les artistes joués.
 
-Hors périmètre : la frise, la carte des genres, la recherche par alias.
+Hors périmètre : la carte des genres, la recherche par alias. La frise,
+exclue ici, revient avec la spec du 2026-10-02.

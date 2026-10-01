@@ -57,6 +57,11 @@ d'acceptation se donne en nombre ou en code de sortie. « le chiffre `density` d
 
 - Les sorties du pipeline (`data/`) ne sont pas versionnées — seules les
   empreintes et les fixtures le sont.
+- Sur victorserv, les données vivent hors de tout checkout, dans
+  `~/musilogy-data` : une worktree s'y relie par
+  `ln -s ~/musilogy-data musilogy/data`. Le dump de référence
+  `20260909-001002` n'est plus publié par MetaBrainz : cette copie est la
+  seule.
 - La CI (`.github/workflows/musilogy.yml`, à la racine d'AubeSonore) passe le
   lint, les types et la suite rapide ; la suite lente exige le dump et tourne
   à la demande.
