@@ -93,11 +93,29 @@ def _git_sha() -> str:
         return "unknown"
 
 
-def _columnar(con: duckdb.DuckDBPyConnection, table: str, columns: list[str]) -> dict[str, Any]:
-    rows = con.execute(
-        f"SELECT {', '.join(columns)} FROM {table} ORDER BY {ORDER_BY[table]}"
-    ).fetchall()
-    return {c: [r[i] for r in rows] for i, c in enumerate(columns)}
+def _write_columnar(
+    con: duckdb.DuckDBPyConnection, source: str, order_by: str, columns: list[str], path: Path
+) -> None:
+    """One JSON array per column, serialized by DuckDB and streamed into the
+    gzip. Fetched as Python rows, the 2.3 M artists held over 3 GB outside
+    DuckDB's memory limit and stalled the run on the shared server."""
+    # mtime=0 and an empty name: gzip stamps both into its header otherwise,
+    # so the same payload written twice would give different bytes and no
+    # consumer could tell an unchanged export from a new one by its digest.
+    with (
+        path.open("wb") as raw,
+        gzip.GzipFile(filename="", mode="wb", compresslevel=9, fileobj=raw, mtime=0) as gz,
+    ):
+        for i, column in enumerate(columns):
+            row = con.execute(
+                f"SELECT to_json(list({column} ORDER BY {order_by})) FROM {source}"
+            ).fetchone()
+            assert row is not None  # an aggregate always returns one row
+            gz.write(b"{" if i == 0 else b",")
+            gz.write(json.dumps(column).encode() + b":")
+            # list() over no row is NULL, not an empty list.
+            gz.write((row[0] or "[]").encode())
+        gz.write(b"}")
 
 
 def _counters(con: duckdb.DuckDBPyConnection, table: str) -> dict[str, int]:
@@ -214,14 +232,8 @@ def publish(
         if stale.stem not in TABLES:
             stale.unlink()
 
-    # mtime=0 rather than the default: gzip stamps the current time into its
-    # header, so the same payload compressed twice gives different bytes and no
-    # consumer can tell an unchanged export from a new one by its digest.
     for table, columns in WEB_COLUMNS.items():
-        payload = json.dumps(
-            _columnar(con, table, columns), ensure_ascii=False, separators=(",", ":")
-        ).encode()
-        (web_dir / f"{table}.json.gz").write_bytes(gzip.compress(payload, 9, mtime=0))
+        _write_columnar(con, table, ORDER_BY[table], columns, web_dir / f"{table}.json.gz")
         written.add(f"{table}.json.gz")
 
     # Split in two: a timeline only needs the artists it can place (y0 IS NOT
@@ -231,16 +243,13 @@ def publish(
         ("artists_timeline", "y0 IS NOT NULL"),
         ("artists_rest", "y0 IS NULL"),
     ):
-        columns_sql = ", ".join(ARTISTS_WEB_COLUMNS)
-        rows = con.execute(
-            f"SELECT {columns_sql} FROM artists WHERE {condition} ORDER BY {ORDER_BY['artists']}"
-        ).fetchall()
-        payload = json.dumps(
-            {c: [r[i] for r in rows] for i, c in enumerate(ARTISTS_WEB_COLUMNS)},
-            ensure_ascii=False,
-            separators=(",", ":"),
-        ).encode()
-        (web_dir / f"{name}.json.gz").write_bytes(gzip.compress(payload, 9, mtime=0))
+        _write_columnar(
+            con,
+            f"artists WHERE {condition}",
+            ORDER_BY["artists"],
+            ARTISTS_WEB_COLUMNS,
+            web_dir / f"{name}.json.gz",
+        )
         written.add(f"{name}.json.gz")
 
     # Prune what this run did not write. Without it an export dropped from a
