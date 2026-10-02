@@ -1,8 +1,7 @@
-import duckdb
 import pytest
 
 from musilogy import REFERENCE_DUMP
-from musilogy.build import build, check_invariants
+from musilogy.build import build, check_invariants, connect
 from musilogy.paths import SQL_DIR, work_dir
 
 # artists: 682 447 groups, orchestras and choirs, plus 1 599 244 persons. Every
@@ -128,7 +127,7 @@ def single_row(con, table):
 def test_reference_dump_matches_the_baseline():
     if not (WORK / "artists.jsonl").exists() or not (WORK / "release_groups.jsonl").exists():
         pytest.skip("extractions missing: run Task 3")
-    con = duckdb.connect(":memory:")
+    con = connect()
     build(con, SQL_DIR, WORK / "artists.jsonl", WORK / "release_groups.jsonl", None)
     assert check_invariants(con, SQL_DIR) == []
     for table, expected in BASELINE.items():

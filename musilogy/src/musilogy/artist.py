@@ -7,6 +7,7 @@ from pathlib import Path
 
 import duckdb
 
+from musilogy.build import connect
 from musilogy.paths import SQL_DIR
 
 # The term each source asserts, read from the artist's side and from the
@@ -44,7 +45,7 @@ class Contemporary:
 def open_published(out_dir: Path) -> duckdb.DuckDBPyConnection:
     """The published Parquet, under the table names the SQL rules use, so the
     contemporaries macro reads them as it reads the build's own tables."""
-    con = duckdb.connect(":memory:")
+    con = connect()
     for table in ("artists", "lineage"):
         path = (out_dir / f"{table}.parquet").as_posix()
         con.execute(f"CREATE VIEW {table} AS SELECT * FROM read_parquet('{path}')")

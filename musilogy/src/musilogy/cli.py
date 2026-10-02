@@ -10,7 +10,7 @@ import duckdb
 
 from musilogy import REFERENCE_DUMP as DUMP
 from musilogy import artist as lineage
-from musilogy.build import build, check_invariants
+from musilogy.build import build, check_invariants, connect
 from musilogy.extract import extract, reduce_artist, reduce_release_group
 from musilogy.fetch import fetch_dump
 from musilogy.paths import (
@@ -110,7 +110,7 @@ def run() -> None:
     if not ARTISTS_JSONL.exists() or not RELEASE_GROUPS_JSONL.exists():
         fetch_and_extract()
 
-    con = duckdb.connect(":memory:")
+    con = connect()
     build(con, SQL_DIR, ARTISTS_JSONL, RELEASE_GROUPS_JSONL, CORRECTIONS_CSV)
 
     violations = check_invariants(con, SQL_DIR)
