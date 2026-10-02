@@ -3,6 +3,7 @@ import pytest
 from musilogy import REFERENCE_DUMP as DUMP
 from musilogy import artist
 from musilogy.cli import artist as artist_command
+from musilogy.cli import main
 from musilogy.publish import publish
 
 BACH = "24f1766e-9635-4d58-a4d4-9413f9f98a4c"
@@ -49,3 +50,19 @@ def test_an_artist_without_known_inspiration_says_so(published, capsys):
 def test_an_unknown_mbid_stops_the_command(published):
     with pytest.raises(SystemExit, match="unknown artist"):
         artist_command("00000000-0000-4000-8000-000000000000", 5, published)
+
+
+def test_a_run_published_before_lineage_stops_the_command(published, tmp_path):
+    # The shape of a run published before lineage existed: artists.parquet
+    # alone. Without the check, read_parquet raises an IOException traceback.
+    (tmp_path / "artists.parquet").write_bytes((published / "artists.parquet").read_bytes())
+    with pytest.raises(SystemExit, match="lineage not published"):
+        artist_command(BACH, 5, tmp_path)
+
+
+@pytest.mark.parametrize("limit", ["0", "-1"])
+def test_a_limit_below_one_is_refused(monkeypatch, limit):
+    monkeypatch.setattr("sys.argv", ["musilogy", "artist", BACH, "--limit", limit])
+    with pytest.raises(SystemExit) as exit_info:
+        main()
+    assert exit_info.value.code == 2

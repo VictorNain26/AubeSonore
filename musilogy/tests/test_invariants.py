@@ -590,6 +590,33 @@ def test_duplicate_link_is_reported(con):
     assert violations.get("duplicate_link") == 1
 
 
+def test_lineage_endpoint_missing_is_reported(con):
+    artist = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    with restored(con, ("DELETE FROM lineage WHERE model_mbid = 'inconnu'", [])):
+        con.execute("INSERT INTO lineage VALUES (?, 'inconnu', 'mb_tribute')", [artist])
+        violations = dict(check_invariants(con, SQL))
+    assert violations.get("lineage_endpoint_missing") == 1
+
+
+def test_duplicate_lineage_is_reported(con):
+    # The same pair under two sources is two rows by design: only the same
+    # pair, same source, twice is a duplicate.
+    artist, model, source = con.execute(
+        "SELECT artist_mbid, model_mbid, source FROM lineage LIMIT 1"
+    ).fetchone()
+    with restored(
+        con,
+        (
+            "DELETE FROM lineage WHERE artist_mbid = ? AND model_mbid = ? AND source = ?",
+            [artist, model, source],
+        ),
+        ("INSERT INTO lineage VALUES (?, ?, ?)", [artist, model, source]),
+    ):
+        con.execute("INSERT INTO lineage VALUES (?, ?, ?)", [artist, model, source])
+        violations = dict(check_invariants(con, SQL))
+    assert violations.get("duplicate_lineage") == 1
+
+
 def test_link_misoriented_catches_a_reversed_link(con):
     # A link swapped end for end keeps both ends among the artists and stays
     # unique: only the orientation check can tell.

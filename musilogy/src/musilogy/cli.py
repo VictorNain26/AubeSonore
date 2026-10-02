@@ -177,6 +177,10 @@ def artist(mbid: str, limit: int, published: Path) -> None:
     """Prints the three lists of one artist with their provenance, read from
     the published tables: judging the result on known artists comes before
     any front end reads them."""
+    # A run published before lineage existed has artists.parquet alone.
+    missing = [t for t in ("artists", "lineage") if not (published / f"{t}.parquet").exists()]
+    if missing:
+        raise SystemExit(f"{', '.join(missing)} not published in {published}: run `musilogy run`")
     con = lineage.open_published(published)
     found = lineage.describe(con, mbid)
     if found is None:
@@ -203,6 +207,14 @@ def artist(mbid: str, limit: int, published: Path) -> None:
         )
 
 
+def _page_size(value: str) -> int:
+    n = int(value)
+    if n < 1:
+        # A negative slice would print every contemporary but the last ones.
+        raise argparse.ArgumentTypeError(f"at least 1, got {n}")
+    return n
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="musilogy")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -210,7 +222,9 @@ def main() -> None:
     subparsers.add_parser("make-fixtures", help="extract witness records for the test fixtures")
     read = subparsers.add_parser("artist", help="an artist's lineage and contemporaries")
     read.add_argument("mbid")
-    read.add_argument("--limit", type=int, default=20, help="contemporaries shown (default 20)")
+    read.add_argument(
+        "--limit", type=_page_size, default=20, help="contemporaries shown (default 20)"
+    )
 
     args = parser.parse_args()
     if args.command == "run":
