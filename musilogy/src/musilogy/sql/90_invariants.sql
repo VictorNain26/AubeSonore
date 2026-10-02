@@ -324,3 +324,21 @@ CREATE OR REPLACE VIEW birth_misread AS
 -- today, which is exactly when the contract is cheap to state.
 CREATE OR REPLACE VIEW corrections_duplicate AS
   SELECT mbid, field FROM corrections GROUP BY mbid, field HAVING count(*) > 1;
+-- Popularity: one row per artist, counts as ListenBrainz defines them. A
+-- listener has at least one listen, so user_count can never exceed
+-- listen_count: swapped columns fail here. No zero either, on the reference
+-- snapshot: an unknown artist is null, dropped by 87_popularity.sql.
+CREATE OR REPLACE VIEW duplicate_popularity AS
+  SELECT mbid FROM popularity GROUP BY mbid HAVING count(*) > 1;
+CREATE OR REPLACE VIEW popularity_out_of_range AS
+  SELECT mbid FROM popularity
+  WHERE listen_count IS NULL OR user_count IS NULL
+     OR user_count < 1 OR user_count > listen_count;
+-- An artist the snapshot never asked about: a snapshot taken on another
+-- extraction, or truncated. Without this, the frieze would rank that artist
+-- as unknown to ListenBrainz when nobody asked. A build without a snapshot
+-- (synthetic builds) asks about no one, hence the guard on the variable.
+CREATE OR REPLACE VIEW popularity_unrequested AS
+  SELECT a.mbid FROM artists a
+  WHERE getvariable('popularity_snapshot') IS NOT NULL
+    AND NOT EXISTS (SELECT 1 FROM raw_popularity p WHERE p.artist_mbid = a.mbid);

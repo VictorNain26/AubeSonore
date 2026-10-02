@@ -12,9 +12,9 @@ from typing import Any
 import duckdb
 
 from musilogy.fetch import expected_sums, sha256_file
-from musilogy.paths import PACKAGE_DIR, REFERENCE_DIR
+from musilogy.paths import PACKAGE_DIR, REFERENCE_DIR, popularity_sums
 
-TABLES = ("artists", "albums", "genres", "density", "links", "lineage")
+TABLES = ("artists", "albums", "genres", "density", "links", "lineage", "popularity")
 ARTISTS_WEB_COLUMNS = [
     # mbid first: it is the only key layer 1 can join on — against
     # web/genres.json.gz, against density, against anything. `name` is not an
@@ -57,6 +57,7 @@ ORDER_BY = {
     "density": "genre_mbid, year",
     "links": "src_mbid, dst_mbid, type, y_begin NULLS LAST, y_end NULLS LAST",
     "lineage": "artist_mbid, model_mbid, source",
+    "popularity": "mbid",
 }
 WEB_COLUMNS = {
     # density_eligible carries the exclusion rule of 60_density.sql itself:
@@ -170,7 +171,7 @@ def _extraction_matches_rows_loaded(
     )
 
 
-INPUT_TABLES = ("raw_artists", "raw_release_groups")
+INPUT_TABLES = ("raw_artists", "raw_release_groups", "raw_popularity")
 
 
 def input_rows_loaded(con: duckdb.DuckDBPyConnection) -> dict[str, int]:
@@ -202,6 +203,16 @@ def _parameters(con: duckdb.DuckDBPyConnection) -> dict[str, Any]:
     # JSON, which has no Decimal type, so it travels as a float instead.
     values = (float(v) if isinstance(v, Decimal) else v for v in row)
     return dict(zip(PARAMETERS, values, strict=True))
+
+
+def _popularity(con: duckdb.DuckDBPyConnection) -> dict[str, Any] | None:
+    """Read back from the connection, like the parameters: the snapshot the
+    build loaded, with the digest pinned for it."""
+    row = con.execute("SELECT getvariable('popularity_snapshot')::VARCHAR").fetchone()
+    assert row is not None  # a single-row projection always returns one row
+    if row[0] is None:
+        return None
+    return {"snapshot": row[0], "sha256": expected_sums(popularity_sums(row[0]))}
 
 
 def publish(
@@ -280,6 +291,7 @@ def publish(
     manifest = {
         "dump": dump,
         "archive_sha256": expected_sums(REFERENCE_DIR / f"{dump}.SHA256SUMS"),
+        "popularity": _popularity(con),
         "counts": counts,
         "output_sha256": output_sha256,
         "parameters": _parameters(con),

@@ -1,18 +1,27 @@
-"""CLI entry point: run, make-fixtures, artist."""
+"""CLI entry point: run, snapshot-popularity, make-fixtures, artist."""
 
 from __future__ import annotations
 
 import argparse
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 import duckdb
 
 from musilogy import REFERENCE_DUMP as DUMP
+from musilogy import REFERENCE_POPULARITY
 from musilogy import artist as lineage
 from musilogy.build import build, check_invariants, connect
 from musilogy.extract import extract, reduce_artist, reduce_release_group
-from musilogy.fetch import fetch_dump
+from musilogy.fetch import (
+    POPULARITY_BATCH,
+    expected_sums,
+    fetch_dump,
+    fetch_popularity,
+    sha256_file,
+    verify,
+)
 from musilogy.paths import (
     CORRECTIONS_CSV,
     FIXTURES_DIR,
@@ -20,6 +29,8 @@ from musilogy.paths import (
     REFERENCE_DIR,
     SQL_DIR,
     out_dir,
+    popularity_snapshot,
+    popularity_sums,
     work_dir,
 )
 from musilogy.publish import extraction_matches_rows_loaded, publish
@@ -28,6 +39,7 @@ SUMS_PATH = REFERENCE_DIR / f"{DUMP}.SHA256SUMS"
 WORK_DIR = work_dir(DUMP)
 ARTISTS_JSONL = WORK_DIR / "artists.jsonl"
 RELEASE_GROUPS_JSONL = WORK_DIR / "release_groups.jsonl"
+POPULARITY_JSONL = popularity_snapshot(REFERENCE_POPULARITY)
 
 WITNESSES = [
     "b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d",  # The Beatles
@@ -88,6 +100,36 @@ def fetch_and_extract() -> None:
     )
 
 
+def snapshot_popularity() -> None:
+    """Asks ListenBrainz about every artist of the extraction. The counts move
+    every day, so a snapshot cannot be taken again: like the dump, it is
+    fetched once, its digest committed under reference/, and a run reads the
+    one REFERENCE_POPULARITY pins, never a fresh one."""
+    if not ARTISTS_JSONL.exists():
+        fetch_and_extract()
+    date = datetime.now(UTC).date().isoformat()
+    dest = popularity_snapshot(date)
+    cur = connect().execute(
+        f"SELECT mbid FROM read_ndjson('{ARTISTS_JSONL.as_posix()}', columns={{mbid:'VARCHAR'}}) "
+        "ORDER BY mbid"
+    )
+    batches = iter(lambda: [r[0] for r in cur.fetchmany(POPULARITY_BATCH)], [])
+    n = fetch_popularity(batches, dest)
+    popularity_sums(date).write_text(f"{sha256_file(dest)}  {dest.name}\n", encoding="utf-8")
+    print(f"{n} artists asked; pin it: REFERENCE_POPULARITY = {date!r}")
+
+
+def verified_popularity() -> Path:
+    if not POPULARITY_JSONL.exists():
+        raise SystemExit(
+            f"ListenBrainz snapshot {REFERENCE_POPULARITY} missing at {POPULARITY_JSONL}; "
+            "it cannot be taken again: `musilogy snapshot-popularity`, then pin the new one"
+        )
+    sums = expected_sums(popularity_sums(REFERENCE_POPULARITY))
+    verify(POPULARITY_JSONL, sums[POPULARITY_JSONL.name])
+    return POPULARITY_JSONL
+
+
 def _stop_on_extraction_mismatch(con: duckdb.DuckDBPyConnection, extraction: Path) -> None:
     """Called before publish(), never after: a run that wrote its Parquet and
     only then failed would have replaced a sound delivery with a truncated
@@ -110,8 +152,18 @@ def run() -> None:
     if not ARTISTS_JSONL.exists() or not RELEASE_GROUPS_JSONL.exists():
         fetch_and_extract()
 
+    popularity = verified_popularity()
+
     con = connect()
-    build(con, SQL_DIR, ARTISTS_JSONL, RELEASE_GROUPS_JSONL, CORRECTIONS_CSV)
+    build(
+        con,
+        SQL_DIR,
+        ARTISTS_JSONL,
+        RELEASE_GROUPS_JSONL,
+        CORRECTIONS_CSV,
+        popularity=popularity,
+        popularity_snapshot=REFERENCE_POPULARITY,
+    )
 
     violations = check_invariants(con, SQL_DIR)
     if violations:
@@ -160,6 +212,17 @@ def make_fixtures() -> None:
         for line in src:
             rec = json.loads(line)
             if wanted & set(rec["artists"]):
+                fh.write(line)
+
+    # Every fixture artist, as the snapshot asked about every artist: a
+    # witness with no row would fail popularity_unrequested.
+    kept_set = set(kept)
+    with (
+        (out / "popularity.jsonl").open("w", encoding="utf-8") as fh,
+        verified_popularity().open(encoding="utf-8") as src,
+    ):
+        for line in src:
+            if json.loads(line)["artist_mbid"] in kept_set:
                 fh.write(line)
 
     print("witnesses found:", len(wanted & set(kept)), "linked artists:", len(set(kept) - wanted))
@@ -219,6 +282,9 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="musilogy")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("run", help="fetch → extract → transform → validate → publish")
+    subparsers.add_parser(
+        "snapshot-popularity", help="take a dated ListenBrainz snapshot of every artist"
+    )
     subparsers.add_parser("make-fixtures", help="extract witness records for the test fixtures")
     read = subparsers.add_parser("artist", help="an artist's lineage and contemporaries")
     read.add_argument("mbid")
@@ -229,6 +295,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.command == "run":
         run()
+    elif args.command == "snapshot-popularity":
+        snapshot_popularity()
     elif args.command == "make-fixtures":
         make_fixtures()
     elif args.command == "artist":

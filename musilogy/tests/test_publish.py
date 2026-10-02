@@ -6,8 +6,9 @@ import pytest
 from conftest import build_synthetic, synthetic_artist, unreliable_genre_records
 
 from musilogy import REFERENCE_DUMP as DUMP
+from musilogy import REFERENCE_POPULARITY
 from musilogy.fetch import expected_sums, sha256_file
-from musilogy.paths import PACKAGE_DIR, REFERENCE_DIR
+from musilogy.paths import PACKAGE_DIR, REFERENCE_DIR, popularity_sums
 from musilogy.publish import publish
 
 REF_SUMS = REFERENCE_DIR / f"{DUMP}.SHA256SUMS"
@@ -19,7 +20,7 @@ def read_web(out_dir, name):
 
 def test_publish_writes_every_table(con, tmp_path):
     manifest = publish(con, tmp_path, DUMP, None)
-    for name in ("artists", "albums", "genres", "density", "links", "lineage"):
+    for name in ("artists", "albums", "genres", "density", "links", "lineage", "popularity"):
         assert (tmp_path / f"{name}.parquet").exists()
         assert name in manifest["counts"]
     assert manifest["dump"] == DUMP
@@ -172,6 +173,19 @@ def test_presence_is_never_published(con, tmp_path):
 def test_manifest_carries_archive_checksums(con, tmp_path):
     manifest = publish(con, tmp_path, DUMP, None)
     assert manifest["archive_sha256"] == expected_sums(REF_SUMS)
+
+
+def test_manifest_names_the_popularity_snapshot_the_build_loaded(con, tmp_path):
+    manifest = publish(con, tmp_path, DUMP, None)
+    assert manifest["popularity"] == {
+        "snapshot": REFERENCE_POPULARITY,
+        "sha256": expected_sums(popularity_sums(REFERENCE_POPULARITY)),
+    }
+
+
+def test_a_build_without_snapshot_says_so_in_the_manifest(tmp_path):
+    con = build_synthetic(tmp_path, [synthetic_artist("a", "1990", None)])
+    assert publish(con, tmp_path / "out", DUMP, None)["popularity"] is None
 
 
 def test_manifest_carries_r2_anomaly_counters(con, tmp_path):

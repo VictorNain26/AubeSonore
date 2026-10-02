@@ -65,6 +65,7 @@ def test_run_refuses_to_publish_when_the_extraction_disagrees(tmp_path, monkeypa
     monkeypatch.setattr(cli, "ARTISTS_JSONL", FIX / "artists.jsonl")
     monkeypatch.setattr(cli, "RELEASE_GROUPS_JSONL", FIX / "release_groups.jsonl")
     monkeypatch.setattr(cli, "WORK_DIR", tmp_path)
+    monkeypatch.setattr(cli, "verified_popularity", lambda: FIX / "popularity.jsonl")
 
     def record_publish(*args):
         # Returns a plausible manifest on purpose: a double returning None
@@ -83,3 +84,15 @@ def test_run_refuses_to_publish_when_the_extraction_disagrees(tmp_path, monkeypa
 
     assert "extraction mismatch" in str(raised.value)
     assert published == [], "publish() ran before the guard could stop the run"
+
+
+def test_run_stops_when_the_pinned_snapshot_is_missing(tmp_path, monkeypatch):
+    # A snapshot cannot be taken again: run must neither fetch a fresh one,
+    # which would publish other counts under the pinned date, nor build
+    # without one, which would publish an empty popularity table.
+    monkeypatch.setattr(cli, "ARTISTS_JSONL", FIX / "artists.jsonl")
+    monkeypatch.setattr(cli, "RELEASE_GROUPS_JSONL", FIX / "release_groups.jsonl")
+    monkeypatch.setattr(cli, "POPULARITY_JSONL", tmp_path / "artist-popularity.jsonl")
+    with pytest.raises(SystemExit) as raised:
+        cli.run()
+    assert "cannot be taken again" in str(raised.value)
