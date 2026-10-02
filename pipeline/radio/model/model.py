@@ -237,3 +237,22 @@ def rescore(conn: sqlite3.Connection, models_dir: Path, cfg: ModelConfig) -> int
     model_id, model = current
     write_scores(conn, model_id, model, load_signals(conn), cfg.keep_fraction)
     return model_id
+
+
+def favorites_retained(conn: sqlite3.Connection, models_dir: Path) -> tuple[float, int] | None:
+    """Part des favoris Hype Machine mesurés que le modèle en service retiendrait, au seuil de la
+    dernière fournée (le hasard en retiendrait `keep_fraction`). Une mesure de goût sur des
+    centaines de titres que Victor aime ; elle ne décide jamais d'une promotion."""
+    current = serving(conn, models_dir)
+    row = conn.execute(
+        """
+        SELECT MIN(s.score) FROM scores s JOIN candidates c USING (deezer_track_id)
+        WHERE s.accepted = 1 AND c.run_id = (SELECT MAX(run_id) FROM candidates)
+        """
+    ).fetchone()
+    table = load_signals(conn)
+    rows = np.array([i for i, o in enumerate(table.origins) if o == "favorite"], dtype=np.int64)
+    if current is None or row[0] is None or len(rows) == 0:
+        return None
+    scores = predict(current[1], table, rows)
+    return float((scores >= float(row[0])).mean()), len(rows)

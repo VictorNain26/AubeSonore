@@ -16,10 +16,15 @@ import radio.core.http  # noqa: F401  (enregistre le hook de relance)
 
 API = "https://api.hypem.com/v2"
 USER_AGENT = "AubeSonore/3 (+https://radio.aubesonore.fr)"
+FAVORITES_PAGE = 50
 
 
 class HypemError(Exception):
     """Réponse inexploitable : la source est sautée et nommée dans le rapport."""
+
+
+class HypemNotFound(HypemError):
+    """HTTP 404 : utilisateur inconnu, ou page au-delà de la dernière."""
 
 
 class HypemUnavailable(Exception):
@@ -54,6 +59,26 @@ class HypemClient:
         """Le classement des blogs : `mode` vaut « now » ou « lastweek »."""
         return [_track(d) for d in self._get("/popular", {"mode": mode, "page": page})]
 
+    def favorites(self, user: str) -> list[HypemTrack]:
+        """Tous les favoris publics d'un utilisateur. L'API répond 404 au-delà de la dernière page
+        comme pour un utilisateur inconnu : on s'arrête sur une page incomplète, et une 404 dès la
+        première page est une erreur."""
+        tracks: list[HypemTrack] = []
+        page = 1
+        while True:
+            try:
+                batch = self._get(
+                    f"/users/{user}/favorites", {"page": page, "count": FAVORITES_PAGE}
+                )
+            except HypemNotFound:
+                if page == 1:
+                    raise
+                return tracks
+            tracks += [_track(d) for d in batch]
+            if len(batch) < FAVORITES_PAGE:
+                return tracks
+            page += 1
+
     @stamina.retry(on=HypemUnavailable, attempts=3, wait_initial=2.0, wait_max=30.0)
     def _get(self, path: str, params: dict[str, Any]) -> list[Any]:
         try:
@@ -64,6 +89,8 @@ class HypemClient:
             raise HypemUnavailable(type(e).__name__) from None
         if r.status_code == 429 or r.status_code >= 500:
             raise HypemUnavailable(f"HTTP {r.status_code}")
+        if r.status_code == 404:
+            raise HypemNotFound("HTTP 404")
         if r.status_code >= 400:
             raise HypemError(f"HTTP {r.status_code}")
         try:

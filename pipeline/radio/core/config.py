@@ -75,6 +75,7 @@ class FreshConfig(BaseModel):
         default_factory=lambda: {"alternative": 85, "electro": 106}
     )
     tracks_per_album: int = Field(default=3, ge=1, le=20)
+    hypem_favorites_user: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
 
 
 class ModelConfig(BaseModel):

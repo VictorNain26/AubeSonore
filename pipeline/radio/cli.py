@@ -26,6 +26,7 @@ from radio.core.backup import BackupError, backup
 from radio.core.config import Editorial, Settings, load_editorial
 from radio.core.db import connect
 from radio.core.report import invocation_stages, last_stages, record_stage
+from radio.discover.favorites import favorites_pass
 from radio.discover.fresh import NoBatchError, fresh_pass
 from radio.discover.negatives import import_negatives, load_negatives
 from radio.discover.run import NoLibraryArtistsError, discover_pass
@@ -36,6 +37,7 @@ from radio.model.dataset import MissingExamplesError
 from radio.model.model import (
     Batch,
     TrainReport,
+    favorites_retained,
     last_batch,
     rescore,
     train,
@@ -48,7 +50,7 @@ from radio.signals.measure import measure_tracks
 from radio.signals.table import load_signals
 from radio.sources.azuracast import AzuracastClient, AzuracastUnavailable
 from radio.sources.deezer import DeezerClient, DeezerUnavailable
-from radio.sources.hypem import HypemClient
+from radio.sources.hypem import HypemClient, HypemError, HypemUnavailable
 from radio.sources.lastfm import LastfmClient, LastfmUnavailable
 from radio.sources.plex import LibraryGuardError, PlexSource
 from radio.votes.access import AccessVerifier
@@ -333,6 +335,54 @@ def nouveautes() -> None:
         _fail("Une source de nouveautés est en panne : voir ci-dessus", 1)
 
 
+@app.command()
+@_stage("favoris")
+def favoris() -> None:
+    """Relit les favoris Hype Machine de Victor : déjà aimés, ils ne sont plus des découvertes."""
+    settings = _settings()
+    editorial = _editorial(settings)
+    user = editorial.nouveautes.hypem_favorites_user
+    with _db(settings) as conn:
+        if user is None:
+            _record(conn, "favoris", True, {"compte": "aucun"})
+            _echo(
+                ["Favoris Hype Machine : aucun compte configuré (nouveautes.hypem_favorites_user)"]
+            )
+            return
+        try:
+            rep = favorites_pass(
+                conn,
+                DeezerClient(),
+                HypemClient(),
+                user,
+                editorial.library.duration_tolerance_s,
+                _now(),
+            )
+        except (HypemError, HypemUnavailable) as e:
+            _fail(f"Favoris Hype Machine illisibles ({type(e).__name__} : {e})", 1)
+        except DeezerUnavailable as e:
+            _fail(_unavailable(e), 1)
+        _record(
+            conn,
+            "favoris",
+            True,
+            {
+                "favoris": rep.n_seen,
+                "trouvés sur Deezer": rep.n_matched,
+                "non trouvés sur Deezer": rep.n_unmatched,
+                "déjà dans la bibliothèque": rep.n_library,
+                "retirés": rep.n_dropped,
+            },
+        )
+    _echo(
+        [
+            f"Favoris Hype Machine : {_n(rep.n_matched)} trouvés sur Deezer sur {_n(rep.n_seen)}"
+            f" (dont {_n(rep.n_library)} déjà dans la bibliothèque), {_n(rep.n_unmatched)} non"
+            f" trouvés, {_n(rep.n_dropped)} retirés"
+        ]
+    )
+
+
 @app.command("negatives-sync")
 def negatives_sync() -> None:
     """Importe les titres des artistes négatifs de démarrage (config/negatives.toml)."""
@@ -573,6 +623,7 @@ def train_command() -> None:
                 )
         model_id = rescore(conn, models_dir, cfg)
         batch = last_batch(conn)
+        favorites = favorites_retained(conn, models_dir)
         _record(
             conn,
             "train",
@@ -581,6 +632,7 @@ def train_command() -> None:
                 "modèle en service": model_id,
                 "candidats": batch.n if batch else 0,
                 "retenus": batch.retained if batch else 0,
+                "favoris retenus": None if favorites is None else round(favorites[0], 3),
             },
         )
     if model_id is None:
@@ -589,6 +641,11 @@ def train_command() -> None:
         lines.append(f"Candidats notés par le modèle n°{model_id}")
         if batch is not None:
             lines.append(_batch_line(batch))
+        if favorites is not None:
+            lines.append(
+                f"Favoris Hype Machine retenus par ce modèle : {favorites[0]:.0%} de "
+                f"{_n(favorites[1])} (le hasard en retiendrait {cfg.keep_fraction:.0%})"
+            )
     _echo(lines)
 
 
@@ -649,6 +706,7 @@ PASS_STAGES = (
     "library-sync",
     "discover",
     "nouveautes",
+    "favoris",
     "signals",
     "train",
     "votes-select",

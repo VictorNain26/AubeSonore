@@ -53,6 +53,7 @@ suivante reprend.
 | 1 Bibliothèque | Lire Plex, rapprocher chaque titre de Deezer (strict : artiste, titre, durée ±3 s ; un seul des artistes d'un crédit « A & B » ou « A, B » suffit, jamais sur « and ») | python-plexapi, API Deezer | fait |
 | 2 Découverte | 15 graines par semaine, tirées selon l'écoute ; voisins confirmés par Deezer `related` ET Last.fm `getSimilar` (`recherches/2026-09-24-sources-decouverte.md`) ; 10 titres par voisin | API Deezer, Last.fm | fait |
 | 2b Nouveautés | Titres récents choisis par des humains, ajoutés à la fournée (§3.1) | API Hype Machine v2, API Deezer | en service |
+| 2c Favoris | Les favoris Hype Machine de Victor : plus des découvertes, et mesure du goût (§3.2) | API Hype Machine v2, API Deezer | en service |
 | 3 Empreinte | Empreinte Discogs-EffNet de l'extrait Deezer de 30 s | essentia-tensorflow, modèle MTG épinglé | fait |
 | 4 Goût | Régression logistique sur l'empreinte ; chaque fournée est classée et son tiers le mieux noté est retenu | scikit-learn | fait |
 | 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | en service |
@@ -88,6 +89,22 @@ familles de sources alimentent chaque fournée, et chaque candidat garde la sien
 elle-même, avant le modèle. `radio report` donne le taux de « oui » à l'examen par source et
 par blog ou genre, avec son intervalle de Wilson. Une source qui reste nettement sous les
 autres après une vingtaine de votes est retirée ; une autre peut être essayée à sa place.
+
+### 3.2 Favoris Hype Machine
+
+`radio favoris` relit chaque semaine les favoris publics de Victor sur Hype Machine
+(`nouveautes.hypem_favorites_user`, même API v2 que les nouveautés), retrouvés sur Deezer par la
+règle stricte de la bibliothèque. Ils prennent l'origine `favorite` ; la bibliothèque garde la
+priorité.
+
+- **Plus des découvertes.** Un titre déjà aimé n'entre plus dans une fournée ni dans les
+  nouveautés ; un candidat qui devient favori en sort. Un favori retiré retourne à sa fournée,
+  ou est oublié.
+- **Mesure du goût.** `radio train` publie la part des favoris que le modèle en service
+  retiendrait au seuil de la dernière fournée (53 % au 2026-10-02, le hasard en retiendrait le
+  tiers). Elle ne décide jamais d'une promotion.
+- **Pas à l'entraînement.** En exemples positifs, ils n'ont pas amélioré l'AUC d'examen (0,760
+  sans, 0,749 à 0,753 avec ; `recherches/2026-10-02-favoris-hypem.md`).
 
 ## 4. Le goût (étapes 1 à 4)
 
