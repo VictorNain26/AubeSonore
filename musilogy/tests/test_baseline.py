@@ -1,8 +1,8 @@
 import pytest
 
-from musilogy import REFERENCE_DUMP
+from musilogy import REFERENCE_DUMP, REFERENCE_POPULARITY
 from musilogy.build import build, check_invariants, connect
-from musilogy.paths import SQL_DIR, work_dir
+from musilogy.paths import SQL_DIR, popularity_snapshot, work_dir
 
 # artists: 682 447 groups, orchestras and choirs, plus 1 599 244 persons. Every
 # count the persons moved splits along type: restricted to the other types, the
@@ -15,6 +15,7 @@ BASELINE = {
     "density": 58_767,
     "links": 771_147,
     "lineage": 32_667,
+    "popularity": 989_488,
 }
 # links: every artist-to-artist relation, oriented source -> target and
 # de-duplicated across the two artists that carry it. Memberships replace the
@@ -109,6 +110,7 @@ DEMO_BEFORE_STUDIO = (3_723, 2_297, 3.0)
 LIVE_LONG_AFTER_LAST_STUDIO = 914
 BANDS_WITHOUT_ALBUM = 1_801_156
 WORK = work_dir(REFERENCE_DUMP)
+POPULARITY = popularity_snapshot(REFERENCE_POPULARITY)
 
 
 def test_the_baseline_looks_for_the_extractions_at_an_absolute_path():
@@ -127,8 +129,18 @@ def single_row(con, table):
 def test_reference_dump_matches_the_baseline():
     if not (WORK / "artists.jsonl").exists() or not (WORK / "release_groups.jsonl").exists():
         pytest.skip("extractions missing: run Task 3")
+    if not POPULARITY.exists():
+        pytest.skip(f"ListenBrainz snapshot {REFERENCE_POPULARITY} missing")
     con = connect()
-    build(con, SQL_DIR, WORK / "artists.jsonl", WORK / "release_groups.jsonl", None)
+    build(
+        con,
+        SQL_DIR,
+        WORK / "artists.jsonl",
+        WORK / "release_groups.jsonl",
+        None,
+        popularity=POPULARITY,
+        popularity_snapshot=REFERENCE_POPULARITY,
+    )
     assert check_invariants(con, SQL_DIR) == []
     for table, expected in BASELINE.items():
         row = con.execute(f"SELECT count(*) FROM {table}").fetchone()

@@ -54,6 +54,33 @@ def load_raw(con: duckdb.DuckDBPyConnection, artists: Path, rgs: Path) -> None:
     )
 
 
+RAW_POPULARITY_COLUMNS = (
+    "{artist_mbid:'VARCHAR', total_listen_count:'BIGINT', total_user_count:'BIGINT'}"
+)
+
+
+def load_popularity(
+    con: duckdb.DuckDBPyConnection, popularity: Path | None, snapshot: str | None
+) -> None:
+    if popularity is None:
+        # Always materialized, even empty, like corrections: synthetic builds
+        # carry no snapshot, and 87_popularity.sql reads this table anyway.
+        con.execute(
+            "CREATE OR REPLACE TABLE raw_popularity (artist_mbid VARCHAR, "
+            "total_listen_count BIGINT, total_user_count BIGINT)"
+        )
+    else:
+        con.execute(
+            f"CREATE OR REPLACE TABLE raw_popularity AS SELECT * FROM read_ndjson("
+            f"'{popularity.as_posix()}', columns={RAW_POPULARITY_COLUMNS}, "
+            f"format='newline_delimited')"
+        )
+    con.execute(
+        "SET VARIABLE popularity_snapshot = "
+        + ("NULL" if snapshot is None else f"DATE '{snapshot}'")
+    )
+
+
 def apply_corrections(con: duckdb.DuckDBPyConnection, corrections: Path | None) -> int:
     if corrections is None:
         # Always materialized, even empty: the fast suite builds
@@ -90,9 +117,12 @@ def build(
     min_year: int = 1850,
     multi_artist_drop_limit: float = 50.0,
     min_candidate_credits: int = 200,
+    popularity: Path | None = None,
+    popularity_snapshot: str | None = None,
 ) -> None:
     load_raw(con, artists, rgs)
     apply_corrections(con, corrections)
+    load_popularity(con, popularity, popularity_snapshot)
     con.execute(f"SET VARIABLE dump_year = {dump_year}")
     con.execute(f"SET VARIABLE min_year = {min_year}")
     # The two bounds of density's exclusion rule (55_genre_reliability.sql,
@@ -142,6 +172,9 @@ INVARIANTS = (
     "lineage_misoriented",
     "lineage_endpoint_missing",
     "duplicate_lineage",
+    "duplicate_popularity",
+    "popularity_out_of_range",
+    "popularity_unrequested",
     "corrections_file_too_large",
     "corrections_invalid",
     "corrections_duplicate",

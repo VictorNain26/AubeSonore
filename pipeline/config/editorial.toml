@@ -91,10 +91,18 @@ titres_par_heure = 14.6
 
 # Enchaînement (docs/recherches/2026-10-02-cycle-de-vie.md §6). Chaque jour, les titres de chaque
 # catégorie joués il y a le plus longtemps sont tirés avec cette marge, puis placés dans l'heure
-# dont la cible leur ressemble ; `retard` pèse le retard d'un titre (en tours de sa catégorie,
-# sans plafond) contre la ressemblance : un titre loin de toutes les cibles finit par passer.
+# dont la cible leur ressemble.
 marge = 1.4
 retard = 0.5
+# Règles incassables (docs/recherches/2026-10-02-programmation.md §3) : un titre se repose au moins
+# `repos` tour de sa catégorie (60 %, MusicMaster) ; un artiste ne repasse pas avant
+# `separation_h` heures (fenêtre DMCA, anti-doublon de la station). Règle anti-famine de
+# GSelector : un titre en retard de `avantage` tours gagne jusqu'à `retard` contre la
+# ressemblance, à `force` tours il passe d'office.
+repos = 0.6
+separation_h = 3
+avantage = 1.5
+force = 2.0
 
 # Part d'antenne de chaque catégorie et passages par semaine d'un même titre : le stock à
 # l'antenne s'en déduit (part × titres par heure × 168 / passages).

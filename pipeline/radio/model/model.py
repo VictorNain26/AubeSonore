@@ -114,10 +114,19 @@ def write_scores(
 ) -> None:
     """Note les candidats de chaque passe de découverte et retient, passe par passe et famille
     par famille, les `keep[famille]` mieux notés : découvertes et nouveautés ne se disputent pas
-    la même coupure. Un candidat entré depuis dans la bibliothèque n'est plus une découverte."""
+    la même coupure. Un artiste n'entre qu'un titre par fournée, toutes familles confondues : son
+    mieux noté (Release Radar, docs/recherches/2026-10-02-programmation.md §1). Un candidat entré
+    depuis dans la bibliothèque n'est plus une découverte."""
     group_of = {
         int(t): (int(run), FAMILY[str(source)])
         for t, run, source in conn.execute("SELECT deezer_track_id, run_id, source FROM candidates")
+    }
+    artist_of = {
+        int(t): int(a)
+        for t, a in conn.execute(
+            "SELECT deezer_track_id, deezer_artist_id FROM tracks JOIN candidates "
+            "USING (deezer_track_id)"
+        )
     }
     rows = np.array(
         [
@@ -132,9 +141,16 @@ def write_scores(
     scores = predict(model, table, rows)
     groups = [group_of[int(table.track_ids[i])] for i in rows]
     accepted = np.zeros(len(rows), dtype=bool)
-    for group in set(groups):
-        idx = np.flatnonzero([g == group for g in groups])
-        accepted[idx[np.argsort(-scores[idx], kind="stable")[: keep[group[1]]]]] = True
+    for run in {g[0] for g in groups}:
+        idx = np.flatnonzero([g[0] == run for g in groups])
+        left = dict(keep)
+        taken: set[int] = set()
+        for i in idx[np.argsort(-scores[idx], kind="stable")]:
+            family, artist = groups[i][1], artist_of[int(table.track_ids[rows[i]])]
+            if left[family] > 0 and artist not in taken:
+                accepted[i] = True
+                left[family] -= 1
+                taken.add(artist)
     with conn:
         conn.execute("DELETE FROM scores")
         conn.executemany(
@@ -257,14 +273,17 @@ class FavoritesRetained:
 def favorites_retained(conn: sqlite3.Connection, models_dir: Path) -> FavoritesRetained | None:
     """Part des favoris Hype Machine mesurés que le modèle en service retiendrait, à la coupure
     des découvertes de la dernière fournée ; le hasard en retiendrait `chance`, la part de ces
-    découvertes retenue. Une mesure de goût sur des centaines de titres que Victor aime ; elle
-    ne décide jamais d'une promotion."""
+    découvertes notées à la coupure ou au-dessus (et non la part retenue : la règle d'un titre
+    par artiste en écarte qui sont au-dessus). Une mesure de goût sur des centaines de titres que
+    Victor aime ; elle ne décide jamais d'une promotion."""
     current = serving(conn, models_dir)
     row = conn.execute(
         """
-        SELECT MIN(s.score) FILTER (WHERE s.accepted = 1), AVG(s.accepted)
-        FROM scores s JOIN candidates c USING (deezer_track_id)
-        WHERE c.source = 'voisin' AND c.run_id = (SELECT MAX(run_id) FROM candidates)
+        WITH latest AS (
+            SELECT s.score, s.accepted FROM scores s JOIN candidates c USING (deezer_track_id)
+            WHERE c.source = 'voisin' AND c.run_id = (SELECT MAX(run_id) FROM candidates)
+        ), cut AS (SELECT MIN(score) AS score FROM latest WHERE accepted = 1)
+        SELECT cut.score, AVG(latest.score >= cut.score) FROM latest, cut
         """
     ).fetchone()
     table = load_signals(conn)

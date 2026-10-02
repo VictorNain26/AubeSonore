@@ -188,6 +188,21 @@ def test_publish_ready_files_and_references(tmp_path: Path, no_tools: list[Tags]
     assert all(m.path.startswith("antenne/") for m in station.media[1:])
 
 
+def test_a_reference_never_gives_an_artist_a_third_title(
+    tmp_path: Path, no_tools: list[Tags]
+) -> None:
+    # Breaks if a reference is drawn for an artist who already has two titles on air.
+    conn = make_model_db(tmp_path)
+    _library_files(conn)
+    two_each = [(100000 + 10 * a + k, "decouverte", "fond") for a in range(12) for k in (0, 1)]
+    station = _on_air(conn, two_each, LATER)
+
+    rep = _run(conn, station, fond=24, reperes=12)
+
+    assert (rep.n_references, rep.n_references_artist_full) == (0, 2)
+    assert no_tools == []
+
+
 def test_a_fresh_pick_enters_as_a_fresh_pick(tmp_path: Path, no_tools: None) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
