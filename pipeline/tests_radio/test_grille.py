@@ -13,14 +13,17 @@ from radio.antenna.grille import (
     plan_day,
     playlist_name,
     publish,
+    record,
     shares,
     slot_sequence,
+    with_published,
 )
 from radio.core.config import Categorie, Creneau, GrilleConfig
 from radio.sources.azuracast import AzuracastClient
 from tests_radio.model_factory import make_model_db
 
 FRIDAY = date(2026, 10, 2)
+SATURDAY = date(2026, 10, 3)
 MIDNIGHT = 1_790_892_000.0  # 2026-10-02 00:00, Europe/Paris
 ENTERED = "2026-10-01T00:00:00+02:00"
 
@@ -122,21 +125,26 @@ def test_an_artist_waits_three_hours_and_a_title_goes_back_in_rotation() -> None
 
 
 def test_a_title_rests_whatever_its_mood() -> None:
-    # Le titre le plus proche de la cible vient de passer : moins de 60 % d'un tour de repos.
+    # Le titre le plus proche de la cible vient de passer : moins de 60 % d'un tour de repos. La
+    # fenêtre de recherche couvre toute la catégorie : seule la règle de repos peut l'écarter.
     near = _titre(0, "decouvertes", 0.25)  # cible de la nuit
     others = [_titre(i, "decouvertes", 0.9, artist=1000 + i) for i in range(1, 200)]
-    played = {f"s{i}": MIDNIGHT - 86400 for i in range(1, 200)} | {"s0": MIDNIGHT - 3600}
-    plan = plan_day([near, *others], played, _grille(decouvertes=200), FRIDAY, [1], MIDNIGHT)
+    # Joué 4 h avant l'heure de 1 h : la séparation d'artiste (3 h) le permet, pas le repos. Les
+    # autres ont joué 21 h avant : moins de deux tours, aucun passage forcé ne le masque.
+    played = {f"s{i}": MIDNIGHT - 20 * 3600 for i in range(1, 200)} | {"s0": MIDNIGHT - 3 * 3600}
+    grille = _grille(decouvertes=200).model_copy(update={"marge": 2.0})
+    plan = plan_day([near, *others], played, grille, FRIDAY, [1], MIDNIGHT)
     # Tour : 200 titres pour 16 x 24 créneaux, ~12,5 h ; repos minimum ~7,5 h.
     assert 0 not in {t.tid for t in plan.hours[1]}
 
 
 def test_a_starved_title_plays_whatever_its_mood_and_ahead_of_closer_ones() -> None:
-    # 100 titres pour 384 créneaux par jour : un tour dure 6,25 h. Le titre loin de la cible
-    # n'a pas joué depuis 13 h, plus de deux tours : il passe d'office dans l'heure.
+    # 100 titres pour 384 créneaux par jour : un tour dure 6,25 h, le repos 3,75 h. Les titres
+    # proches de la cible sont reposés (7 h) ; le titre loin n'a pas joué depuis 13 h, plus de
+    # deux tours : il passe d'office dans l'heure, devant eux.
     far = _titre(0, "decouvertes", 1.0)
     close = [_titre(i, "decouvertes", 0.25) for i in range(1, 100)]
-    played = {f"s{i}": MIDNIGHT - 3 * 3600 for i in range(1, 100)} | {"s0": MIDNIGHT - 13 * 3600}
+    played = {f"s{i}": MIDNIGHT - 7 * 3600 for i in range(1, 100)} | {"s0": MIDNIGHT - 13 * 3600}
     plan = plan_day([far, *close], played, _grille(decouvertes=100), FRIDAY, [0], MIDNIGHT)
     assert 0 in {t.tid for t in plan.hours[0]}
     assert plan.late == 1
@@ -161,6 +169,32 @@ def test_rotation_wins_over_mood_for_a_title_far_from_every_hour() -> None:
     plan = plan_day([*titres, odd], played, _grille(decouvertes=33), FRIDAY, [8, 9], MIDNIGHT)
     assert 99 in {t.tid for h in (8, 9) for t in plan.hours[h]}
     assert plan.late == 1  # 3 jours sans passer, pour un tour de 2 h (33 titres, 384 créneaux)
+
+
+def test_an_artist_heard_late_yesterday_waits_three_hours_after_midnight() -> None:
+    # Breaks if the separation ignores the history. Artist 7 heads the rotation (titles 1 to 9,
+    # never played) and was heard at 23:00 the day before: not before 2:00.
+    titres = [_titre(i, "decouvertes", 0.5, artist=7 if i < 10 else 1000 + i) for i in range(400)]
+    played = {"s0": MIDNIGHT - 3600}
+    plan = plan_day(titres, played, _grille(decouvertes=400), FRIDAY, [0, 1, 2], MIDNIGHT)
+    assert 7 not in {t.artist for h in (0, 1) for t in plan.hours[h]}
+    assert 7 in {t.artist for t in plan.hours[2]}
+
+
+def test_the_hour_published_but_not_yet_played_counts_for_the_next_day(tmp_path: Path) -> None:
+    # Breaks if the grid written at 23:00 ignores its own hour of 23 h, not yet in the history.
+    conn = make_model_db(tmp_path)
+    titres = [_titre(i, "decouvertes", 0.5) for i in range(400)]
+    grille = _grille(decouvertes=400)
+    today = plan_day(titres, {}, grille, FRIDAY, [23], MIDNIGHT)
+    record(conn, today, MIDNIGHT)
+    late = {t.artist for t in today.hours[23]}
+
+    played = with_published(conn, {}, MIDNIGHT + 23 * 3600)
+    tomorrow = plan_day(titres, played, grille, SATURDAY, [0, 1, 2, 3], MIDNIGHT + 86400)
+
+    assert not late & {t.artist for h in (0, 1, 2) for t in tomorrow.hours[h]}
+    assert set(played) == {t.song_id for t in today.hours[23]}
 
 
 def test_missing_titles_leave_empty_slots() -> None:

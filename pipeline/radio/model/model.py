@@ -273,14 +273,17 @@ class FavoritesRetained:
 def favorites_retained(conn: sqlite3.Connection, models_dir: Path) -> FavoritesRetained | None:
     """Part des favoris Hype Machine mesurés que le modèle en service retiendrait, à la coupure
     des découvertes de la dernière fournée ; le hasard en retiendrait `chance`, la part de ces
-    découvertes retenue. Une mesure de goût sur des centaines de titres que Victor aime ; elle
-    ne décide jamais d'une promotion."""
+    découvertes notées à la coupure ou au-dessus (et non la part retenue : la règle d'un titre
+    par artiste en écarte qui sont au-dessus). Une mesure de goût sur des centaines de titres que
+    Victor aime ; elle ne décide jamais d'une promotion."""
     current = serving(conn, models_dir)
     row = conn.execute(
         """
-        SELECT MIN(s.score) FILTER (WHERE s.accepted = 1), AVG(s.accepted)
-        FROM scores s JOIN candidates c USING (deezer_track_id)
-        WHERE c.source = 'voisin' AND c.run_id = (SELECT MAX(run_id) FROM candidates)
+        WITH latest AS (
+            SELECT s.score, s.accepted FROM scores s JOIN candidates c USING (deezer_track_id)
+            WHERE c.source = 'voisin' AND c.run_id = (SELECT MAX(run_id) FROM candidates)
+        ), cut AS (SELECT MIN(score) AS score FROM latest WHERE accepted = 1)
+        SELECT cut.score, AVG(latest.score >= cut.score) FROM latest, cut
         """
     ).fetchone()
     table = load_signals(conn)

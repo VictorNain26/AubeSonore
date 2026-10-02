@@ -177,5 +177,7 @@ def test_the_share_of_favorites_the_model_would_keep(tmp_path: Path) -> None:
         )
     conn.commit()
 
-    # Un titre par artiste : 24 artistes de 4 titres, 24 retenus sur 96 malgré keep = 32.
-    assert favorites_retained(conn, tmp_path / "models") == FavoritesRetained(0.5, 6, 1 / 4)
+    # Un titre par artiste : 24 retenus sur 96, mais 71 titres notés à la coupure ou au-dessus
+    # (les autres titres des mêmes artistes). Le hasard se mesure à la coupure : 71 / 96, pas
+    # 24 / 96, qui ferait battre le hasard à n'importe quel modèle.
+    assert favorites_retained(conn, tmp_path / "models") == FavoritesRetained(0.5, 6, 71 / 96)

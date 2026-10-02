@@ -255,6 +255,33 @@ def _drift(titres: list[Titre], previous: Titre | None, target: Vector) -> list[
     return out
 
 
+def record(conn: sqlite3.Connection, plan: Plan, midnight: float) -> None:
+    """Garde la grille publiée heure par heure ; oublie ce qui a plus d'un jour."""
+    starts = [(midnight + h * 3600,) for h in plan.hours]
+    with conn:
+        conn.executemany("DELETE FROM grille WHERE hour_start = ?", starts)
+        conn.executemany(
+            "INSERT INTO grille VALUES (?, ?)",
+            [(midnight + h * 3600, t.song_id) for h, ts in plan.hours.items() for t in ts],
+        )
+        conn.execute("DELETE FROM grille WHERE hour_start < ?", (midnight - 86400,))
+
+
+def with_published(
+    conn: sqlite3.Connection, played: dict[str, float], now: float
+) -> dict[str, float]:
+    """Le dernier passage de chaque titre, en comptant ce que la grille publiée fera jouer d'ici
+    la fin de l'heure en cours : un titre publié, pas encore joué, compte comme joué à la fin de
+    son heure. Sans cela, la grille écrite à 23:00 replace à minuit les titres et les artistes de
+    23 h. Le titre de trop d'une heure, jamais joué, n'y perd qu'un jour de rotation."""
+    out = dict(played)
+    for start, song in conn.execute(
+        "SELECT hour_start, song_id FROM grille WHERE hour_start + 3600 > ?", (now,)
+    ):
+        out[str(song)] = max(out.get(str(song), -math.inf), float(start) + 3600)
+    return out
+
+
 def m3u(titres: list[Titre]) -> str:
     return "#EXTM3U\n" + "".join(f"{t.path}\n" for t in titres)
 

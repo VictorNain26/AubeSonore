@@ -105,7 +105,9 @@ priorité.
   ou est oublié.
 - **Mesure du goût.** `radio train` publie la part des favoris que le modèle en service
   retiendrait à la coupure des découvertes de la dernière fournée, et la part que le hasard en
-  retiendrait (53 % contre 33 % au 2026-10-02). Elle ne décide jamais d'une promotion.
+  retiendrait (53 % contre 33 % au 2026-10-02) : la part des découvertes notées à la coupure ou
+  au-dessus, et non la part retenue, que la règle d'un titre par artiste réduit. Elle ne décide
+  jamais d'une promotion.
 - **Pas à l'entraînement.** En exemples positifs, ils n'ont pas amélioré l'AUC d'examen (0,760
   sans, 0,749 à 0,753 avec ; `recherches/2026-10-02-favoris-hypem.md`).
 
@@ -130,7 +132,8 @@ priorité.
   L'acquisition ne prend pas un retenu dont l'artiste a déjà un titre en nouveautés, en
   découvertes ou prêt à publier : il attend la fin du premier séjour du précédent, comme BBC
   6 Music enchaîne les singles d'un artiste au lieu de les empiler. Un artiste a au plus deux
-  titres à l'antenne, le second au fond ou en repère. Faute d'artistes libres, il entre moins de
+  titres à l'antenne, repos compris (un titre au repos revient au fond), le second au fond ou en
+  repère. Faute d'artistes libres, il entre moins de
   titres ; le rapport compte les retenus en attente (`recherches/2026-10-02-programmation.md` §1
   et §2 : FIP joue 2,8 titres par artiste et par an, Nova 1,6).
 - **Pistes écartées après mesure** : ressemblance kNN sur l'empreinte (AUC 0,67), filtre
@@ -317,6 +320,10 @@ avoir fait entrer et sortir des titres (`--aujourdhui`, jamais l'heure en cours)
     de plus de `avantage` tours (150 %) y gagne jusqu'à `retard`, et à `force` tours (200 %) il
     passe d'office, le plus en retard d'abord (règle anti-famine « Airplay Starvation » de
     GSelector). Chaque titre passe donc au moins une fois tous les deux tours.
+  - **La grille publiée compte** (table `grille`) : à 23:00, l'heure de 23 h n'est pas encore
+    dans l'historique d'AzuraCast. Un titre publié mais pas encore joué compte comme joué à la
+    fin de son heure, le pire cas ; sans cela, les titres et les artistes de 23 h repassaient dès
+    minuit. Le titre de trop d'une heure, jamais joué, n'y perd qu'un jour de rotation.
   - Un titre placé repart en fin de rotation. Le rapport donne le tour de chaque catégorie, les
     créneaux vides, les titres pas joués depuis plus de deux tours (doit être nul) et le plus
     grand nombre de titres d'un même artiste à l'antenne (doit rester à 2).

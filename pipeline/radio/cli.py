@@ -504,7 +504,7 @@ def acquire() -> None:
                 "prêts": rep.n_ready,
                 "sans pochette": rep.n_no_cover,
                 "non tentés": rep.n_unindexed,
-                "artiste déjà en rotation": rep.n_artist_waiting,
+                "artiste déjà en rotation ou deux fois à l'antenne": rep.n_artist_waiting,
                 "échecs": dict(rep.failures),
             },
         )
@@ -514,7 +514,8 @@ def acquire() -> None:
             f"({_pct(rep.n_ready, rep.n_attempted)} des tentés), "
             f"{_n(sum(rep.failures.values()))} en échec",
             f"  prêts sans pochette : {_n(rep.n_no_cover)}",
-            f"  retenus en attente, leur artiste ayant déjà un titre en rotation : "
+            f"  retenus en attente, leur artiste ayant déjà un titre en rotation ou deux à "
+            f"l'antenne : "
             f"{_n(rep.n_artist_waiting)}",
             *(f"  {reason} : {_n(n)}" for reason, n in rep.failures.most_common()),
         ]
@@ -577,6 +578,7 @@ def antenne() -> None:
                 "périmés": rep.n_expired,
                 "repères sortis": rep.n_references_out,
                 "repères écartés, artiste déjà deux fois à l'antenne": rep.n_references_artist_full,
+                "repères écartés, artiste inconnu": rep.n_references_no_artist,
                 "oubliés": rep.n_forgotten,
                 "inconnus": rep.n_unknown,
                 "à l'antenne": rep.n_total,
@@ -596,7 +598,8 @@ def antenne() -> None:
             f"{_n(rep.n_unknown)} fichiers inconnus dans antenne/ et repos/",
             f"  repères sans pochette : {_n(rep.n_references_no_cover)}",
             f"  repères écartés, artiste déjà deux fois à l'antenne : "
-            f"{_n(rep.n_references_artist_full)}",
+            f"{_n(rep.n_references_artist_full)}, artiste inconnu : "
+            f"{_n(rep.n_references_no_artist)}",
             *(f"  sauté : {s}" for s in rep.skipped_references),
             *(f"  erreur : {e}" for e in rep.errors),
         ]
@@ -662,13 +665,15 @@ def grille(
         now = datetime.now(tz)
         day = now.date() if aujourdhui else now.date() + timedelta(days=1)
         hours = list(range(now.hour + 1, 24)) if aujourdhui else list(range(24))
-        played = station.last_played((now - timedelta(days=14)).isoformat(), now.isoformat())
+        history = station.last_played((now - timedelta(days=14)).isoformat(), now.isoformat())
         with _db(settings) as conn:
             midnight = datetime.combine(day, time(0), tzinfo=tz).timestamp()
+            played = grille_mod.with_published(conn, history, now.timestamp())
             plan = grille_mod.plan_day(
                 grille_mod.load_titres(conn), played, cfg, day, hours, midnight
             )
             errors = grille_mod.publish(plan, station)
+            grille_mod.record(conn, plan, midnight)
             _record(
                 conn,
                 "grille",

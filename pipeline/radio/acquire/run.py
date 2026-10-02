@@ -64,9 +64,10 @@ def pending(conn: sqlite3.Connection, cfg: AcquisitionConfig) -> Pending:
     ).fetchall()
     on_air: Counter[int] = Counter()
     rotating: set[int] = set()
+    # Un titre au repos revient au fond : il compte dans les deux titres de son artiste.
     for artist, categorie in conn.execute(
         "SELECT t.deezer_artist_id, n.categorie FROM antenne n JOIN tracks t USING "
-        "(deezer_track_id) WHERE n.categorie != 'repos'"
+        "(deezer_track_id)"
     ):
         on_air[int(artist)] += 1
         if categorie in ("nouveautes", "decouvertes"):
@@ -81,13 +82,11 @@ def pending(conn: sqlite3.Connection, cfg: AcquisitionConfig) -> Pending:
     tids: list[int] = []
     waiting = 0
     for tid, artist in rows:
-        if len(tids) == cfg.max_per_pass:
-            break
         if artist in rotating or on_air[artist] >= 2:
             waiting += 1
-            continue
-        rotating.add(int(artist))
-        tids.append(int(tid))
+        elif len(tids) < cfg.max_per_pass:
+            rotating.add(int(artist))
+            tids.append(int(tid))
     return Pending(tids, waiting)
 
 
