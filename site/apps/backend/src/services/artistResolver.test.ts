@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
+import { describe, it, expect, mock, spyOn, afterAll, beforeEach } from 'bun:test';
 import type { ArtistSearch } from './deezerService';
 import type { NowPlayingTrack } from './nowPlaying';
 
@@ -12,6 +12,7 @@ let searches = 0;
 const schema = await import('../db/schema');
 
 void mock.module('../db', () => ({
+  schema,
   db: {
     select: () => ({
       from: (table: unknown) => ({
@@ -33,16 +34,22 @@ void mock.module('../db', () => ({
   },
 }));
 
-void mock.module('./deezerService', () => ({
-  searchArtist: () => {
+// spyOn on the real exports, restored after this file: mock.module would
+// replace these modules for every other test file of the run (Bun 1.3).
+const deezer = await import('./deezerService');
+const onAir = await import('./nowPlaying');
+
+const spies = [
+  spyOn(deezer, 'searchArtist').mockImplementation(() => {
     searches += 1;
     return Promise.resolve(search);
-  },
-}));
+  }),
+  spyOn(onAir, 'fetchNowPlaying').mockImplementation(() => Promise.resolve(nowPlaying)),
+];
 
-void mock.module('./nowPlaying', () => ({
-  fetchNowPlaying: () => Promise.resolve(nowPlaying),
-}));
+afterAll(() => {
+  for (const spy of spies) spy.mockRestore();
+});
 
 const { normalizeArtistName, primaryArtistName, resolveArtist, slugify } =
   await import('./artistResolver');

@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, beforeEach } from 'bun:test';
+import { describe, it, expect, mock, spyOn, afterAll, beforeEach } from 'bun:test';
 
 interface ArtistRow {
   id: string;
@@ -22,7 +22,10 @@ let rows: ArtistRow[] = [baseRow];
 // Site pages of the similar artists, looked up by Deezer id.
 let pageRows: Array<{ id: string; slug: string; deezerId: string }> = [];
 
+const realSchema = await import('../db/schema');
+
 void mock.module('../db', () => ({
+  schema: realSchema,
   db: {
     select: () => ({
       from: () => ({
@@ -33,35 +36,42 @@ void mock.module('../db', () => ({
   },
 }));
 
-void mock.module('./deezerService', () => ({
-  getArtist: () =>
-    Promise.resolve({ id: '27', name: 'Daft Punk', picture: 'https://cdn.deezer.com/dp.jpg' }),
-  getRelatedArtists: () =>
-    Promise.resolve([{ id: '1', name: 'Justice', picture: 'https://cdn.deezer.com/j.jpg' }]),
-  getTopTracks: () =>
-    Promise.resolve([{ title: 'Around the World', link: 'https://deezer.com/track/1' }]),
-}));
+// spyOn on the real exports, restored after this file: mock.module would
+// replace these modules for every other test file of the run (Bun 1.3).
+const deezer = await import('./deezerService');
+const lastfm = await import('./lastfmService');
+const musicbrainz = await import('./musicbrainzService');
+const radioPlays = await import('./radioPlayService');
 
-void mock.module('./lastfmService', () => ({
-  getArtistInfo: () =>
-    Promise.resolve({
-      bio: 'Un duo français.',
-      tags: ['french house'],
-      similarArtists: [],
-      listeners: 4200,
-    }),
-}));
+const spies = [
+  spyOn(deezer, 'getArtist').mockResolvedValue({
+    id: '27',
+    name: 'Daft Punk',
+    picture: 'https://cdn.deezer.com/dp.jpg',
+  }),
+  spyOn(deezer, 'getRelatedArtists').mockResolvedValue([
+    { id: '1', name: 'Justice', picture: 'https://cdn.deezer.com/j.jpg' },
+  ]),
+  spyOn(deezer, 'getTopTracks').mockResolvedValue([
+    { title: 'Around the World', link: 'https://deezer.com/track/1' },
+  ]),
+  spyOn(lastfm, 'getArtistInfo').mockResolvedValue({
+    bio: 'Un duo français.',
+    tags: ['french house'],
+    similarArtists: [],
+    listeners: 4200,
+  }),
+  spyOn(musicbrainz, 'getArtistLinks').mockResolvedValue([
+    { platform: 'official', url: 'https://daftpunk.com' },
+  ]),
+  spyOn(radioPlays, 'getPlaysByArtist').mockResolvedValue([
+    { title: 'Around the World', artist: 'Daft Punk', playedAt: '2026-07-27T10:00:00.000Z' },
+  ]),
+];
 
-void mock.module('./musicbrainzService', () => ({
-  getArtistLinks: () => Promise.resolve([{ platform: 'official', url: 'https://daftpunk.com' }]),
-}));
-
-void mock.module('./radioPlayService', () => ({
-  getPlaysByArtist: () =>
-    Promise.resolve([
-      { title: 'Around the World', artist: 'Daft Punk', playedAt: '2026-07-27T10:00:00.000Z' },
-    ]),
-}));
+afterAll(() => {
+  for (const spy of spies) spy.mockRestore();
+});
 
 const { getArtistProfile } = await import('./artistProfileService');
 
