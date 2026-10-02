@@ -59,7 +59,7 @@ suivante reprend.
 | 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | en service |
 | 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | en service |
 | 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | en service |
-| 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | — | plus tard (§7.3) |
+| 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | Essentia (MusiCNN, DEAM, TempoCNN), AzuraCast | mesures faites, planificateur à venir (§7.3) |
 
 ### 3.1 Sources et nouveautés
 
@@ -295,8 +295,22 @@ Déjà décidé le 2026-09-23 :
 - la playlist « AubeSonore » devient alors le secours, puisque les playlists programmées passent
   devant.
 
-L'analyse nécessaire (tempo, énergie) et la comparaison avec AudioMuse-AI feront l'objet d'une
-étude à part.
+**Mesures par titre** (`radio mesures`, depuis le 2026-10-02 ;
+`recherches/2026-10-02-mesures-titres.md`). Chaque titre de la table `antenne`, au repos compris
+(il reviendra au fond), est mesuré une fois sur son fichier du dossier média d'AzuraCast
+(`AZURACAST_MEDIA_DIR`, lu, jamais écrit), dans la table `track_features` :
+
+- dansabilité (`danceability-msd-musicnn-1`), arousal et valence DEAM sur [1, 9]
+  (`deam-msd-musicnn-2`), sur un seul réseau d'embedding, MSD-MusiCNN ; l'arousal tient lieu
+  d'énergie ;
+- tempo par TempoCNN (`deeptemp-k16-3`), vote majoritaire ; au début et à la fin, les erreurs
+  d'octave (facteur 2 ou 3 à 4 % près) sont ramenées au tempo du titre ;
+- chaque valeur sur le titre entier, sur ses 30 premières et sur ses 30 dernières secondes : la
+  transition se joue entre la fin d'un titre et le début du suivant ;
+- ~17 s par titre sur un fil. Un fichier absent du dossier média est nommé, l'étape échoue, et
+  il est retenté à la passe suivante ; un audio illisible est noté `audio_failed`.
+- Modèles dans `models/`, à côté d'EffNet, épinglés par SHA-256 (MTG, CC BY-NC-SA 4.0 ;
+  TempoCNN, AGPL v3).
 
 ## 8. Observabilité
 
@@ -379,14 +393,15 @@ toutes les 24 h et un message de retour à la normale, sur deux canaux :
 
 | Quand | Unité systemd utilisateur | Ce qui se passe |
 |---|---|---|
-| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `nouveautes`, `signals`, `train`, `votes-select`, `acquire`, `antenne`, `check` ; bornée à 12 h, battement de cœur Gatus |
+| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `nouveautes`, `signals`, `train`, `votes-select`, `acquire`, `antenne`, `mesures`, `check` ; bornée à 12 h, battement de cœur Gatus |
 | chaque jour 04:30 | `radio-backup` | copie de `data/radio.db` (API de sauvegarde SQLite, `integrity_check` vérifié) et de `data/models/` dans `RADIO_BACKUP_DIR` (`/media/plex/.backups/radio`, autre disque physique), 14 jours gardés ; battement de cœur Gatus |
 | dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote |
 | en continu | `radio-votes` | page de vote, `127.0.0.1:8040`, publiée sur `votes.aubesonore.fr` |
 
 - État : `.venv/bin/radio report`.
 - Journaux : `journalctl --user -u radio-weekly`.
-- Un gros rattrapage de `signals` (environ 3 s par titre) se lance à la main, en `nice`.
+- Un gros rattrapage de `signals` (environ 3 s par titre) ou de `mesures` (environ 17 s par
+  titre) se lance à la main, en `nice`, jamais pendant `radio-weekly`.
 
 **Réglages.** Les secrets et les URL sont dans `.env` (modèle : `.env.example`, jamais commité),
 y compris `GATUS_TOKEN` pour le battement de cœur. Le reste est dans `config/editorial.toml`.

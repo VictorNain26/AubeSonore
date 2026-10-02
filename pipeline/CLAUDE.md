@@ -16,7 +16,8 @@ uv sync                                  # dépendances (.venv)
 .venv/bin/mypy                           # strict
 .venv/bin/radio --help                   # library-sync, discover, nouveautes, favoris, negatives-sync,
                                          # signals, train, votes-select, acquire, antenne,
-                                         # check, report, backup, votes-serve, votes-remind
+                                         # mesures, check, report, backup, votes-serve,
+                                         # votes-remind
 ```
 
 ## Invariants
