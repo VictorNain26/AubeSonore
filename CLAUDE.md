@@ -1,9 +1,9 @@
-# CLAUDE.md — AubeSonore (~/radio)
+# CLAUDE.md — AubeSonore (~/aubesonore)
 
 ## What this repository is
 
-One self-hosted webradio, AubeSonore, in a single repository cloned at `~/radio`
-(GitHub `VictorNain26/AubeSonore`, branch `master`). Four pieces live side by side on one machine:
+One self-hosted webradio, AubeSonore, in a single repository cloned at `~/aubesonore`
+(GitHub `VictorNain26/aubesonore`, branch `master`). Four pieces live side by side on one machine:
 
 | Directory    | Role                                        | Stack                          |
 | ------------ | ------------------------------------------- | ------------------------------ |
@@ -28,13 +28,13 @@ them all. `azuracast/RUNBOOK.md` covers rebuilding the whole system from nothing
 - **Hooks**: husky lives in `site/.husky` (`prepare` runs `cd .. && husky site/.husky`). The
   commit message is checked by commitlint (Conventional Commits, English) for every commit,
   whatever the piece; the pre-push gate of the site only runs when `site/` changed.
-- **Deploying is merging to `master`.** `aubesonore-deploy.timer` fast-forwards `~/radio`; it
+- **Deploying is merging to `master`.** `aubesonore-deploy.timer` fast-forwards `~/aubesonore`; it
   rebuilds the site containers only when `site/` changed, and never moves the tree while the
   radio's weekly pass (`radio-weekly.service`) runs, since that pass loads `pipeline/` code.
 - **Where to develop.** `site/` runs on any workstation clone (`site/README.md`: local Postgres,
   `pnpm dev`, the public station for now-playing). `pipeline/` and `musilogy/` need the server's
   data (Plex, AzuraCast, MusicBrainz dumps), so they are developed on the server, in a git
-  worktree next to the checkout. Never in `~/radio` itself: it is the production checkout.
+  worktree next to the checkout. Never in `~/aubesonore` itself: it is the production checkout.
 
 ## How the pieces fit together
 
@@ -64,8 +64,8 @@ AzuraCast is the hub. The other two never talk to each other.
 
 ## Documentation drifts faster than the system
 
-Several docs in these repos predate a migration (AzuraCast used to run on a remote host, and both
-repos moved under `~/radio`). Never trust a hostname, IP, port, or absolute path read from a
+Several docs in these repos predate a migration (AzuraCast used to run on a remote host, the
+pieces were separate repositories, and the checkout was `~/radio` until 2026-10-02). Never trust a hostname, IP, port, or absolute path read from a
 `.md` file or a script default. Confirm against the runtime before acting on it:
 
 ```bash

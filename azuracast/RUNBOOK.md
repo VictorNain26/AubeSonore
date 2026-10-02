@@ -30,7 +30,7 @@ vers un disque distinct ; sans elle, ce tableau reste la vérité.
 ## 1. AzuraCast
 
 ```bash
-cd ~/radio/azuracast
+cd ~/aubesonore/azuracast
 cp .env.example .env                  # ajuster les ports si la machine a changé
 # restaurer azuracast.env depuis la sauvegarde (il contient MYSQL_PASSWORD)
 # restaurer stations/ depuis la sauvegarde (média + config station)
@@ -52,7 +52,7 @@ Points à ne pas rejouer de travers :
 ## 2. Pipeline
 
 ```bash
-git clone <dépôt pipeline> ~/radio/pipeline && cd ~/radio/pipeline
+git clone <dépôt pipeline> ~/aubesonore/pipeline && cd ~/aubesonore/pipeline
 ./scripts/setup.sh                    # dépendances système + Python + modèles
 cp .env.example .env                  # y remettre la clé d'API AzuraCast régénérée
 python3 scripts/setup_playlists.py    # recrée les playlists de zones
@@ -65,8 +65,8 @@ qu'un cache, AzuraCast fait autorité sur ce qui existe réellement à l'antenne
 ## 3. Application web
 
 ```bash
-git clone https://github.com/VictorNain26/AubeSonore.git ~/radio   # dépôt unique : site/, pipeline/, azuracast/
-cd ~/radio/site
+git clone https://github.com/VictorNain26/aubesonore.git ~/aubesonore   # dépôt unique : site/, pipeline/, azuracast/
+cd ~/aubesonore/site
 cp .env.example .env                  # secrets d'auth, SMTP, VAPID, base
 docker compose up -d --build
 # installer les timers de déploiement et de sauvegarde (voir scripts/systemd/)
@@ -80,7 +80,7 @@ d'abord** — vérifier qu'il se lit avant de le passer sur la production.
 ```bash
 docker ps                                   # azuracast, aubesonore-{db,backend,frontend}
 systemctl --user list-timers                # 4 timers attendus, aucun doublon
-cd ~/radio/pipeline && python3 -m pytest tests/ -q
+cd ~/aubesonore/pipeline && python3 -m pytest tests/ -q
 ```
 
 Le vrai test de bout en bout reste un run de pipeline complet : il touche
