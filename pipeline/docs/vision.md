@@ -401,8 +401,9 @@ alerte (§8.2).
 
 ### 8.2 Gatus
 
-Gatus 5.37.0 est un conteneur dont la configuration YAML est versionnée dans `deploy/gatus/`. Il
-est le seul outil de surveillance. Tableau de bord sur `127.0.0.1:8050` (tunnel SSH). Chaîne
+Gatus 5.37.0 est un conteneur dont la configuration YAML est versionnée dans
+`deploy/gatus/config/`. Le dossier est monté, pas le fichier : Gatus recharge alors seul chaque
+version que le déploiement amène. Il est le seul outil de surveillance. Tableau de bord sur `127.0.0.1:8050` (tunnel SSH). Chaîne
 d'alerte testée de bout en bout le 2026-09-30. Il alerte après 3 échecs, avec un rappel au plus
 toutes les 24 h et un message de retour à la normale, sur deux canaux :
 

@@ -14,7 +14,10 @@ services:
       GATUS_TOKEN: ${GATUS_TOKEN}
       NTFY_TOPIC: ${NTFY_TOPIC}
     volumes:
-      - ./config.yaml:/config/config.yaml:ro
+      # Le dossier, pas le fichier : un fichier monté seul garde son ancien inode quand git le
+      # remplace, et Gatus ne voit plus ses mises à jour (README Gatus v5.37.0, « Reloading
+      # configuration on the fly », issue #151). Il a tourné le 2026-10-02 sans l'endpoint grille.
+      - ./config:/config:ro
       - gatus-data:/data
 
 volumes:
