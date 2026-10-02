@@ -1,4 +1,4 @@
-import { object, string, url, minLength, pipe, optional, check, type InferOutput } from 'valibot';
+import { object, string, url, minLength, pipe, optional, check } from 'valibot';
 
 // Whitelist YouTube domains. Anything else stored here would be served back
 // to the client as a clickable "play on YouTube" link — an open redirect vector.
@@ -30,11 +30,7 @@ export const likeTrackSchema = object({
   isrc: optional(string()),
 });
 
-export type LikeTrackData = InferOutput<typeof likeTrackSchema>;
-
 export const checkLikedSchema = object({
   title: pipe(string(), minLength(1, 'Titre requis')),
   artist: pipe(string(), minLength(1, 'Artiste requis')),
 });
-
-export type CheckLikedData = InferOutput<typeof checkLikedSchema>;

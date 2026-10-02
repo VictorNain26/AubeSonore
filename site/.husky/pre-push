@@ -11,6 +11,7 @@ if git rev-parse -q --verify origin/master >/dev/null && git diff --quiet origin
 fi
 pnpm turbo build --filter=@aubesonore/shared-types --filter=@aubesonore/core
 pnpm lint
+pnpm knip
 pnpm turbo typecheck
 pnpm --filter=@aubesonore/frontend check:contrast
 pnpm --filter=@aubesonore/frontend test --run

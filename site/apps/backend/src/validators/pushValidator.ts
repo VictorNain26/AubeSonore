@@ -1,4 +1,4 @@
-import { object, string, minLength, pipe, optional, url, check, type InferOutput } from 'valibot';
+import { object, string, minLength, pipe, optional, url, check } from 'valibot';
 
 const httpsUrl = pipe(
   string(),
@@ -14,8 +14,6 @@ export const subscribeSchema = object({
   }),
 });
 
-export type SubscribeData = InferOutput<typeof subscribeSchema>;
-
 // Same https-only guard as endpoint URLs: keeps the service worker from
 // being told to open javascript: / data: / file: URIs.
 const httpsTargetUrl = pipe(
@@ -30,10 +28,6 @@ export const sendPushSchema = object({
   url: optional(httpsTargetUrl),
 });
 
-export type SendPushData = InferOutput<typeof sendPushSchema>;
-
 export const unsubscribeSchema = object({
   endpoint: httpsUrl,
 });
-
-export type UnsubscribeData = InferOutput<typeof unsubscribeSchema>;

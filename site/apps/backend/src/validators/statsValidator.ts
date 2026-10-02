@@ -8,7 +8,6 @@ import {
   maxLength,
   nullable,
   pipe,
-  type InferOutput,
 } from 'valibot';
 
 // Client-accumulated listening history. Bounded so a crafted PUT can't inflate
@@ -28,5 +27,3 @@ export const statsSnapshotSchema = object({
   lastActiveDay: nullable(string()),
   dailyStreak: pipe(number(), integer(), minValue(0)),
 });
-
-export type StatsSnapshot = InferOutput<typeof statsSnapshotSchema>;

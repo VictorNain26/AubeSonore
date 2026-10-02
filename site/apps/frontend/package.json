@@ -14,8 +14,7 @@
     "check:contrast": "node scripts/check-contrast.mjs",
     "preview": "vite preview",
     "test": "vitest",
-    "clean": "rm -rf dist",
-    "knip": "knip"
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@aubesonore/core": "workspace:*",
@@ -47,7 +46,6 @@
     "@vitejs/plugin-react": "^6.0.2",
     "@vitest/coverage-v8": "^4.1.11",
     "jsdom": "^29.1.1",
-    "knip": "^6.39.0",
     "msw": "^2.14.6",
     "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "^4.3.0",
