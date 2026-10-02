@@ -59,7 +59,6 @@ def test_a_membership_is_no_lineage(tmp_path):
 
 BACH = "24f1766e-9635-4d58-a4d4-9413f9f98a4c"
 BEATLES = "b10bbbfc-cf9e-42e0-be17-e2c3e1d2600d"
-FLEETWOOD_MAC = "bd13909f-1c29-4c27-a874-d4aaf27c5b1a"
 
 
 def test_the_witnesses_carry_each_source_in_its_direction(con):
