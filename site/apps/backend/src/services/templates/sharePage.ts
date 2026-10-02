@@ -1,6 +1,6 @@
 import { PLATFORM_NAMES } from '@aubesonore/shared-types/client';
 import type { PreferredPlatform } from '@aubesonore/shared-types/client';
-import type { SonglinkResult } from '../songlinkService';
+import type { TrackLinks } from '../trackLinksService';
 import { env } from '../../config/env';
 
 export function escapeHtml(value: string): string {
@@ -51,7 +51,7 @@ interface SharePageInput {
   artist: string;
   /** Canonical URL of this share page, used for og:url. */
   shareUrl: string;
-  songlink: SonglinkResult | null;
+  songlink: TrackLinks | null;
   /** Copy language, picked from Accept-Language by the route. */
   locale?: ShareLocale;
 }

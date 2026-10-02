@@ -1,9 +1,8 @@
-import { afterAll, beforeEach, describe, expect, it, mock } from 'bun:test';
+import { afterAll, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test';
 import { createHash } from 'crypto';
 
 import type { LikedTrack, User } from '../db/schema';
 import * as realSchema from '../db/schema';
-import type { SonglinkResult } from './songlinkService';
 
 type Row = LikedTrack;
 
@@ -81,8 +80,10 @@ const fakeDb = {
 
 void mock.module('../db/index', () => ({ db: fakeDb, schema: realSchema }));
 
-const searchSonglinkMock = mock((): Promise<SonglinkResult | null> => Promise.resolve(null));
-void mock.module('./songlinkService', () => ({ searchSonglink: searchSonglinkMock }));
+// spyOn, not mock.module: Bun leaks a mocked module into the other test files
+// even with --isolate, and trackLinksService.test needs the real one.
+const trackLinks = await import('./trackLinksService');
+const findTrackLinksMock = spyOn(trackLinks, 'findTrackLinks').mockResolvedValue(null);
 
 const originalFetch = globalThis.fetch;
 const fetchMock = mock((): Promise<Response> => Promise.reject(new Error('no network in tests')));
@@ -105,7 +106,7 @@ const fakeUser: User = {
 };
 
 // enrichTrackInBackground is fire-and-forget from likeTrack; flush the
-// macrotask queue so its microtask chain (select → searchSonglink → update)
+// macrotask queue so its microtask chain (select → findTrackLinks → update)
 // has settled before assertions run.
 async function flushBackgroundWork(): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -113,18 +114,19 @@ async function flushBackgroundWork(): Promise<void> {
 
 beforeEach(() => {
   rows = [];
-  searchSonglinkMock.mockClear();
+  findTrackLinksMock.mockClear();
   fetchMock.mockClear();
 });
 
 afterAll(() => {
+  findTrackLinksMock.mockRestore();
   globalThis.fetch = originalFetch;
 });
 
 describe('likeTrack → background enrichment', () => {
   it('swaps the AzuraCast artwork for our own copy when Songlink has no match', async () => {
     const jpeg = Buffer.from([0xff, 0xd8, 0xff, 0xe0]);
-    searchSonglinkMock.mockResolvedValueOnce(null);
+    findTrackLinksMock.mockResolvedValueOnce(null);
     fetchMock.mockResolvedValueOnce(
       new Response(jpeg, { headers: { 'content-type': 'image/jpeg' } })
     );
@@ -145,7 +147,7 @@ describe('likeTrack → background enrichment', () => {
   });
 
   it('keeps the AzuraCast artwork when neither Songlink nor the copy succeeds', async () => {
-    searchSonglinkMock.mockResolvedValueOnce(null);
+    findTrackLinksMock.mockResolvedValueOnce(null);
 
     await likeTrack({
       user: fakeUser,
@@ -163,8 +165,8 @@ describe('likeTrack → background enrichment', () => {
   });
 
   it('uses the verified iTunes artwork directly when a Songlink match is found', async () => {
-    searchSonglinkMock.mockResolvedValueOnce({
-      pageUrl: 'https://song.link/abc',
+    findTrackLinksMock.mockResolvedValueOnce({
+      songlinkUrl: 'https://song.link/abc',
       platformLinks: { spotify: 'https://open.spotify.com/track/abc' },
       artworkUrl: 'https://apple-cdn.example.com/art/hd.jpg',
     });
@@ -187,8 +189,8 @@ describe('likeTrack → background enrichment', () => {
   });
 
   it('keeps the AzuraCast artwork when a match carries links but no iTunes cover', async () => {
-    searchSonglinkMock.mockResolvedValueOnce({
-      pageUrl: 'https://song.link/nocover',
+    findTrackLinksMock.mockResolvedValueOnce({
+      songlinkUrl: 'https://song.link/nocover',
       platformLinks: { spotify: 'https://open.spotify.com/track/nocover' },
     });
 
@@ -209,7 +211,7 @@ describe('likeTrack → background enrichment', () => {
   });
 
   it('leaves artwork_url untouched when there is no AzuraCast art and no Songlink match', async () => {
-    searchSonglinkMock.mockResolvedValueOnce(null);
+    findTrackLinksMock.mockResolvedValueOnce(null);
 
     await likeTrack({
       user: fakeUser,
@@ -236,8 +238,8 @@ describe('refreshTrackLinks', () => {
         userId: fakeUser.id,
       }),
     ];
-    searchSonglinkMock.mockResolvedValueOnce({
-      pageUrl: 'https://song.link/xyz',
+    findTrackLinksMock.mockResolvedValueOnce({
+      songlinkUrl: 'https://song.link/xyz',
       platformLinks: { spotify: 'https://open.spotify.com/track/xyz' },
       artworkUrl: 'https://apple-cdn.example.com/art/xyz.jpg',
     });
@@ -256,7 +258,7 @@ describe('refreshTrackLinks', () => {
         artworkUrl: 'https://azuracast.example.com/art/none.jpg',
       }),
     ];
-    searchSonglinkMock.mockResolvedValueOnce(null);
+    findTrackLinksMock.mockResolvedValueOnce(null);
 
     const result = await refreshTrackLinks({ user: fakeUser, id: 'track-3' });
 
@@ -276,8 +278,8 @@ describe('refreshAllLinks', () => {
         userId: fakeUser.id,
       }),
     ];
-    searchSonglinkMock.mockResolvedValueOnce({
-      pageUrl: 'https://song.link/batch',
+    findTrackLinksMock.mockResolvedValueOnce({
+      songlinkUrl: 'https://song.link/batch',
       platformLinks: { spotify: 'https://open.spotify.com/track/batch' },
       artworkUrl: 'https://apple-cdn.example.com/art/batch.jpg',
     });

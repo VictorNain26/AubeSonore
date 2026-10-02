@@ -4,7 +4,7 @@ import { securityHeaders } from '../lib/security/securityHeaders';
 import { artistRoutes } from './artist.routes';
 
 const { shareRoutes } = await import('./share.routes');
-const { songlinkCache, itunesCache } = await import('../services/songlinkService');
+const { linksCache, itunesCache } = await import('../services/trackLinksService');
 
 // Composed like index.ts so the global securityHeaders hook runs: the share
 // page must keep its own CSP while JSON routes keep `default-src 'none'`.
@@ -16,57 +16,41 @@ const originalFetch = globalThis.fetch;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
-  songlinkCache.dispose();
+  linksCache.dispose();
   itunesCache.dispose();
 });
 
-function mockSonglinkSuccess(): void {
+function mockPlatforms(): void {
   globalThis.fetch = ((url: string) => {
-    if (url.startsWith('https://itunes.apple.com/')) {
-      return Promise.resolve(
-        new Response(
-          JSON.stringify({
-            resultCount: 1,
-            results: [
-              {
-                trackViewUrl: 'https://music.apple.com/fr/song/balance-act/1',
-                trackName: 'Balance Act',
-                artistName: 'Psychic Lines',
-                artworkUrl100: 'https://is1-ssl.mzstatic.com/image/thumb/100x100bb.jpg',
-              },
-            ],
-          }),
-          { status: 200 }
-        )
-      );
-    }
-    return Promise.resolve(
-      new Response(
-        JSON.stringify({
-          entityUniqueId: 'e1',
-          userCountry: 'FR',
-          pageUrl: 'https://song.link/x',
-          linksByPlatform: {
-            spotify: { url: 'https://open.spotify.com/track/1', entityUniqueId: 'e1' },
-            deezer: { url: 'https://www.deezer.com/track/1', entityUniqueId: 'e1' },
+    const json = (body: unknown) => Promise.resolve(new Response(JSON.stringify(body)));
+    if (url.startsWith('https://itunes.apple.com/'))
+      return json({
+        results: [
+          {
+            trackViewUrl: 'https://music.apple.com/fr/song/balance-act/1',
+            trackName: 'Balance Act',
+            artistName: 'Psychic Lines',
+            artworkUrl100: 'https://is1-ssl.mzstatic.com/image/thumb/100x100bb.jpg',
           },
-          entitiesByUniqueId: {
-            e1: {
-              id: '1',
-              type: 'song',
-              title: 'Balance Act',
-              artistName: 'Psychic Lines',
-              thumbnailUrl: 'https://assets.song.link/cover.jpg',
-              thumbnailWidth: 1400,
-              thumbnailHeight: 1400,
-              apiProvider: 'spotify',
-              platforms: ['spotify'],
-            },
+        ],
+      });
+    if (url.startsWith('https://api.deezer.com/search'))
+      return json({
+        data: [
+          {
+            id: 1,
+            title: 'Balance Act',
+            link: 'https://www.deezer.com/track/1',
+            artist: { name: 'Psychic Lines' },
           },
-        }),
-        { status: 200 }
-      )
-    );
+        ],
+      });
+    if (url.startsWith('https://api.deezer.com/track/')) return json({ isrc: 'FR0000000001' });
+    if (url.startsWith('https://accounts.spotify.com/'))
+      return json({ access_token: 't', expires_in: 3600 });
+    return json({
+      tracks: { items: [{ external_urls: { spotify: 'https://open.spotify.com/track/1' } }] },
+    });
   }) as unknown as typeof fetch;
 }
 
@@ -78,7 +62,7 @@ describe('GET /t', () => {
   });
 
   it('renders an HTML page with title, artist and OG meta', async () => {
-    mockSonglinkSuccess();
+    mockPlatforms();
 
     const res = await app.handle(
       new Request('http://localhost/t?title=Balance%20Act&artist=Psychic%20Lines')
@@ -91,12 +75,12 @@ describe('GET /t', () => {
     expect(html).toContain('<h1>Balance Act</h1>');
     expect(html).toContain('Psychic Lines');
     expect(html).toContain('content="« Balance Act — Psychic Lines »"');
-    expect(html).toContain('https://assets.song.link/cover.jpg');
+    expect(html).toContain('https://is1-ssl.mzstatic.com/image/thumb/600x600bb.jpg');
     expect(html).toContain('Écouter sur Spotify');
   });
 
   it('escapes HTML in title and artist', async () => {
-    mockSonglinkSuccess();
+    mockPlatforms();
 
     const xssTitle = '<script>alert(1)</script>';
     const res = await app.handle(
@@ -126,7 +110,7 @@ describe('GET /t', () => {
   });
 
   it('serves the page CSP instead of the API default', async () => {
-    mockSonglinkSuccess();
+    mockPlatforms();
 
     const res = await app.handle(
       new Request('http://localhost/t?title=Balance%20Act&artist=Psychic%20Lines')
@@ -145,7 +129,7 @@ describe('GET /t', () => {
   });
 
   it('serves English copy for an English Accept-Language', async () => {
-    mockSonglinkSuccess();
+    mockPlatforms();
 
     const res = await app.handle(
       new Request('http://localhost/t?title=Balance%20Act&artist=Psychic%20Lines', {
@@ -162,7 +146,7 @@ describe('GET /t', () => {
   });
 
   it('serves French copy for French or missing Accept-Language', async () => {
-    mockSonglinkSuccess();
+    mockPlatforms();
 
     const french = await app.handle(
       new Request('http://localhost/t?title=Balance%20Act&artist=Psychic%20Lines', {

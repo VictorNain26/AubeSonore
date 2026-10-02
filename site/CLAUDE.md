@@ -82,7 +82,8 @@ The artist profile (`GET /api/artist/:id`, document route `/artist/:id/:slug`) c
 ## Performance landmarks
 
 - `refreshAllLinks` runs in parallel chunks of 5 with a 500ms inter-chunk delay. Don't revert to per-track sleeps.
-- `searchSonglink` and `searchItunes` are memoized in `lib/cache/ttlCache` with 7-day TTL. Multi-instance deployments will need Redis.
+- `findTrackLinks` and `searchItunes` (`services/trackLinksService.ts`) are memoized in `lib/cache/ttlCache` with 7-day TTL; a result cut short by a failed lookup is not cached. Multi-instance deployments will need Redis.
+- Track links come from each platform's API (iTunes, Deezer, Spotify by ISRC): Odesli closed its keyless API on 2026-07-31. Spotify search needs the app owner to hold Premium (development mode, since February 2026), otherwise it answers 403 and the other links still land.
 - `pushService.sendToAll` chunks of 50 in parallel + auto-prunes 410/404 subscriptions.
 
 ## What NOT to do

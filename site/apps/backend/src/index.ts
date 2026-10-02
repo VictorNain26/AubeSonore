@@ -16,7 +16,7 @@ import { trendsRoutes } from './routes/trends.routes';
 import { radioRoutes } from './routes/radio.routes';
 import { shareRoutes } from './routes/share.routes';
 import { coversRoutes } from './routes/covers.routes';
-import { songlinkCache, itunesCache } from './services/songlinkService';
+import { linksCache, itunesCache } from './services/trackLinksService';
 import { lastfmCache } from './services/lastfmService';
 import { deezerCache } from './services/deezerService';
 import { musicbrainzCache } from './services/musicbrainzService';
@@ -36,7 +36,7 @@ try {
 }
 
 // Start TTL cache sweeps (every minute, unref'd so process can exit)
-songlinkCache.startSweep();
+linksCache.startSweep();
 itunesCache.startSweep();
 lastfmCache.startSweep();
 radioHistoryCache.startSweep();
@@ -141,7 +141,7 @@ async function gracefulShutdown(signal: string): Promise<void> {
     logger.error('server.stop failed', { err: (err as Error).message });
   }
 
-  songlinkCache.dispose();
+  linksCache.dispose();
   itunesCache.dispose();
   lastfmCache.dispose();
   radioHistoryCache.dispose();

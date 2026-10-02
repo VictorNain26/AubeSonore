@@ -2,7 +2,7 @@ import { db, schema } from '../db/index';
 import { eq, and, desc } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import type { User, LikedTrack } from '../db/schema';
-import { searchSonglink } from './songlinkService';
+import { findTrackLinks } from './trackLinksService';
 import { keepCover } from './coverService';
 
 // Hard cap on the liked-tracks listing payload. Power users with thousands
@@ -91,7 +91,7 @@ async function enrichTrackInBackground(
     .where(eq(schema.likedTracks.id, trackId))
     .limit(1);
 
-  const songlinkData = await searchSonglink(title, artist);
+  const songlinkData = await findTrackLinks(title, artist);
 
   // Prefer the artist-verified iTunes cover when Songlink found one, else
   // our own copy of the AzuraCast art, which dies with its media.
@@ -103,7 +103,7 @@ async function enrichTrackInBackground(
 
   const update: Partial<LikedTrack> = {};
   if (songlinkData) {
-    update.songlinkUrl = songlinkData.pageUrl ?? null;
+    update.songlinkUrl = songlinkData.songlinkUrl ?? null;
     update.platformLinks = songlinkData.platformLinks;
   }
   if (nextArt) update.artworkUrl = nextArt;
@@ -255,7 +255,7 @@ export async function refreshAllLinks({
     const chunk = tracks.slice(i, i + REFRESH_CHUNK_SIZE);
     const results = await Promise.allSettled(
       chunk.map(async (track) => {
-        const songlinkData = await searchSonglink(track.title, track.artist);
+        const songlinkData = await findTrackLinks(track.title, track.artist);
         if (!songlinkData) return false;
         const verifiedArt = songlinkData.artworkUrl ?? null;
         const existingAzuracastUrl = track.artworkUrl ?? null;
@@ -263,7 +263,7 @@ export async function refreshAllLinks({
         await db
           .update(schema.likedTracks)
           .set({
-            songlinkUrl: songlinkData.pageUrl ?? null,
+            songlinkUrl: songlinkData.songlinkUrl ?? null,
             platformLinks: songlinkData.platformLinks,
             ...(nextArt ? { artworkUrl: nextArt } : {}),
           })
@@ -307,7 +307,7 @@ export async function refreshTrackLinks({
     return { status: 404, error: 'Morceau non trouvé' };
   }
 
-  const songlinkData = await searchSonglink(track.title, track.artist);
+  const songlinkData = await findTrackLinks(track.title, track.artist);
   if (!songlinkData) {
     return { status: 400, error: 'Impossible de récupérer les liens pour ce morceau' };
   }
@@ -322,7 +322,7 @@ export async function refreshTrackLinks({
   const [updatedTrack] = await db
     .update(schema.likedTracks)
     .set({
-      songlinkUrl: songlinkData.pageUrl ?? null,
+      songlinkUrl: songlinkData.songlinkUrl ?? null,
       platformLinks: songlinkData.platformLinks,
       ...(nextArt ? { artworkUrl: nextArt } : {}),
     })
