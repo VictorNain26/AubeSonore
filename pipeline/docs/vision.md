@@ -290,10 +290,10 @@ Justification : `recherches/…-observabilite.md` §3.
   (`MediaProcessor::processAndUpload`, `findByPath`).
 
 **Bascule, faite le 2026-10-01** par appels directs, sans attendre 400 titres puisque la radio
-n'avait pas encore d'auditeurs : sauvegarde des 8 anciennes playlists et de la liste des médias
-dans `~/aubesonore/archives/*-avant-bascule-2026-10-01.json`, création de la playlist « AubeSonore »
-(id 10) rattachée à `antenne/`, désactivation des 8 anciennes, suppression des 369 anciens
-titres. Les playlists se réactivent depuis la sauvegarde ; les fichiers supprimés sont perdus.
+n'avait pas encore d'auditeurs : création de la playlist « AubeSonore » (id 10) rattachée à
+`antenne/`, désactivation des 8 anciennes, suppression des 369 anciens titres. Pas de retour
+arrière : les fichiers supprimés sont perdus et la sauvegarde JSON des anciennes playlists n'est
+plus conservée.
 
 ### 7.3 Enchaînement et grille
 
