@@ -74,6 +74,7 @@ class Plan:
     slots: dict[str, int] = field(default_factory=dict)
     empty_slots: int = 0
     unmeasured: int = 0
+    late: int = 0
 
 
 def load_titres(conn: sqlite3.Connection) -> list[Titre]:
@@ -151,8 +152,11 @@ def plan_day(
     grille: GrilleConfig,
     day: date,
     hours: list[int],
+    midnight: float,
     previous: Titre | None = None,
 ) -> Plan:
+    """`midnight` : minuit du jour, horodatage UNIX dans le fuseau de la station ; `last_played`
+    : dernier passage de chaque titre (song_id), même horloge."""
     plan = Plan(day, {h: [] for h in hours}, unmeasured=sum(not t.measured for t in titres))
     weights = {c: w for c, w in shares(titres, grille).items() if w > 0}
     if not weights or not hours:
@@ -160,33 +164,40 @@ def plan_day(
     per_hour = math.ceil(grille.titres_par_heure) + 1
     hour_slots = slot_sequence(weights, per_hour)
     iso = day.isoweekday()
-    # Rotation : dernier passage connu, puis chaque titre placé passe derrière tous les autres.
-    clock = {t.tid: last_played.get(t.song_id, -math.inf) for t in titres}
-    tick = max([v for v in clock.values() if v != -math.inf], default=0.0)
+    # Rotation : dernier passage connu, puis chaque titre placé prend l'heure de son créneau.
+    clock: dict[int, float | None] = {t.tid: last_played.get(t.song_id) for t in titres}
     by_cat = {c: [t for t in titres if t.categorie == c] for c in weights}
-    window = {
-        c: max(1, math.ceil(weights[c] * per_hour * 24 * (grille.marge - 1))) for c in weights
-    }
+    per_day = {c: weights[c] * per_hour * 24 for c in weights}
+    window = {c: max(1, math.ceil(per_day[c] * (grille.marge - 1))) for c in weights}
+    # Retard d'un titre : temps depuis son dernier passage, en tours de sa catégorie (le temps
+    # qu'il faut pour la jouer en entier). La rotation prime sur l'ambiance : sans limite, ce
+    # retard finit toujours par l'emporter sur l'écart à la cible, même pour un titre loin de
+    # toutes les heures. Un titre jamais joué compte deux tours de retard.
+    turn = {c: len(by_cat[c]) / per_day[c] * 86400 for c in weights}
+
+    def overdue(t: Titre, now: float) -> float:
+        last = clock[t.tid]
+        return 2.0 if last is None else (now - last) / turn[t.categorie]
+
+    # Un titre pas joué depuis plus de deux tours : la rotation ne tient pas, à surveiller.
+    plan.late = sum(overdue(t, midnight) > 2 for c in weights for t in by_cat[c])
+
     recent: list[set[int]] = [set(), set()]
     for h in hours:
         target = _target(grille, iso, h)
         recent = [recent[1], set()]
-        for c in hour_slots:
-            rotation = sorted(by_cat[c], key=lambda t: (clock[t.tid], t.tid))
+        for k, c in enumerate(hour_slots):
+            now = midnight + h * 3600 + k * 3600 / per_hour
+            rotation = sorted(by_cat[c], key=lambda t: (clock[t.tid] or -math.inf, t.tid))
             eligible = [t for t in rotation if t.artist not in recent[0] | recent[1]][: window[c]]
             if not eligible:
                 plan.empty_slots += 1
                 continue
-            best = min(
-                range(len(eligible)),
-                key=lambda i: (
-                    float(np.linalg.norm(eligible[i].q - target))
-                    + grille.retard * i / len(eligible)
-                ),
+            t = min(
+                eligible,
+                key=lambda t: float(np.linalg.norm(t.q - target)) - grille.retard * overdue(t, now),
             )
-            t = eligible[best]
-            tick += 1
-            clock[t.tid] = tick
+            clock[t.tid] = now
             recent[1].add(t.artist)
             plan.hours[h].append(t)
             plan.slots[c] = plan.slots.get(c, 0) + 1
