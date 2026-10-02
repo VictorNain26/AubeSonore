@@ -52,7 +52,9 @@ pnpm install
 cp apps/backend/.env.example apps/backend/.env
 cp apps/frontend/.env.example apps/frontend/.env
 
-# PostgreSQL local (option Docker)
+# PostgreSQL local (option Docker), sur 127.0.0.1:5432
+# Port déjà pris : POSTGRES_DEV_PORT=5433 docker compose -f docker-compose.dev.yml up -d,
+# et le même port dans DATABASE_URL (apps/backend/.env)
 docker compose -f docker-compose.dev.yml up -d
 
 # Appliquer le schéma

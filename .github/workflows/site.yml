@@ -26,10 +26,6 @@ defaults:
   run:
     working-directory: site
 
-env:
-  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
-
 jobs:
   quality:
     name: Quality (lint, typecheck, test, audit)
