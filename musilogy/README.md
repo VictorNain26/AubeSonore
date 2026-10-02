@@ -1,6 +1,6 @@
 # musilogy
 
-Couche 0 : transforme deux dumps JSON MusicBrainz en six tables reproductibles et testées, publiées en Parquet et en JSON gzippé. La couche 1, l'interface, n'existe pas encore : elle sera construite sur des briques standard qui lisent ces formats, sans format binaire maison.
+Couche 0 : transforme deux dumps JSON MusicBrainz et un relevé ListenBrainz en sept tables reproductibles et testées, publiées en Parquet. La couche 1 est la frise d'AubeSonore (`site/`) : elle lit ces tables après leur import dans la base du site, jamais musilogy à l'exécution — conception dans `docs/superpowers/specs/2026-10-02-frieze-lineage-design.md`.
 
 ## Principe directeur
 
@@ -98,24 +98,17 @@ Le coût mesuré de la règle est un faux positif, `mincecore` (73,1 % sur 216 c
 
 ## Ce que reçoit la couche 1
 
-`data/out/<dump>/` contient les sept tables en Parquet (archive complète), le manifeste, et un export JSON colonnaire gzippé **scindé** :
+`data/out/<dump>/` contient les sept tables en Parquet et le manifeste.
 
-- `web/artists_timeline.json.gz` — les artistes dont `y0` est connu, donc plaçables sur une frise (41,3 Mo) ;
-- `web/artists_rest.json.gz` — les autres, chargeables à la demande (56,2 Mo) ;
-- `web/genres.json.gz` — le vocabulaire, avec `density_eligible`, `n_candidate_credits` et `multi_artist_drop_pct` ;
-- `web/density.json.gz` — l'agrégat par genre et par année.
-
-`density` est publié plutôt que laissé à recalculer, et `density_eligible` voyage désormais avec le vocabulaire comme une colonne à part entière — la règle elle-même, pas seulement les deux mesures qui la motivent, elles aussi publiées à côté pour qui veut l'auditer plutôt que la croire sur parole. Un consommateur n'a donc plus de seuil à coder en dur : sans cette colonne, reconstruire la densité depuis les seuls artefacts web donne 59 778 cellules au lieu de 58 767 — les 1 011 cellules des treize genres que la couche 0 refuse délibérément de publier. Réimplémenter une règle, c'est là qu'elle se perd.
+`density` est publié plutôt que laissé à recalculer, et `density_eligible` voyage avec le vocabulaire comme une colonne à part entière — la règle elle-même, pas seulement les deux mesures qui la motivent, elles aussi publiées à côté pour qui veut l'auditer plutôt que la croire sur parole. Un consommateur n'a donc aucun seuil à coder en dur : sans cette colonne, reconstruire la densité depuis `artists` et `genres` donne 59 778 cellules au lieu de 58 767 — les 1 011 cellules des treize genres que la couche 0 refuse délibérément de publier. Réimplémenter une règle, c'est là qu'elle se perd.
 
 Chaque ligne porte son `mbid` — la clé de jointure vers `albums`, `links` et MusicBrainz — ses `genres`, et les deux bords avec leurs preuves brutes des deux côtés.
 
 **Attention à `y_presence_end` quand la fin est inconnue.** La colonne vaut alors `y0` : le groupe se réduit à une barre d'un an. Cela concerne **53 761 groupes sur les 175 403 de type `Group` datés et porteurs d'un genre, soit 30,6 %**, dont 9 850 qui ne sont pas terminés et n'ont aucune preuve de fin. Sur ces 175 403, **174 516 alimentent effectivement une cellule** de `density` ; les 887 autres ne portent que des genres exclus. Un groupe formé en 2026 est donc un point, pas une barre ouverte. Pour rendre cela honnêtement, la couche 1 doit lire `ended` et `y_end_source` plutôt que `y_presence_end` seul : c'est le rendu faux le plus probable d'une première intégration.
 
-**Deux sujets restent ouverts pour la couche 1.** Le poids : 41,3 Mo gzip pour `artists_timeline` et 56,2 Mo pour `artists_rest` ; un chargement initial complet n'est pas réaliste sur mobile, et le format de lecture lui revient. Et l'absence de hiérarchie : les 1 729 genres sont **plats**, sans regroupement possible, faute de source fiable — parcourir cette liste à la main n'est pas une interface.
+`manifest.json` porte les empreintes des archives, la date et l'empreinte du relevé ListenBrainz (`popularity`), **les empreintes des sept fichiers Parquet livrés** (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les sept compteurs de neutralisation, les exclusions de densité et de liens, le commit et l'empreinte des corrections.
 
-`manifest.json` porte les empreintes des archives, la date et l'empreinte du relevé ListenBrainz (`popularity`), **les empreintes des onze fichiers livrés** — sept Parquet, quatre `.json.gz` — (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les sept compteurs de neutralisation, les exclusions de densité et de liens, le commit et l'empreinte des corrections.
-
-Ces empreintes de sortie sont opposables parce que la livraison est reproductible : à dump et code identiques, deux exécutions écrivent les mêmes octets. L'ordre des lignes est fixé par une clé totale sur chaque table et le gzip ne porte pas d'horodatage. Un consommateur distingue donc une livraison inchangée d'une nouvelle par sa seule empreinte, sans retélécharger.
+Ces empreintes de sortie sont opposables parce que la livraison est reproductible : à dump et code identiques, deux exécutions écrivent les mêmes octets. L'ordre des lignes est fixé par une clé totale sur chaque table. Un consommateur distingue donc une livraison inchangée d'une nouvelle par sa seule empreinte, sans retélécharger.
 
 ## Chiffres de référence
 
@@ -178,7 +171,7 @@ src/musilogy/
   fetch.py               télécharge et vérifie une archive MusicBrainz (SHA-256), relève ListenBrainz
   extract.py             projette les enregistrements bruts en flux, sans logique métier
   build.py               enchaîne les fichiers SQL, applique les corrections, vérifie les invariants
-  publish.py             écrit Parquet, JSON colonnaire scindé et manifest.json
+  publish.py             écrit les Parquet et manifest.json
   cli.py                 les quatre commandes
   artist.py              lit la filiation et les contemporains d'un artiste dans les tables publiées
   paths.py               chemins ancrés sur le paquet
