@@ -36,9 +36,7 @@ const spies = [
   ),
   spyOn(lastfm, 'getArtistInfo').mockImplementation((name: string) =>
     Promise.resolve(
-      name === 'Daft Punk'
-        ? { bio: 'Un duo.', tags: [], similarArtists: [], listeners: null }
-        : null
+      name === 'Daft Punk' ? { bio: 'Un duo.', tags: [], similarArtists: [], listeners: 0 } : null
     )
   ),
 ];
