@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { server } from '../mocks/server';
@@ -34,9 +34,14 @@ function historyEntry(sh_id: number, playedAt: number): SongEntry {
 
 beforeEach(() => {
   __resetNowPlayingStore();
+  // Noon: entries a few minutes old stay "today" (just after midnight they
+  // fell on the day before and the test failed). Only Date is faked: the
+  // fetch and waitFor timers keep running.
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 9, 2, 12, 0) });
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   __resetNowPlayingStore();
 });
 
