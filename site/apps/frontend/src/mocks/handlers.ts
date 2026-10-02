@@ -1,3 +1,4 @@
+import type { ArtistProfile } from '@aubesonore/shared-types/client';
 import { http, HttpResponse } from 'msw';
 
 const API = 'http://localhost:3000';
@@ -51,17 +52,16 @@ export const handlers = [
     HttpResponse.json({ preferences: { id: 'p1', userId: 'u1', preferredPlatform: 'spotify' } })
   ),
 
-  // Artist info
-  http.get(`${API}/api/artist`, ({ request }) => {
-    const url = new URL(request.url);
-    const name = url.searchParams.get('name');
+  // Artist pages: every name resolves except "Unknown", which the antenna never played.
+  http.get(`${API}/api/artist/resolve`, ({ request }) => {
+    const name = new URL(request.url).searchParams.get('name') ?? '';
     if (name === 'Unknown') return new HttpResponse(null, { status: 404 });
-    return HttpResponse.json({
-      bio: `Bio for ${name ?? 'unknown'}`,
-      tags: ['rock', 'indie'],
-      similarArtists: ['Artist A', 'Artist B'],
-      listeners: 12345,
-    });
+    return HttpResponse.json({ id: 'a-1', slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') });
+  }),
+
+  http.get(`${API}/api/artist/:id`, ({ params }) => {
+    if (params.id !== 'a-1') return new HttpResponse(null, { status: 404 });
+    return HttpResponse.json(makeArtistProfile());
   }),
 
   // AzuraCast static fallback
@@ -121,5 +121,25 @@ export function makeNowPlaying() {
     playing_next: null,
     song_history: [],
     is_online: true,
+  };
+}
+
+export function makeArtistProfile(overrides: Partial<ArtistProfile> = {}): ArtistProfile {
+  return {
+    id: 'a-1',
+    name: 'Hania Rani',
+    slug: 'hania-rani',
+    image: null,
+    bio: null,
+    tags: ['modern classical', 'piano'],
+    listeners: null,
+    similar: [],
+    topTracks: [],
+    links: [],
+    playedOnRadio: [
+      { title: 'F Major', artist: 'Hania Rani', playedAt: '2026-10-01T05:12:00.000Z' },
+    ],
+    resolved: true,
+    ...overrides,
   };
 }

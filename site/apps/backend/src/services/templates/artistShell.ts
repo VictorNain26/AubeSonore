@@ -28,12 +28,15 @@ function truncate(value: string, max: number): string {
 export function renderArtistShell(
   shell: string,
   profile: ArtistProfile,
-  pageUrl: string
+  pageUrl: string,
+  locale: 'fr' | 'en' = 'fr'
 ): Promise<string> {
   const title = `${profile.name} — AubeSonore`;
   const description = profile.bio
     ? truncate(profile.bio, OG_DESCRIPTION_MAX)
-    : `${profile.name}, passé sur AubeSonore, radio de découverte musicale.`;
+    : locale === 'en'
+      ? `${profile.name}, played on AubeSonore, a music discovery radio.`
+      : `${profile.name}, passé sur AubeSonore, radio de découverte musicale.`;
   const image = isAllowedImage(profile.image) ? profile.image : null;
 
   const content: Record<string, string> = {
@@ -43,6 +46,8 @@ export function renderArtistShell(
     'meta[property="og:url"]': pageUrl,
     'meta[name="twitter:title"]': title,
     'meta[name="twitter:description"]': description,
+    // The same values as the pre-rendered home pages (scripts/prerender.mjs).
+    'meta[property="og:locale"]': locale === 'en' ? 'en_GB' : 'fr_FR',
   };
   if (image) {
     content['meta[property="og:image"]'] = image;
@@ -54,6 +59,11 @@ export function renderArtistShell(
   // through (measured on Bun 1.3.14), so `&` is encoded first: a name cannot
   // leave its attribute, and "AT&amp;T" is not decoded by the browser.
   let rewriter = new HTMLRewriter()
+    .on('html', {
+      element(element) {
+        element.setAttribute('lang', locale);
+      },
+    })
     .on('title', {
       element(element) {
         element.setInnerContent(title);

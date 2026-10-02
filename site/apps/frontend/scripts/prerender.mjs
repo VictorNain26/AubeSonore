@@ -103,4 +103,10 @@ await write(
   { siblings: home, noindex: true, hydrate: false }
 );
 
+// Artist pages are not pre-rendered: the backend reads this empty shell from
+// the container and rewrites its head tags per artist (artistPage.routes.ts),
+// then the client renders the page.
+await writeFile('dist/app.html', replaceOrFail(template, stylesheet[0], head));
+console.log('wrote dist/app.html');
+
 await rm('dist-ssr', { recursive: true, force: true });

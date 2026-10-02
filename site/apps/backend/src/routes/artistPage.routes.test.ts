@@ -21,6 +21,7 @@ const SHELL = `<!doctype html><html lang="fr"><head>
 <meta name="twitter:title" content="home title" />
 <meta name="twitter:description" content="home description" />
 <meta name="twitter:image" content="https://aubesonore.fr/og-fr.png" />
+<meta property="og:locale" content="fr_FR" />
 </head><body><div id="root"></div></body></html>`;
 
 let profileName = 'Daft Punk';
@@ -163,6 +164,18 @@ describe('GET /artist/:id', () => {
     const res = await app.handle(new Request('http://localhost/artist/not-a-uuid'));
 
     expect(res.status).toBe(400);
+  });
+
+  it('serves the English page under /en/ with its own url, language and fallback text', async () => {
+    mockShell();
+    profileImage = null;
+
+    const res = await app.handle(new Request(`http://localhost/en/artist/${VALID_ID}/daft-punk`));
+
+    const html = await res.text();
+    expect(html).toContain('<html lang="en">');
+    expect(html).toContain(`href="${env.FRONTEND_BASE_URL}/en/artist/${VALID_ID}/daft-punk"`);
+    expect(html).toContain('<meta property="og:locale" content="en_GB" />');
   });
 
   it('answers 404 with the untouched shell when the artist is unknown', async () => {

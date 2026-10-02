@@ -1,5 +1,6 @@
 import { StrictMode, type ReactElement } from 'react';
 import { prerenderToNodeStream } from 'react-dom/static';
+import { StaticRouter } from 'react-router';
 import { overwriteGetLocale, type Locale } from './paraglide/runtime.js';
 import * as m from './paraglide/messages.js';
 import { useLocaleStore } from './stores/localeStore';
@@ -18,7 +19,11 @@ async function toHtml(element: ReactElement): Promise<string> {
 export function pageHtml(locale: Locale): Promise<string> {
   overwriteGetLocale(() => locale);
   useLocaleStore.setState({ locale });
-  return toHtml(<App />);
+  return toHtml(
+    <StaticRouter location={locale === 'en' ? '/en/' : '/'}>
+      <App />
+    </StaticRouter>
+  );
 }
 
 /** Pages served as plain HTML, never hydrated. */

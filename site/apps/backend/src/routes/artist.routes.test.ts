@@ -8,7 +8,6 @@ const UNKNOWN_ID = '22222222-2222-2222-2222-222222222222';
 // replace these modules for every other test file of the run (Bun 1.3).
 const profileService = await import('../services/artistProfileService');
 const resolver = await import('../services/artistResolver');
-const lastfm = await import('../services/lastfmService');
 
 const spies = [
   spyOn(profileService, 'getArtistProfile').mockImplementation((id: string) =>
@@ -33,11 +32,6 @@ const spies = [
   ),
   spyOn(resolver, 'resolveArtist').mockImplementation((name: string) =>
     Promise.resolve(name === 'Daft Punk' ? { id: VALID_ID, slug: 'daft-punk' } : null)
-  ),
-  spyOn(lastfm, 'getArtistInfo').mockImplementation((name: string) =>
-    Promise.resolve(
-      name === 'Daft Punk' ? { bio: 'Un duo.', tags: [], similarArtists: [], listeners: 0 } : null
-    )
   ),
 ];
 
@@ -109,27 +103,6 @@ describe('GET /api/artist/resolve', () => {
     const res = await app.handle(
       new Request('http://localhost/api/artist/resolve?name=Nobody%20At%20All')
     );
-
-    expect(res.status).toBe(404);
-  });
-});
-
-describe('GET /api/artist?name=', () => {
-  it('keeps serving the by-name lookup of the home page', async () => {
-    const res = await app.handle(new Request('http://localhost/api/artist?name=Daft%20Punk'));
-
-    expect(res.status).toBe(200);
-    expect(((await res.json()) as { bio: string }).bio).toBe('Un duo.');
-  });
-
-  it('returns 400 without a name', async () => {
-    const res = await app.handle(new Request('http://localhost/api/artist/'));
-
-    expect(res.status).toBe(400);
-  });
-
-  it('returns 404 for an artist Last.fm does not know', async () => {
-    const res = await app.handle(new Request('http://localhost/api/artist?name=Nobody'));
 
     expect(res.status).toBe(404);
   });

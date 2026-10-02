@@ -44,13 +44,15 @@ export function __resetArtistShell(): void {
   shell = null;
 }
 
+type Locale = 'fr' | 'en';
+
 interface HandlerContext {
   request: Request;
   params: { id: string };
   set: { status?: number | string; headers: Record<string, string | number> };
 }
 
-async function handle({ request, params, set }: HandlerContext): Promise<string> {
+async function handle(locale: Locale, { request, params, set }: HandlerContext): Promise<string> {
   const ip = getClientIp(request.headers);
   if (!checkRate('artistPage', ip, PAGE_LIMIT, PAGE_WINDOW_MS)) {
     set.status = 429;
@@ -82,10 +84,16 @@ async function handle({ request, params, set }: HandlerContext): Promise<string>
     return html;
   }
 
-  const pageUrl = `${env.FRONTEND_BASE_URL}/artist/${profile.id}/${profile.slug}`;
-  return renderArtistShell(html, profile, pageUrl);
+  const prefix = locale === 'en' ? '/en' : '';
+  const pageUrl = `${env.FRONTEND_BASE_URL}${prefix}/artist/${profile.id}/${profile.slug}`;
+  return renderArtistShell(html, profile, pageUrl, locale);
 }
 
+const fr = (context: HandlerContext) => handle('fr', context);
+const en = (context: HandlerContext) => handle('en', context);
+
 export const artistPageRoutes = new Elysia()
-  .get('/artist/:id', handle)
-  .get('/artist/:id/:slug', handle);
+  .get('/artist/:id', fr)
+  .get('/artist/:id/:slug', fr)
+  .get('/en/artist/:id', en)
+  .get('/en/artist/:id/:slug', en);

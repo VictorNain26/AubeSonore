@@ -1,12 +1,9 @@
 import { ErrorBoundary } from 'react-error-boundary';
-import { PlayerSideEffects } from '../components/Player/PlayerSideEffects';
-import { ArtistContext } from '../components/Player/ArtistContext';
 import { PlayerErrorFallback } from '../design/organisms/ErrorFallback';
 import { Hero } from '../home/Hero';
 import { SinceDawn } from '../home/SinceDawn';
 import { MostKept } from '../home/MostKept';
 import { SiteFooter } from '../home/SiteFooter';
-import { PlayerBar } from '../home/PlayerBar';
 
 export default function HomePage() {
   return (
@@ -21,9 +18,6 @@ export default function HomePage() {
         </div>
       </main>
       <SiteFooter />
-      <PlayerBar />
-      <ArtistContext />
-      <PlayerSideEffects />
     </>
   );
 }
