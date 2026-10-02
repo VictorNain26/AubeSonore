@@ -69,6 +69,13 @@ fi
 
 git merge --ff-only "$target"
 
+# The vote page is a long-running process: it keeps serving the pipeline code it
+# was started with until it restarts.
+if ! git diff --quiet "$current" "$target" -- pipeline/; then
+  systemctl --user try-restart radio-votes.service
+  echo "restarted radio-votes on ${target:0:8}"
+fi
+
 if git diff --quiet "$current" "$target" -- site/; then
   echo "promoted ${target:0:8} (no change under site/, containers left as they are)"
   exit 0
