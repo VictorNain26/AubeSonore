@@ -14,7 +14,7 @@ GROUP = {
     "country": "US",
     "life-span": {"begin": "1992", "end": None, "ended": False},
     "area": {"name": "United States"},
-    "begin-area": {"name": "Tampa"},
+    "begin-area": {"id": "ff21865c-ce46-4417-967c-a3d2d02d29bf", "name": "Tampa"},
     "genres": [{"id": "eacfa027-2fad-413f-a2f1-80fa43674f0b", "name": "death metal", "count": 1}],
     "relations": [
         {
@@ -42,6 +42,7 @@ def test_reduce_artist_keeps_genre_mbid_and_votes():
     assert out["begin"] == "1992"
     assert out["ended"] is False
     assert out["begin_area"] == "Tampa"
+    assert out["begin_area_mbid"] == "ff21865c-ce46-4417-967c-a3d2d02d29bf"
     assert out["genres"] == [
         {"mbid": "eacfa027-2fad-413f-a2f1-80fa43674f0b", "name": "death metal", "votes": 1}
     ]

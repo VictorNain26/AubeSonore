@@ -17,7 +17,7 @@ SELECT
   -- MusicBrainz writes an absent comment as an empty string: NULL says
   -- "none" in one way only.
   nullif(disambiguation, '') AS disambiguation,
-  type, ended, country, begin_area, genres,
+  type, ended, country, begin_area, begin_area_mbid, genres,
   CASE WHEN type <> 'Person'
         AND yr(begin) BETWEEN getvariable('min_year') AND getvariable('dump_year')
        THEN yr(begin) END AS y0_declared,
@@ -80,6 +80,9 @@ SELECT mbid, name, disambiguation,
   -- transliteration table.
   strip_accents(lower(name)) AS name_key,
   type, y0_declared, y_end_declared, y_birth, ended, country, begin_area,
+  -- The area's identity, beside its name: two artists from London share a
+  -- name, not necessarily a place (London, Ontario).
+  begin_area_mbid,
   -- Explicit sort (votes descending, then name), never inherited from
   -- the source (alphabetical). list_sort does not accept a lambda comparator
   -- in 1.5.5: sort by key, projecting each genre onto {k: [-votes], n: name,

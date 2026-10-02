@@ -1,6 +1,6 @@
 # musilogy
 
-Couche 0 : deux dumps JSON MusicBrainz transformés en cinq tables Parquet
+Couche 0 : deux dumps JSON MusicBrainz transformés en six tables Parquet
 reproductibles. Les règles métier et les chiffres sont dans le `README.md` ; ce
 fichier décrit comment on travaille sur ce dépôt.
 
@@ -75,6 +75,18 @@ uv run pytest                 # suite rapide, sur les témoins
 uv run pytest -m slow         # ligne de base sur le dump réel, exige data/work/
 uv run musilogy run           # fetch → extract → transform → validate → publish
 uv run musilogy make-fixtures
+uv run musilogy artist <mbid> # lit data/out/, exige un run publié
+```
+
+Sur victorserv, `pytest -m slow` et `musilogy run` partent dans un scope
+plafonné : `build.connect()` borne DuckDB (2 Go, 2 threads, 10 Go de
+débordement dans `data/tmp/`), mais pas le cache disque ni Python, et les
+services de la machine occupent déjà la moitié de ses 16 Go. Le 2026-10-02,
+une requête sans borne l'a gelée.
+
+```bash
+systemd-run --user --scope -p MemoryHigh=3G -p MemoryMax=3584M -p MemorySwapMax=0 \
+  nice -n 10 uv run pytest -m slow   # ~10 min, pic mesuré à 3 Go
 ```
 
 ## Licence

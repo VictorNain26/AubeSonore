@@ -37,6 +37,23 @@ def test_every_view_defined_in_90_invariants_is_registered_in_invariants():
     assert defined_views - set(INVARIANTS) == VIEWS_NOT_CHECKED_AS_INVARIANTS
 
 
+def test_no_invariant_joins_without_an_equality(con):
+    # Case this must catch: an OR or an inequality inside a correlated
+    # subquery. The fixtures answer in milliseconds whatever the plan, but on
+    # the reference dump a cross product of lineage with every raw relation
+    # spilled tens of GB without finishing and starved the shared server. The
+    # plan is the same shape on the witnesses, so it is checked here.
+    con.execute((SQL / "90_invariants.sql").read_text(encoding="utf-8"))
+    unhashed = ("CROSS_PRODUCT", "NESTED_LOOP_JOIN", "BLOCKWISE_NL_JOIN", "PIECEWISE_MERGE_JOIN")
+    offenders = {}
+    for name in INVARIANTS:
+        plan = con.execute(f"EXPLAIN SELECT count(*) FROM {name}").fetchall()[0][1]
+        ops = [op for op in unhashed if op in plan]
+        if ops:
+            offenders[name] = ops
+    assert offenders == {}
+
+
 def test_build_skips_90_files():
     # Dedicated connection, never passed to check_invariants: on `con`
     # (module-scoped, shared by every test in this file), a previous run of
@@ -571,6 +588,33 @@ def test_duplicate_link_is_reported(con):
             con.execute("INSERT INTO links VALUES (?, ?, 'duplicate', NULL, NULL)", [src, dst])
         violations = dict(check_invariants(con, SQL))
     assert violations.get("duplicate_link") == 1
+
+
+def test_lineage_endpoint_missing_is_reported(con):
+    artist = con.execute("SELECT mbid FROM artists LIMIT 1").fetchone()[0]
+    with restored(con, ("DELETE FROM lineage WHERE model_mbid = 'inconnu'", [])):
+        con.execute("INSERT INTO lineage VALUES (?, 'inconnu', 'mb_tribute')", [artist])
+        violations = dict(check_invariants(con, SQL))
+    assert violations.get("lineage_endpoint_missing") == 1
+
+
+def test_duplicate_lineage_is_reported(con):
+    # The same pair under two sources is two rows by design: only the same
+    # pair, same source, twice is a duplicate.
+    artist, model, source = con.execute(
+        "SELECT artist_mbid, model_mbid, source FROM lineage LIMIT 1"
+    ).fetchone()
+    with restored(
+        con,
+        (
+            "DELETE FROM lineage WHERE artist_mbid = ? AND model_mbid = ? AND source = ?",
+            [artist, model, source],
+        ),
+        ("INSERT INTO lineage VALUES (?, ?, ?)", [artist, model, source]),
+    ):
+        con.execute("INSERT INTO lineage VALUES (?, ?, ?)", [artist, model, source])
+        violations = dict(check_invariants(con, SQL))
+    assert violations.get("duplicate_lineage") == 1
 
 
 def test_link_misoriented_catches_a_reversed_link(con):

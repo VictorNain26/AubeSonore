@@ -1,8 +1,7 @@
-import duckdb
 import pytest
 
 from musilogy import REFERENCE_DUMP
-from musilogy.build import build, check_invariants
+from musilogy.build import build, check_invariants, connect
 from musilogy.paths import SQL_DIR, work_dir
 
 # artists: 682 447 groups, orchestras and choirs, plus 1 599 244 persons. Every
@@ -15,6 +14,7 @@ BASELINE = {
     "genres": 1_729,
     "density": 58_767,
     "links": 771_147,
+    "lineage": 32_667,
 }
 # links: every artist-to-artist relation, oriented source -> target and
 # de-duplicated across the two artists that carry it. Memberships replace the
@@ -44,6 +44,10 @@ LINK_TYPE_BREAKDOWN = {
     "composer-in-residence": 227,
     "artist-in-residence": 6,
 }
+# lineage reads three link types, one row per pair and source: the teacher
+# pairs taught over several spans of years (20) and one tribute pair recorded
+# twice are why these sit below their LINK_TYPE_BREAKDOWN counts.
+LINEAGE_SOURCE_BREAKDOWN = {"mb_teacher": 29_222, "mb_tribute": 2_779, "mb_named_after": 666}
 # Links with an end outside `artists` (characters, untyped artists...).
 LINK_EXCLUSIONS = {"to_unextracted_artist": 38_442}
 # What the density exclusion rule (55_genre_reliability.sql) costs: 13 genres,
@@ -123,7 +127,7 @@ def single_row(con, table):
 def test_reference_dump_matches_the_baseline():
     if not (WORK / "artists.jsonl").exists() or not (WORK / "release_groups.jsonl").exists():
         pytest.skip("extractions missing: run Task 3")
-    con = duckdb.connect(":memory:")
+    con = connect()
     build(con, SQL_DIR, WORK / "artists.jsonl", WORK / "release_groups.jsonl", None)
     assert check_invariants(con, SQL_DIR) == []
     for table, expected in BASELINE.items():
@@ -159,6 +163,10 @@ def test_reference_dump_matches_the_baseline():
     assert single_row(con, "link_exclusions") == LINK_EXCLUSIONS
     assert dict(con.execute("SELECT type, count(*) FROM links GROUP BY type").fetchall()) == (
         LINK_TYPE_BREAKDOWN
+    )
+    assert (
+        dict(con.execute("SELECT source, count(*) FROM lineage GROUP BY source").fetchall())
+        == LINEAGE_SOURCE_BREAKDOWN
     )
 
     for name, expected_measure in MULTI_ARTIST_DROP.items():

@@ -6,9 +6,32 @@ from pathlib import Path
 
 import duckdb
 
+from musilogy.paths import DATA_DIR
+
+
+def connect() -> duckdb.DuckDBPyConnection:
+    """The pipeline runs on a shared server. DuckDB's defaults (80 % of RAM,
+    spill up to 90 % of free disk, one thread per core) let one query starve
+    every service beside it. Under these bounds DuckDB spills, then fails,
+    rather than taking the machine down; fewer threads also mean fewer
+    operators holding memory at once."""
+    return duckdb.connect(
+        ":memory:",
+        config={
+            "memory_limit": "2GB",
+            "threads": 2,
+            "max_temp_directory_size": "10GB",
+            # In memory, DuckDB spills to `.tmp` under the caller's cwd:
+            # anchored on the data instead, created only when a query spills.
+            "temp_directory": (DATA_DIR / "tmp").as_posix(),
+        },
+    )
+
+
 RAW_ARTIST_COLUMNS = (
     "{mbid:'VARCHAR', name:'VARCHAR', disambiguation:'VARCHAR', type:'VARCHAR', begin:'VARCHAR', "
     "\"end\":'VARCHAR', ended:'BOOLEAN', country:'VARCHAR', begin_area:'VARCHAR', "
+    "begin_area_mbid:'VARCHAR', "
     "genres:'STRUCT(mbid VARCHAR, name VARCHAR, votes INTEGER)[]', "
     "relations:'STRUCT(type VARCHAR, direction VARCHAR, mbid VARCHAR, begin VARCHAR, "
     '"end" VARCHAR)[]\'}'
@@ -116,6 +139,9 @@ INVARIANTS = (
     "link_incomplete",
     "duplicate_link",
     "link_misoriented",
+    "lineage_misoriented",
+    "lineage_endpoint_missing",
+    "duplicate_lineage",
     "corrections_file_too_large",
     "corrections_invalid",
     "corrections_duplicate",

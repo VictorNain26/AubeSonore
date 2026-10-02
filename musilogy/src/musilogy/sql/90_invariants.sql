@@ -249,6 +249,43 @@ CREATE OR REPLACE VIEW link_misoriented AS
       SELECT 1 FROM raw_artists r, UNNEST(r.relations) AS t(x)
       WHERE r.mbid = l.dst_mbid AND t.x.mbid = l.src_mbid
         AND t.x.type = l.type AND t.x.direction = 'backward');
+-- 85_lineage.sql, checked against raw_artists and not against links: each
+-- source is restated with the MusicBrainz type it reads and the end that
+-- carries the relation forward — the model for a teacher, the artist for a
+-- tribute or a name. A swapped CASE in the rule turns every pupil into the
+-- teacher and fails here; so does a source name this list does not know.
+-- Every raw relation is restated as a row first, then matched on equalities
+-- only: an OR between the two directions inside the NOT EXISTS stops DuckDB
+-- from hashing the join, and the cross product of lineage with every raw
+-- relation spilled tens of GB on the reference dump without ever finishing.
+CREATE OR REPLACE VIEW lineage_misoriented AS
+  WITH expected(source, mb_type, forward_on_model) AS (
+    VALUES ('mb_teacher', 'teacher', true),
+           ('mb_tribute', 'tribute', false),
+           ('mb_named_after', 'named after artist', false)
+  ),
+  asserted AS (
+    SELECT e.source,
+           CASE WHEN (t.x.direction = 'forward') = e.forward_on_model
+                THEN t.x.mbid ELSE r.mbid END AS artist_mbid,
+           CASE WHEN (t.x.direction = 'forward') = e.forward_on_model
+                THEN r.mbid ELSE t.x.mbid END AS model_mbid
+    FROM raw_artists r, UNNEST(r.relations) AS t(x)
+    JOIN expected e ON e.mb_type = t.x.type
+    WHERE t.x.direction IN ('forward', 'backward')
+  )
+  SELECT l.artist_mbid, l.model_mbid, l.source FROM lineage l
+  WHERE NOT EXISTS (
+    SELECT 1 FROM asserted a
+    WHERE a.source = l.source AND a.artist_mbid = l.artist_mbid
+      AND a.model_mbid = l.model_mbid);
+CREATE OR REPLACE VIEW lineage_endpoint_missing AS
+  SELECT artist_mbid, model_mbid, source FROM lineage l
+  WHERE NOT EXISTS (SELECT 1 FROM artists a WHERE a.mbid = l.artist_mbid)
+     OR NOT EXISTS (SELECT 1 FROM artists a WHERE a.mbid = l.model_mbid);
+CREATE OR REPLACE VIEW duplicate_lineage AS
+  SELECT artist_mbid, model_mbid, source FROM lineage
+  GROUP BY ALL HAVING count(*) > 1;
 -- corrections.csv holds at most 50 rows; materialized even empty
 -- by apply_corrections, so available without depending on the dump.
 CREATE OR REPLACE VIEW corrections_file_too_large AS

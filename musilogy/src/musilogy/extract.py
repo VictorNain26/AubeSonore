@@ -29,6 +29,7 @@ def reduce_artist(rec: dict[str, Any]) -> dict[str, Any] | None:
         "ended": span.get("ended"),
         "country": rec.get("country"),
         "begin_area": (rec.get("begin-area") or {}).get("name"),
+        "begin_area_mbid": (rec.get("begin-area") or {}).get("id"),
         "genres": [
             {"mbid": g.get("id"), "name": g.get("name"), "votes": g["count"]}
             for g in (rec.get("genres") or [])
