@@ -13,6 +13,7 @@ titre en cours et la file de l'AutoDJ ne bougent jamais : ils attendent la passe
 import math
 import sqlite3
 import tempfile
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path, PurePosixPath
@@ -62,6 +63,8 @@ class AntenneReport:
     n_returned: int = 0
     n_expired: int = 0
     n_references_out: int = 0
+    n_references_artist_full: int = 0
+    n_references_no_artist: int = 0
     n_total: int = 0
     skipped_references: list[str] = field(default_factory=list)
     errors: list[str] = field(default_factory=list)
@@ -302,7 +305,10 @@ def rotate_references(
     """Les repères tournent aussi : chacun reste `stay_weeks` semaines, puis cède sa place à un
     autre, tiré selon l'écoute parmi ceux qui ne sont pas passés depuis `rest_weeks` semaines.
     Au plus `stock / stay_weeks` entrées par passe : le stock se remplit au rythme où il se
-    renouvelle. Le fichier Plex n'est que lu ; la copie préparée est déposée puis effacée."""
+    renouvelle. Un artiste a au plus deux titres à l'antenne, repos compris puisqu'un titre au
+    repos revient au fond (docs/recherches/2026-10-02-programmation.md §1) : un tirage qui lui
+    en donnerait un troisième, ou dont l'artiste est inconnu, est écarté et compté. Le fichier
+    Plex n'est que lu ; la copie préparée est déposée puis effacée."""
     stamp = now.isoformat()
     tired = conn.execute(
         "SELECT deezer_track_id, path, song_id FROM antenne WHERE categorie = 'reperes' "
@@ -327,8 +333,10 @@ def rotate_references(
         r
         for r in conn.execute(
             """
-            SELECT m.deezer_track_id, t.artist, t.title, t.file, SUM(t.plays)
+            SELECT m.deezer_track_id, t.artist, t.title, t.file, SUM(t.plays),
+                   tr.deezer_artist_id
             FROM deezer_matches m JOIN library_tracks t USING (plex_key)
+            LEFT JOIN tracks tr ON tr.deezer_track_id = m.deezer_track_id
             LEFT JOIN antenne n ON n.deezer_track_id = m.deezer_track_id
             LEFT JOIN repere_sorties o ON o.deezer_track_id = m.deezer_track_id
             WHERE m.status = 'matched' AND t.file IS NOT NULL AND n.deezer_track_id IS NULL
@@ -344,9 +352,24 @@ def rotate_references(
         return
     w = np.array([play_weight(int(r[4])) for r in pool])
     picked = rng.choice(len(pool), size=min(need, len(pool)), replace=False, p=w / w.sum())
+    on_air = Counter(
+        int(r[0])
+        for r in conn.execute(
+            "SELECT t.deezer_artist_id FROM antenne n JOIN tracks t USING (deezer_track_id)"
+        )
+    )
     with tempfile.TemporaryDirectory() as tmp:
         for i in picked:
             tid, artist, title, file = int(pool[i][0]), str(pool[i][1]), str(pool[i][2]), pool[i][3]
+            artist_id = pool[i][5]
+            if artist_id is None:
+                # Sans artiste connu, le plafond ne se vérifie pas : écarté, compté.
+                rep.n_references_no_artist += 1
+                continue
+            if on_air[int(artist_id)] >= 2:
+                rep.n_references_artist_full += 1
+                continue
+            on_air[int(artist_id)] += 1
             dest = Path(tmp) / f"{tid}.mp3"
             try:
                 page = deezer.track_page(tid)

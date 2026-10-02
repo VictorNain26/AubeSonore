@@ -3,6 +3,10 @@
 Chaque issue est écrite dès qu'elle est connue : une panne de Deezer arrête la passe sans perdre
 le travail fait. Un titre en échec est retenté aux passes suivantes, jusqu'à `max_attempts`. Un
 titre voté « non » n'est jamais acquis.
+
+Un artiste n'a qu'un titre à la fois en rotation, et au plus deux à l'antenne
+(docs/recherches/2026-10-02-programmation.md §1) : le titre suivant d'un artiste attend que le
+précédent ait fini son premier séjour. Faute d'artistes libres, il entre moins de titres.
 """
 
 import logging
@@ -12,6 +16,7 @@ import tempfile
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import NamedTuple
 
 from radio.acquire.audio import Tags, ToolError, check, fingerprint, prepare, probe, similarity
 from radio.acquire.sockseek import Runner, Wanted, download, run_command
@@ -27,6 +32,7 @@ class AcquireReport:
     n_ready: int = 0
     n_no_cover: int = 0
     n_unindexed: int = 0
+    n_artist_waiting: int = 0
     failures: Counter[str] = field(default_factory=Counter)
 
     @property
@@ -34,24 +40,54 @@ class AcquireReport:
         return self.n_ready + sum(self.failures.values())
 
 
-def pending(conn: sqlite3.Connection, cfg: AcquisitionConfig) -> list[int]:
+class Pending(NamedTuple):
+    tids: list[int]
+    # Retenus mis en attente : leur artiste a déjà son titre en rotation, ou deux à l'antenne.
+    waiting: int
+
+
+def pending(conn: sqlite3.Connection, cfg: AcquisitionConfig) -> Pending:
     """Retenus pas encore prêts ni abandonnés ni votés « non » : la dernière fournée d'abord, car
-    une nouveauté vieillit, puis les mieux notés."""
-    return [
+    une nouveauté vieillit, puis les mieux notés ; un seul par artiste libre."""
+    rows = conn.execute(
+        """
+        SELECT s.deezer_track_id, t.deezer_artist_id FROM scores s
+        JOIN candidates c USING (deezer_track_id)
+        JOIN tracks t USING (deezer_track_id)
+        LEFT JOIN acquisitions a USING (deezer_track_id)
+        WHERE s.accepted = 1
+          AND (a.deezer_track_id IS NULL OR (a.status = 'failed' AND a.attempts < ?))
+          AND s.deezer_track_id NOT IN (SELECT deezer_track_id FROM votes WHERE vote = 'non')
+        ORDER BY c.run_id DESC, s.score DESC, s.deezer_track_id
+        """,
+        (cfg.max_attempts,),
+    ).fetchall()
+    on_air: Counter[int] = Counter()
+    rotating: set[int] = set()
+    # Un titre au repos revient au fond : il compte dans les deux titres de son artiste.
+    for artist, categorie in conn.execute(
+        "SELECT t.deezer_artist_id, n.categorie FROM antenne n JOIN tracks t USING "
+        "(deezer_track_id)"
+    ):
+        on_air[int(artist)] += 1
+        if categorie in ("nouveautes", "decouvertes"):
+            rotating.add(int(artist))
+    rotating |= {
         int(r[0])
         for r in conn.execute(
-            """
-            SELECT s.deezer_track_id FROM scores s
-            JOIN candidates c USING (deezer_track_id)
-            LEFT JOIN acquisitions a USING (deezer_track_id)
-            WHERE s.accepted = 1
-              AND (a.deezer_track_id IS NULL OR (a.status = 'failed' AND a.attempts < ?))
-              AND s.deezer_track_id NOT IN (SELECT deezer_track_id FROM votes WHERE vote = 'non')
-            ORDER BY c.run_id DESC, s.score DESC, s.deezer_track_id LIMIT ?
-            """,
-            (cfg.max_attempts, cfg.max_per_pass),
+            "SELECT t.deezer_artist_id FROM acquisitions a JOIN tracks t USING (deezer_track_id) "
+            "WHERE a.status = 'ready'"
         )
-    ]
+    }
+    tids: list[int] = []
+    waiting = 0
+    for tid, artist in rows:
+        if artist in rotating or on_air[artist] >= 2:
+            waiting += 1
+        elif len(tids) < cfg.max_per_pass:
+            rotating.add(int(artist))
+            tids.append(int(tid))
+    return Pending(tids, waiting)
 
 
 def _save(
@@ -128,7 +164,9 @@ def acquire_pass(
     rep = AcquireReport()
     wanted: list[Wanted] = []
     keys: set[tuple[str, str, int]] = set()
-    for tid in pending(conn, cfg):
+    todo = pending(conn, cfg)
+    rep.n_artist_waiting = todo.waiting
+    for tid in todo.tids:
         got = deezer.track(tid)
         if got is None:
             rep.failures["disparu de Deezer"] += 1

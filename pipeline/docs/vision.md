@@ -59,7 +59,7 @@ suivante reprend.
 | 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | en service |
 | 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | en service |
 | 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | en service |
-| 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | Essentia (MusiCNN, DEAM, TempoCNN), AzuraCast | mesures faites, planificateur à venir (§7.3) |
+| 8 Enchaînement | Fil qui dérive selon une grille 7 × 24 h | Essentia (MusiCNN, DEAM, TempoCNN), AzuraCast | fait (§7.3) |
 
 ### 3.1 Sources et nouveautés
 
@@ -105,7 +105,9 @@ priorité.
   ou est oublié.
 - **Mesure du goût.** `radio train` publie la part des favoris que le modèle en service
   retiendrait à la coupure des découvertes de la dernière fournée, et la part que le hasard en
-  retiendrait (53 % contre 33 % au 2026-10-02). Elle ne décide jamais d'une promotion.
+  retiendrait (53 % contre 33 % au 2026-10-02) : la part des découvertes notées à la coupure ou
+  au-dessus, et non la part retenue, que la règle d'un titre par artiste réduit. Elle ne décide
+  jamais d'une promotion.
 - **Pas à l'entraînement.** En exemples positifs, ils n'ont pas amélioré l'AUC d'examen (0,760
   sans, 0,749 à 0,753 avec ; `recherches/2026-10-02-favoris-hypem.md`).
 
@@ -125,6 +127,15 @@ priorité.
   découlent de la grille d'antenne : ~70 entrées par semaine et par famille, plus les échecs
   d'acquisition (`recherches/2026-10-02-cycle-de-vie.md` §3 à §5). Un candidat entré depuis dans
   la bibliothèque n'est plus noté : ce n'est plus une découverte.
+- **Un titre par artiste.** Une fournée retient au plus un titre par artiste, toutes familles
+  confondues : son mieux noté (règle de Spotify Release Radar, « one song per artist per week »).
+  L'acquisition ne prend pas un retenu dont l'artiste a déjà un titre en nouveautés, en
+  découvertes ou prêt à publier : il attend la fin du premier séjour du précédent, comme BBC
+  6 Music enchaîne les singles d'un artiste au lieu de les empiler. Un artiste a au plus deux
+  titres à l'antenne, repos compris (un titre au repos revient au fond), le second au fond ou en
+  repère. Faute d'artistes libres, il entre moins de
+  titres ; le rapport compte les retenus en attente (`recherches/2026-10-02-programmation.md` §1
+  et §2 : FIP joue 2,8 titres par artiste et par an, Nova 1,6).
 - **Pistes écartées après mesure** : ressemblance kNN sur l'empreinte (AUC 0,67), filtre
   « couleur » à négatifs par catégories, têtes de style Essentia, modèle Jev (texte seul). Leurs
   recherches sont dans l'historique git (`git show f7d7081:docs/recherches/`).
@@ -244,7 +255,8 @@ score choisit seulement qui est promu. La passe hebdomadaire applique ces règle
   après sa première diffusion.
 - **Repères** : chacun reste 6 semaines, puis cède sa place à un autre, tiré selon l'écoute parmi
   ceux qui ne sont pas passés depuis 12 semaines (`repere_sorties`). Au plus `stock / 6` entrées
-  par passe : le stock se remplit au rythme où il se renouvelle.
+  par passe : le stock se remplit au rythme où il se renouvelle. Un tirage qui donnerait un
+  troisième titre à un artiste est écarté et compté.
 - **Stocks.** Ceux du fond et des repères découlent de la grille (`[grille]` de
   `editorial.toml`) : part d'antenne × titres par heure × 168 / passages par semaine, ~409
   chacun. Les nouveautés et les découvertes entrent au rythme de la rétention (§4).
@@ -294,17 +306,36 @@ avoir fait entrer et sortir des titres (`--aujourdhui`, jamais l'heure en cours)
 - **Créneaux.** Une heure en prévoit `ceil(titres_par_heure) + 1` (16), répartis entre les
   catégories par smooth weighted round-robin. Tant qu'une catégorie n'a pas son stock, sa part
   est réduite en proportion et rendue aux autres.
-- **Remplissage, créneau par créneau** (comme MusicMaster) : la catégorie est parcourue dans
-  l'ordre de rotation (dernier passage dans l'historique d'AzuraCast, 14 jours), sur une fenêtre
-  de `marge − 1` fois les passages du jour ; le titre pris minimise l'écart à la cible de l'heure
-  moins `retard` × son retard, compté en tours de sa catégorie (le temps de la jouer en entier).
-  Ce retard n'a pas de plafond : la rotation prime sur l'ambiance, et un titre loin de toutes les
-  cibles finit toujours par passer. Un artiste ne repasse ni dans l'heure ni dans l'heure
-  précédente ; un titre placé repart en fin de rotation. Le rapport compte les titres pas joués
-  depuis plus de deux tours.
-- **Vérifié par simulation** (14 jours sur l'antenne du 2026-10-02) : un bonus d'ancienneté
-  plafonné laissait 14 découvertes au profil atypique sans aucun passage ; le retard sans plafond
-  n'en laisse aucune (au moins 3 passages par semaine).
+- **Remplissage, créneau par créneau**, avec la mécanique des logiciels du métier
+  (`recherches/2026-10-02-programmation.md` §3) : la catégorie est parcourue dans l'ordre de
+  rotation (pile de MusicMaster : dernier passage dans l'historique d'AzuraCast, 14 jours), sur
+  une fenêtre de `marge − 1` fois les passages du jour. Le retard d'un titre se compte en tours de
+  sa catégorie (le temps de la jouer en entier) depuis son dernier passage, ou depuis son entrée
+  s'il n'a jamais joué.
+  - **Deux règles incassables.** Repos minimum : `repos` (60 %) d'un tour, le conseil de
+    MusicMaster, soit ~2,2 jours en nouveautés et découvertes. Séparation d'artiste :
+    `separation_h` (3 h), la fenêtre de la règle DMCA et celle de l'anti-doublon de la station.
+  - **L'ambiance est un objectif, jamais une condition** (objectifs et règles de GSelector) :
+    parmi les titres permis, le pris minimise l'écart à la cible de l'heure ; un titre en retard
+    de plus de `avantage` tours (150 %) y gagne jusqu'à `retard`, et à `force` tours (200 %) il
+    passe d'office, le plus en retard d'abord (règle anti-famine « Airplay Starvation » de
+    GSelector). Chaque titre passe donc au moins une fois tous les deux tours.
+  - **La grille publiée compte** (table `grille`) : à 23:00, l'heure de 23 h n'est pas encore
+    dans l'historique d'AzuraCast. Un titre publié mais pas encore joué compte comme joué à la
+    fin de son heure, le pire cas ; sans cela, les titres et les artistes de 23 h repassaient dès
+    minuit. Le titre de trop d'une heure, jamais joué, n'y perd qu'un jour de rotation.
+  - Un titre placé repart en fin de rotation. Le rapport donne le tour de chaque catégorie, les
+    créneaux vides, les titres pas joués depuis plus de deux tours (doit être nul) et le plus
+    grand nombre de titres d'un même artiste à l'antenne (doit rester à 2).
+- **Vérifié par simulation** (14 jours sur l'antenne du 2026-10-02, 273 découvertes et 68
+  repères, en ne jouant que les ~14,6 premiers titres de chaque heure) : aucun titre sans passage,
+  aucun créneau vide, au moins 3 passages par semaine pour chaque découverte. Entre deux passages
+  d'un même artiste, au moins 3 h, sans exception (0,1 h au plus court avec la règle « ni l'heure
+  ni la précédente », qui ne passait pas minuit). L'artiste le plus joué passe de 74 à 41 passages
+  par semaine ; il a encore 9 titres à l'antenne, entrés avant la règle d'un titre par artiste, qui
+  sortiront à la fin de leur séjour. La séparation se compte depuis la fin de l'heure où l'artiste
+  est placé : le fil qui dérive réordonne l'heure, et la compter depuis son créneau laissait
+  15,6 % des retours sous 3 h.
 - **Cibles** : énergie (arousal), dansabilité et tempo, en quantiles des titres mesurés à
   l'antenne. Six blocs : matin dès 6 h, après-midi dès 12 h, soir dès 20 h, nuit dès 23 h, fin de
   nuit dès 4 h (5 h le samedi et le dimanche), d'après Heggli, Stupacher et Vuust (*Royal
