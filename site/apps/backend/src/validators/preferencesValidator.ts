@@ -1,4 +1,4 @@
-import { object, picklist, type InferOutput } from 'valibot';
+import { object, picklist } from 'valibot';
 import { PREFERRED_PLATFORMS } from '@aubesonore/shared-types/client';
 
 // ─────────────────────────────────────────────
@@ -11,5 +11,3 @@ import { PREFERRED_PLATFORMS } from '@aubesonore/shared-types/client';
 export const updatePreferencesSchema = object({
   preferredPlatform: picklist(PREFERRED_PLATFORMS, 'Plateforme invalide'),
 });
-
-export type UpdatePreferencesData = InferOutput<typeof updatePreferencesSchema>;

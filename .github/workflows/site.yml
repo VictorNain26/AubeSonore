@@ -76,6 +76,10 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      # After Lint: knip resolves the paraglide messages that lint compiles.
+      - name: Dead code (knip)
+        run: pnpm knip
+
       - name: Typecheck
         run: pnpm turbo typecheck
 
