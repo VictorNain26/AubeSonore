@@ -8,7 +8,7 @@ import sys
 from collections import Counter
 from collections.abc import Callable
 from contextlib import closing
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 from pathlib import PurePosixPath
 from typing import NoReturn, ParamSpec, TypeVar
 from zoneinfo import ZoneInfo
@@ -652,12 +652,16 @@ def grille(
         settings.azuracast_station_id,
     )
     try:
-        now = datetime.now(ZoneInfo(station.timezone()))
+        tz = ZoneInfo(station.timezone())
+        now = datetime.now(tz)
         day = now.date() if aujourdhui else now.date() + timedelta(days=1)
         hours = list(range(now.hour + 1, 24)) if aujourdhui else list(range(24))
         played = station.last_played((now - timedelta(days=14)).isoformat(), now.isoformat())
         with _db(settings) as conn:
-            plan = grille_mod.plan_day(grille_mod.load_titres(conn), played, cfg, day, hours)
+            midnight = datetime.combine(day, time(0), tzinfo=tz).timestamp()
+            plan = grille_mod.plan_day(
+                grille_mod.load_titres(conn), played, cfg, day, hours, midnight
+            )
             errors = grille_mod.publish(plan, station)
             _record(
                 conn,
@@ -669,6 +673,7 @@ def grille(
                     "créneaux": plan.slots,
                     "créneaux vides": plan.empty_slots,
                     "titres non mesurés": plan.unmeasured,
+                    "titres en retard": plan.late,
                     "erreurs": len(errors),
                 },
             )
@@ -679,7 +684,8 @@ def grille(
             f"Grille du {day.isoformat()} : {_n(len(hours))} heures, créneaux "
             + ", ".join(f"{c} {_n(n)}" for c, n in plan.slots.items()),
             f"  créneaux vides : {_n(plan.empty_slots)}, titres pas encore mesurés : "
-            f"{_n(plan.unmeasured)}",
+            f"{_n(plan.unmeasured)}, titres pas joués depuis plus de deux tours : "
+            f"{_n(plan.late)}",
             *(f"  erreur : {e}" for e in errors),
         ]
     )

@@ -91,8 +91,8 @@ titres_par_heure = 14.6
 
 # Enchaînement (docs/recherches/2026-10-02-cycle-de-vie.md §6). Chaque jour, les titres de chaque
 # catégorie joués il y a le plus longtemps sont tirés avec cette marge, puis placés dans l'heure
-# dont la cible leur ressemble ; `retard` pèse l'ancienneté du dernier passage contre la
-# ressemblance, pour qu'un titre loin de toutes les cibles finisse quand même par passer.
+# dont la cible leur ressemble ; `retard` pèse le retard d'un titre (en tours de sa catégorie,
+# sans plafond) contre la ressemblance : un titre loin de toutes les cibles finit par passer.
 marge = 1.4
 retard = 0.5
 

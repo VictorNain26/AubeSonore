@@ -21,6 +21,7 @@ from radio.sources.azuracast import AzuracastClient
 from tests_radio.model_factory import make_model_db
 
 FRIDAY = date(2026, 10, 2)
+MIDNIGHT = 1_790_892_000.0  # 2026-10-02 00:00, Europe/Paris
 
 
 def _titre(tid: int, categorie: Categorie, q: float, artist: int | None = None) -> Titre:
@@ -86,7 +87,7 @@ def test_the_least_recently_played_pass_and_each_artist_once_a_day() -> None:
     titres = [_titre(i, "decouvertes", 0.5, artist=i // 2) for i in range(40)]
     played = {f"s{i}": 1000.0 + i for i in range(40)}
     played["s39"] = 0.0  # le plus ancien passage
-    plan = plan_day(titres, played, _grille(decouvertes=40), FRIDAY, [8], None)
+    plan = plan_day(titres, played, _grille(decouvertes=40), FRIDAY, [8], MIDNIGHT)
     chosen = plan.hours[8]
     assert len(chosen) == 16  # ceil(14,6) + 1 créneaux
     assert 39 in {t.tid for t in chosen}
@@ -96,7 +97,7 @@ def test_the_least_recently_played_pass_and_each_artist_once_a_day() -> None:
 def test_each_title_goes_to_the_hour_that_resembles_it_and_the_hour_drifts() -> None:
     calm = [_titre(i, "decouvertes", 0.1 + i / 1000) for i in range(16)]
     lively = [_titre(100 + i, "decouvertes", 0.9 - i / 1000) for i in range(16)]
-    plan = plan_day(calm + lively, {}, _grille(decouvertes=32), FRIDAY, [3, 21], None)
+    plan = plan_day(calm + lively, {}, _grille(decouvertes=32), FRIDAY, [3, 21], MIDNIGHT)
     assert {t.tid for t in plan.hours[3]} == {t.tid for t in calm}  # nuit
     assert {t.tid for t in plan.hours[21]} == {t.tid for t in lively}  # fête du vendredi
     # La nuit part de sa cible (0,25) : le plus proche d'abord, puis chaque fois le plus proche.
@@ -106,16 +107,36 @@ def test_each_title_goes_to_the_hour_that_resembles_it_and_the_hour_drifts() -> 
 
 def test_an_artist_waits_an_hour_and_a_title_goes_back_in_rotation() -> None:
     titres = [_titre(i, "decouvertes", 0.5) for i in range(20)]
-    plan = plan_day(titres, {}, _grille(decouvertes=20), FRIDAY, [8, 9, 10], None)
+    plan = plan_day(titres, {}, _grille(decouvertes=20), FRIDAY, [8, 9, 10], MIDNIGHT)
     eight, nine, ten = ({t.artist for t in plan.hours[h]} for h in (8, 9, 10))
     assert len(eight) == 16 and not eight & nine  # 4 artistes libres seulement à 9 h
     assert len(nine) == 4 and plan.empty_slots == 12
     assert len(ten) == 16 and ten & eight  # deux heures plus tard, ils reviennent
 
 
+def test_rotation_wins_over_mood_for_a_title_far_from_every_hour() -> None:
+    # 32 titres à 0,5 pour 16 créneaux par heure, et un titre extrême, loin de toute cible.
+    titres = [_titre(i, "decouvertes", 0.5) for i in range(32)]
+    odd = Titre(
+        99,
+        99,
+        "decouvertes",
+        "antenne/99.mp3",
+        "s99",
+        np.array([1.0, 0.0, 0.0]),
+        np.zeros(3),
+        np.zeros(3),
+        True,
+    )
+    played = {f"s{i}": MIDNIGHT - 3600 for i in range(32)} | {"s99": MIDNIGHT - 3 * 86400}
+    plan = plan_day([*titres, odd], played, _grille(decouvertes=33), FRIDAY, [8, 9], MIDNIGHT)
+    assert 99 in {t.tid for h in (8, 9) for t in plan.hours[h]}
+    assert plan.late == 1  # 3 jours sans passer, pour un tour de 2 h (33 titres, 384 créneaux)
+
+
 def test_missing_titles_leave_empty_slots() -> None:
     titres = [_titre(i, "decouvertes", 0.5) for i in range(10)]
-    plan = plan_day(titres, {}, _grille(decouvertes=10), FRIDAY, [8], None)
+    plan = plan_day(titres, {}, _grille(decouvertes=10), FRIDAY, [8], MIDNIGHT)
     assert len(plan.hours[8]) == 10 and plan.empty_slots == 6
 
 
@@ -166,7 +187,7 @@ class FakeStation:
 
 def test_publish_writes_each_hour_into_its_playlist() -> None:
     titres = [_titre(i, "decouvertes", 0.5) for i in range(32)]
-    plan = plan_day(titres, {}, _grille(decouvertes=32), FRIDAY, [8, 9], None)
+    plan = plan_day(titres, {}, _grille(decouvertes=32), FRIDAY, [8, 9], MIDNIGHT)
     station = FakeStation(found={"109": 3})
     errors = publish(plan, station)
     assert station.created == [("Grille ven 09h", 5, 9)]

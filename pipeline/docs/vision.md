@@ -296,9 +296,15 @@ avoir fait entrer et sortir des titres (`--aujourdhui`, jamais l'heure en cours)
   est réduite en proportion et rendue aux autres.
 - **Remplissage, créneau par créneau** (comme MusicMaster) : la catégorie est parcourue dans
   l'ordre de rotation (dernier passage dans l'historique d'AzuraCast, 14 jours), sur une fenêtre
-  de `marge − 1` fois les passages du jour ; le titre le plus proche de la cible de l'heure est
-  pris, `retard` faisant pencher vers le plus ancien. Un artiste ne repasse ni dans l'heure ni
-  dans l'heure précédente ; un titre placé repart en fin de rotation.
+  de `marge − 1` fois les passages du jour ; le titre pris minimise l'écart à la cible de l'heure
+  moins `retard` × son retard, compté en tours de sa catégorie (le temps de la jouer en entier).
+  Ce retard n'a pas de plafond : la rotation prime sur l'ambiance, et un titre loin de toutes les
+  cibles finit toujours par passer. Un artiste ne repasse ni dans l'heure ni dans l'heure
+  précédente ; un titre placé repart en fin de rotation. Le rapport compte les titres pas joués
+  depuis plus de deux tours.
+- **Vérifié par simulation** (14 jours sur l'antenne du 2026-10-02) : un bonus d'ancienneté
+  plafonné laissait 14 découvertes au profil atypique sans aucun passage ; le retard sans plafond
+  n'en laisse aucune (au moins 3 passages par semaine).
 - **Cibles** : énergie (arousal), dansabilité et tempo, en quantiles des titres mesurés à
   l'antenne. Six blocs : matin dès 6 h, après-midi dès 12 h, soir dès 20 h, nuit dès 23 h, fin de
   nuit dès 4 h (5 h le samedi et le dimanche), d'après Heggli, Stupacher et Vuust (*Royal
