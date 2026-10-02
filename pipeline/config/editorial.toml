@@ -89,6 +89,13 @@ promotion_share = 0.12
 # Titres diffusés par heure, mesurés dans l'historique AzuraCast le 2026-10-02.
 titres_par_heure = 14.6
 
+# Enchaînement (docs/recherches/2026-10-02-cycle-de-vie.md §6). Chaque jour, les titres de chaque
+# catégorie joués il y a le plus longtemps sont tirés avec cette marge, puis placés dans l'heure
+# dont la cible leur ressemble ; `retard` pèse l'ancienneté du dernier passage contre la
+# ressemblance, pour qu'un titre loin de toutes les cibles finisse quand même par passer.
+marge = 1.4
+retard = 0.5
+
 # Part d'antenne de chaque catégorie et passages par semaine d'un même titre : le stock à
 # l'antenne s'en déduit (part × titres par heure × 168 / passages).
 [grille.categories.nouveautes]
@@ -106,6 +113,43 @@ passages = 1
 [grille.categories.reperes]
 part = 0.1667
 passages = 1
+
+
+# Cibles des blocs de la journée, en quantiles des titres à l'antenne. Blocs et sens des écarts :
+# Heggli, Stupacher, Vuust, Royal Society Open Science 2021 (PMC8580447) — matin dès 6 h plus
+# énergique au tempo plus lent ; après-midi dès 12 h, tempo en hausse ; soir dès 20 h, tempo et
+# dansabilité au plus haut ; nuit dès 23 h, au plus bas ; fin de nuit dès 4 h (5 h le week-end),
+# un peu plus d'énergie que la nuit. La fête des vendredi et samedi soir, de 20 h à 3 h, est une
+# décision de Victor (2026-09-23). L'amplitude des cibles est un choix, à ajuster à l'écoute.
+[grille.cibles.matin]
+energie = 0.6
+dansabilite = 0.45
+tempo = 0.4
+
+[grille.cibles.apres_midi]
+energie = 0.55
+dansabilite = 0.5
+tempo = 0.6
+
+[grille.cibles.soir]
+energie = 0.6
+dansabilite = 0.65
+tempo = 0.7
+
+[grille.cibles.nuit]
+energie = 0.25
+dansabilite = 0.3
+tempo = 0.25
+
+[grille.cibles.fin_de_nuit]
+energie = 0.35
+dansabilite = 0.3
+tempo = 0.3
+
+[grille.cibles.fete]
+energie = 0.75
+dansabilite = 0.85
+tempo = 0.75
 
 [votes]
 # Titres d'examen par sélection hebdomadaire, tirés au hasard sur toute la fournée.

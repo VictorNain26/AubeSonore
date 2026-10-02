@@ -44,6 +44,24 @@ endpoints:
       - type: ntfy
         minimum-reminder-interval: 24h
 
+  # La grille horaire joue, pas le secours (« AubeSonore ») : toutes les playlists horaires
+  # s'appellent « Grille … » (pat(), README Gatus v5.37.0 § Conditions). Une heure de secours
+  # (installation, heure en cours pendant la passe du dimanche) n'alerte pas : 7 sondes à 10 min.
+  - name: grille-a-l-antenne
+    group: radio
+    url: "http://127.0.0.1:8080/api/nowplaying/aubesonore"
+    interval: 10m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].now_playing.playlist == pat(Grille*)"
+    alerts:
+      - type: custom
+        failure-threshold: 7
+        minimum-reminder-interval: 24h
+      - type: ntfy
+        failure-threshold: 7
+        minimum-reminder-interval: 24h
+
   # Le flux ne finit jamais : aucune condition ne lit le corps, Gatus ne le lit donc pas.
   - name: flux-public
     group: radio
@@ -102,6 +120,20 @@ external-endpoints:
 
   # Copie quotidienne de la base (radio-backup) : alerte au premier échec ou après 2 jours de silence.
   - name: sauvegarde
+    group: radio
+    token: "${GATUS_TOKEN}"
+    heartbeat:
+      interval: 48h
+    alerts:
+      - type: custom
+        failure-threshold: 1
+        minimum-reminder-interval: 24h
+      - type: ntfy
+        failure-threshold: 1
+        minimum-reminder-interval: 24h
+
+  # Grille du lendemain (radio-grille, 23:00) : alerte au premier échec ou après 2 jours de silence.
+  - name: grille
     group: radio
     token: "${GATUS_TOKEN}"
     heartbeat:

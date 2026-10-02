@@ -1,0 +1,9 @@
+[Unit]
+Description=AubeSonore : grille du lendemain, chaque soir à 23:00
+
+[Timer]
+OnCalendar=*-*-* 23:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target
