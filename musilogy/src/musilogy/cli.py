@@ -1,4 +1,4 @@
-"""CLI entry point: run, make-fixtures."""
+"""CLI entry point: run, make-fixtures, artist."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from pathlib import Path
 import duckdb
 
 from musilogy import REFERENCE_DUMP as DUMP
+from musilogy import artist as lineage
 from musilogy.build import build, check_invariants
 from musilogy.extract import extract, reduce_artist, reduce_release_group
 from musilogy.fetch import fetch_dump
@@ -166,17 +167,58 @@ def make_fixtures() -> None:
     print("missing:", missing or "none")
 
 
+def _label(name: str, disambiguation: str | None, y0: int | None, y_end: int | None) -> str:
+    """Name, disambiguation and years: what tells two homonyms apart."""
+    years = "" if y0 is None else f" {y0}-{'' if y_end is None else y_end}"
+    return name + ("" if disambiguation is None else f" ({disambiguation})") + years
+
+
+def artist(mbid: str, limit: int, published: Path) -> None:
+    """Prints the three lists of one artist with their provenance, read from
+    the published tables: judging the result on known artists comes before
+    any front end reads them."""
+    con = lineage.open_published(published)
+    found = lineage.describe(con, mbid)
+    if found is None:
+        raise SystemExit(f"unknown artist: {mbid}")
+    print(_label(found[0], found[1], None, None), mbid)
+    for title, rows in (
+        ("Inspirations", lineage.inspirations(con, mbid)),
+        ("Descendants", lineage.descendants(con, mbid)),
+    ):
+        print(f"\n{title}")
+        if not rows:
+            print("  no known source")
+        for r in rows:
+            label = _label(r.name, r.disambiguation, r.y0, r.y_end)
+            print(f"  {r.term}: {label}  [{r.source}] {r.mbid}")
+    total, page = lineage.contemporaries(con, mbid, limit)
+    print(f"\nContemporaries — {total}, by shared genres (Jaccard), then mbid")
+    if not total:
+        print("  none: no year, no genre, no place, or no one sharing them")
+    for c in page:
+        print(
+            f"  {c.jaccard:.2f} {_label(c.name, c.disambiguation, c.y0, c.y_presence_end)}"
+            f"  — {', '.join(c.shared_genres)}  [same {c.scene}] {c.mbid}"
+        )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="musilogy")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("run", help="fetch → extract → transform → validate → publish")
     subparsers.add_parser("make-fixtures", help="extract witness records for the test fixtures")
+    read = subparsers.add_parser("artist", help="an artist's lineage and contemporaries")
+    read.add_argument("mbid")
+    read.add_argument("--limit", type=int, default=20, help="contemporaries shown (default 20)")
 
     args = parser.parse_args()
     if args.command == "run":
         run()
     elif args.command == "make-fixtures":
         make_fixtures()
+    elif args.command == "artist":
+        artist(args.mbid, args.limit, out_dir(DUMP))
 
 
 if __name__ == "__main__":

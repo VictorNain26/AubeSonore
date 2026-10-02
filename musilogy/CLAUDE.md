@@ -1,6 +1,6 @@
 # musilogy
 
-Couche 0 : deux dumps JSON MusicBrainz transformés en cinq tables Parquet
+Couche 0 : deux dumps JSON MusicBrainz transformés en six tables Parquet
 reproductibles. Les règles métier et les chiffres sont dans le `README.md` ; ce
 fichier décrit comment on travaille sur ce dépôt.
 
@@ -75,6 +75,7 @@ uv run pytest                 # suite rapide, sur les témoins
 uv run pytest -m slow         # ligne de base sur le dump réel, exige data/work/
 uv run musilogy run           # fetch → extract → transform → validate → publish
 uv run musilogy make-fixtures
+uv run musilogy artist <mbid> # lit data/out/, exige un run publié
 ```
 
 ## Licence

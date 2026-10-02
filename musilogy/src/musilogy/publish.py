@@ -14,7 +14,7 @@ import duckdb
 from musilogy.fetch import expected_sums, sha256_file
 from musilogy.paths import PACKAGE_DIR, REFERENCE_DIR
 
-TABLES = ("artists", "albums", "genres", "density", "links")
+TABLES = ("artists", "albums", "genres", "density", "links", "lineage")
 ARTISTS_WEB_COLUMNS = [
     # mbid first: it is the only key layer 1 can join on — against
     # web/genres.json.gz, against density, against anything. `name` is not an
@@ -37,6 +37,7 @@ ARTISTS_WEB_COLUMNS = [
     "ended",
     "country",
     "begin_area",
+    "begin_area_mbid",
     "genres",
     "genre_source",
     "genres_declared",
@@ -55,6 +56,7 @@ ORDER_BY = {
     "genres": "genre_mbid",
     "density": "genre_mbid, year",
     "links": "src_mbid, dst_mbid, type, y_begin NULLS LAST, y_end NULLS LAST",
+    "lineage": "artist_mbid, model_mbid, source",
 }
 WEB_COLUMNS = {
     # density_eligible carries the exclusion rule of 60_density.sql itself:

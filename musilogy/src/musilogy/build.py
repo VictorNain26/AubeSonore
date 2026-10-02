@@ -9,6 +9,7 @@ import duckdb
 RAW_ARTIST_COLUMNS = (
     "{mbid:'VARCHAR', name:'VARCHAR', disambiguation:'VARCHAR', type:'VARCHAR', begin:'VARCHAR', "
     "\"end\":'VARCHAR', ended:'BOOLEAN', country:'VARCHAR', begin_area:'VARCHAR', "
+    "begin_area_mbid:'VARCHAR', "
     "genres:'STRUCT(mbid VARCHAR, name VARCHAR, votes INTEGER)[]', "
     "relations:'STRUCT(type VARCHAR, direction VARCHAR, mbid VARCHAR, begin VARCHAR, "
     '"end" VARCHAR)[]\'}'
@@ -116,6 +117,9 @@ INVARIANTS = (
     "link_incomplete",
     "duplicate_link",
     "link_misoriented",
+    "lineage_misoriented",
+    "lineage_endpoint_missing",
+    "duplicate_lineage",
     "corrections_file_too_large",
     "corrections_invalid",
     "corrections_duplicate",

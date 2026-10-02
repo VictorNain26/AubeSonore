@@ -37,6 +37,23 @@ def test_every_view_defined_in_90_invariants_is_registered_in_invariants():
     assert defined_views - set(INVARIANTS) == VIEWS_NOT_CHECKED_AS_INVARIANTS
 
 
+def test_no_invariant_joins_without_an_equality(con):
+    # Case this must catch: an OR or an inequality inside a correlated
+    # subquery. The fixtures answer in milliseconds whatever the plan, but on
+    # the reference dump a cross product of lineage with every raw relation
+    # spilled tens of GB without finishing and starved the shared server. The
+    # plan is the same shape on the witnesses, so it is checked here.
+    con.execute((SQL / "90_invariants.sql").read_text(encoding="utf-8"))
+    unhashed = ("CROSS_PRODUCT", "NESTED_LOOP_JOIN", "BLOCKWISE_NL_JOIN", "PIECEWISE_MERGE_JOIN")
+    offenders = {}
+    for name in INVARIANTS:
+        plan = con.execute(f"EXPLAIN SELECT count(*) FROM {name}").fetchall()[0][1]
+        ops = [op for op in unhashed if op in plan]
+        if ops:
+            offenders[name] = ops
+    assert offenders == {}
+
+
 def test_build_skips_90_files():
     # Dedicated connection, never passed to check_invariants: on `con`
     # (module-scoped, shared by every test in this file), a previous run of

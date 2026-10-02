@@ -19,7 +19,7 @@ def read_web(out_dir, name):
 
 def test_publish_writes_every_table(con, tmp_path):
     manifest = publish(con, tmp_path, DUMP, None)
-    for name in ("artists", "albums", "genres", "density", "links"):
+    for name in ("artists", "albums", "genres", "density", "links", "lineage"):
         assert (tmp_path / f"{name}.parquet").exists()
         assert name in manifest["counts"]
     assert manifest["dump"] == DUMP

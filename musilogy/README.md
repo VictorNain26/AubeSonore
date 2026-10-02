@@ -1,16 +1,16 @@
 # musilogy
 
-Couche 0 : transforme deux dumps JSON MusicBrainz en cinq tables reproductibles et testées, publiées en Parquet et en JSON gzippé. La couche 1, l'interface, n'existe pas encore : elle sera construite sur des briques standard qui lisent ces formats, sans format binaire maison.
+Couche 0 : transforme deux dumps JSON MusicBrainz en six tables reproductibles et testées, publiées en Parquet et en JSON gzippé. La couche 1, l'interface, n'existe pas encore : elle sera construite sur des briques standard qui lisent ces formats, sans format binaire maison.
 
 ## Principe directeur
 
 **La sortie n'affirme jamais plus que ce que la source porte.** Une absence reste une absence : elle n'est ni imputée en silence, ni prolongée, ni arbitrée. Quand une valeur est dérivée, elle est publiée avec la colonne qui dit d'où elle vient, pour que le consommateur distingue une donnée déclarée d'une donnée inférée. Quand une mesure est impossible, la colonne vaut NULL — jamais zéro, qui affirmerait une mesure qui n'a pas eu lieu.
 
-**Population et projection sont deux choses distinctes.** `artists`, `albums`, `genres` et `links` portent la population complète ; `density` est une projection délibérément plus étroite, destinée à la frise. Un filtre d'affichage vit dans la projection, jamais dans la population — sinon la donnée écartée devient irrécupérable en aval.
+**Population et projection sont deux choses distinctes.** `artists`, `albums`, `genres`, `links` et `lineage` portent la population complète ; `density` est une projection délibérément plus étroite, destinée à la frise. Un filtre d'affichage vit dans la projection, jamais dans la population — sinon la donnée écartée devient irrécupérable en aval.
 
 C'est le changement le plus lourd par rapport à la première version de ce dépôt, qui appliquait le filtre de la frise à la population et n'en publiait que 63 487 groupes sur 682 447, soit 30 % de la masse d'albums réelle.
 
-## Les cinq tables
+## Les six tables
 
 Mesurées sur le dump de référence `20260909-001002` :
 
@@ -20,14 +20,16 @@ Mesurées sur le dump de référence `20260909-001002` :
 | `albums` | un point : une sortie d'album créditée à un seul artiste | 1 290 584 |
 | `genres` | le vocabulaire porté par `artists`, avec sa fiabilité mesurée | 1 729 |
 | `links` | un lien typé entre deux artistes — appartenance, pseudonyme, changement de nom, sous-groupe, professeur, famille… —, avec ses années | 771 147 |
+| `lineage` | un modèle d'un artiste — professeur, artiste honoré, homonyme d'origine —, avec la source qui l'affirme | 32 667 |
 | `density` | groupes présents par genre et par année | 58 767 cellules |
 
 Colonnes réelles (voir `src/musilogy/sql/`) :
 
-- **`artists`** : `mbid`, `name`, `disambiguation`, `name_key`, `type`, `y0_declared`, `y_end_declared`, `y_birth`, `ended`, `country`, `begin_area`, `genres_declared` et `genres_from_albums` (listes de `{mbid, name, votes}`, triées), `genres`, `genre_source`, `y_first_album`, `y_last_album`, `y0`, `y0_source`, `y_end`, `y_end_source`, `y_presence_end`.
+- **`artists`** : `mbid`, `name`, `disambiguation`, `name_key`, `type`, `y0_declared`, `y_end_declared`, `y_birth`, `ended`, `country`, `begin_area`, `begin_area_mbid`, `genres_declared` et `genres_from_albums` (listes de `{mbid, name, votes}`, triées), `genres`, `genre_source`, `y_first_album`, `y_last_album`, `y0`, `y0_source`, `y_end`, `y_end_source`, `y_presence_end`.
 - **`albums`** : `artist_mbid`, `rg_mbid`, `title`, `y`, `soundtrack`.
 - **`genres`** : `genre_mbid`, `name`, `n_artists`, `density_eligible`, `n_candidate_credits`, `multi_artist_drop_pct`.
 - **`links`** : `src_mbid`, `dst_mbid`, `type`, `y_begin`, `y_end`.
+- **`lineage`** : `artist_mbid`, `model_mbid`, `source`.
 - **`density`** : `genre_mbid`, `year`, `present`.
 
 Une table intermédiaire, `presence(mbid, y0, y_presence_end)`, est calculée mais non publiée.
@@ -66,7 +68,11 @@ Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la n
 
 - **`60_density` — Densité.** Délibérément plus étroite que la population : type `Group`, `y0` connu, au moins un genre, **et un genre `density_eligible`** — la règle est matérialisée dans `55_genre_reliability`, ce fichier ne fait que l'appliquer. Un groupe compte dans chacun de ses genres ; les totaux par genre ne s'additionnent pas.
 
+- **`70_contemporaries` — Contemporains, à la demande.** Une macro, pas une table : `contemporaries(mbid)` renvoie les artistes dont les années de présence (`y0` à `y_presence_end`) recouvrent celles de l'artiste, qui partagent sa scène et au moins un genre. La scène est le même `begin_area_mbid` — l'identité du lieu, pas son nom, que London partage avec l'Ontario —, sinon le même pays quand l'artiste n'a pas de lieu de début ; `scene` dit lequel a servi. Aucun seuil : la liste est ordonnée par similarité de Jaccard des genres, puis par `mbid`, et chaque ligne porte les genres partagés. Publiée complète, elle ferait environ 188 millions de lignes (extrapolé d'un échantillon de 2 000 artistes, médiane 21, p99 9 667) ; un artiste se calcule en une centaine de millisecondes.
+
 - **`80_links` — Liens.** Toutes les relations d'artiste à artiste, **typées** : `type` garde le nom MusicBrainz (`member of band`, `is person`, `artist rename`, `subgroup`, `teacher`, `parent`…), pour que le consommateur sache ce qu'un lien affirme sans se fier à une catégorie de la couche 0. Le dump porte chaque relation sur ses deux artistes, orientée par `direction` ; elle est lue source → cible des deux côtés, puis dédoublonnée, avec ses années lues par la même macro stricte que partout ailleurs. Les deux extrémités doivent être des artistes de `artists` : un lien vers un personnage ou un artiste sans type n'aurait nulle part où arriver, et ces 38 442 liens écartés sont comptés dans `manifest.json` (`link_exclusions`). **Ce n'est pas de l'influence** : MusicBrainz n'en porte aucune ; un lien est un fait vérifiable, qui a joué où, qui a enseigné à qui.
+
+- **`85_lineage` — Filiation.** `model_mbid` est un modèle d'`artist_mbid`, au sens exact de `source`, lue dans un sens pour les inspirations, dans l'autre pour la descendance. Trois types de `links` : `teacher` (`mb_teacher`, le professeur est la source du lien), `tribute` (`mb_tribute`) et `named after artist` (`mb_named_after`), dont la cible est le modèle. Le sens a été vérifié par l'âge : le professeur est le plus âgé dans 21 918 cas contre 235. Une ligne par paire et par source : les années du lien n'en font pas partie, et une paire affirmée par deux sources reste deux lignes. Les colonnes `ref_status` et `evidence` de la spécification arriveront avec Wikidata, la première source qui les remplit.
 
 - **`90_invariants` — Contrôles.** Des vues qui doivent toutes renvoyer zéro ligne ; le nom de la vue *est* le nom de l'invariant. Chacune **recalcule indépendamment** ce qu'elle vérifie : une revue a montré qu'un invariant réutilisant la formule de production restait muet sur 265 violations réelles. Les bornes contractuelles y sont codées en dur, aux deux extrémités, sans relire les variables de session de la production ; changer de dump impose donc une modification délibérée de ce fichier — c'est l'intention.
 
@@ -88,7 +94,7 @@ Le coût mesuré de la règle est un faux positif, `mincecore` (73,1 % sur 216 c
 
 ## Ce que reçoit la couche 1
 
-`data/out/<dump>/` contient les cinq tables en Parquet (archive complète), le manifeste, et un export JSON colonnaire gzippé **scindé** :
+`data/out/<dump>/` contient les six tables en Parquet (archive complète), le manifeste, et un export JSON colonnaire gzippé **scindé** :
 
 - `web/artists_timeline.json.gz` — les artistes dont `y0` est connu, donc plaçables sur une frise (41,3 Mo) ;
 - `web/artists_rest.json.gz` — les autres, chargeables à la demande (56,2 Mo) ;
@@ -103,7 +109,7 @@ Chaque ligne porte son `mbid` — la clé de jointure vers `albums`, `links` et 
 
 **Deux sujets restent ouverts pour la couche 1.** Le poids : 41,3 Mo gzip pour `artists_timeline` et 56,2 Mo pour `artists_rest` ; un chargement initial complet n'est pas réaliste sur mobile, et le format de lecture lui revient. Et l'absence de hiérarchie : les 1 729 genres sont **plats**, sans regroupement possible, faute de source fiable — parcourir cette liste à la main n'est pas une interface.
 
-`manifest.json` porte les empreintes des archives **et celles des neuf fichiers livrés** — cinq Parquet, quatre `.json.gz` — (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les sept compteurs de neutralisation, les exclusions de densité et de liens, le commit et l'empreinte des corrections.
+`manifest.json` porte les empreintes des archives **et celles des dix fichiers livrés** — six Parquet, quatre `.json.gz` — (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les sept compteurs de neutralisation, les exclusions de densité et de liens, le commit et l'empreinte des corrections.
 
 Ces empreintes de sortie sont opposables parce que la livraison est reproductible : à dump et code identiques, deux exécutions écrivent les mêmes octets. L'ordre des lignes est fixé par une clé totale sur chaque table et le gzip ne porte pas d'horodatage. Un consommateur distingue donc une livraison inchangée d'une nouvelle par sa seule empreinte, sans retélécharger.
 
@@ -111,7 +117,7 @@ Ces empreintes de sortie sont opposables parce que la livraison est reproductibl
 
 Le **contrat exécutable** est `tests/test_baseline.py` : il confronte le pipeline entier au dump de référence et compare exactement les comptes, la somme des cellules de densité et la répartition des provenances. Les chiffres cités ici sont descriptifs ; en cas de divergence, c'est le test qui fait foi.
 
-Deux situations, deux conduites, à ne pas confondre. **Sur le dump de référence, un écart signale une règle mal implémentée** — jamais un prétexte pour ajuster la ligne de base. **Sur un nouveau dump, tous les chiffres bougent légitimement**, et la ligne de base se régénère : les cinq comptes, les trois répartitions de provenance, les neuf compteurs d'anomalies, les sept de neutralisation, les exclusions de densité et de liens, et la répartition des liens par type. Il faut alors aussi mettre à jour `REFERENCE_DUMP`, la valeur par défaut de `dump_year`, ajouter le `reference/<dump>.SHA256SUMS` correspondant, et modifier à la main les bornes codées en dur dans les vues de `90_invariants.sql` — cette dernière opération est délibérément manuelle, c'est ce qui empêche une mauvaise variable de satisfaire à la fois la règle et son contrôle. Les extractions vivant dans `data/work/<dump>/`, changer `REFERENCE_DUMP` suffit à repartir d'une extraction neuve, sans rien vider à la main ; le manifeste porte déjà les paramètres du run (section précédente).
+Deux situations, deux conduites, à ne pas confondre. **Sur le dump de référence, un écart signale une règle mal implémentée** — jamais un prétexte pour ajuster la ligne de base. **Sur un nouveau dump, tous les chiffres bougent légitimement**, et la ligne de base se régénère : les six comptes, les trois répartitions de provenance, les neuf compteurs d'anomalies, les sept de neutralisation, les exclusions de densité et de liens, la répartition des liens par type et celle de `lineage` par source. Il faut alors aussi mettre à jour `REFERENCE_DUMP`, la valeur par défaut de `dump_year`, ajouter le `reference/<dump>.SHA256SUMS` correspondant, et modifier à la main les bornes codées en dur dans les vues de `90_invariants.sql` — cette dernière opération est délibérément manuelle, c'est ce qui empêche une mauvaise variable de satisfaire à la fois la règle et son contrôle. Les extractions vivant dans `data/work/<dump>/`, changer `REFERENCE_DUMP` suffit à repartir d'une extraction neuve, sans rien vider à la main ; le manifeste porte déjà les paramètres du run (section précédente).
 
 Provenance des bords, sur le dump de référence :
 
@@ -153,11 +159,12 @@ La suite passe depuis n'importe quel répertoire : tous les chemins sont ancrés
 ```bash
 uv run musilogy run                 # fetch → extract → transform → validate → publish
 uv run musilogy make-fixtures       # régénère les témoins depuis les extractions
+uv run musilogy artist <mbid>       # inspirations, descendance et contemporains, lus dans data/out/
 ```
 
 Aucune sortie du pipeline n'est versionnée ; seules les empreintes et les fixtures le sont.
 
-Qualité : `uv run ruff check`, `uv run ruff format --check`, `uv run mypy`. La CI (`.github/workflows/ci.yml`) passe ces trois contrôles plus la suite rapide ; la suite lente exige le dump et reste manuelle.
+Qualité : `uv run ruff check`, `uv run ruff format --check`, `uv run mypy`. La CI (`.github/workflows/musilogy.yml`, à la racine d'AubeSonore) passe ces trois contrôles plus la suite rapide ; la suite lente exige le dump et reste manuelle.
 
 ## Structure du dépôt
 
@@ -167,7 +174,8 @@ src/musilogy/
   extract.py             projette les enregistrements bruts en flux, sans logique métier
   build.py               enchaîne les fichiers SQL, applique les corrections, vérifie les invariants
   publish.py             écrit Parquet, JSON colonnaire scindé et manifest.json
-  cli.py                 les deux commandes
+  cli.py                 les trois commandes
+  artist.py              lit la filiation et les contemporains d'un artiste dans les tables publiées
   paths.py               chemins ancrés sur le paquet
   corrections.csv        corrections manuelles, versionné
   reference/             empreintes officielles des archives

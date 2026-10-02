@@ -31,6 +31,8 @@ def synthetic_artist(
     genres: list[dict[str, Any]] | None = None,
     name: str | None = None,
     kind: str = "Group",
+    country: str | None = None,
+    begin_area: tuple[str, str] | None = None,
 ) -> dict[str, Any]:
     return {
         "mbid": mbid,
@@ -39,8 +41,9 @@ def synthetic_artist(
         "begin": begin,
         "end": end,
         "ended": end is not None,
-        "country": None,
-        "begin_area": None,
+        "country": country,
+        "begin_area": begin_area[1] if begin_area else None,
+        "begin_area_mbid": begin_area[0] if begin_area else None,
         "genres": genres or [],
         "relations": relations or [],
     }
