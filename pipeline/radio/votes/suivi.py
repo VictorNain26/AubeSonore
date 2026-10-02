@@ -64,7 +64,8 @@ def last_flows(conn: sqlite3.Connection) -> tuple[int | None, list[Flow]]:
         FROM candidates c
         LEFT JOIN scores s USING (deezer_track_id)
         LEFT JOIN acquisitions a USING (deezer_track_id)
-        LEFT JOIN antenne n USING (deezer_track_id)
+        LEFT JOIN antenne n
+            ON n.deezer_track_id = c.deezer_track_id AND n.categorie != 'repos'
         WHERE c.run_id = ?
         GROUP BY 1, 2 ORDER BY 1, 2
         """,

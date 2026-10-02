@@ -187,3 +187,39 @@ def test_retry_hook_logs_no_arguments(caplog: pytest.LogCaptureFixture) -> None:
 
 def test_tests_never_reach_the_real_data_dir() -> None:
     assert Settings(_env_file=None).data_dir != REPO_ROOT / "data"
+
+
+def test_migration_13_gives_each_title_on_air_its_category(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    old = tmp_path / "migrations"
+    old.mkdir()
+    for script in sorted(MIGRATIONS.glob("01[0-2]_*.sql")) + sorted(
+        MIGRATIONS.glob("00[1-9]_*.sql")
+    ):
+        (old / script.name).write_text(script.read_text(encoding="utf-8"), encoding="utf-8")
+    monkeypatch.setattr("radio.core.db.MIGRATIONS", old)
+    conn = connect(tmp_path / "radio.db")
+    assert conn.execute("PRAGMA user_version").fetchone()[0] == 12
+    conn.execute("INSERT INTO artists VALUES (1, 'A')")
+    conn.execute("INSERT INTO discover_runs VALUES (1, 'd', 'd', 'done')")
+    for tid in (1, 2):
+        conn.execute("INSERT INTO tracks VALUES (?, 1, 'T', 'candidate', ?, 'd')", (tid, f"k{tid}"))
+    conn.execute("INSERT INTO candidates VALUES (1, 1, 'voisin', 1, 1, NULL)")
+    conn.execute("INSERT INTO candidates VALUES (2, 1, 'hypem', NULL, NULL, 'Blog')")
+    for tid, origin in ((1, "decouverte"), (2, "decouverte"), (3, "repere")):
+        conn.execute(
+            "INSERT INTO antenne VALUES (?, ?, ?, 's', ?, '2026-10-01')",
+            (tid, origin, tid, f"antenne/{tid}.mp3"),
+        )
+    conn.commit()
+    conn.close()
+    monkeypatch.setattr("radio.core.db.MIGRATIONS", MIGRATIONS)
+
+    conn = connect(tmp_path / "radio.db")
+    rows = conn.execute("SELECT deezer_track_id, categorie, since FROM antenne ORDER BY 1")
+    assert [tuple(r) for r in rows] == [
+        (1, "decouvertes", "2026-10-01"),
+        (2, "nouveautes", "2026-10-01"),
+        (3, "reperes", "2026-10-01"),
+    ]

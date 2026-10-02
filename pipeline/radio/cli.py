@@ -526,9 +526,10 @@ def acquire() -> None:
 @app.command()
 @_stage("antenne")
 def antenne() -> None:
-    """Publie les titres prêts et les repères sur AzuraCast, retire l'excédent."""
+    """Publie les titres prêts, fait vivre chaque titre (fin de séjour, promotion, repos,
+    péremption) et fait tourner les repères."""
     settings = _settings()
-    cfg = _editorial(settings).antenne
+    editorial = _editorial(settings)
     if settings.azuracast_api_key is None:
         _fail("AZURACAST_API_KEY doit être défini dans .env", 2)
     station = AzuracastClient(
@@ -542,7 +543,8 @@ def antenne() -> None:
                 conn,
                 station,
                 DeezerClient(),
-                cfg,
+                editorial.antenne,
+                editorial.grille,
                 PurePosixPath(settings.plex_music_root),
                 settings.rsgain_bin,
                 np.random.default_rng(),
@@ -562,7 +564,12 @@ def antenne() -> None:
                 "repères sans pochette": rep.n_references_no_cover,
                 "repères sautés": len(rep.skipped_references),
                 "votés non écartés": rep.n_voted_out,
-                "retirés": rep.n_removed,
+                "promus": rep.n_promoted,
+                "fins de séjour": rep.n_ended,
+                "mis au repos": rep.n_rested,
+                "revenus au fond": rep.n_returned,
+                "périmés": rep.n_expired,
+                "repères sortis": rep.n_references_out,
                 "oubliés": rep.n_forgotten,
                 "inconnus": rep.n_unknown,
                 "à l'antenne": rep.n_total,
@@ -572,10 +579,14 @@ def antenne() -> None:
     _echo(
         [
             f"Antenne : {_n(rep.n_total)} titres ({_n(rep.n_published)} publiés, "
-            f"{_n(rep.n_references)} repères ajoutés, {_n(rep.n_removed)} retirés)",
+            f"{_n(rep.n_references)} repères ajoutés, {_n(rep.n_references_out)} sortis)",
             f"  votés « non » écartés : {_n(rep.n_voted_out)}",
+            f"  fin du premier séjour : {_n(rep.n_promoted)} promus au repos, "
+            f"{_n(rep.n_ended)} sortis",
+            f"  fond : {_n(rep.n_rested)} mis au repos, {_n(rep.n_returned)} revenus, "
+            f"{_n(rep.n_expired)} périmés",
             f"  réalignement : {_n(rep.n_forgotten)} disparus d'AzuraCast oubliés, "
-            f"{_n(rep.n_unknown)} fichiers inconnus dans antenne/",
+            f"{_n(rep.n_unknown)} fichiers inconnus dans antenne/ et repos/",
             f"  repères sans pochette : {_n(rep.n_references_no_cover)}",
             *(f"  sauté : {s}" for s in rep.skipped_references),
             *(f"  erreur : {e}" for e in rep.errors),

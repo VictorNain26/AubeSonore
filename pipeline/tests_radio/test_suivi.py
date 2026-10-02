@@ -28,7 +28,10 @@ def test_the_flow_of_each_source_from_batch_to_antenna(tmp_path: Path) -> None:
             (200602, "failed", "x", None),
         ],
     )
-    conn.execute("INSERT INTO antenne VALUES (200600, 'decouverte', 1, 's', 'antenne/1.mp3', 'd')")
+    conn.execute(
+        "INSERT INTO antenne VALUES (200600, 'decouverte', 'decouvertes', 1, 's', "
+        "'antenne/1.mp3', 'd', 'd')"
+    )
     conn.commit()
     s = load_suivi(conn, FreshConfig(hypem_pages=0, deezer_editorial={"jazz": 129}))
     flows = {f.key: f for f in s.flows}

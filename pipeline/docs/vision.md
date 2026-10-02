@@ -225,24 +225,34 @@ Justification des choix : `recherches/2026-09-30-acquisition-publication-observa
 
 ### 7.1 Bibliothèque d'antenne
 
-- **Taille.** Plafond de 2 000 titres (`target_max` dans `config/editorial.toml`).
-- **Entrées.** Chaque passe publie tout ce qui a été acquis. Des repères sont ajoutés pour rester
-  sous 20 %, tirés selon l'écoute. Une découverte passe à « publiée » dans la transaction de son
-  entrée à l'antenne : sortie ensuite (excédent, vote, suppression dans AzuraCast), elle n'est
-  jamais republiée.
-- **Votes « non ».** Un titre voté « non » sort de l'antenne à la passe suivante, avant le calcul
-  de l'excédent, repères compris (aucun vote ne porte aujourd'hui sur un titre de la
-  bibliothèque : les bulletins sont tirés parmi les candidats). Un fichier prêt voté « non »
-  n'est jamais publié. Un repère voté « non » n'est jamais tiré.
-- **Sorties.** Au-delà du plafond, chaque entrée retire le titre le moins bien noté parmi ceux
-  qui sont à l'antenne depuis plus de 60 jours, repères exclus.
-  - Le nombre de suppressions par passe est plafonné.
-  - Le titre en cours (`GET /nowplaying/{station}`, `now_playing.song.id`) et la file de
-    l'AutoDJ (`GET /station/{id}/queue`) sont toujours épargnés, y compris pour un vote « non » :
-    le titre sort à la passe suivante.
-  - Retrait manuel : supprimer le fichier dans AzuraCast ; la passe suivante l'oublie et ne le
-    republie jamais.
-  - Une découverte entrée depuis dans la bibliothèque Plex sort en dernier.
+Chaque titre suit un cycle de vie (`recherches/2026-10-02-cycle-de-vie.md` §3 et §4, pratiques
+sourcées dans `recherches/2026-10-02-rotation-radio.md`). Il sort par âge, jamais par score : le
+score choisit seulement qui est promu. La passe hebdomadaire applique ces règles dans l'ordre :
+
+- **Entrées.** Tout ce qui a été acquis est publié, dans la catégorie de sa famille :
+  `nouveautes` (Hype Machine, Deezer éditorial) ou `decouvertes` (voisins). Une découverte passe
+  à « publiée » dans la transaction de son entrée : sortie ensuite, elle n'est jamais republiée.
+- **Votes « non ».** Un titre voté « non » sort à la passe suivante, quelle que soit sa catégorie.
+  Un fichier prêt voté « non » n'est jamais publié. Un repère voté « non » n'est jamais tiré.
+- **Fin du premier séjour** (`stay_weeks`, 6 semaines, KEXP) : la part `promotion_share` (12 %)
+  la meilleure de la cohorte, un « oui » d'abord puis la note du modèle, part au repos ; le reste
+  sort.
+- **Fond, par auto-platooning** (MusicMaster) : un recurrent présent au fond depuis 6 semaines
+  part au repos ; les places libres du fond reviennent à ceux qui se reposent depuis le plus
+  longtemps, au moins `rest_weeks` (12 semaines).
+- **Péremption** (`life_weeks`, 78 semaines, BBC Radio 2) : un recurrent sort pour de bon 18 mois
+  après sa première diffusion.
+- **Repères** : chacun reste 6 semaines, puis cède sa place à un autre, tiré selon l'écoute parmi
+  ceux qui ne sont pas passés depuis 12 semaines (`repere_sorties`). Au plus `stock / 6` entrées
+  par passe : le stock se remplit au rythme où il se renouvelle.
+- **Stocks.** Ceux du fond et des repères découlent de la grille (`[grille]` de
+  `editorial.toml`) : part d'antenne × titres par heure × 168 / passages par semaine, ~409
+  chacun. Les nouveautés et les découvertes entrent au rythme de la rétention (§4).
+- **Toujours épargnés** : le titre en cours (`GET /nowplaying/{station}`, `now_playing.song.id`)
+  et la file de l'AutoDJ (`GET /station/{id}/queue`) ne sortent ni ne bougent ; ils attendent la
+  passe suivante.
+- **Retrait manuel** : supprimer le fichier dans AzuraCast ; la passe suivante l'oublie et ne le
+  republie jamais.
 
 ### 7.2 Publication sur AzuraCast
 
@@ -252,6 +262,11 @@ Justification : `recherches/…-observabilite.md` §3.
   renvoyés sont gardés en base avec l'origine du titre.
 - **Diffusion.** Le dossier `antenne/` est rattaché à une seule playlist « AubeSonore », non
   programmée, en `shuffle` avec `avoid_duplicates`. AzuraCast y range lui-même les fichiers.
+- **Repos.** Un titre au repos est déplacé dans `repos/` par `PUT /station/1/files/batch` avec
+  `do=move` (`BatchAction::doMove`, 0.23.8 : déplacement sans réécriture des balises ; Flysystem
+  crée le dossier). `repos/` n'est rattaché à aucune playlist : la synchronisation des dossiers
+  (`CheckFolderPlaylistsTask`, toutes les 5 min) retire de la playlist un fichier sorti de son
+  dossier.
 - **Retrait.** `PUT /station/1/files/batch` avec `do=delete`.
 - **Interdit.** Jamais de `PUT /file/{id}` : il réécrit et supprime les balises.
 - **Réalignement à chaque passe.** On compare la base au contenu de `antenne/` et on rapporte les
