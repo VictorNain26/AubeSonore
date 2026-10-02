@@ -1,11 +1,17 @@
-import { describe, it, expect, mock, afterEach } from 'bun:test';
+import { describe, it, expect, spyOn, afterAll, afterEach } from 'bun:test';
 import { Elysia } from 'elysia';
 
 const VALID_ID = '11111111-1111-1111-1111-111111111111';
 const UNKNOWN_ID = '22222222-2222-2222-2222-222222222222';
 
-void mock.module('../services/artistProfileService', () => ({
-  getArtistProfile: (id: string) =>
+// spyOn on the real exports, restored after this file: mock.module would
+// replace these modules for every other test file of the run (Bun 1.3).
+const profileService = await import('../services/artistProfileService');
+const resolver = await import('../services/artistResolver');
+const lastfm = await import('../services/lastfmService');
+
+const spies = [
+  spyOn(profileService, 'getArtistProfile').mockImplementation((id: string) =>
     Promise.resolve(
       id === VALID_ID
         ? {
@@ -23,18 +29,21 @@ void mock.module('../services/artistProfileService', () => ({
             resolved: true,
           }
         : null
-    ),
-}));
+    )
+  ),
+  spyOn(resolver, 'resolveArtist').mockImplementation((name: string) =>
+    Promise.resolve(name === 'Daft Punk' ? { id: VALID_ID, slug: 'daft-punk' } : null)
+  ),
+  spyOn(lastfm, 'getArtistInfo').mockImplementation((name: string) =>
+    Promise.resolve(
+      name === 'Daft Punk' ? { bio: 'Un duo.', tags: [], similarArtists: [], listeners: 0 } : null
+    )
+  ),
+];
 
-void mock.module('../services/artistResolver', () => ({
-  resolveArtist: (name: string) =>
-    Promise.resolve(name === 'Daft Punk' ? { id: VALID_ID, slug: 'daft-punk' } : null),
-}));
-
-void mock.module('../services/lastfmService', () => ({
-  getArtistInfo: (name: string) =>
-    Promise.resolve(name === 'Daft Punk' ? { name: 'Daft Punk', bio: 'Un duo.', tags: [] } : null),
-}));
+afterAll(() => {
+  for (const spy of spies) spy.mockRestore();
+});
 
 const { artistRoutes } = await import('./artist.routes');
 const { __resetRateLimits } = await import('../lib/rateLimit');
