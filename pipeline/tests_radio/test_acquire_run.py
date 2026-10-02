@@ -104,7 +104,7 @@ def test_acquire_prepares_verified_files_and_retries_failures(
 ) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    first = pending(conn, CFG)
+    first = pending(conn, CFG).tids
     assert len(first) == 4  # max_per_pass, la dernière fournée et les mieux notés d'abord
     ok, wrong, missing = first[0], first[1], first[2:]
     fake_audio[wrong] = 0.55  # Chromaprint : un autre morceau
@@ -117,25 +117,58 @@ def test_acquire_prepares_verified_files_and_retries_failures(
     assert prepared[ok].album == "Album" and prepared[ok].cover == b"jpeg"
 
     # Deuxième passe : les échecs sont retentés (1 tentative < 2), le prêt ne l'est plus.
-    again = pending(conn, CFG)
+    again = pending(conn, CFG).tids
     assert ok not in again and wrong in again and set(missing) <= set(again)
     _pass(conn, tmp_path, set(), 2)
     rows = dict(conn.execute("SELECT deezer_track_id, attempts FROM acquisitions").fetchall())
     assert rows[wrong] == 2 and rows[ok] == 1
-    assert wrong not in pending(conn, CFG)  # abandonné après max_attempts
+    assert wrong not in pending(conn, CFG).tids  # abandonné après max_attempts
+
+
+def _artist(conn: Any, tid: int) -> int:
+    row = conn.execute(
+        "SELECT deezer_artist_id FROM tracks WHERE deezer_track_id = ?", (tid,)
+    ).fetchone()
+    return int(row[0])
+
+
+def test_one_title_per_artist_enters_and_the_next_waits_its_turn(tmp_path: Path) -> None:
+    # Breaks if an artist gets two titles in rotation, or if a waiting title is not counted.
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    cfg = AcquisitionConfig(max_per_pass=100, max_attempts=2)
+    first = pending(conn, cfg)
+    artists = [_artist(conn, t) for t in first.tids]
+    assert len(artists) == len(set(artists)) and first.waiting > 0
+
+    # Le premier artiste a désormais un titre en découvertes : son retenu attend.
+    on_air = artists[0]
+    other = conn.execute(
+        "SELECT deezer_track_id FROM tracks WHERE deezer_artist_id = ? AND deezer_track_id != ?",
+        (on_air, first.tids[0]),
+    ).fetchone()[0]
+    conn.execute(
+        "INSERT INTO antenne VALUES "
+        "(?, 'decouverte', 'decouvertes', 1, 's1', 'antenne/1.mp3', ?, ?)",
+        (other, NOW, NOW),
+    )
+    conn.commit()
+    again = pending(conn, cfg)
+    assert on_air not in {_artist(conn, t) for t in again.tids}
+    assert again.waiting == first.waiting + 1
 
 
 def test_the_latest_batch_is_acquired_first(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
     # Mêmes notes dans les deux fournées : la dernière (artistes 6 à 11) passe d'abord.
-    assert all(t // 100 % 100 >= 6 for t in pending(conn, CFG))
+    assert all(t // 100 % 100 >= 6 for t in pending(conn, CFG).tids)
 
 
 def test_a_title_gone_from_deezer_is_counted(tmp_path: Path, fake_audio: dict[int, float]) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    gone = pending(conn, CFG)[0]
+    gone = pending(conn, CFG).tids[0]
     rep = acquire_pass(
         conn,
         FakeDeezer(frozenset({gone})),
@@ -155,7 +188,7 @@ def test_one_track_request_per_title_after_the_wanted_list(
 ) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    ok = pending(conn, CFG)[0]
+    ok = pending(conn, CFG).tids[0]
     deezer = FakeDeezer()
     _pass(conn, tmp_path, {ok}, 1, deezer)
     # Une lecture pour la liste, une seule ensuite : extrait frais, album et pochette ensemble.
@@ -165,10 +198,10 @@ def test_one_track_request_per_title_after_the_wanted_list(
 def test_a_title_voted_no_is_never_acquired(tmp_path: Path, fake_audio: dict[int, float]) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    first, second = pending(conn, CFG)[:2]
+    first, second = pending(conn, CFG).tids[:2]
     add_vote(conn, first, "exam", "non")
     add_vote(conn, second, "lesson", "non")
-    left = pending(conn, CFG)
+    left = pending(conn, CFG).tids
     assert first not in left and second not in left and len(left) == 4
 
 
@@ -177,7 +210,7 @@ def test_missing_cover_keeps_the_verified_file(
 ) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    ok = pending(conn, CFG)[0]
+    ok = pending(conn, CFG).tids[0]
     rep = _pass(conn, tmp_path, {ok}, 1, FakeDeezer(cover_status=404))
     assert (rep.n_ready, rep.n_no_cover) == (1, 1)
     assert (tmp_path / "antenne" / f"{ok}.mp3").exists()
@@ -213,7 +246,7 @@ def test_sockseek_fatal_code_consumes_no_attempt(
 ) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    found = set(pending(conn, CFG))
+    found = set(pending(conn, CFG).tids)
     run = _sockseek(found)
 
     def usage_error(args: Sequence[str]) -> int:
@@ -240,7 +273,7 @@ def test_titles_missing_from_a_partial_index_are_not_attempts(
 ) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    first = pending(conn, CFG)[0]
+    first = pending(conn, CFG).tids[0]
     run = _sockseek({first})
 
     def interrupted(args: Sequence[str]) -> int:
@@ -269,7 +302,7 @@ def test_deezer_outage_still_cleans_the_pass_folder(
 ) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    found = set(pending(conn, CFG))
+    found = set(pending(conn, CFG).tids)
 
     class Outage(FakeDeezer):
         def track_page(self, tid: int) -> TrackPage | None:
@@ -291,7 +324,7 @@ def test_two_titles_with_the_same_sockseek_key_do_not_loop(
 ) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    first, second = pending(conn, CFG)[:2]
+    first, second = pending(conn, CFG).tids[:2]
 
     class SameKey(FakeDeezer):
         def track_page(self, tid: int) -> TrackPage | None:

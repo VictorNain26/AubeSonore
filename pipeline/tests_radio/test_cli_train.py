@@ -32,14 +32,16 @@ def test_train_promotes_scores_then_skips_without_new_votes(env: Path) -> None:
     assert res.exit_code == 0, res.output
     assert "Examen : 2 votes, AUC 1,000" in res.output
     assert "Modèle n°1 : promu — premier modèle" in res.output
-    assert "Dernière fournée (passe n°1) : 32 retenus sur 96 candidats" in res.output
+    # 24 artistes de 4 titres : un retenu par artiste.
+    assert "Dernière fournée (passe n°1) : 24 retenus sur 96 candidats" in res.output
 
     conn = connect(env / "data" / "radio.db")
     kept = conn.execute(
         "SELECT deezer_track_id < 300000, SUM(accepted) FROM scores GROUP BY 1"
     ).fetchall()
     conn.close()
-    assert sorted(tuple(r) for r in kept) == [(0, 0), (1, 32)]
+    # La coupure (80) dépasse les 24 artistes : chacun entre son titre le mieux noté, un seul.
+    assert sorted(tuple(r) for r in kept) == [(0, 12), (1, 12)]
 
     res = runner.invoke(cli.app, ["train"])
     assert res.exit_code == 0, res.output

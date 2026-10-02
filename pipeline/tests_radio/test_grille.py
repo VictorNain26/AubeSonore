@@ -22,11 +22,14 @@ from tests_radio.model_factory import make_model_db
 
 FRIDAY = date(2026, 10, 2)
 MIDNIGHT = 1_790_892_000.0  # 2026-10-02 00:00, Europe/Paris
+ENTERED = "2026-10-01T00:00:00+02:00"
 
 
 def _titre(tid: int, categorie: Categorie, q: float, artist: int | None = None) -> Titre:
     v = np.full(3, q)
-    return Titre(tid, artist or tid, categorie, f"antenne/{tid}.mp3", f"s{tid}", v, v, v, True)
+    return Titre(
+        tid, artist or tid, categorie, f"antenne/{tid}.mp3", f"s{tid}", v, v, v, True, MIDNIGHT
+    )
 
 
 def _grille(**stocks: int) -> GrilleConfig:
@@ -105,13 +108,38 @@ def test_each_title_goes_to_the_hour_that_resembles_it_and_the_hour_drifts() -> 
     assert order == sorted(order, reverse=True)
 
 
-def test_an_artist_waits_an_hour_and_a_title_goes_back_in_rotation() -> None:
+def test_an_artist_waits_three_hours_and_a_title_goes_back_in_rotation() -> None:
+    # 20 titres d'artistes distincts pour 16 créneaux par heure.
     titres = [_titre(i, "decouvertes", 0.5) for i in range(20)]
-    plan = plan_day(titres, {}, _grille(decouvertes=20), FRIDAY, [8, 9, 10], MIDNIGHT)
-    eight, nine, ten = ({t.artist for t in plan.hours[h]} for h in (8, 9, 10))
-    assert len(eight) == 16 and not eight & nine  # 4 artistes libres seulement à 9 h
-    assert len(nine) == 4 and plan.empty_slots == 12
-    assert len(ten) == 16 and ten & eight  # deux heures plus tard, ils reviennent
+    hours = [8, 9, 10, 11, 12]
+    plan = plan_day(titres, {}, _grille(decouvertes=20), FRIDAY, hours, MIDNIGHT)
+    eight, nine, ten, eleven, noon = ({t.artist for t in plan.hours[h]} for h in hours)
+    assert len(eight) == 16 and len(nine) == 4 and not eight & nine  # 4 artistes libres à 9 h
+    # L'heure est réordonnée : placé à 8 h, un artiste peut passer jusqu'à 9 h, et revient à
+    # 12 h au plus tôt ; ceux de 9 h, à 13 h.
+    assert not ten and not eleven
+    assert noon and noon <= eight
+
+
+def test_a_title_rests_whatever_its_mood() -> None:
+    # Le titre le plus proche de la cible vient de passer : moins de 60 % d'un tour de repos.
+    near = _titre(0, "decouvertes", 0.25)  # cible de la nuit
+    others = [_titre(i, "decouvertes", 0.9, artist=1000 + i) for i in range(1, 200)]
+    played = {f"s{i}": MIDNIGHT - 86400 for i in range(1, 200)} | {"s0": MIDNIGHT - 3600}
+    plan = plan_day([near, *others], played, _grille(decouvertes=200), FRIDAY, [1], MIDNIGHT)
+    # Tour : 200 titres pour 16 x 24 créneaux, ~12,5 h ; repos minimum ~7,5 h.
+    assert 0 not in {t.tid for t in plan.hours[1]}
+
+
+def test_a_starved_title_plays_whatever_its_mood_and_ahead_of_closer_ones() -> None:
+    # 100 titres pour 384 créneaux par jour : un tour dure 6,25 h. Le titre loin de la cible
+    # n'a pas joué depuis 13 h, plus de deux tours : il passe d'office dans l'heure.
+    far = _titre(0, "decouvertes", 1.0)
+    close = [_titre(i, "decouvertes", 0.25) for i in range(1, 100)]
+    played = {f"s{i}": MIDNIGHT - 3 * 3600 for i in range(1, 100)} | {"s0": MIDNIGHT - 13 * 3600}
+    plan = plan_day([far, *close], played, _grille(decouvertes=100), FRIDAY, [0], MIDNIGHT)
+    assert 0 in {t.tid for t in plan.hours[0]}
+    assert plan.late == 1
 
 
 def test_rotation_wins_over_mood_for_a_title_far_from_every_hour() -> None:
@@ -127,6 +155,7 @@ def test_rotation_wins_over_mood_for_a_title_far_from_every_hour() -> None:
         np.zeros(3),
         np.zeros(3),
         True,
+        MIDNIGHT,
     )
     played = {f"s{i}": MIDNIGHT - 3600 for i in range(32)} | {"s99": MIDNIGHT - 3 * 86400}
     plan = plan_day([*titres, odd], played, _grille(decouvertes=33), FRIDAY, [8, 9], MIDNIGHT)
@@ -144,8 +173,8 @@ def test_titles_on_air_are_read_with_their_measures_as_quantiles(tmp_path: Path)
     conn = make_model_db(tmp_path)
     for i, tid in enumerate((200000, 200001, 200002)):
         conn.execute(
-            "INSERT INTO antenne VALUES (?, 'decouverte', 'decouvertes', ?, ?, ?, 'd', 'd')",
-            (tid, tid, f"s{tid}", f"antenne/{tid}.mp3"),
+            "INSERT INTO antenne VALUES (?, 'decouverte', 'decouvertes', ?, ?, ?, ?, ?)",
+            (tid, tid, f"s{tid}", f"antenne/{tid}.mp3", ENTERED, ENTERED),
         )
         if i < 2:
             values = [float(i + 1)] * 12
@@ -156,14 +185,15 @@ def test_titles_on_air_are_read_with_their_measures_as_quantiles(tmp_path: Path)
                 (tid, *values),
             )
     conn.execute(
-        "INSERT INTO antenne VALUES "
-        "(200003, 'decouverte', 'repos', 9, 's9', 'repos/9.mp3', 'd', 'd')"
+        "INSERT INTO antenne VALUES (200003, 'decouverte', 'repos', 9, 's9', 'repos/9.mp3', ?, ?)",
+        (ENTERED, ENTERED),
     )
     conn.commit()
     titres = {t.tid: t for t in load_titres(conn)}
     assert set(titres) == {200000, 200001, 200002}  # le repos est hors antenne
     assert list(titres[200000].q) == [0.5, 0.5, 0.5] and list(titres[200001].q) == [1, 1, 1]
     assert not titres[200002].measured and list(titres[200002].q_end) == [0.5, 0.5, 0.5]
+    assert titres[200000].since == MIDNIGHT - 86400
 
 
 class FakeStation:

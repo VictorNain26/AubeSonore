@@ -177,4 +177,5 @@ def test_the_share_of_favorites_the_model_would_keep(tmp_path: Path) -> None:
         )
     conn.commit()
 
-    assert favorites_retained(conn, tmp_path / "models") == FavoritesRetained(0.5, 6, 1 / 3)
+    # Un titre par artiste : 24 artistes de 4 titres, 24 retenus sur 96 malgré keep = 32.
+    assert favorites_retained(conn, tmp_path / "models") == FavoritesRetained(0.5, 6, 1 / 4)

@@ -163,6 +163,17 @@ class GrilleConfig(BaseModel):
     titres_par_heure: float = Field(default=14.6, gt=0)
     marge: float = Field(default=1.4, ge=1)
     retard: float = Field(default=0.5, ge=0)
+    repos: float = Field(default=0.6, ge=0, lt=1)
+    separation_h: float = Field(default=3, ge=0, le=24)
+    avantage: float = Field(default=1.5, gt=1)
+    force: float = Field(default=2.0, gt=1)
+
+    @model_validator(mode="after")
+    def _starvation_window(self) -> "GrilleConfig":
+        if self.force <= self.avantage:
+            raise ValueError("le passage forcé vient après l'avantage")
+        return self
+
     cibles: dict[Bloc, Cible] = Field(default_factory=lambda: dict(_CIBLES))
     categories: dict[Categorie, Creneau] = Field(default_factory=lambda: dict(_GRILLE))
 

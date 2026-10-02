@@ -504,6 +504,7 @@ def acquire() -> None:
                 "prêts": rep.n_ready,
                 "sans pochette": rep.n_no_cover,
                 "non tentés": rep.n_unindexed,
+                "artiste déjà en rotation": rep.n_artist_waiting,
                 "échecs": dict(rep.failures),
             },
         )
@@ -513,6 +514,8 @@ def acquire() -> None:
             f"({_pct(rep.n_ready, rep.n_attempted)} des tentés), "
             f"{_n(sum(rep.failures.values()))} en échec",
             f"  prêts sans pochette : {_n(rep.n_no_cover)}",
+            f"  retenus en attente, leur artiste ayant déjà un titre en rotation : "
+            f"{_n(rep.n_artist_waiting)}",
             *(f"  {reason} : {_n(n)}" for reason, n in rep.failures.most_common()),
         ]
     )
@@ -573,6 +576,7 @@ def antenne() -> None:
                 "revenus au fond": rep.n_returned,
                 "périmés": rep.n_expired,
                 "repères sortis": rep.n_references_out,
+                "repères écartés, artiste déjà deux fois à l'antenne": rep.n_references_artist_full,
                 "oubliés": rep.n_forgotten,
                 "inconnus": rep.n_unknown,
                 "à l'antenne": rep.n_total,
@@ -591,6 +595,8 @@ def antenne() -> None:
             f"  réalignement : {_n(rep.n_forgotten)} disparus d'AzuraCast oubliés, "
             f"{_n(rep.n_unknown)} fichiers inconnus dans antenne/ et repos/",
             f"  repères sans pochette : {_n(rep.n_references_no_cover)}",
+            f"  repères écartés, artiste déjà deux fois à l'antenne : "
+            f"{_n(rep.n_references_artist_full)}",
             *(f"  sauté : {s}" for s in rep.skipped_references),
             *(f"  erreur : {e}" for e in rep.errors),
         ]
@@ -674,6 +680,8 @@ def grille(
                     "créneaux vides": plan.empty_slots,
                     "titres non mesurés": plan.unmeasured,
                     "titres en retard": plan.late,
+                    "tour en jours": {c: round(d, 2) for c, d in plan.turnover_days.items()},
+                    "titres par artiste au plus": plan.max_per_artist,
                     "erreurs": len(errors),
                 },
             )
@@ -686,6 +694,9 @@ def grille(
             f"  créneaux vides : {_n(plan.empty_slots)}, titres pas encore mesurés : "
             f"{_n(plan.unmeasured)}, titres pas joués depuis plus de deux tours : "
             f"{_n(plan.late)}",
+            "  tour de chaque catégorie : "
+            + ", ".join(f"{c} {d:.1f} j" for c, d in plan.turnover_days.items())
+            + f" ; titres d'un même artiste à l'antenne : {_n(plan.max_per_artist)} au plus",
             *(f"  erreur : {e}" for e in errors),
         ]
     )

@@ -60,7 +60,11 @@ def test_each_batch_and_family_keeps_its_best_and_library_titles_are_not_discove
         for t, r, s in conn.execute("SELECT deezer_track_id, run_id, source FROM candidates")
     }
     kept = Counter(groups[t] for t, (_, a) in scores.items() if a)
-    assert kept == {(1, "voisin"): 10, (1, "hypem"): 5, (2, "voisin"): 10}
+    # La fournée 2 n'a que 6 artistes voisins (3006 à 3011) : 6 retenus, un par artiste.
+    assert kept == {(1, "voisin"): 10, (1, "hypem"): 5, (2, "voisin"): 6}
+    artist_of = dict(conn.execute("SELECT deezer_track_id, deezer_artist_id FROM tracks"))
+    per_artist = Counter((groups[t][0], artist_of[t]) for t, (_, a) in scores.items() if a)
+    assert max(per_artist.values()) == 1  # un titre par artiste et par fournée
     assert all(
         t // 100 < 3000
         for t, (_, a) in scores.items()

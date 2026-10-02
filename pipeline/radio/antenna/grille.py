@@ -1,14 +1,17 @@
-"""Grille d'antenne et enchaînement (docs/recherches/2026-10-02-cycle-de-vie.md §6).
+"""Grille d'antenne et enchaînement (docs/recherches/2026-10-02-cycle-de-vie.md §6,
+docs/recherches/2026-10-02-programmation.md §3).
 
-La grille se remplit créneau par créneau, comme un logiciel de programmation radio
-(MusicMaster) :
+La grille se remplit créneau par créneau, avec la mécanique des logiciels de programmation radio
+(pile de MusicMaster, règles et objectifs de GSelector) :
 
 1. Chaque heure a ses créneaux, répartis entre les catégories selon leurs parts.
 2. Pour un créneau, on parcourt la catégorie dans l'ordre de rotation (joué il y a le plus
-   longtemps d'abord, d'après l'historique d'AzuraCast), sur une fenêtre de recherche, et on
-   garde le titre le plus proche de la cible de l'heure, l'ancienneté départageant. Un artiste ne
-   repasse ni dans l'heure ni dans l'heure précédente : au moins une heure entre deux passages.
-   Un titre placé repart en fin de rotation.
+   longtemps d'abord, d'après l'historique d'AzuraCast), sur une fenêtre de recherche. Deux
+   règles incassables : un titre se repose au moins `repos` tour de sa catégorie, un artiste ne
+   repasse pas avant `separation_h` heures. Parmi les titres permis, la ressemblance à la cible de
+   l'heure est un objectif, jamais une condition : un titre en retard de `avantage` tours y gagne,
+   et à `force` tours il passe d'office (règle anti-famine de GSelector). Un titre placé repart en
+   fin de rotation.
 3. Chaque heure est ensuite ordonnée en fil qui dérive : elle part du dernier titre de la
    précédente et va chaque fois au plus proche, de la fin d'un titre au début du suivant.
 
@@ -19,9 +22,10 @@ plus anciens et revient le lendemain.
 
 import math
 import sqlite3
+from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
 from typing import Protocol
 
 import numpy as np
@@ -65,6 +69,8 @@ class Titre:
     q_start: Vector
     q_end: Vector
     measured: bool
+    # Entrée dans sa catégorie (horodatage UNIX) : le retard d'un titre jamais joué en part.
+    since: float
 
 
 @dataclass
@@ -75,6 +81,8 @@ class Plan:
     empty_slots: int = 0
     unmeasured: int = 0
     late: int = 0
+    turnover_days: dict[str, float] = field(default_factory=dict)
+    max_per_artist: int = 0
 
 
 def load_titres(conn: sqlite3.Connection) -> list[Titre]:
@@ -87,7 +95,7 @@ def load_titres(conn: sqlite3.Connection) -> list[Titre]:
                n.path, n.song_id, f.status = 'ok',
                f.arousal, f.danceability, f.bpm,
                f.arousal_start, f.danceability_start, f.bpm_start,
-               f.arousal_end, f.danceability_end, f.bpm_end
+               f.arousal_end, f.danceability_end, f.bpm_end, n.since
         FROM antenne n
         LEFT JOIN tracks t USING (deezer_track_id)
         LEFT JOIN track_features f USING (deezer_track_id)
@@ -117,6 +125,7 @@ def load_titres(conn: sqlite3.Connection) -> list[Titre]:
                 quantiles(map(float, r[9:12])) if measured else NEUTRE,
                 quantiles(map(float, r[12:15])) if measured else NEUTRE,
                 measured,
+                datetime.fromisoformat(str(r[15])).timestamp(),
             )
         )
     return out
@@ -169,36 +178,55 @@ def plan_day(
     by_cat = {c: [t for t in titres if t.categorie == c] for c in weights}
     per_day = {c: weights[c] * per_hour * 24 for c in weights}
     window = {c: max(1, math.ceil(per_day[c] * (grille.marge - 1))) for c in weights}
-    # Retard d'un titre : temps depuis son dernier passage, en tours de sa catégorie (le temps
-    # qu'il faut pour la jouer en entier). La rotation prime sur l'ambiance : sans limite, ce
-    # retard finit toujours par l'emporter sur l'écart à la cible, même pour un titre loin de
-    # toutes les heures. Un titre jamais joué compte deux tours de retard.
+    # Tour d'une catégorie : le temps qu'il faut pour la jouer en entier. Le retard d'un titre se
+    # compte en tours depuis son dernier passage, ou depuis son entrée s'il n'a jamais joué.
     turn = {c: len(by_cat[c]) / per_day[c] * 86400 for c in weights}
+    plan.turnover_days = {c: turn[c] / 86400 for c in weights}
+    artists = Counter(t.artist for t in titres)
+    plan.max_per_artist = max(artists.values(), default=0)
+    artist_clock: dict[int, float] = {}
+    for t in titres:
+        played = clock[t.tid]
+        if played is not None:
+            artist_clock[t.artist] = max(artist_clock.get(t.artist, played), played)
+    separation = grille.separation_h * 3600
 
     def overdue(t: Titre, now: float) -> float:
         last = clock[t.tid]
-        return 2.0 if last is None else (now - last) / turn[t.categorie]
+        return (now - (t.since if last is None else last)) / turn[t.categorie]
 
-    # Un titre pas joué depuis plus de deux tours : la rotation ne tient pas, à surveiller.
-    plan.late = sum(overdue(t, midnight) > 2 for c in weights for t in by_cat[c])
+    def allowed(t: Titre, now: float, hour_start: float) -> bool:
+        last = clock[t.tid]
+        rested = last is None or now - last >= grille.repos * turn[t.categorie]
+        return rested and hour_start - artist_clock.get(t.artist, -math.inf) >= separation
 
-    recent: list[set[int]] = [set(), set()]
+    def score(t: Titre, now: float, target: Vector) -> float:
+        lead = (overdue(t, now) - grille.avantage) / (grille.force - grille.avantage)
+        return float(np.linalg.norm(t.q - target)) - grille.retard * min(1.0, max(0.0, lead))
+
+    # Un titre pas joué depuis plus de `force` tours : la rotation ne tient pas, à surveiller.
+    plan.late = sum(overdue(t, midnight) > grille.force for c in weights for t in by_cat[c])
+
     for h in hours:
         target = _target(grille, iso, h)
-        recent = [recent[1], set()]
+        hour_start = midnight + h * 3600
         for k, c in enumerate(hour_slots):
-            now = midnight + h * 3600 + k * 3600 / per_hour
+            now = hour_start + k * 3600 / per_hour
             rotation = sorted(by_cat[c], key=lambda t: (clock[t.tid] or -math.inf, t.tid))
-            eligible = [t for t in rotation if t.artist not in recent[0] | recent[1]][: window[c]]
+            eligible = [t for t in rotation if allowed(t, now, hour_start)][: window[c]]
             if not eligible:
                 plan.empty_slots += 1
                 continue
-            t = min(
-                eligible,
-                key=lambda t: float(np.linalg.norm(t.q - target)) - grille.retard * overdue(t, now),
+            starved = [t for t in eligible if overdue(t, now) >= grille.force]
+            t = (
+                max(starved, key=lambda t: overdue(t, now))
+                if starved
+                else min(eligible, key=lambda t: score(t, now, target))
             )
             clock[t.tid] = now
-            recent[1].add(t.artist)
+            # Le fil qui dérive réordonne l'heure : l'artiste peut y passer jusqu'à sa fin, et la
+            # séparation se compte de là jusqu'au début de l'heure suivante qui le reprend.
+            artist_clock[t.artist] = hour_start + 3600
             plan.hours[h].append(t)
             plan.slots[c] = plan.slots.get(c, 0) + 1
     last = previous
