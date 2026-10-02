@@ -77,12 +77,35 @@ min_success_rate = 0.2
 min_attempts_for_rate = 20
 
 [antenne]
-# Au-delà, chaque entrée fait sortir le titre le moins bien noté de plus de min_age_days jours.
-target_max = 2000
-# Part maximale de repères (titres de la bibliothèque Plex) à l'antenne.
-reference_share = 0.2
-min_age_days = 60
-max_removals_per_pass = 50
+# Cycle de vie d'un titre (docs/recherches/2026-10-02-cycle-de-vie.md §4) : premier séjour et
+# séjour au fond de 6 semaines (KEXP), repos d'au moins 12 semaines (MusicMaster), péremption à
+# 78 semaines (18 mois, BBC Radio 2), ~12 % d'une cohorte promue au fond.
+stay_weeks = 6
+rest_weeks = 12
+life_weeks = 78
+promotion_share = 0.12
+
+[grille]
+# Titres diffusés par heure, mesurés dans l'historique AzuraCast le 2026-10-02.
+titres_par_heure = 14.6
+
+# Part d'antenne de chaque catégorie et passages par semaine d'un même titre : le stock à
+# l'antenne s'en déduit (part × titres par heure × 168 / passages).
+[grille.categories.nouveautes]
+part = 0.3333
+passages = 2
+
+[grille.categories.decouvertes]
+part = 0.3333
+passages = 2
+
+[grille.categories.fond]
+part = 0.1667
+passages = 1
+
+[grille.categories.reperes]
+part = 0.1667
+passages = 1
 
 [votes]
 # Titres d'examen par sélection hebdomadaire, tirés au hasard sur toute la fournée.

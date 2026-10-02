@@ -56,6 +56,16 @@ class AzuracastClient:
         r = self._call("PUT", self._at("/files/batch"), json={"do": "delete", "files": paths})
         return [str(e) for e in r.get("errors") or []]
 
+    def move(self, paths: list[str], directory: str) -> list[str]:
+        """Déplace des fichiers dans `directory` sans réécrire leurs balises (`do=move`,
+        BatchAction::doMove au tag 0.23.8) ; renvoie les erreurs signalées par AzuraCast."""
+        r = self._call(
+            "PUT",
+            self._at("/files/batch"),
+            json={"do": "move", "files": paths, "currentDirectory": "", "directory": directory},
+        )
+        return [str(e) for e in r.get("errors") or []]
+
     def busy_song_ids(self) -> set[str]:
         """Titre en cours, et titres en file d'attente ou déjà préparés par Liquidsoap : jamais
         supprimés. `now_playing` est nul quand la station est hors ligne."""
