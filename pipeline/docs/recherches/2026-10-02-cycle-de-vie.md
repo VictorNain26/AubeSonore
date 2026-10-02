@@ -237,15 +237,23 @@ Machine et 22 genres éditoriaux Deezer, puis `radio signals`, puis notes du mod
 | metal | 27 | 0,250 | 2 | 0 |
 | asiatique | 27 | 0,237 | 1 | 0 |
 
-- **Règle** : un genre est lu si au moins 25 % de ses titres passent l'ancienne coupure du tiers.
-  Gardés : alternative, electro, dance, jazz, classique, rock, folk, blues, brésilienne ;
-  indienne est écartée (3 titres). La mesure rejoint la décision du 2026-10-01 : pop, rap et
-  chanson française restent dehors, et le metal aussi (négatif de démarrage).
+- **Le modèle trie à l'intérieur de chaque genre**, et c'est ce qui garde la couleur : R&B,
+  Leon Bridges, Cleo Sol et Sault en tête (0,72 à 0,81), SZA et Jacquees dessous ; pop, Stevie
+  Wonder en tête (0,77) ; asiatique, Sanullim (rock coréen des années 70) à 0,82, la K-pop à
+  0,24-0,43 ; rap, surtout du rap français grand public dans la sélection Deezer (L'morphine,
+  Djadja & Dinaz), Drake et A$AP Rocky au milieu.
+- **Genres lus** : ceux où au moins 25 % des titres passent l'ancienne coupure du tiers
+  (alternative, electro, dance, jazz, classique, rock, folk, blues, brésilienne), plus ceux que
+  Victor aime (2026-10-02 : pop, rap, surtout le hip-hop américain, R&B plutôt ancien, musique
+  asiatique), à l'essai, avec soul & funk, voisin du R&B ancien. Écartés : indienne (3 titres),
+  chanson française, latino, reggae, arabe, africaine, country (aucun goût exprimé, notes
+  basses), metal (négatif de démarrage). Les votes d'examen jugent chaque genre (vision §3.1).
 - **Classique** : la bibliothèque de Victor en contient (Debussy, Satie, Chopin, Tchaïkovski,
   Radu Lupu), donc la règle « un genre présent chez un de ses artistes est gardé » s'applique.
-- **Résultat** : 247 nouveautés ; la 80e note 0,744, au-dessus de l'ancienne coupure (0,708).
-  Les 80 retenues : dance 13, Hype Machine 13, jazz 12, classique 11, alternative 10, rock 7,
-  folk 6, electro 4, blues 3, brésilienne 1. Les découvertes passent, elles, de 0,708 à 0,810 :
+- **Résultat** : 362 nouveautés ; la 80e note 0,749, au-dessus de l'ancienne coupure (0,708).
+  Les 80 retenues : jazz 12, Hype Machine 12, dance 11, alternative 10, classique 9, rock 7,
+  folk 6, electro 4, R&B 3, blues 2, soul & funk 1, asiatique 1, brésilienne 1, pop 1. Les
+  genres ajoutés à l'essai n'abaissent pas la barre : sans eux, la 80e note valait 0,744. Les découvertes passent, elles, de 0,708 à 0,810 :
   les deux familles entrent au-dessus de l'ancienne barre.
 - Hype Machine n'a donné que 50 titres (32 retrouvés sur Deezer, 13 absents, 4 déjà dans la
   bibliothèque) : le classement est court, la profondeur vient des genres Deezer.

@@ -76,11 +76,11 @@ familles de sources alimentent chaque fournée, et chaque candidat garde la sien
     quelques requêtes par semaine, User-Agent identifié ; une réponse hors format est une
     source sautée et nommée, jamais une liste vide.
   - **Sélections éditoriales Deezer** (`/editorial/{genre}/selection`), genres
-    `deezer_editorial` (alternative, electro, dance, jazz, classique, rock, folk, blues,
-    brésilienne depuis le 2026-10-02, choisis sur les notes du modèle,
-    `recherches/2026-10-02-cycle-de-vie.md` §9 ; rap, pop et chanson française restent
-    écartés, trop grand public, et la mesure le confirme), les `tracks_per_album` titres les
-    plus écoutés de chaque album.
+    `deezer_editorial` (depuis le 2026-10-02 : alternative, electro, dance, jazz, classique,
+    rock, folk, blues et brésilienne, choisis sur les notes du modèle ; pop, rap, R&B,
+    asiatique et soul & funk à l'essai, goûts de Victor ; `recherches/2026-10-02-cycle-de-vie.md`
+    §9), les `tracks_per_album` titres les plus écoutés de chaque album. Le modèle trie titre
+    par titre : la K-pop ou le rap grand public d'une sélection ne passent pas la coupure.
     Deezer exclut la musique générée par IA de ses playlists éditoriales (page « AI-generated
     music labelling », consultée le 2026-10-01).
   - Écartés : les « dernières sorties » Deezer d'un voisin (compilations d'archives, et place

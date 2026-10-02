@@ -26,8 +26,9 @@ hypem_favorites_user = "GhostRAvage"
 
 [nouveautes.deezer_editorial]
 # Genres Deezer (/editorial) dont la sélection d'albums est lue ; nom = libellé du rapport.
-# Gardés : au moins 25 % de leurs titres au-dessus de l'ancienne coupure du tiers des voisins
-# (mesure du 2026-10-02 sur 22 genres, docs/recherches/2026-10-02-cycle-de-vie.md §9).
+# Mesure du 2026-10-02 sur 22 genres (docs/recherches/2026-10-02-cycle-de-vie.md §9) : les genres
+# où le modèle trouve la couleur de Victor, plus ceux qu'il aime (pop, rap, R&B, asiatique,
+# soul) à l'essai ; le modèle trie titre par titre, les votes d'examen jugent chaque genre.
 alternative = 85
 electro = 106
 dance = 113
@@ -37,6 +38,11 @@ rock = 152
 folk = 466
 blues = 153
 bresilienne = 75
+pop = 132
+rap = 116
+rnb = 165
+asiatique = 16
+soul_funk = 169
 
 [model]
 # Régression logistique sur l'empreinte audio. C, poids des négatifs faibles : fixés le
