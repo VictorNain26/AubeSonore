@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import {
+  baseLocale,
+  extractLocaleFromUrl,
   getLocale,
   localizeUrl,
   setLocale as setParaglideLocale,
@@ -26,17 +28,31 @@ export function readLocaleChoice(): string | null {
 interface LocaleState {
   locale: Locale;
   setLocale: (locale: Locale) => void;
+  /** Back and forward can land on a URL of the other language: follow it. */
+  syncWithUrl: () => void;
 }
 
-export const useLocaleStore = create<LocaleState>((set) => ({
+export const useLocaleStore = create<LocaleState>((set, get) => ({
   locale: getLocale(),
   setLocale: (locale) => {
-    window.history.replaceState(null, '', localizeUrl(window.location.href, { locale }).href);
+    // The router keeps its own entry state in history.state: keep it.
+    window.history.replaceState(
+      window.history.state,
+      '',
+      localizeUrl(window.location.href, { locale }).href
+    );
     try {
       localStorage.setItem(CHOICE_KEY, locale);
     } catch {
       // private mode: the URL still carries the language
     }
+    void setParaglideLocale(locale, { reload: false });
+    document.documentElement.lang = locale;
+    set({ locale });
+  },
+  syncWithUrl: () => {
+    const locale = extractLocaleFromUrl(window.location.href) ?? baseLocale;
+    if (locale === get().locale) return;
     void setParaglideLocale(locale, { reload: false });
     document.documentElement.lang = locale;
     set({ locale });

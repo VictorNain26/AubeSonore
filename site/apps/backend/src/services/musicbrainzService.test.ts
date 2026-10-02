@@ -1,4 +1,4 @@
-import { describe, it, expect, spyOn, afterEach, beforeEach } from 'bun:test';
+import { describe, it, expect, spyOn, afterEach, beforeEach, jest } from 'bun:test';
 // Real MusicBrainz answers (2026-10-02), relations trimmed to the types the service reads.
 import group from './__fixtures__/musicbrainz-artist-group.json';
 import person from './__fixtures__/musicbrainz-artist-person.json';
@@ -61,6 +61,25 @@ describe('findMbidByDeezerId', () => {
     expect(await findMbidByDeezerId('2')).toEqual({ status: 'failed' });
     expect((await findMbidByDeezerId('2')).status).toBe('found');
   });
+
+  it('fails at once rather than queue past the caller budget', async () => {
+    jest.useFakeTimers();
+    try {
+      const fetchSpy = spyOn(globalThis, 'fetch');
+      for (let i = 0; i < 4; i++) fetchSpy.mockResolvedValueOnce(json(deezerUrl));
+
+      // One slot a second: the fifth would wait 4 s, past the 3 s bound.
+      const queued = ['1', '2', '3', '4'].map((id) => findMbidByDeezerId(id));
+      expect(await findMbidByDeezerId('5')).toEqual({ status: 'failed' });
+
+      jest.advanceTimersByTime(3_000);
+      const results = await Promise.all(queued);
+      expect(results.map((result) => result.status)).toEqual(['found', 'found', 'found', 'found']);
+      expect(fetchSpy.mock.calls.length).toBe(4);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe('getArtistByMbid', () => {
@@ -86,6 +105,67 @@ describe('getArtistByMbid', () => {
         ],
         wikidataId: 'Q185828',
       },
+    });
+  });
+
+  it('skips a former address and lists an address once', async () => {
+    const official = (url: string, ended: boolean) => ({
+      type: 'official homepage',
+      ended,
+      url: { resource: url },
+    });
+    spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      json({
+        ...group,
+        relations: [
+          official('https://old-domain.example/', true),
+          official('https://daftpunk.bandcamp.com/', false),
+          { type: 'bandcamp', ended: false, url: { resource: 'https://daftpunk.bandcamp.com/' } },
+        ],
+      })
+    );
+
+    const found = await getArtistByMbid(group.id);
+
+    expect(found.status === 'found' && found.value.links).toEqual([
+      { platform: 'bandcamp', url: 'https://daftpunk.bandcamp.com/' },
+    ]);
+  });
+
+  it('reads no career for an artist without a type, who may be a person', async () => {
+    spyOn(globalThis, 'fetch').mockResolvedValueOnce(json({ ...group, type: null }));
+
+    const found = await getArtistByMbid(group.id);
+
+    expect(found.status === 'found' && found.value.facts).toEqual({
+      kind: null,
+      place: null,
+      country: 'FR',
+      formed: null,
+      ended: null,
+      active: false,
+    });
+  });
+
+  it('names no country for a dissolved one or a MusicBrainz region', async () => {
+    const soviet = {
+      name: 'Soviet Union',
+      'iso-3166-1-codes': ['SU'],
+      'iso-3166-3-codes': ['SUHH'],
+    };
+    const worldwide = { name: 'Worldwide', 'iso-3166-1-codes': ['XW'] };
+    spyOn(globalThis, 'fetch')
+      .mockResolvedValueOnce(json({ ...group, area: soviet, 'begin-area': soviet }))
+      .mockResolvedValueOnce(json({ ...group, id: 'other', area: worldwide }));
+
+    const dissolved = await getArtistByMbid(group.id);
+    const region = await getArtistByMbid('other');
+
+    expect(dissolved.status === 'found' && dissolved.value.facts.country).toBeNull();
+    expect(dissolved.status === 'found' && dissolved.value.facts.place).toBeNull();
+    expect(region.status === 'found' && region.value.facts).toMatchObject({
+      place: 'Paris',
+      country: null,
     });
   });
 

@@ -16,7 +16,8 @@ export async function fetchArtistProfile(
     `${API_BASE_URL}/api/artist/${encodeURIComponent(id)}?lang=${getLocale()}`,
     { signal: signal ?? null }
   );
-  if (response.status === 404) return null;
+  // 400: a malformed id, from a truncated link — as unknown as a 404.
+  if (response.status === 404 || response.status === 400) return null;
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return (await response.json()) as ArtistProfile;
 }

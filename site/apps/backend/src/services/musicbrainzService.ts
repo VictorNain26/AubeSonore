@@ -47,19 +47,28 @@ const LINK_HOSTS: Array<[string, ArtistPlatform]> = [
 
 export const musicbrainzCache = new TtlCache<Lookup<unknown>>(TTL_MS);
 const flight = createSingleFlight<Lookup<unknown>>();
+// The profile gives each source 6 s: a request queued longer would answer no
+// one, and without a bound a burst of cold pages (a crawler) delays them all.
+const MAX_QUEUE_MS = 3_000;
 let nextSlotAt = 0;
 
-async function waitForSlot(): Promise<void> {
+/** The wait before this request's slot, or null when the queue is already full. */
+function takeSlot(): number | null {
   const now = Date.now();
   const scheduledAt = Math.max(now, nextSlotAt);
+  if (scheduledAt - now > MAX_QUEUE_MS) return null;
   nextSlotAt = scheduledAt + MIN_INTERVAL_MS;
-  const delay = scheduledAt - now;
-  if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
+  return scheduledAt - now;
 }
 
 /** A 404 is a definitive miss; any other failure is retried on the next call. */
 async function fetchJson<T>(path: string): Promise<Lookup<T>> {
-  await waitForSlot();
+  const delay = takeSlot();
+  if (delay === null) {
+    logger.warn('musicbrainz.queue_full', { path });
+    return { status: 'failed' };
+  }
+  if (delay > 0) await new Promise((resolve) => setTimeout(resolve, delay));
 
   let response: Response;
   try {
@@ -119,6 +128,7 @@ export function findMbidByDeezerId(deezerId: string): Promise<Lookup<string>> {
 interface RawArea {
   name?: string;
   'iso-3166-1-codes'?: string[];
+  'iso-3166-3-codes'?: string[];
 }
 
 interface RawArtist {
@@ -126,7 +136,7 @@ interface RawArtist {
   area?: RawArea | null;
   'begin-area'?: RawArea | null;
   'life-span'?: { begin?: string | null; end?: string | null; ended?: boolean };
-  relations?: Array<{ type?: string; url?: { resource?: string } }>;
+  relations?: Array<{ type?: string; ended?: boolean; url?: { resource?: string } }>;
 }
 
 function year(date: string | null | undefined): number | null {
@@ -134,24 +144,34 @@ function year(date: string | null | undefined): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function isCountry(area: RawArea | null | undefined): boolean {
+  return (area?.['iso-3166-1-codes']?.length ?? 0) > 0;
+}
+
+// A dissolved country (the Soviet Union: SU, ISO 3166-3 SUHH) or a region
+// MusicBrainz assigns itself (XW Worldwide, XE Europe) has no current name to
+// localise, and Intl.DisplayNames reads SU as Russia.
 function countryOf(area: RawArea | null | undefined): string | null {
-  return area?.['iso-3166-1-codes']?.[0] ?? null;
+  const code = area?.['iso-3166-1-codes']?.[0];
+  if (!code || area?.['iso-3166-3-codes']?.length || code.startsWith('X')) return null;
+  return code;
 }
 
 function toFacts(raw: RawArtist): ArtistFacts {
   const kind = KINDS[raw.type ?? ''] ?? null;
-  const isPerson = kind === 'person';
-  // A person's life-span and begin area are a birth, not a career: their
-  // place is the area they are identified with.
-  const placeArea = isPerson ? raw.area : raw['begin-area'];
-  const place = placeArea?.name && !countryOf(placeArea) ? placeArea.name : null;
+  // Only a group's life-span and begin area are a career. A person's are a
+  // birth, and an artist without a type may be a person: their place is the
+  // area they are identified with.
+  const isGroup = kind !== null && kind !== 'person';
+  const placeArea = isGroup ? raw['begin-area'] : raw.area;
+  const place = placeArea?.name && !isCountry(placeArea) ? placeArea.name : null;
   return {
     kind,
     place,
-    country: countryOf(raw.area) ?? (isPerson ? null : countryOf(raw['begin-area'])),
-    formed: isPerson ? null : year(raw['life-span']?.begin),
-    ended: isPerson ? null : year(raw['life-span']?.end),
-    active: !isPerson && raw['life-span']?.ended === false,
+    country: countryOf(raw.area) ?? (isGroup ? countryOf(raw['begin-area']) : null),
+    formed: isGroup ? year(raw['life-span']?.begin) : null,
+    ended: isGroup ? year(raw['life-span']?.end) : null,
+    active: isGroup && raw['life-span']?.ended === false,
   };
 }
 
@@ -162,18 +182,26 @@ function platformOf(url: URL, relationType: string): ArtistPlatform | null {
   return entry ? entry[1] : null;
 }
 
-/** One link per platform, https only. */
+/**
+ * One link per platform and per address, https only. An ended relation is a
+ * former address, whose domain may have been bought by someone else since.
+ */
 function toLinks(raw: RawArtist): ArtistLink[] {
   const links = new Map<ArtistPlatform, string>();
   for (const relation of raw.relations ?? []) {
     const resource = relation.url?.resource;
-    if (!resource?.startsWith('https://')) continue;
+    if (relation.ended || !resource?.startsWith('https://')) continue;
     const platform = platformOf(new URL(resource), relation.type ?? '');
     if (platform && !links.has(platform)) links.set(platform, resource);
   }
+  // In LINK_ORDER the official site comes last: when it is the Bandcamp page,
+  // it is listed once, as Bandcamp.
+  const listed = new Set<string>();
   return LINK_ORDER.flatMap((platform) => {
     const url = links.get(platform);
-    return url ? [{ platform, url }] : [];
+    if (!url || listed.has(url)) return [];
+    listed.add(url);
+    return [{ platform, url }];
   });
 }
 

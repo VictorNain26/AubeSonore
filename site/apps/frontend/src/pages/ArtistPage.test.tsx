@@ -34,6 +34,14 @@ describe('ArtistPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the not-found state for an id the API rejects as malformed', async () => {
+    open('/artist/malformed');
+
+    expect(
+      await screen.findByRole('heading', { name: 'Artiste introuvable.' })
+    ).toBeInTheDocument();
+  });
+
   it('shows the player bar, since no hero carries the listen button here', () => {
     useHeroListenVisible.setState({ visible: true });
 

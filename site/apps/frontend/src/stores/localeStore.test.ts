@@ -22,4 +22,26 @@ describe('localeStore', () => {
     expect(window.location.pathname).toBe('/');
     expect(getLocale()).toBe('fr');
   });
+
+  it("keeps the router's entry state when it swaps the URL", () => {
+    window.history.replaceState({ idx: 3, key: 'k' }, '', '/artist/a-1');
+
+    useLocaleStore.getState().setLocale('en');
+
+    expect(window.location.pathname).toBe('/en/artist/a-1');
+    expect(window.history.state).toEqual({ idx: 3, key: 'k' });
+  });
+
+  it('follows the URL when Back lands on the other language', () => {
+    window.history.replaceState(null, '', '/artist/a-1');
+    useLocaleStore.getState().setLocale('en');
+    // What the browser restores on Back, behind the store's back.
+    window.history.replaceState(null, '', '/');
+
+    useLocaleStore.getState().syncWithUrl();
+
+    expect(useLocaleStore.getState().locale).toBe('fr');
+    expect(getLocale()).toBe('fr');
+    expect(document.documentElement.lang).toBe('fr');
+  });
 });

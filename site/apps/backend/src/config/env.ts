@@ -127,7 +127,7 @@ export const env: EnvConfig = {
   SPOTIFY_CLIENT_ID: optional('SPOTIFY_CLIENT_ID'),
   SPOTIFY_CLIENT_SECRET: optional('SPOTIFY_CLIENT_SECRET'),
 
-  OUTBOUND_USER_AGENT: Bun.env.OUTBOUND_USER_AGENT ?? 'AubeSonore/1.0 (https://aubesonore.fr)',
+  OUTBOUND_USER_AGENT: optional('OUTBOUND_USER_AGENT') ?? 'AubeSonore/1.0 (https://aubesonore.fr)',
   FRONTEND_ORIGIN_INTERNAL: Bun.env.FRONTEND_ORIGIN_INTERNAL ?? 'http://frontend',
 
   AZURACAST_BASE_URL: Bun.env.AZURACAST_BASE_URL ?? '',

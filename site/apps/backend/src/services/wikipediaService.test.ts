@@ -95,4 +95,15 @@ describe('firstSentences', () => {
       'Weval est un groupe néerlandais.'
     );
   });
+
+  it('reads through initials and short titles', () => {
+    // A second sentence too long to join: before the fix, the summary was "Dr.".
+    const long = `He produced ${'records, '.repeat(40)}for other artists.`;
+    expect(firstSentences(`Andre Young, known as Dr. Dre, is a rapper. ${long}`, 'en')).toBe(
+      'Andre Young, known as Dr. Dre, is a rapper.'
+    );
+    expect(
+      firstSentences('Josh Tillman, dit Father John Misty ou J. Tillman, est un musicien.', 'fr')
+    ).toBe('Josh Tillman, dit Father John Misty ou J. Tillman, est un musicien.');
+  });
 });

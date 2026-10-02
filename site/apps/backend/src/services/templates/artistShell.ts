@@ -81,6 +81,16 @@ export function renderArtistShell(
       },
     });
   }
+  // No portrait: the default share image, in the page language like the
+  // pre-rendered home pages (scripts/prerender.mjs swaps og-fr for og-en).
+  if (!image && locale === 'en') {
+    rewriter = rewriter.on('meta[property="og:image"], meta[name="twitter:image"]', {
+      element(element) {
+        const value = element.getAttribute('content');
+        if (value) element.setAttribute('content', value.replace('/og-fr.png', '/og-en.png'));
+      },
+    });
+  }
   // The declared size belongs to the default share image, not to the artist's.
   if (image) {
     rewriter = rewriter.on('meta[property="og:image:width"], meta[property="og:image:height"]', {

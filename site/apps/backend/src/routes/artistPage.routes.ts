@@ -59,18 +59,15 @@ async function handle(
   if (!checkRate('artistPage', ip, PAGE_LIMIT, PAGE_WINDOW_MS)) {
     set.status = 429;
     set.headers['retry-after'] = '60';
-    return 'Trop de requêtes, réessayez dans 1 minute';
-  }
-
-  if (!isValidArtistId(params.id)) {
-    set.status = 400;
-    return 'Identifiant invalide';
+    return locale === 'en'
+      ? 'Too many requests, retry in 1 minute'
+      : 'Trop de requêtes, réessayez dans 1 minute';
   }
 
   const html = await loadShell();
   if (!html) {
     set.status = 502;
-    return 'Application indisponible';
+    return locale === 'en' ? 'Site unavailable' : 'Application indisponible';
   }
 
   set.headers['content-type'] = 'text/html; charset=utf-8';
@@ -78,7 +75,8 @@ async function handle(
   // leaves browsers on a page whose hashed assets are gone.
   set.headers['cache-control'] = 'no-cache';
 
-  const profile = await getArtistProfile(params.id, locale);
+  // A malformed id (a truncated link) is an unknown artist: no lookup.
+  const profile = isValidArtistId(params.id) ? await getArtistProfile(params.id, locale) : null;
   // Unknown artist: a real 404, or crawlers index it as a soft 404. The SPA
   // still boots and renders its own not-found state.
   if (!profile) {

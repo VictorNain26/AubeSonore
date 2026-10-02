@@ -35,9 +35,10 @@ async function articleTitles(wikidataId: string): Promise<Record<SiteLocale, str
   return { fr: sitelinks.frwiki?.title, en: sitelinks.enwiki?.title };
 }
 
-// A single capital before a period is an initial ("J. Tillman"), which the
-// Unicode sentence rules take for the end of a sentence.
-const ENDS_ON_INITIAL = /(?:^|[\s(])\p{Lu}\.\s*$/u;
+// An initial ("J. Tillman") or a short title ("Dr. Dre", "Mr. Oizo", "St.
+// Vincent") ends on a period that the Unicode sentence rules take for the end
+// of a sentence.
+const ENDS_ON_ABBREVIATION = /(?:^|[\s(])\p{Lu}\p{Ll}{0,2}\.\s*$/u;
 
 /**
  * The opening of a text: its first sentence, and the next ones while the whole
@@ -47,7 +48,7 @@ export function firstSentences(text: string, lang: SiteLocale): string {
   const sentences: string[] = [];
   for (const { segment } of new Intl.Segmenter(lang, { granularity: 'sentence' }).segment(text)) {
     const last = sentences.length - 1;
-    if (last >= 0 && ENDS_ON_INITIAL.test(sentences[last] ?? '')) sentences[last] += segment;
+    if (last >= 0 && ENDS_ON_ABBREVIATION.test(sentences[last] ?? '')) sentences[last] += segment;
     else sentences.push(segment);
   }
 

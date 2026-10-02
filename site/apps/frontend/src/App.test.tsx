@@ -1,0 +1,22 @@
+// @vitest-environment jsdom
+import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
+import App from './App';
+
+// The page chunk fails to load, as offline or blocked by an extension.
+vi.mock('./pages/ArtistPage', () => {
+  throw new Error('Failed to fetch dynamically imported module');
+});
+
+describe('App', () => {
+  it('shows the artist page error state when its chunk fails to load', async () => {
+    render(
+      <MemoryRouter initialEntries={['/artist/a-1/hania-rani']}>
+        <App />
+      </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('heading', { name: 'Page indisponible.' })).toBeInTheDocument();
+  });
+});
