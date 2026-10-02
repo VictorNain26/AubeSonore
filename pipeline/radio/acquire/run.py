@@ -35,17 +35,19 @@ class AcquireReport:
 
 
 def pending(conn: sqlite3.Connection, cfg: AcquisitionConfig) -> list[int]:
-    """Retenus pas encore prêts ni abandonnés ni votés « non », les mieux notés d'abord."""
+    """Retenus pas encore prêts ni abandonnés ni votés « non » : la dernière fournée d'abord, car
+    une nouveauté vieillit, puis les mieux notés."""
     return [
         int(r[0])
         for r in conn.execute(
             """
             SELECT s.deezer_track_id FROM scores s
+            JOIN candidates c USING (deezer_track_id)
             LEFT JOIN acquisitions a USING (deezer_track_id)
             WHERE s.accepted = 1
               AND (a.deezer_track_id IS NULL OR (a.status = 'failed' AND a.attempts < ?))
               AND s.deezer_track_id NOT IN (SELECT deezer_track_id FROM votes WHERE vote = 'non')
-            ORDER BY s.score DESC, s.deezer_track_id LIMIT ?
+            ORDER BY c.run_id DESC, s.score DESC, s.deezer_track_id LIMIT ?
             """,
             (cfg.max_attempts, cfg.max_per_pass),
         )

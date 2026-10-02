@@ -632,7 +632,7 @@ def train_command() -> None:
                 "modèle en service": model_id,
                 "candidats": batch.n if batch else 0,
                 "retenus": batch.retained if batch else 0,
-                "favoris retenus": None if favorites is None else round(favorites[0], 3),
+                "favoris retenus": None if favorites is None else round(favorites.share, 3),
             },
         )
     if model_id is None:
@@ -643,8 +643,8 @@ def train_command() -> None:
             lines.append(_batch_line(batch))
         if favorites is not None:
             lines.append(
-                f"Favoris Hype Machine retenus par ce modèle : {favorites[0]:.0%} de "
-                f"{_n(favorites[1])} (le hasard en retiendrait {cfg.keep_fraction:.0%})"
+                f"Favoris Hype Machine retenus par ce modèle : {favorites.share:.0%} de "
+                f"{_n(favorites.n)} (le hasard en retiendrait {favorites.chance:.0%})"
             )
     _echo(lines)
 

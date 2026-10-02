@@ -1,4 +1,4 @@
-import math
+from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 from typing import Any
@@ -36,23 +36,36 @@ def _scores(conn: Any) -> dict[int, tuple[int, int]]:
     }
 
 
-def test_each_batch_keeps_its_best_third_and_library_titles_are_not_discoveries(
+def test_each_batch_and_family_keeps_its_best_and_library_titles_are_not_discoveries(
     tmp_path: Path,
 ) -> None:
     conn = make_model_db(tmp_path)
     _two_batches(conn)
+    # Les nouveautés de la fournée 1 sont des titres rejetés : elles ne disputent pas la coupure
+    # des découvertes, aimées, et gardent leur propre quota.
+    conn.execute(
+        "UPDATE candidates SET source = 'hypem', seed_artist_id = NULL, "
+        "neighbour_artist_id = NULL, detail = 'Blog', run_id = 1 "
+        "WHERE deezer_track_id BETWEEN 300000 AND 300599"
+    )
     conn.execute("UPDATE tracks SET origin = 'library' WHERE deezer_track_id = 200000")
     conn.commit()
-    cfg = ModelConfig()
+    cfg = ModelConfig(keep_decouvertes=10, keep_nouveautes=5)
     assert train(conn, tmp_path / "models", cfg, NOW).promoted
     rescore(conn, tmp_path / "models", cfg)
     scores = _scores(conn)
     assert 200000 not in scores
-    runs = dict(conn.execute("SELECT deezer_track_id, run_id FROM candidates").fetchall())
-    for run, n in ((1, 47), (2, 48)):
-        kept = [t for t, (_, a) in scores.items() if a and runs[t] == run]
-        assert len(kept) == math.ceil(n * cfg.keep_fraction)
-    assert all(t // 100 < 3000 for t, (_, a) in scores.items() if a and runs[t] == 1)
+    groups = {
+        int(t): (int(r), s)
+        for t, r, s in conn.execute("SELECT deezer_track_id, run_id, source FROM candidates")
+    }
+    kept = Counter(groups[t] for t, (_, a) in scores.items() if a)
+    assert kept == {(1, "voisin"): 10, (1, "hypem"): 5, (2, "voisin"): 10}
+    assert all(
+        t // 100 < 3000
+        for t, (_, a) in scores.items()
+        if a and groups[t][1] == "voisin" and groups[t][0] == 1
+    )
 
 
 def test_a_worse_model_is_kept_out_of_service(

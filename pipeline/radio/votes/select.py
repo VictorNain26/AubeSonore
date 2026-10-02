@@ -3,9 +3,9 @@
 - Examen : tirage uniforme sur toute la dernière fournée notée, retenus ou non : l'AUC des
   modèles s'y compare sans biais, et le taux de oui des retenus se lit sur les bulletins marqués
   `retained`. Un vote d'examen n'est jamais un exemple d'entraînement (radio/model/dataset.py).
-- Leçon : les titres les plus incertains (note la plus proche de la coupure de la dernière
-  fournée), au plus un par artiste : échantillonnage par incertitude (Settles, Active Learning
-  Literature Survey, 2009).
+- Leçon : les titres les plus incertains (note la plus proche de la coupure de leur famille,
+  découvertes ou nouveautés, dans la dernière fournée), au plus un par artiste : échantillonnage
+  par incertitude (Settles, Active Learning Literature Survey, 2009).
 - À l'aveugle : l'ordre de présentation est tiré au hasard, la page ne montre que l'artiste et
   le titre.
 - Un titre voté ou déjà présenté ne revient jamais. Tant qu'un bulletin attend, aucune nouvelle
@@ -17,7 +17,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from radio.model.model import serving_id
+from radio.model.model import FAMILY, serving_id
 
 
 class NoServingModelError(Exception):
@@ -109,7 +109,7 @@ def select_batch(
     run_id = int(last_run)
     rows = conn.execute(
         """
-        SELECT s.deezer_track_id, s.score, s.accepted, c.run_id, t.deezer_artist_id
+        SELECT s.deezer_track_id, s.score, s.accepted, c.run_id, t.deezer_artist_id, c.source
         FROM scores s
         JOIN candidates c ON c.deezer_track_id = s.deezer_track_id
         JOIN tracks t ON t.deezer_track_id = s.deezer_track_id
@@ -122,11 +122,14 @@ def select_batch(
     ).fetchall()
     batch = [int(r[0]) for r in rows if int(r[3]) == run_id]
     retained = {int(r[0]) for r in rows if int(r[2]) == 1}
-    cut = conn.execute(
-        "SELECT MIN(s.score) FROM scores s JOIN candidates c USING (deezer_track_id) "
-        "WHERE c.run_id = ? AND s.accepted = 1",
+    cuts: dict[str, float] = {}
+    for source, score in conn.execute(
+        "SELECT c.source, MIN(s.score) FROM scores s JOIN candidates c USING (deezer_track_id) "
+        "WHERE c.run_id = ? AND s.accepted = 1 GROUP BY c.source",
         (run_id,),
-    ).fetchone()[0]
+    ):
+        family = FAMILY[str(source)]
+        cuts[family] = min(cuts.get(family, 1.0), float(score))
     k = min(n_exam, len(batch))
     exam = sorted(int(t) for t in rng.choice(batch, size=k, replace=False)) if k else []
     lesson: list[int] = []
@@ -139,7 +142,10 @@ def select_batch(
             "WHERE b.kind = 'exam'"
         )
     }
-    for r in sorted(rows, key=lambda r: (abs(float(r[1]) - cut), int(r[0]))):
+    uncertain = [r for r in rows if FAMILY[str(r[5])] in cuts]
+    for r in sorted(
+        uncertain, key=lambda r: (abs(float(r[1]) - cuts[FAMILY[str(r[5])]]), int(r[0]))
+    ):
         if len(lesson) == n_lesson:
             break
         tid, artist = int(r[0]), int(r[4])

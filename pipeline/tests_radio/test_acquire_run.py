@@ -105,7 +105,7 @@ def test_acquire_prepares_verified_files_and_retries_failures(
     conn = make_model_db(tmp_path)
     serve_scores(conn)
     first = pending(conn, CFG)
-    assert len(first) == 4  # max_per_pass, les mieux notés d'abord
+    assert len(first) == 4  # max_per_pass, la dernière fournée et les mieux notés d'abord
     ok, wrong, missing = first[0], first[1], first[2:]
     fake_audio[wrong] = 0.55  # Chromaprint : un autre morceau
 
@@ -123,6 +123,13 @@ def test_acquire_prepares_verified_files_and_retries_failures(
     rows = dict(conn.execute("SELECT deezer_track_id, attempts FROM acquisitions").fetchall())
     assert rows[wrong] == 2 and rows[ok] == 1
     assert wrong not in pending(conn, CFG)  # abandonné après max_attempts
+
+
+def test_the_latest_batch_is_acquired_first(tmp_path: Path) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    # Mêmes notes dans les deux fournées : la dernière (artistes 6 à 11) passe d'abord.
+    assert all(t // 100 % 100 >= 6 for t in pending(conn, CFG))
 
 
 def test_a_title_gone_from_deezer_is_counted(tmp_path: Path, fake_audio: dict[int, float]) -> None:

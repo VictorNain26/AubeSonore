@@ -1,14 +1,16 @@
 """Modèle de goût : régression logistique sur l'empreinte audio (décision du 2026-09-30,
 docs/recherches/2026-09-30-modele-audio-seul.md).
 
-Chaque fournée de candidats est classée ; la part `keep_fraction` la mieux notée est retenue.
+Chaque fournée de candidats est classée famille par famille (découvertes, nouveautés) ; les
+mieux notés de chaque famille sont retenus, en nombre fixé par la grille d'antenne
+(docs/recherches/2026-10-02-cycle-de-vie.md).
 Seuls les votes d'examen jugent : un nouveau modèle n'est mis en service que si son AUC d'examen
 n'est pas inférieure à celle du modèle en service.
 """
 
 import json
-import math
 import sqlite3
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -93,6 +95,9 @@ def serving(conn: sqlite3.Connection, models_dir: Path) -> tuple[int, Pipeline] 
     return int(row["model_id"]), joblib.load(models_dir / row["file"])
 
 
+FAMILY = {"voisin": "decouvertes", "hypem": "nouveautes", "deezer_editorial": "nouveautes"}
+
+
 @dataclass(frozen=True)
 class Batch:
     run_id: int
@@ -105,28 +110,31 @@ def write_scores(
     model_id: int,
     model: Pipeline,
     table: SignalTable,
-    keep_fraction: float,
+    keep: Mapping[str, int],
 ) -> None:
-    """Note les candidats de chaque passe de découverte et retient, passe par passe, la part la
-    mieux notée. Un candidat entré depuis dans la bibliothèque n'est plus une découverte."""
-    run_of = dict(conn.execute("SELECT deezer_track_id, run_id FROM candidates").fetchall())
+    """Note les candidats de chaque passe de découverte et retient, passe par passe et famille
+    par famille, les `keep[famille]` mieux notés : découvertes et nouveautés ne se disputent pas
+    la même coupure. Un candidat entré depuis dans la bibliothèque n'est plus une découverte."""
+    group_of = {
+        int(t): (int(run), FAMILY[str(source)])
+        for t, run, source in conn.execute("SELECT deezer_track_id, run_id, source FROM candidates")
+    }
     rows = np.array(
         [
             i
             for i, (t, origin) in enumerate(
                 zip(table.track_ids.tolist(), table.origins, strict=True)
             )
-            if t in run_of and origin == "candidate"
+            if t in group_of and origin == "candidate"
         ],
         dtype=np.int64,
     )
     scores = predict(model, table, rows)
-    runs = np.array([run_of[int(table.track_ids[i])] for i in rows], dtype=np.int64)
+    groups = [group_of[int(table.track_ids[i])] for i in rows]
     accepted = np.zeros(len(rows), dtype=bool)
-    for run in np.unique(runs):
-        idx = np.flatnonzero(runs == run)
-        k = math.ceil(keep_fraction * len(idx))
-        accepted[idx[np.argsort(-scores[idx], kind="stable")[:k]]] = True
+    for group in set(groups):
+        idx = np.flatnonzero([g == group for g in groups])
+        accepted[idx[np.argsort(-scores[idx], kind="stable")[: keep[group[1]]]]] = True
     with conn:
         conn.execute("DELETE FROM scores")
         conn.executemany(
@@ -235,19 +243,28 @@ def rescore(conn: sqlite3.Connection, models_dir: Path, cfg: ModelConfig) -> int
     if current is None:
         return None
     model_id, model = current
-    write_scores(conn, model_id, model, load_signals(conn), cfg.keep_fraction)
+    write_scores(conn, model_id, model, load_signals(conn), cfg.keep)
     return model_id
 
 
-def favorites_retained(conn: sqlite3.Connection, models_dir: Path) -> tuple[float, int] | None:
-    """Part des favoris Hype Machine mesurés que le modèle en service retiendrait, au seuil de la
-    dernière fournée (le hasard en retiendrait `keep_fraction`). Une mesure de goût sur des
-    centaines de titres que Victor aime ; elle ne décide jamais d'une promotion."""
+@dataclass(frozen=True)
+class FavoritesRetained:
+    share: float
+    n: int
+    chance: float
+
+
+def favorites_retained(conn: sqlite3.Connection, models_dir: Path) -> FavoritesRetained | None:
+    """Part des favoris Hype Machine mesurés que le modèle en service retiendrait, à la coupure
+    des découvertes de la dernière fournée ; le hasard en retiendrait `chance`, la part de ces
+    découvertes retenue. Une mesure de goût sur des centaines de titres que Victor aime ; elle
+    ne décide jamais d'une promotion."""
     current = serving(conn, models_dir)
     row = conn.execute(
         """
-        SELECT MIN(s.score) FROM scores s JOIN candidates c USING (deezer_track_id)
-        WHERE s.accepted = 1 AND c.run_id = (SELECT MAX(run_id) FROM candidates)
+        SELECT MIN(s.score) FILTER (WHERE s.accepted = 1), AVG(s.accepted)
+        FROM scores s JOIN candidates c USING (deezer_track_id)
+        WHERE c.source = 'voisin' AND c.run_id = (SELECT MAX(run_id) FROM candidates)
         """
     ).fetchone()
     table = load_signals(conn)
@@ -255,4 +272,4 @@ def favorites_retained(conn: sqlite3.Connection, models_dir: Path) -> tuple[floa
     if current is None or row[0] is None or len(rows) == 0:
         return None
     scores = predict(current[1], table, rows)
-    return float((scores >= float(row[0])).mean()), len(rows)
+    return FavoritesRetained(float((scores >= float(row[0])).mean()), len(rows), float(row[1]))

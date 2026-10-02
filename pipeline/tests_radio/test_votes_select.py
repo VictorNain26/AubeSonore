@@ -44,6 +44,22 @@ def test_lesson_is_the_closest_to_the_cut_outside_exam_artists(tmp_path: Path) -
     assert sorted(sel.lesson) == [(2000 + a) * 100 for a in range(10)]
 
 
+def test_lesson_measures_each_family_against_its_own_cut(tmp_path: Path) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    # Les rejetés de la dernière fournée deviennent des nouveautés ; leur meilleur titre (k = 0,
+    # note 0,4375) est retenu : c'est la coupure des nouveautés, loin de celle des découvertes.
+    conn.execute(
+        "UPDATE candidates SET source = 'hypem', seed_artist_id = NULL, "
+        "neighbour_artist_id = NULL, detail = 'Blog' WHERE deezer_track_id >= 300600"
+    )
+    conn.execute("UPDATE scores SET accepted = 1 WHERE deezer_track_id >= 300600 AND score > 0.43")
+    conn.commit()
+    sel = select_batch(conn, _rng(), 0, 18, NOW)
+    news = [(3000 + a) * 100 for a in range(6, 12)]
+    assert sorted(sel.lesson) == [(2000 + a) * 100 for a in range(12)] + news
+
+
 def test_an_artist_once_examined_never_gets_a_lesson(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
