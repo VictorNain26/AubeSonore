@@ -1,0 +1,49 @@
+{
+  "type": "standard",
+  "title": "Joshua Tillman",
+  "displaytitle": "<span lang=\"fr\" dir=\"ltr\"><span class=\"mw-page-title-main\">Joshua Tillman</span></span>",
+  "namespace": {
+    "id": 0,
+    "text": ""
+  },
+  "wikibase_item": "Q6107266",
+  "titles": {
+    "canonical": "Joshua_Tillman",
+    "normalized": "Joshua Tillman",
+    "display": "<span lang=\"fr\" dir=\"ltr\"><span class=\"mw-page-title-main\">Joshua Tillman</span></span>"
+  },
+  "pageid": 9942100,
+  "thumbnail": {
+    "source": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/2c/J._Tillman_2014.jpg/330px-J._Tillman_2014.jpg?utm_source=fr.wikipedia.org&utm_campaign=api&utm_content=thumbnail",
+    "width": 330,
+    "height": 301
+  },
+  "originalimage": {
+    "source": "https://upload.wikimedia.org/wikipedia/commons/2/2c/J._Tillman_2014.jpg?utm_source=fr.wikipedia.org&utm_campaign=api&utm_content=thumbnail_unscaled",
+    "width": 1585,
+    "height": 1446
+  },
+  "lang": "fr",
+  "dir": "ltr",
+  "revision": "236227130",
+  "tid": "153673b3-5028-11f1-b4c9-999e685e0776",
+  "timestamp": "2026-05-15T06:34:11Z",
+  "description": "chanteur, guitariste, compositeur et batteur américain",
+  "description_source": "central",
+  "content_urls": {
+    "desktop": {
+      "page": "https://fr.wikipedia.org/wiki/Joshua_Tillman",
+      "revisions": "https://fr.wikipedia.org/wiki/Joshua_Tillman?action=history",
+      "edit": "https://fr.wikipedia.org/wiki/Joshua_Tillman?action=edit",
+      "talk": "https://fr.wikipedia.org/wiki/Discussion:Joshua_Tillman"
+    },
+    "mobile": {
+      "page": "https://fr.wikipedia.org/wiki/Joshua_Tillman",
+      "revisions": "https://fr.wikipedia.org/wiki/Special:History/Joshua_Tillman",
+      "edit": "https://fr.wikipedia.org/wiki/Joshua_Tillman?action=edit",
+      "talk": "https://fr.wikipedia.org/wiki/Discussion:Joshua_Tillman"
+    }
+  },
+  "extract": "Joshua Michael Tillman, aussi connu sous le nom de J. Tillman ou Father John Misty, est un chanteur, guitariste, compositeur et batteur américain. S'il a commencé une carrière solo depuis 2004, Tillman est un ancien membre de nombres de groupes de rock indé : Saxon Shore, Fleet Foxes, Jeffertitti's Nile, Pearly Gate Music, Siberian, Har Mar Superstar, Poor Moon, Low Hums, Jonathan Wilson, Bill Patton, The Lashes, Stately English. Il a également tourné avec des musiciens du Nord-Ouest Pacifique comme : Damien Jurado, Jesse Sykes, et David Bazan.",
+  "extract_html": "<p><b>Joshua Michael Tillman</b>, aussi connu sous le nom de <b>J. Tillman</b> ou <b>Father John Misty</b>, est un chanteur, guitariste, compositeur et batteur américain. S'il a commencé une carrière solo depuis 2004, Tillman est un ancien membre de nombres de groupes de rock indé : Saxon Shore, Fleet Foxes, Jeffertitti's Nile, Pearly Gate Music, Siberian, Har Mar Superstar, Poor Moon, Low Hums, Jonathan Wilson, Bill Patton, The Lashes, Stately English. Il a également tourné avec des musiciens du Nord-Ouest Pacifique comme : Damien Jurado, Jesse Sykes, et David Bazan.</p>"
+}

@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot, hydrateRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router';
 import App from './App';
 import '@fontsource-variable/bricolage-grotesque/wdth.css';
 import '@fontsource-variable/geist-mono';
@@ -17,11 +18,13 @@ window.addEventListener('vite:preloadError', () => {
   handlePreloadError(sessionStorage, () => window.location.reload(), Date.now());
 });
 
-// The production page arrives pre-rendered (scripts/prerender.mjs): hydrate it.
-// The dev server serves an empty root.
+// The production home arrives pre-rendered (scripts/prerender.mjs): hydrate it.
+// Artist pages (app.html) and the dev server serve an empty root.
 const app = (
   <StrictMode>
-    <App />
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
   </StrictMode>
 );
 if (window.location.pathname === '/' && readLocaleChoice() === 'en') {

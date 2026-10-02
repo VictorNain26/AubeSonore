@@ -8,7 +8,6 @@ const UNKNOWN_ID = '22222222-2222-2222-2222-222222222222';
 // replace these modules for every other test file of the run (Bun 1.3).
 const profileService = await import('../services/artistProfileService');
 const resolver = await import('../services/artistResolver');
-const lastfm = await import('../services/lastfmService');
 
 const spies = [
   spyOn(profileService, 'getArtistProfile').mockImplementation((id: string) =>
@@ -19,25 +18,16 @@ const spies = [
             name: 'Daft Punk',
             slug: 'daft-punk',
             image: null,
-            bio: null,
-            tags: [],
-            listeners: null,
-            similar: [],
-            topTracks: [],
+            facts: null,
+            summary: null,
             links: [],
             playedOnRadio: [],
-            resolved: true,
           }
         : null
     )
   ),
   spyOn(resolver, 'resolveArtist').mockImplementation((name: string) =>
     Promise.resolve(name === 'Daft Punk' ? { id: VALID_ID, slug: 'daft-punk' } : null)
-  ),
-  spyOn(lastfm, 'getArtistInfo').mockImplementation((name: string) =>
-    Promise.resolve(
-      name === 'Daft Punk' ? { bio: 'Un duo.', tags: [], similarArtists: [], listeners: 0 } : null
-    )
   ),
 ];
 
@@ -60,6 +50,23 @@ describe('GET /api/artist/:id', () => {
 
     expect(res.status).toBe(200);
     expect(((await res.json()) as { name: string }).name).toBe('Daft Punk');
+  });
+
+  it('asks the profile in the page language, French by default', async () => {
+    const [profileSpy] = spies;
+    await app.handle(new Request(`http://localhost/api/artist/${VALID_ID}?lang=en`));
+    await app.handle(new Request(`http://localhost/api/artist/${VALID_ID}`));
+
+    expect(profileSpy?.mock.calls.slice(-2)).toEqual([
+      [VALID_ID, 'en'],
+      [VALID_ID, 'fr'],
+    ]);
+  });
+
+  it('rejects a language the site is not published in', async () => {
+    const res = await app.handle(new Request(`http://localhost/api/artist/${VALID_ID}?lang=de`));
+
+    expect(res.status).toBe(400);
   });
 
   it('rejects a malformed id at the boundary', async () => {
@@ -109,27 +116,6 @@ describe('GET /api/artist/resolve', () => {
     const res = await app.handle(
       new Request('http://localhost/api/artist/resolve?name=Nobody%20At%20All')
     );
-
-    expect(res.status).toBe(404);
-  });
-});
-
-describe('GET /api/artist?name=', () => {
-  it('keeps serving the by-name lookup of the home page', async () => {
-    const res = await app.handle(new Request('http://localhost/api/artist?name=Daft%20Punk'));
-
-    expect(res.status).toBe(200);
-    expect(((await res.json()) as { bio: string }).bio).toBe('Un duo.');
-  });
-
-  it('returns 400 without a name', async () => {
-    const res = await app.handle(new Request('http://localhost/api/artist/'));
-
-    expect(res.status).toBe(400);
-  });
-
-  it('returns 404 for an artist Last.fm does not know', async () => {
-    const res = await app.handle(new Request('http://localhost/api/artist?name=Nobody'));
 
     expect(res.status).toBe(404);
   });

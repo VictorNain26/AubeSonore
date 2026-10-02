@@ -1,3 +1,4 @@
+import type { SiteLocale } from '@aubesonore/shared-types/client';
 import { Elysia } from 'elysia';
 import { env } from '../config/env';
 import { logger } from '../lib/logger';
@@ -50,23 +51,23 @@ interface HandlerContext {
   set: { status?: number | string; headers: Record<string, string | number> };
 }
 
-async function handle({ request, params, set }: HandlerContext): Promise<string> {
+async function handle(
+  locale: SiteLocale,
+  { request, params, set }: HandlerContext
+): Promise<string> {
   const ip = getClientIp(request.headers);
   if (!checkRate('artistPage', ip, PAGE_LIMIT, PAGE_WINDOW_MS)) {
     set.status = 429;
     set.headers['retry-after'] = '60';
-    return 'Trop de requêtes, réessayez dans 1 minute';
-  }
-
-  if (!isValidArtistId(params.id)) {
-    set.status = 400;
-    return 'Identifiant invalide';
+    return locale === 'en'
+      ? 'Too many requests, retry in 1 minute'
+      : 'Trop de requêtes, réessayez dans 1 minute';
   }
 
   const html = await loadShell();
   if (!html) {
     set.status = 502;
-    return 'Application indisponible';
+    return locale === 'en' ? 'Site unavailable' : 'Application indisponible';
   }
 
   set.headers['content-type'] = 'text/html; charset=utf-8';
@@ -74,7 +75,8 @@ async function handle({ request, params, set }: HandlerContext): Promise<string>
   // leaves browsers on a page whose hashed assets are gone.
   set.headers['cache-control'] = 'no-cache';
 
-  const profile = await getArtistProfile(params.id);
+  // A malformed id (a truncated link) is an unknown artist: no lookup.
+  const profile = isValidArtistId(params.id) ? await getArtistProfile(params.id, locale) : null;
   // Unknown artist: a real 404, or crawlers index it as a soft 404. The SPA
   // still boots and renders its own not-found state.
   if (!profile) {
@@ -82,10 +84,16 @@ async function handle({ request, params, set }: HandlerContext): Promise<string>
     return html;
   }
 
-  const pageUrl = `${env.FRONTEND_BASE_URL}/artist/${profile.id}/${profile.slug}`;
-  return renderArtistShell(html, profile, pageUrl);
+  const prefix = locale === 'en' ? '/en' : '';
+  const pageUrl = `${env.FRONTEND_BASE_URL}${prefix}/artist/${profile.id}/${profile.slug}`;
+  return renderArtistShell(html, profile, pageUrl, locale);
 }
 
+const fr = (context: HandlerContext) => handle('fr', context);
+const en = (context: HandlerContext) => handle('en', context);
+
 export const artistPageRoutes = new Elysia()
-  .get('/artist/:id', handle)
-  .get('/artist/:id/:slug', handle);
+  .get('/artist/:id', fr)
+  .get('/artist/:id/:slug', fr)
+  .get('/en/artist/:id', en)
+  .get('/en/artist/:id/:slug', en);

@@ -8,11 +8,6 @@ export interface DeezerArtist {
   picture: string | null;
 }
 
-export interface DeezerTrack {
-  title: string;
-  link: string;
-}
-
 const DEEZER_API = 'https://api.deezer.com';
 const POSITIVE_TTL_MS = 24 * 60 * 60 * 1000;
 const NEGATIVE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -119,46 +114,6 @@ export async function getArtist(id: string): Promise<DeezerArtist | null> {
     deezerCache.set(key, artist, artist ? undefined : NEGATIVE_TTL_MS);
     return artist;
   })) as DeezerArtist | null;
-}
-
-export async function getRelatedArtists(id: string): Promise<DeezerArtist[]> {
-  const key = `related:${id}`;
-  const cached = deezerCache.get(key);
-  if (cached !== undefined) return cached as DeezerArtist[];
-
-  return (await flight(key, async () => {
-    const fetched = await getJson<{ data?: RawArtist[] }>(
-      `/artist/${encodeURIComponent(id)}/related?limit=8`
-    );
-    if (fetched.status === 'failed') return [];
-
-    const related = (fetched.status === 'ok' ? (fetched.body.data ?? []) : [])
-      .map(toArtist)
-      .filter((entry): entry is DeezerArtist => entry !== null);
-    deezerCache.set(key, related);
-    return related;
-  })) as DeezerArtist[];
-}
-
-export async function getTopTracks(id: string): Promise<DeezerTrack[]> {
-  const key = `top:${id}`;
-  const cached = deezerCache.get(key);
-  if (cached !== undefined) return cached as DeezerTrack[];
-
-  return (await flight(key, async () => {
-    const fetched = await getJson<{ data?: Array<{ title?: string; link?: string }> }>(
-      `/artist/${encodeURIComponent(id)}/top?limit=5`
-    );
-    if (fetched.status === 'failed') return [];
-
-    const tracks = (fetched.status === 'ok' ? (fetched.body.data ?? []) : []).flatMap((raw) =>
-      typeof raw.title === 'string' && typeof raw.link === 'string'
-        ? [{ title: raw.title, link: raw.link }]
-        : []
-    );
-    deezerCache.set(key, tracks);
-    return tracks;
-  })) as DeezerTrack[];
 }
 
 /** Test seam: the breaker is module state and would leak between test files. */

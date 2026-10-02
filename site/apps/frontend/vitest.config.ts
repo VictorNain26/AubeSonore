@@ -55,7 +55,6 @@ export default defineConfig({
         'src/components/Player/WaveformCanvas.tsx',
         'src/components/Player/VolumeControl.tsx',
         'src/components/Player/CastButton.tsx',
-        'src/components/Player/ArtistContext.tsx',
         'src/components/Player/index.tsx',
         'src/components/Player/utils.ts',
         'src/components/Player/motion-presets.ts',

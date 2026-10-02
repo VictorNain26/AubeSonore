@@ -1,8 +1,13 @@
 // @vitest-environment jsdom
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { render as rtlRender, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router';
 import userEvent from '@testing-library/user-event';
 import { NowPlayingView, type NowPlayingViewProps } from './NowPlaying';
+
+// The artist link is a router <Link>.
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: MemoryRouter });
 
 const playedAt = Math.floor(new Date(2026, 9, 1, 17, 1).getTime() / 1000);
 
@@ -17,7 +22,7 @@ function props(overrides: Partial<NowPlayingViewProps> = {}): NowPlayingViewProp
     isKeeping: false,
     onToggleKeep: vi.fn(),
     onShare: vi.fn(),
-    onOpenArtist: undefined,
+    artistHref: null,
     before: [],
     ...overrides,
   };
@@ -69,12 +74,15 @@ describe('NowPlayingView', () => {
     expect(screen.getByRole('button', { name: 'Garder' })).toHaveAttribute('aria-pressed', 'true');
   });
 
-  it('offers the artist panel only when there is a biography', () => {
+  it('links to the artist page only once it exists', () => {
     const { rerender } = render(<NowPlayingView {...props()} />);
-    expect(screen.queryByRole('button', { name: "L'artiste" })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: "L'artiste" })).not.toBeInTheDocument();
 
-    rerender(<NowPlayingView {...props({ onOpenArtist: vi.fn() })} />);
-    expect(screen.getByRole('button', { name: "L'artiste" })).toBeInTheDocument();
+    rerender(<NowPlayingView {...props({ artistHref: '/artist/a-1/can' })} />);
+    expect(screen.getByRole('link', { name: "L'artiste" })).toHaveAttribute(
+      'href',
+      '/artist/a-1/can'
+    );
   });
 
   it('says radio silence when the station is off air', () => {

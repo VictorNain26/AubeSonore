@@ -1,0 +1,21 @@
+{
+  "entities": {
+    "Q6107266": {
+      "type": "item",
+      "id": "Q6107266",
+      "sitelinks": {
+        "enwiki": {
+          "site": "enwiki",
+          "title": "Father John Misty",
+          "badges": []
+        },
+        "frwiki": {
+          "site": "frwiki",
+          "title": "Joshua Tillman",
+          "badges": []
+        }
+      }
+    }
+  },
+  "success": 1
+}

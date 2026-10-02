@@ -86,27 +86,19 @@ export interface CheckLikedResponse {
   track?: ClientLikedTrack;
 }
 
-export interface ArtistInfo {
-  bio: string;
-  tags: string[];
-  similarArtists: string[];
-  listeners: number;
-}
+/** The two languages the site is published in. */
+export type SiteLocale = 'fr' | 'en';
+
+export type ArtistPlatform =
+  | 'deezer'
+  | 'spotify'
+  | 'appleMusic'
+  | 'bandcamp'
+  | 'soundcloud'
+  | 'official';
 
 export interface ArtistLink {
-  platform: string;
-  url: string;
-}
-
-export interface SimilarArtist {
-  name: string;
-  image: string | null;
-  /** The artist's page on the site, when the antenna has played them. */
-  page: { id: string; slug: string } | null;
-}
-
-export interface ArtistTopTrack {
-  title: string;
+  platform: ArtistPlatform;
   url: string;
 }
 
@@ -117,22 +109,39 @@ export interface ArtistRadioPlay {
   playedAt: string;
 }
 
+/** What MusicBrainz states about the artist, nothing inferred. */
+export interface ArtistFacts {
+  kind: 'person' | 'group' | 'orchestra' | 'choir' | null;
+  /** Where a group was formed; never a person's birthplace. */
+  place: string | null;
+  /** ISO 3166-1 alpha-2, localised by the client. */
+  country: string | null;
+  /** Formation and dissolution years of a group; never a person's birth or death. */
+  formed: number | null;
+  ended: number | null;
+  /** MusicBrainz says the group has not ended; false when it ended, even without a date. */
+  active: boolean;
+}
+
+/** The opening sentences of the artist's Wikipedia article, CC BY-SA. */
+export interface ArtistSummary {
+  text: string;
+  /** The page language when the article exists in it, the other one otherwise. */
+  lang: SiteLocale;
+  url: string;
+}
+
 export interface ArtistProfile {
   id: string;
   name: string;
   slug: string;
   /** Absolute https Deezer URL, hotlinked — never re-hosted. */
   image: string | null;
-  bio: string | null;
-  tags: string[];
-  listeners: number | null;
-  similar: SimilarArtist[];
-  topTracks: ArtistTopTrack[];
+  facts: ArtistFacts | null;
+  summary: ArtistSummary | null;
   links: ArtistLink[];
   /** What the antenna actually played — the one section no upstream can supply. */
   playedOnRadio: ArtistRadioPlay[];
-  /** False when no upstream match was found; only the radio floor renders. */
-  resolved: boolean;
 }
 
 export const PLATFORM_NAMES: Record<PreferredPlatform, string> = {

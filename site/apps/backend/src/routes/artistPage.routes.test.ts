@@ -21,6 +21,7 @@ const SHELL = `<!doctype html><html lang="fr"><head>
 <meta name="twitter:title" content="home title" />
 <meta name="twitter:description" content="home description" />
 <meta name="twitter:image" content="https://aubesonore.fr/og-fr.png" />
+<meta property="og:locale" content="fr_FR" />
 </head><body><div id="root"></div></body></html>`;
 
 let profileName = 'Daft Punk';
@@ -37,14 +38,14 @@ const profileSpy = spyOn(profileService, 'getArtistProfile').mockImplementation(
           name: profileName,
           slug: 'daft-punk',
           image: profileImage,
-          bio: 'Un duo français.',
-          tags: [],
-          listeners: null,
-          similar: [],
-          topTracks: [],
+          facts: null,
+          summary: {
+            text: 'Un duo français.',
+            lang: 'fr' as const,
+            url: 'https://fr.wikipedia.org/wiki/Daft_Punk',
+          },
           links: [],
           playedOnRadio: [],
-          resolved: true,
         }
       : null
   )
@@ -157,12 +158,33 @@ describe('GET /artist/:id', () => {
     expect(await res.text()).not.toContain('http://cdn-images.dzcdn.net');
   });
 
-  it('returns 400 on a malformed id', async () => {
+  it('answers a malformed id like an unknown artist, without a lookup', async () => {
     mockShell();
+    profileSpy.mockClear();
 
-    const res = await app.handle(new Request('http://localhost/artist/not-a-uuid'));
+    const res = await app.handle(new Request('http://localhost/en/artist/not-a-uuid'));
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(404);
+    expect(await res.text()).toBe(SHELL);
+    expect(profileSpy).not.toHaveBeenCalled();
+  });
+
+  it('serves the English page under /en/ with its own url, language and fallback text', async () => {
+    mockShell();
+    profileImage = null;
+
+    const res = await app.handle(new Request(`http://localhost/en/artist/${VALID_ID}/daft-punk`));
+
+    const html = await res.text();
+    expect(html).toContain('<html lang="en">');
+    expect(html).toContain(`href="${env.FRONTEND_BASE_URL}/en/artist/${VALID_ID}/daft-punk"`);
+    expect(html).toContain('<meta property="og:locale" content="en_GB" />');
+    expect(html).toContain(
+      '<meta property="og:image" content="https://aubesonore.fr/og-en.png" />'
+    );
+    expect(html).toContain(
+      '<meta name="twitter:image" content="https://aubesonore.fr/og-en.png" />'
+    );
   });
 
   it('answers 404 with the untouched shell when the artist is unknown', async () => {

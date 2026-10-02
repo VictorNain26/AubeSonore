@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useLikeAction } from './useLikeAction';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
-import { useArtistPanelStore } from '../../stores/artistPanelStore';
+import { MemoryRouter, useLocation } from 'react-router';
 
 vi.mock('sonner', () => ({
   toast: { success: vi.fn(), error: vi.fn() },
@@ -18,13 +18,14 @@ describe('useLikeAction', () => {
     vi.clearAllMocks();
     useAuthStore.setState({ isAuthenticated: true });
     useLikedTracksStore.setState({ tracks: [], likingTrackId: null, error: null });
-    useArtistPanelStore.setState({ artistName: null });
   });
 
-  it('offers a "Découvrir" toast action opening the artist panel after a like', async () => {
-    const { result } = renderHook(() => useLikeAction());
+  it('offers a "Découvrir" toast action leading to the artist page after a like', async () => {
+    const { result } = renderHook(() => ({ like: useLikeAction(), location: useLocation() }), {
+      wrapper: MemoryRouter,
+    });
 
-    await act(() => result.current.toggleLike('Test Track', 'Test Artist'));
+    await act(() => result.current.like.toggleLike('Test Track', 'Test Artist'));
 
     await waitFor(() => expect(mockedToastSuccess).toHaveBeenCalled());
     const [message, options] = mockedToastSuccess.mock.calls[0] as [
@@ -35,11 +36,11 @@ describe('useLikeAction', () => {
     expect(options.action.label).toBe('Découvrir Test Artist');
 
     act(() => options.action.onClick());
-    expect(useArtistPanelStore.getState().artistName).toBe('Test Artist');
+    expect(result.current.location.pathname).toBe('/artist/a-1/test-artist');
   });
 
-  it('shows a plain toast when the artist has no bio', async () => {
-    const { result } = renderHook(() => useLikeAction());
+  it('shows a plain toast when the artist has no page', async () => {
+    const { result } = renderHook(() => useLikeAction(), { wrapper: MemoryRouter });
 
     await act(() => result.current.toggleLike('Test Track', 'Unknown'));
 

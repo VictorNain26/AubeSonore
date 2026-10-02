@@ -6,7 +6,7 @@ API de la webradio, construite avec [Elysia](https://elysiajs.com/) sur [Bun](ht
 
 - **Radio** : proxy de l'historique et du « en train de jouer » AzuraCast.
 - **Likes** : ajout / retrait / liste des morceaux aimés.
-- **Enrichissement** : résolution des liens multi-plateformes via Songlink/Odesli et métadonnées Last.fm, en tâche de fond.
+- **Enrichissement** : résolution des liens multi-plateformes (iTunes, Deezer, Spotify) en tâche de fond ; profil d'artiste par Deezer, MusicBrainz et Wikipédia.
 - **Pochettes** : à l'enrichissement, une pochette iTunes est retenue si l'artiste correspond (une autre pochette du même artiste reste acceptable) ; sinon l'URL AzuraCast est conservée et le client affiche un visuel « onde » déterministe.
 - **Auth** : [Better Auth](https://www.better-auth.com/) — email vérifié requis, OAuth Google et Spotify, cookies sécurisés, rate limiting.
 - **Notifications push** (Web Push / VAPID) et **statistiques d'écoute**.
@@ -31,7 +31,7 @@ Variables principales (liste complète dans `.env.example`) :
 - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` — OAuth Google
 - `ALLOWED_ORIGINS`, `COOKIE_DOMAIN`, `FRONTEND_BASE_URL`, `BACKEND_BASE_URL`
 - `AZURACAST_BASE_URL`, `AZURACAST_API_KEY`, `AZURACAST_STATION_ID`
-- `LASTFM_API_KEY` — métadonnées
+- `OUTBOUND_USER_AGENT` — User-Agent avec contact exigé par MusicBrainz et Wikimedia
 - `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` — Web Push
 
 ## Développement

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
 import { Share2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -6,8 +7,8 @@ import { KeepHeart } from './KeepHeart';
 import { useNowPlayingStore } from '../lib/azuracast';
 import { usePlayer } from '../lib/player';
 import { useTrackActions } from '../hooks/player/useTrackActions';
-import { useArtistInfo } from '../hooks/useArtistInfo';
-import { useArtistPanelStore } from '../stores/artistPanelStore';
+import { useArtistPage } from '../hooks/useArtistPage';
+import { artistPath } from '../lib/artistProfile';
 import { Cover } from './Cover';
 import { formatClock } from './time';
 import { TEXT_ACTION } from './styles';
@@ -49,7 +50,8 @@ export interface NowPlayingViewProps {
   isKeeping: boolean;
   onToggleKeep: () => void;
   onShare: () => void;
-  onOpenArtist: (() => void) | undefined;
+  /** The artist's page, once it exists: no link rather than a dead one. */
+  artistHref: string | null;
   /** The last tracks before this one, newest first: the thread the live belongs to. */
   before: BeforeRow[];
   /** True once the live has moved past the track shown at load: changes then animate. */
@@ -71,7 +73,7 @@ export function NowPlayingView({
   isKeeping,
   onToggleKeep,
   onShare,
-  onOpenArtist,
+  artistHref,
   before,
   hasChanged = false,
 }: NowPlayingViewProps) {
@@ -155,10 +157,10 @@ export function NowPlayingView({
                 <Share2 className="size-4" strokeWidth={1.6} aria-hidden="true" />
                 {m.track_share()}
               </button>
-              {onOpenArtist ? (
-                <button type="button" onClick={onOpenArtist} className={TEXT_ACTION}>
+              {artistHref ? (
+                <Link to={artistHref} className={TEXT_ACTION}>
                   {m.track_artist()}
-                </button>
+                </Link>
               ) : null}
             </span>
           ) : null}
@@ -211,8 +213,7 @@ export function NowPlaying() {
     useShallow((s) => ({ isPlaying: s.isPlaying, isConnecting: s.isConnecting, toggle: s.toggle }))
   );
   const { isLiked, isLiking, handleToggleLike, handleShare } = useTrackActions();
-  const { data: artistInfo } = useArtistInfo(artist);
-  const openArtistPanel = useArtistPanelStore((s) => s.open);
+  const artistPage = useArtistPage(artist);
   const setListenVisible = useHeroListenVisible((s) => s.setVisible);
   const listenRef = useRef<HTMLButtonElement>(null);
   const trackKey = title && artist ? `${artist}|${title}` : null;
@@ -244,7 +245,7 @@ export function NowPlaying() {
       isKeeping={isLiking}
       onToggleKeep={handleToggleLike}
       onShare={handleShare}
-      onOpenArtist={artistInfo?.bio && artist ? () => openArtistPanel(artist) : undefined}
+      artistHref={artistPage ? artistPath(artistPage) : null}
       hasChanged={firstTrackKey !== null && trackKey !== firstTrackKey}
       before={(history ?? []).slice(0, 3).map((e) => ({
         id: e.sh_id,

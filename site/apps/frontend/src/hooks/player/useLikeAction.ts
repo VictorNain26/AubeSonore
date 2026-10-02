@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { useLikedTracksStore } from '../../stores/likedTracksStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useAuthModalStore } from '../../stores/authModalStore';
-import { useArtistPanelStore } from '../../stores/artistPanelStore';
-import { getArtistInfo } from '../../lib/artistInfo';
+import { artistPath, resolveArtistPage } from '../../lib/artistProfile';
 import { keepRequest, savePendingKeep } from '../../lib/pendingKeep';
 import * as m from '@/paraglide/messages.js';
 
@@ -28,6 +28,7 @@ export function useLikeAction(): UseLikeAction {
   const setLikingTrackId = useLikedTracksStore((s) => s.setLikingTrackId);
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
   const openAuthModal = useAuthModalStore((s) => s.open);
+  const navigate = useNavigate();
 
   const toggleLike = useCallback(
     async (title: string, artist: string, artworkUrl?: string): Promise<void> => {
@@ -57,12 +58,12 @@ export function useLikeAction(): UseLikeAction {
           }
         } else {
           await likeTrack(keepRequest(title, artist, artworkUrl));
-          const info = await getArtistInfo(artist);
-          if (info?.bio) {
+          const page = await resolveArtistPage(artist).catch(() => null);
+          if (page) {
             toast.success(m.toast_kept(), {
               action: {
                 label: m.toast_discover_artist({ artist }),
-                onClick: () => useArtistPanelStore.getState().open(artist),
+                onClick: () => void navigate(artistPath(page)),
               },
             });
           } else {
@@ -73,7 +74,7 @@ export function useLikeAction(): UseLikeAction {
         setLikingTrackId(null);
       }
     },
-    [likeTrack, unlikeTrack, tracks, isAuthenticated, openAuthModal, setLikingTrackId]
+    [likeTrack, unlikeTrack, tracks, isAuthenticated, openAuthModal, setLikingTrackId, navigate]
   );
 
   return { likingTrackId, toggleLike };

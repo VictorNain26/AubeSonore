@@ -1,0 +1,39 @@
+{
+  "type": "standard",
+  "title": "Velocity Girl",
+  "displaytitle": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Velocity Girl</span></span>",
+  "namespace": {
+    "id": 0,
+    "text": ""
+  },
+  "wikibase_item": "Q7919286",
+  "titles": {
+    "canonical": "Velocity_Girl",
+    "normalized": "Velocity Girl",
+    "display": "<span lang=\"en\" dir=\"ltr\"><span class=\"mw-page-title-main\">Velocity Girl</span></span>"
+  },
+  "pageid": 2192322,
+  "lang": "en",
+  "dir": "ltr",
+  "revision": "1351218605",
+  "tid": "e485bfc0-4198-11f1-b99a-82d31a356bee",
+  "timestamp": "2026-04-26T17:53:55Z",
+  "description": "American indie rock band",
+  "description_source": "local",
+  "content_urls": {
+    "desktop": {
+      "page": "https://en.wikipedia.org/wiki/Velocity_Girl",
+      "revisions": "https://en.wikipedia.org/wiki/Velocity_Girl?action=history",
+      "edit": "https://en.wikipedia.org/wiki/Velocity_Girl?action=edit",
+      "talk": "https://en.wikipedia.org/wiki/Talk:Velocity_Girl"
+    },
+    "mobile": {
+      "page": "https://en.wikipedia.org/wiki/Velocity_Girl",
+      "revisions": "https://en.wikipedia.org/wiki/Special:History/Velocity_Girl",
+      "edit": "https://en.wikipedia.org/wiki/Velocity_Girl?action=edit",
+      "talk": "https://en.wikipedia.org/wiki/Talk:Velocity_Girl"
+    }
+  },
+  "extract": "Velocity Girl was an American indie rock band formed in 1989 in College Park, Maryland, and active in the Washington, D.C., area. The band released three albums before splitting up in 1996. The band reunited for a one-off concert in 2002 and for a few concerts in 2023 and 2024.",
+  "extract_html": "<p><b>Velocity Girl</b> was an American indie rock band formed in 1989 in College Park, Maryland, and active in the Washington, D.C., area. The band released three albums before splitting up in 1996. The band reunited for a one-off concert in 2002 and for a few concerts in 2023 and 2024.</p>"
+}

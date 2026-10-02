@@ -1,13 +1,7 @@
 import { describe, it, expect, spyOn, afterEach } from 'bun:test';
 
-const {
-  searchArtist,
-  getArtist,
-  getRelatedArtists,
-  getTopTracks,
-  deezerCache,
-  __resetDeezerCircuit,
-} = await import('./deezerService');
+const { searchArtist, getArtist, deezerCache, __resetDeezerCircuit } =
+  await import('./deezerService');
 
 const norm = (value: string): string =>
   value
@@ -141,46 +135,5 @@ describe('getArtist', () => {
     expect(await getArtist('27')).toBeNull();
     expect(await getArtist('27')).toBeNull();
     expect(fetchSpy.mock.calls.length).toBe(2);
-  });
-});
-
-describe('getRelatedArtists', () => {
-  it('maps related artists and keeps their pictures', async () => {
-    spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      json({
-        data: [
-          { id: 1, name: 'Justice', picture_xl: 'https://cdn.deezer.com/j.jpg' },
-          { id: 2, name: 'Air', picture_xl: null },
-        ],
-      })
-    );
-
-    expect(await getRelatedArtists('27')).toEqual([
-      { id: '1', name: 'Justice', picture: 'https://cdn.deezer.com/j.jpg' },
-      { id: '2', name: 'Air', picture: null },
-    ]);
-  });
-
-  it('returns an empty list when upstream fails', async () => {
-    spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(null, { status: 502 }));
-
-    expect(await getRelatedArtists('27')).toEqual([]);
-  });
-});
-
-describe('getTopTracks', () => {
-  it('keeps only entries that carry both a title and a link', async () => {
-    spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-      json({
-        data: [
-          { title: 'Around the World', link: 'https://deezer.com/track/1' },
-          { title: 'Missing link' },
-        ],
-      })
-    );
-
-    expect(await getTopTracks('27')).toEqual([
-      { title: 'Around the World', link: 'https://deezer.com/track/1' },
-    ]);
   });
 });
