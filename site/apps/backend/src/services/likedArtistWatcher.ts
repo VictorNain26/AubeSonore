@@ -1,19 +1,15 @@
 import { sql } from 'drizzle-orm';
 import { db, schema } from '../db/index';
-import { env } from '../config/env';
 import { logger } from '../lib/logger';
 import { isPushEnabled, sendToUsers } from './pushService';
-
-export interface NowPlayingTrack {
-  sh_id: number;
-  title: string;
-  artist: string;
-}
+import { recordPlay } from './radioPlayService';
+import { fetchNowPlaying, type NowPlayingTrack } from './nowPlaying';
 
 export interface WatcherDeps {
   fetchNowPlaying: () => Promise<NowPlayingTrack | null>;
   findUserIdsByArtist: (artistLower: string) => Promise<string[]>;
   send: (userIds: string[], title: string, body: string, url: string) => Promise<unknown>;
+  recordPlay: (shId: number, title: string, artist: string) => Promise<void>;
   now?: () => number;
 }
 
@@ -33,6 +29,17 @@ export function createLikedArtistNotifier(deps: WatcherDeps): () => Promise<void
 
     const artistLower = track.artist.trim().toLowerCase();
     if (!artistLower) return;
+
+    // Recorded for every new track, whether or not anyone is notified — this
+    // is the artist page's floor. A write failure must not silence the push.
+    try {
+      await deps.recordPlay(track.sh_id, track.title, track.artist);
+    } catch (err) {
+      logger.warn('radioPlay.record_failed', {
+        artist: track.artist,
+        message: (err as Error).message,
+      });
+    }
 
     const userIds = await deps.findUserIdsByArtist(artistLower);
     const cutoff = now() - DEDUPE_MS;
@@ -59,34 +66,6 @@ export function createLikedArtistNotifier(deps: WatcherDeps): () => Promise<void
   };
 }
 
-const NOWPLAYING_TIMEOUT_MS = 10_000;
-
-async function fetchNowPlaying(): Promise<NowPlayingTrack | null> {
-  const url = `${env.AZURACAST_BASE_URL}/api/station/${env.AZURACAST_STATION_ID}/nowplaying`;
-  const response = await fetch(url, {
-    headers: { 'X-API-Key': env.AZURACAST_API_KEY },
-    signal: AbortSignal.timeout(NOWPLAYING_TIMEOUT_MS),
-  });
-  if (!response.ok) {
-    throw new Error(`AzuraCast nowplaying error: ${response.status}`);
-  }
-
-  const payload: unknown = await response.json();
-  const nowPlaying =
-    Array.isArray(payload) && payload.length > 0
-      ? (payload[0] as { now_playing?: unknown }).now_playing
-      : undefined;
-  if (typeof nowPlaying !== 'object' || nowPlaying === null) return null;
-
-  const { sh_id, song } = nowPlaying as { sh_id?: unknown; song?: unknown };
-  if (typeof sh_id !== 'number' || typeof song !== 'object' || song === null) return null;
-
-  const { title, artist } = song as { title?: unknown; artist?: unknown };
-  if (typeof title !== 'string' || typeof artist !== 'string') return null;
-
-  return { sh_id, title, artist };
-}
-
 async function findUserIdsByArtist(artistLower: string): Promise<string[]> {
   const rows = await db
     .selectDistinct({ userId: schema.likedTracks.userId })
@@ -96,15 +75,18 @@ async function findUserIdsByArtist(artistLower: string): Promise<string[]> {
 }
 
 export function startLikedArtistWatcher(intervalMs = 60_000): () => void {
-  if (!isPushEnabled()) {
-    logger.info('liked artist watcher disabled: VAPID keys not configured');
-    return () => {};
+  // The watcher runs even without VAPID keys: recording what the antenna
+  // plays feeds the artist page and must not depend on push being configured.
+  const pushEnabled = isPushEnabled();
+  if (!pushEnabled) {
+    logger.info('liked artist notifications disabled: VAPID keys not configured');
   }
 
   const check = createLikedArtistNotifier({
     fetchNowPlaying,
-    findUserIdsByArtist,
+    findUserIdsByArtist: pushEnabled ? findUserIdsByArtist : () => Promise.resolve([]),
     send: (userIds, title, body, url) => sendToUsers(userIds, title, body, url),
+    recordPlay,
   });
 
   const timer = setInterval(() => {

@@ -9,6 +9,7 @@ import { logger } from './lib/logger';
 import { trackRoutes } from './routes/track.routes';
 import { preferencesRoutes } from './routes/preferences.routes';
 import { artistRoutes } from './routes/artist.routes';
+import { artistPageRoutes } from './routes/artistPage.routes';
 import { pushRoutes } from './routes/push.routes';
 import { statsRoutes } from './routes/stats.routes';
 import { trendsRoutes } from './routes/trends.routes';
@@ -17,6 +18,8 @@ import { shareRoutes } from './routes/share.routes';
 import { coversRoutes } from './routes/covers.routes';
 import { songlinkCache, itunesCache } from './services/songlinkService';
 import { lastfmCache } from './services/lastfmService';
+import { deezerCache } from './services/deezerService';
+import { musicbrainzCache } from './services/musicbrainzService';
 import { radioHistoryCache } from './services/radioService';
 import { trendsCache } from './services/trendsService';
 import { purgeExpiredAuthRows } from './services/pushService';
@@ -38,6 +41,8 @@ itunesCache.startSweep();
 lastfmCache.startSweep();
 radioHistoryCache.startSweep();
 trendsCache.startSweep();
+deezerCache.startSweep();
+musicbrainzCache.startSweep();
 
 // Periodic purge of Better Auth's expired session/verification rows.
 // Without this they accumulate indefinitely — Better Auth does not self-clean.
@@ -78,6 +83,7 @@ const app = new Elysia()
   .use(trackRoutes)
   .use(preferencesRoutes)
   .use(artistRoutes)
+  .use(artistPageRoutes)
   .use(pushRoutes)
   .use(statsRoutes)
   .use(trendsRoutes)
@@ -140,6 +146,8 @@ async function gracefulShutdown(signal: string): Promise<void> {
   lastfmCache.dispose();
   radioHistoryCache.dispose();
   trendsCache.dispose();
+  deezerCache.dispose();
+  musicbrainzCache.dispose();
 
   try {
     await pool.end();
