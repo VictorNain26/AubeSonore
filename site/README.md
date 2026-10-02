@@ -104,12 +104,12 @@ Le déploiement est automatique et _pull-based_ : merger sur `master` suffit. Su
 3. attend que tous les healthchecks soient verts (échec au-delà de 300 s) ;
 4. supprime les images de plus de 72 h.
 
-Aucun runner self-hosted ni webhook entrant : le dépôt est public, et le polling ne demande ni credential ni port ouvert. Le backend applique au démarrage les nouvelles migrations `apps/backend/drizzle/*.sql` (`src/db/migrate.ts`, SQL idempotent) : un changement de `site/apps/backend/src/db/schema.ts` livré avec sa migration (dans le même commit de `master`) se déploie seul ; que la migration corresponde au schéma relève de la revue de PR. Sans migration, il bloque le déploiement : l'appliquer à la main, l'acquitter avec `git -C ~/radio config aubesonore.appliedSchema <blob>` (le script affiche la commande exacte), puis relancer `systemctl --user start aubesonore-deploy`.
+Aucun runner self-hosted ni webhook entrant : le dépôt est public, et le polling ne demande ni credential ni port ouvert. Le backend applique au démarrage les nouvelles migrations `apps/backend/drizzle/*.sql` (`src/db/migrate.ts`, SQL idempotent) : un changement de `site/apps/backend/src/db/schema.ts` livré avec sa migration (dans le même commit de `master`) se déploie seul ; que la migration corresponde au schéma relève de la revue de PR. Sans migration, il bloque le déploiement : l'appliquer à la main, l'acquitter avec `git -C ~/aubesonore config aubesonore.appliedSchema <blob>` (le script affiche la commande exacte), puis relancer `systemctl --user start aubesonore-deploy`.
 
-Installation, une fois, sur le serveur (unités et script supposent le dépôt AubeSonore cloné dans `~/radio`, le site dans `~/radio/site` ; ailleurs, ajuster `ExecStart` et définir `REPO_DIR`) :
+Installation, une fois, sur le serveur (unités et script supposent le dépôt AubeSonore cloné dans `~/aubesonore`, le site dans `~/aubesonore/site` ; ailleurs, ajuster `ExecStart` et définir `REPO_DIR`) :
 
 ```bash
-ln -s ~/radio/site/scripts/systemd/* ~/.config/systemd/user/
+ln -s ~/aubesonore/site/scripts/systemd/* ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user enable --now aubesonore-deploy.timer aubesonore-backup.timer
 loginctl enable-linger <utilisateur>   # les timers tournent sans session ouverte

@@ -291,7 +291,7 @@ Justification : `recherches/…-observabilite.md` §3.
 
 **Bascule, faite le 2026-10-01** par appels directs, sans attendre 400 titres puisque la radio
 n'avait pas encore d'auditeurs : sauvegarde des 8 anciennes playlists et de la liste des médias
-dans `~/radio/archives/*-avant-bascule-2026-10-01.json`, création de la playlist « AubeSonore »
+dans `~/aubesonore/archives/*-avant-bascule-2026-10-01.json`, création de la playlist « AubeSonore »
 (id 10) rattachée à `antenne/`, désactivation des 8 anciennes, suppression des 369 anciens
 titres. Les playlists se réactivent depuis la sauvegarde ; les fichiers supprimés sont perdus.
 
@@ -434,7 +434,7 @@ toutes les 24 h et un message de retour à la normale, sur deux canaux :
   Gatus. `essentia-tensorflow` en est exclu : ses versions récentes ne publient que des roues
   cp314, et le projet est en Python 3.12.
 - **Déploiement** : merger sur `master` suffit. `aubesonore-deploy.timer` avance le checkout
-  `~/radio`, jamais pendant une passe hebdomadaire, et redémarre `radio-votes` quand `pipeline/`
+  `~/aubesonore`, jamais pendant une passe hebdomadaire, et redémarre `radio-votes` quand `pipeline/`
   change : la page de vote garde sinon le code de son démarrage.
 - Les tests tournent sans réseau (~12 s). Tout bug corrigé reçoit son test.
 

@@ -4,10 +4,10 @@ After=network-online.target
 
 [Service]
 Type=oneshot
-WorkingDirectory=%h/radio/pipeline
+WorkingDirectory=%h/aubesonore/pipeline
 # Sockseek et rsgain sont dans ~/.local/bin ; ffmpeg et fpcalc viennent d'apt.
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
-EnvironmentFile=%h/radio/pipeline/.env
+EnvironmentFile=%h/aubesonore/pipeline/.env
 # Machine partagée : la diffusion et les autres services passent avant.
 Nice=19
 CPUWeight=20
@@ -22,22 +22,22 @@ RuntimeDirectoryMode=0700
 # nouveautes, favoris et acquire préfixés de « - » : une source en panne n'arrête pas la
 # passe, et un échec d'acquire n'empêche pas antenne de publier ce qui est prêt
 # (systemd.service(5), « Command lines ») ; check fait échouer la passe en fin de course.
-ExecStart=%h/radio/pipeline/.venv/bin/radio library-sync
-ExecStart=%h/radio/pipeline/.venv/bin/radio discover
-ExecStart=-%h/radio/pipeline/.venv/bin/radio nouveautes
-ExecStart=-%h/radio/pipeline/.venv/bin/radio favoris
-ExecStart=%h/radio/pipeline/.venv/bin/radio signals
-ExecStart=%h/radio/pipeline/.venv/bin/radio train
-ExecStart=%h/radio/pipeline/.venv/bin/radio votes-select
-ExecStart=-%h/radio/pipeline/.venv/bin/radio acquire
-ExecStart=%h/radio/pipeline/.venv/bin/radio antenne
+ExecStart=%h/aubesonore/pipeline/.venv/bin/radio library-sync
+ExecStart=%h/aubesonore/pipeline/.venv/bin/radio discover
+ExecStart=-%h/aubesonore/pipeline/.venv/bin/radio nouveautes
+ExecStart=-%h/aubesonore/pipeline/.venv/bin/radio favoris
+ExecStart=%h/aubesonore/pipeline/.venv/bin/radio signals
+ExecStart=%h/aubesonore/pipeline/.venv/bin/radio train
+ExecStart=%h/aubesonore/pipeline/.venv/bin/radio votes-select
+ExecStart=-%h/aubesonore/pipeline/.venv/bin/radio acquire
+ExecStart=%h/aubesonore/pipeline/.venv/bin/radio antenne
 # mesures préfixée de « - » : check tourne quand même et fait échouer la passe sur cette étape,
 # avec le résumé de toutes les autres.
-ExecStart=-%h/radio/pipeline/.venv/bin/radio mesures
+ExecStart=-%h/aubesonore/pipeline/.venv/bin/radio mesures
 # La passe a fait entrer, sortir ou mettre au repos des titres : la grille du jour est réécrite
 # pour les heures qui restent.
-ExecStart=-%h/radio/pipeline/.venv/bin/radio grille --aujourdhui
-ExecStart=%h/radio/pipeline/.venv/bin/radio check
+ExecStart=-%h/aubesonore/pipeline/.venv/bin/radio grille --aujourdhui
+ExecStart=%h/aubesonore/pipeline/.venv/bin/radio check
 # Battement de cœur vers Gatus, même en échec : $SERVICE_RESULT vaut « success » ou la cause
 # (systemd.exec(5), « Environment Variables Set or Propagated by the Service Manager »).
 ExecStopPost=/bin/sh -c 'curl -fsS -m 10 -X POST -H "Authorization: Bearer $GATUS_TOKEN" "http://127.0.0.1:8050/api/v1/endpoints/radio_passe-hebdo/external?success=$([ "$SERVICE_RESULT" = success ] && echo true || echo false)&error=$SERVICE_RESULT"'

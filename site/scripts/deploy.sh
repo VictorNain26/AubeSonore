@@ -2,12 +2,12 @@
 # Promotes origin/master onto the running stack when it moves. Driven by
 # aubesonore-deploy.timer; safe to run by hand.
 #
-# The repository is the whole radio (~/radio): site/, pipeline/ and azuracast/.
+# The repository is the whole radio (~/aubesonore): site/, pipeline/ and azuracast/.
 # Fast-forwarding it also deploys the pipeline code, which the weekly pass loads
 # from this checkout; the site containers are only rebuilt when site/ changed.
 set -euo pipefail
 
-REPO_DIR="${REPO_DIR:-$HOME/radio}"
+REPO_DIR="${REPO_DIR:-$HOME/aubesonore}"
 cd "$REPO_DIR"
 
 # The weekly pass imports its code from pipeline/ at each step: never move the

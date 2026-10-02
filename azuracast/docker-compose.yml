@@ -3,7 +3,7 @@
 # Adapted from the official sample:
 #  - HTTP/HTTPS/SFTP ports remapped via .env (8080/8443/2022) to avoid host conflicts
 #  - streaming ports trimmed to 8000-8036 (Jellyfin holds 8096; AUTO_ASSIGN_PORT_MAX matched in azuracast.env)
-#  - station media on NVMe (~/radio/azuracast/stations) since 2026-07: HDD IO stalls caused Liquidsoap latency catchups (audible dropouts)
+#  - station media on NVMe (~/aubesonore/azuracast/stations) since 2026-07: HDD IO stalls caused Liquidsoap latency catchups (audible dropouts)
 #  - backups bind-mounted to /media/plex (big disk, separate from media/DB); MariaDB stays on NVMe named volume
 #
 
@@ -44,7 +44,7 @@ services:
       retries: 3
       start_period: 180s
     volumes:
-      - /home/victormoi/radio/azuracast/stations:/var/azuracast/stations
+      - /home/victormoi/aubesonore/azuracast/stations:/var/azuracast/stations
       - /media/plex/azuracast/backups:/var/azuracast/backups
       - db_data:/var/lib/mysql
       - www_uploads:/var/azuracast/storage/uploads

@@ -43,7 +43,7 @@ uv sync                                  # dépendances (.venv)
   texte simple, puis laisser `pick_match` juger.
 - Les migrations SQLite suivent la procédure officielle de reconstruction de table. Un script ne
   contient ni `BEGIN` ni `COMMIT`.
-- La passe hebdomadaire exécute le code de `~/radio/pipeline` : développer dans un worktree
+- La passe hebdomadaire exécute le code de `~/aubesonore/pipeline` : développer dans un worktree
   pendant qu'elle tourne, sinon elle importe du code en cours d'écriture.
 - Sockseek et rsgain sont des binaires figés dans `~/.local/bin` (versions et sha256 dans
   `docs/vision.md`) ; ffmpeg et fpcalc viennent d'apt.
