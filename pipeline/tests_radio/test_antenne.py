@@ -10,7 +10,7 @@ import responses
 import radio.antenna.sync as sync_mod
 from radio.acquire.audio import Probe, Tags, ToolError
 from radio.antenna.sync import antenne_pass
-from radio.core.config import AntenneConfig
+from radio.core.config import AntenneConfig, Creneau, GrilleConfig
 from radio.sources.azuracast import AzuracastClient, AzuracastError, Media
 from radio.sources.deezer import DeezerAlbum, DeezerError, DeezerTrack, TrackPage
 from tests_radio.model_factory import NOW, add_vote, make_model_db, serve_scores
@@ -42,6 +42,7 @@ class FakeStation:
         self.refuse = refuse
         self.busy: set[str] = set()
         self.deleted: list[str] = []
+        self.moved: list[tuple[str, str]] = []
 
     def files(self) -> list[Media]:
         return list(self.media)
@@ -56,6 +57,16 @@ class FakeStation:
     def delete(self, paths: list[str]) -> list[str]:
         self.deleted += paths
         self.media = [m for m in self.media if m.path not in paths]
+        return []
+
+    def move(self, paths: list[str], directory: str) -> list[str]:
+        self.moved += [(p, directory) for p in paths]
+        self.media = [
+            Media(m.id, m.song_id, f"{directory}/{PurePosixPath(m.path).name}")
+            if m.path in paths
+            else m
+            for m in self.media
+        ]
         return []
 
     def busy_song_ids(self) -> set[str]:
@@ -91,6 +102,67 @@ def _library_files(conn: Any) -> None:
     conn.commit()
 
 
+def _grille(fond: int = 0, reperes: int = 0) -> GrilleConfig:
+    """Grille dont les stocks du fond et des repères valent exactement `fond` et `reperes`."""
+
+    def creneau(part: float, stock: int) -> Creneau:
+        return Creneau(part=part, passages=part * 14.6 * 168 / stock if stock else 1e9)
+
+    return GrilleConfig(
+        categories={
+            "nouveautes": Creneau(part=1 / 3, passages=2),
+            "decouvertes": Creneau(part=1 / 3, passages=2),
+            "fond": creneau(1 / 6, fond),
+            "reperes": creneau(1 / 6, reperes),
+        }
+    )
+
+
+def _run(
+    conn: Any, station: FakeStation, deezer: Any = None, fond: int = 0, reperes: int = 0, **cfg: Any
+) -> Any:
+    return antenne_pass(
+        conn,
+        station,
+        deezer or FakeDeezer(),
+        AntenneConfig(**cfg),
+        _grille(fond, reperes),
+        ROOT,
+        Path("/r"),
+        np.random.default_rng(0),
+        LATER,
+    )
+
+
+def _on_air(
+    conn: Any, rows: list[tuple[int, str, str]], since: datetime, folder: str = "antenne"
+) -> FakeStation:
+    """Inscrit des titres (id, origine, catégorie) entrés à `since`, et leurs fichiers."""
+    for tid, origin, categorie in rows:
+        conn.execute(
+            "INSERT INTO antenne VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                tid,
+                origin,
+                categorie,
+                tid,
+                f"s{tid}",
+                f"{folder}/{tid}.mp3",
+                since.isoformat(),
+                since.isoformat(),
+            ),
+        )
+    conn.commit()
+    return FakeStation([Media(t, f"s{t}", f"{folder}/{t}.mp3") for t, _, _ in rows])
+
+
+def _categories(conn: Any) -> dict[int, tuple[str, str]]:
+    return {
+        int(r[0]): (str(r[1]), str(r[2]))
+        for r in conn.execute("SELECT deezer_track_id, categorie, path FROM antenne")
+    }
+
+
 def test_publish_ready_files_and_references(tmp_path: Path, no_tools: list[Tags]) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
@@ -98,17 +170,15 @@ def test_publish_ready_files_and_references(tmp_path: Path, no_tools: list[Tags]
     ready = [200000 + 100 * a for a in range(8)]
     _ready(conn, tmp_path, ready)
     station = FakeStation([Media(1, "old", "ancien.mp3")])
-    cfg = AntenneConfig(reference_share=0.2)
 
-    rep = antenne_pass(
-        conn, station, FakeDeezer(), cfg, ROOT, Path("/rsgain"), np.random.default_rng(0), LATER
-    )
+    # Stock de 12 repères, rempli au rythme où il se renouvelle : 12 / 6 semaines = 2.
+    rep = _run(conn, station, reperes=12)
 
-    assert (rep.n_published, rep.n_references, rep.n_removed, rep.errors) == (8, 2, 0, [])
+    assert (rep.n_published, rep.n_references, rep.errors) == (8, 2, [])
     assert rep.n_total == 10
     assert not any((tmp_path / f"{t}.mp3").exists() for t in ready)  # effacés après dépôt
-    origins = dict(conn.execute("SELECT origin, COUNT(*) FROM antenne GROUP BY origin").fetchall())
-    assert origins == {"decouverte": 8, "repere": 2}
+    cats = dict(conn.execute("SELECT categorie, COUNT(*) FROM antenne GROUP BY 1").fetchall())
+    assert cats == {"decouvertes": 8, "reperes": 2}
     refs = [
         r[0] for r in conn.execute("SELECT deezer_track_id FROM antenne WHERE origin = 'repere'")
     ]
@@ -118,103 +188,134 @@ def test_publish_ready_files_and_references(tmp_path: Path, no_tools: list[Tags]
     assert all(m.path.startswith("antenne/") for m in station.media[1:])
 
 
+def test_a_fresh_pick_enters_as_a_fresh_pick(tmp_path: Path, no_tools: None) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    conn.execute(
+        "UPDATE candidates SET source = 'hypem', seed_artist_id = NULL, "
+        "neighbour_artist_id = NULL, detail = 'Blog' WHERE deezer_track_id = 200600"
+    )
+    _ready(conn, tmp_path, [200600, 200700])
+    _run(conn, FakeStation())
+    assert {t: c for t, (c, _) in _categories(conn).items()} == {
+        200600: "nouveautes",
+        200700: "decouvertes",
+    }
+
+
 def test_reconcile_forgets_missing_and_counts_unknown(tmp_path: Path, no_tools: None) -> None:
     conn = make_model_db(tmp_path)
-    conn.execute("INSERT INTO antenne VALUES (5, 'decouverte', 1, 's', 'antenne/5.mp3', ?)", (NOW,))
-    conn.commit()
-    station = FakeStation([Media(2, "u", "antenne/9.mp3")])
-    rep = antenne_pass(
-        conn,
-        station,
-        FakeDeezer(),
-        AntenneConfig(reference_share=0),
-        ROOT,
-        Path("/r"),
-        np.random.default_rng(0),
-        LATER,
-    )
-    assert (rep.n_forgotten, rep.n_unknown, rep.n_total) == (1, 1, 0)
+    _on_air(conn, [(5, "decouverte", "decouvertes")], LATER)
+    station = FakeStation([Media(2, "u", "antenne/9.mp3"), Media(3, "v", "repos/8.mp3")])
+    rep = _run(conn, station)
+    assert (rep.n_forgotten, rep.n_unknown, rep.n_total) == (1, 2, 0)
     assert station.deleted == []  # un inconnu n'est jamais supprimé
 
 
-def test_excess_removes_worst_old_discoveries_but_never_busy_ones(
+def test_after_its_first_stay_the_best_rests_and_the_rest_leaves(
     tmp_path: Path, no_tools: None
 ) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    old = (LATER - timedelta(days=90)).isoformat()
-    ids = [int(r[0]) for r in conn.execute("SELECT deezer_track_id FROM scores ORDER BY score")][:5]
-    for i, tid in enumerate(ids):
-        conn.execute(
-            "INSERT INTO antenne VALUES (?, 'decouverte', ?, ?, ?, ?)",
-            (tid, i, f"s{tid}", f"antenne/{tid}.mp3", old),
-        )
-    conn.commit()
-    station = FakeStation([Media(i, f"s{t}", f"antenne/{t}.mp3") for i, t in enumerate(ids)])
-    station.busy = {f"s{ids[0]}"}
-    cfg = AntenneConfig(target_max=3, reference_share=0, max_removals_per_pass=10)
-
-    rep = antenne_pass(
-        conn, station, FakeDeezer(), cfg, ROOT, Path("/r"), np.random.default_rng(0), LATER
+    best = [int(r[0]) for r in conn.execute("SELECT deezer_track_id FROM scores ORDER BY -score")]
+    ids = best[:10]
+    station = _on_air(
+        conn, [(t, "decouverte", "decouvertes") for t in ids], LATER - timedelta(weeks=7)
     )
+    add_vote(conn, ids[9], "exam", "oui")  # la moins bien notée, mais aimée
+    station.busy = {f"s{ids[5]}"}
 
-    assert station.deleted == [f"antenne/{ids[1]}.mp3", f"antenne/{ids[2]}.mp3"]
-    assert (rep.n_removed, rep.n_total) == (2, 3)
+    rep = _run(conn, station, promotion_share=0.2)
+
+    cats = _categories(conn)
+    # 9 titres jugés (le titre en cours attend) : 0,2 x 9 arrondi = 2 promus, le « oui » d'abord.
+    assert rep.n_promoted == 2 and rep.n_ended == 7
+    assert cats[ids[9]] == ("repos", f"repos/{ids[9]}.mp3")
+    assert cats[ids[0]] == ("repos", f"repos/{ids[0]}.mp3")
+    assert set(cats) == {ids[0], ids[9], ids[5]}
+    assert cats[ids[5]][0] == "decouvertes"
+    assert rep.n_total == 1  # le repos est hors antenne
 
 
-def test_a_discovery_added_to_the_library_leaves_last(tmp_path: Path, no_tools: None) -> None:
+def test_a_young_title_stays_whatever_its_score(tmp_path: Path, no_tools: None) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)
-    old = (LATER - timedelta(days=90)).isoformat()
-    ids = [int(r[0]) for r in conn.execute("SELECT deezer_track_id FROM scores ORDER BY score")][:3]
-    for i, tid in enumerate(ids):
-        conn.execute(
-            "INSERT INTO antenne VALUES (?, 'decouverte', ?, ?, ?, ?)",
-            (tid, i, f"s{tid}", f"antenne/{tid}.mp3", old),
-        )
-    # Ajoutée à Plex par Victor, la moins bien notée n'est plus notée : elle lui plaît.
-    conn.execute("UPDATE tracks SET origin = 'library' WHERE deezer_track_id = ?", (ids[0],))
-    conn.execute("DELETE FROM scores WHERE deezer_track_id = ?", (ids[0],))
-    conn.commit()
-    station = FakeStation([Media(i, f"s{t}", f"antenne/{t}.mp3") for i, t in enumerate(ids)])
-    cfg = AntenneConfig(target_max=2, reference_share=0, max_removals_per_pass=10)
-
-    antenne_pass(
-        conn, station, FakeDeezer(), cfg, ROOT, Path("/r"), np.random.default_rng(0), LATER
+    worst = [int(r[0]) for r in conn.execute("SELECT deezer_track_id FROM scores ORDER BY score")]
+    station = _on_air(
+        conn, [(t, "decouverte", "decouvertes") for t in worst[:3]], LATER - timedelta(weeks=5)
     )
+    rep = _run(conn, station)
+    assert (rep.n_promoted, rep.n_ended, rep.n_total) == (0, 0, 3)
 
-    assert station.deleted == [f"antenne/{ids[1]}.mp3"]
+
+def test_platooning_rests_the_tired_and_brings_back_the_longest_rested(
+    tmp_path: Path, no_tools: None
+) -> None:
+    conn = make_model_db(tmp_path)
+    tired = _on_air(
+        conn,
+        [(200000, "decouverte", "fond"), (200001, "decouverte", "fond")],
+        LATER - timedelta(weeks=7),
+    )
+    rested = _on_air(
+        conn,
+        [(200100, "decouverte", "repos"), (200101, "decouverte", "repos")],
+        LATER - timedelta(weeks=13),
+        folder="repos",
+    )
+    conn.execute(
+        "UPDATE antenne SET since = ? WHERE deezer_track_id = 200101",
+        ((LATER - timedelta(weeks=20)).isoformat(),),
+    )
+    resting = _on_air(conn, [(200200, "decouverte", "repos")], LATER - timedelta(weeks=5), "repos")
+    station = FakeStation(tired.media + rested.media + resting.media)
+
+    rep = _run(conn, station, fond=1)
+
+    cats = _categories(conn)
+    assert (rep.n_rested, rep.n_returned) == (2, 1)
+    assert cats[200101] == ("fond", "antenne/200101.mp3")  # au repos depuis le plus longtemps
+    assert cats[200100][0] == cats[200200][0] == "repos"
+    assert cats[200000] == ("repos", "repos/200000.mp3")
+    assert rep.n_total == 1
+
+
+def test_a_recurrent_expires_eighteen_months_after_its_first_play(
+    tmp_path: Path, no_tools: None
+) -> None:
+    conn = make_model_db(tmp_path)
+    station = _on_air(conn, [(200000, "decouverte", "fond")], LATER - timedelta(weeks=2))
+    conn.execute(
+        "UPDATE antenne SET published_at = ?", ((LATER - timedelta(weeks=79)).isoformat(),)
+    )
+    conn.commit()
+    rep = _run(conn, station, fond=5)
+    assert rep.n_expired == 1 and station.deleted == ["antenne/200000.mp3"]
+
+
+def test_references_rotate_and_rest_before_coming_back(
+    tmp_path: Path, no_tools: list[Tags]
+) -> None:
+    conn = make_model_db(tmp_path)
+    _library_files(conn)
+    conn.execute("UPDATE library_tracks SET file = NULL WHERE plex_key NOT IN ('p1-0', 'p1-1')")
+    station = _on_air(conn, [(100010, "repere", "reperes")], LATER - timedelta(weeks=7))
+
+    rep = _run(conn, station, reperes=6)
+
+    # Le repère fatigué sort ; seul l'autre titre lisible peut entrer, l'ancien se repose.
+    assert rep.n_references_out == 1 and station.deleted == ["antenne/100010.mp3"]
+    assert [t.deezer_id for t in no_tools] == [100011]
+    left = conn.execute("SELECT deezer_track_id FROM repere_sorties").fetchall()
+    assert [r[0] for r in left] == [100010]
 
 
 def test_upload_refusal_is_reported_and_file_kept(tmp_path: Path, no_tools: None) -> None:
     conn = make_model_db(tmp_path)
     _ready(conn, tmp_path, [200000])
-    station = FakeStation(refuse={"antenne/200000.mp3"})
-    rep = antenne_pass(
-        conn,
-        station,
-        FakeDeezer(),
-        AntenneConfig(reference_share=0),
-        ROOT,
-        Path("/r"),
-        np.random.default_rng(0),
-        LATER,
-    )
+    rep = _run(conn, FakeStation(refuse={"antenne/200000.mp3"}))
     assert rep.errors == ["dépôt 200000 : HTTP 413"]
     assert (tmp_path / "200000.mp3").exists()
-
-
-def _run(conn: Any, station: FakeStation, deezer: Any = None, **cfg: Any) -> Any:
-    return antenne_pass(
-        conn,
-        station,
-        deezer or FakeDeezer(),
-        AntenneConfig(**{"reference_share": 0, **cfg}),
-        ROOT,
-        Path("/r"),
-        np.random.default_rng(0),
-        LATER,
-    )
 
 
 def test_a_discovery_removed_from_antenna_is_never_republished(
@@ -227,7 +328,7 @@ def test_a_discovery_removed_from_antenna_is_never_republished(
     status = conn.execute("SELECT status, file FROM acquisitions").fetchone()
     assert tuple(status) == ("published", None)
 
-    station.media = []  # retiré dans l'interface d'AzuraCast, ou sorti par l'excédent
+    station.media = []  # retiré dans l'interface d'AzuraCast, ou sorti en fin de séjour
     rep = _run(conn, station)
     assert (rep.n_forgotten, rep.n_published, rep.errors) == (1, 0, [])
     assert station.media == []
@@ -237,22 +338,17 @@ def test_voted_no_leaves_the_antenna_unless_busy(tmp_path: Path, no_tools: list[
     conn = make_model_db(tmp_path)
     serve_scores(conn)
     _library_files(conn)
-    rows = [(200000, "decouverte"), (200001, "decouverte"), (200002, "decouverte")]
-    rows += [(100010, "repere")]
-    for i, (tid, origin) in enumerate(rows):
-        conn.execute(
-            "INSERT INTO antenne VALUES (?, ?, ?, ?, ?, ?)",
-            (tid, origin, i, f"s{tid}", f"antenne/{tid}.mp3", NOW),
-        )
+    rows = [(200000, "decouverte", "decouvertes"), (200001, "decouverte", "decouvertes")]
+    rows += [(200002, "decouverte", "decouvertes"), (100010, "repere", "reperes")]
+    station = _on_air(conn, rows, LATER)
     for tid in (200000, 200001, 100010):
         add_vote(conn, tid, "exam", "non")
-    station = FakeStation([Media(i, f"s{t}", f"antenne/{t}.mp3") for i, (t, _) in enumerate(rows)])
     station.busy = {"s200001"}
     # Seuls deux titres de la bibliothèque sont lisibles, dont le repère voté « non ».
     conn.execute("UPDATE library_tracks SET file = NULL WHERE plex_key NOT IN ('p1-0', 'p1-1')")
     conn.commit()
 
-    rep = _run(conn, station, reference_share=0.5)
+    rep = _run(conn, station, reperes=1)
 
     assert sorted(station.deleted) == ["antenne/100010.mp3", "antenne/200000.mp3"]
     assert rep.n_voted_out == 2
@@ -282,7 +378,6 @@ def test_a_failed_reference_is_skipped_without_failing_the_pass(
     conn = make_model_db(tmp_path)
     serve_scores(conn)
     _library_files(conn)
-    _ready(conn, tmp_path, [200000 + 100 * a for a in range(8)])
 
     def prepare(src: Path, dest: Path, codec: str, tags: Tags, rsgain: Path) -> None:
         if tags.deezer_id % 2:
@@ -291,7 +386,7 @@ def test_a_failed_reference_is_skipped_without_failing_the_pass(
 
     monkeypatch.setattr(sync_mod, "probe", lambda p: Probe("flac", 200.0, None))
     monkeypatch.setattr(sync_mod, "prepare", prepare)
-    rep = _run(conn, FakeStation(), FakeDeezer(), reference_share=0.5)
+    rep = _run(conn, FakeStation(), FakeDeezer(), reperes=48)
 
     assert rep.errors == []
     assert rep.n_references + len(rep.skipped_references) == 8
@@ -303,11 +398,8 @@ def test_reference_gone_from_deezer_or_without_cover(tmp_path: Path, no_tools: l
     conn = make_model_db(tmp_path)
     serve_scores(conn)
     _library_files(conn)
-    _ready(conn, tmp_path, [200000 + 100 * a for a in range(4)])
     pool = [int(r[0]) for r in conn.execute("SELECT deezer_track_id FROM deezer_matches")]
-    rep = _run(
-        conn, FakeStation(), FakeDeezer(frozenset(pool[:20]), no_cover=True), reference_share=0.5
-    )
+    rep = _run(conn, FakeStation(), FakeDeezer(frozenset(pool[:20]), no_cover=True), reperes=24)
     assert rep.errors == []
     assert rep.n_references == rep.n_references_no_cover
     assert all(t.cover is None and t.album.startswith("Album") for t in no_tools)
@@ -336,6 +428,13 @@ def test_client_shapes() -> None:
         "files": ["antenne/1.mp3"],
     }
     assert c.busy_song_ids() == {"s", "u", "v"}
+    assert c.move(["antenne/1.mp3"], "repos") == ["antenne/1.mp3: x"]
+    assert json.loads(responses.calls[-1].request.body) == {
+        "do": "move",
+        "files": ["antenne/1.mp3"],
+        "currentDirectory": "",
+        "directory": "repos",
+    }
     assert all(call.request.headers["X-API-Key"] == "cle" for call in responses.calls)
 
 

@@ -216,8 +216,9 @@ class FeaturesReport:
 def measure_antenna(
     conn: sqlite3.Connection, media_dir: Path, extractor: Extractor, now: str, batch: int = 20
 ) -> FeaturesReport:
-    """Mesure les titres à l'antenne pas encore mesurés. Un fichier absent du dossier média n'est
-    pas noté : il est nommé, et retenté à la passe suivante."""
+    """Mesure les titres pas encore mesurés, à l'antenne et au repos (ils reviendront au fond).
+    Un fichier absent du dossier média n'est pas noté : il est nommé, et retenté à la passe
+    suivante."""
     todo = conn.execute(
         """
         SELECT n.deezer_track_id, n.path FROM antenne n

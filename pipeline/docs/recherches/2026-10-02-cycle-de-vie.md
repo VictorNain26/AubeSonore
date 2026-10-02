@@ -198,7 +198,8 @@ lendemain (`radio grille`) :
 1. **Entrées** : barre par catégorie, offre de nouveautés, acquisition par fournée. Livrée avec
    cette proposition, avant la passe du dimanche 2026-10-04.
 2. **Cycle de vie à l'antenne** : catégories, sorties par âge, promotion, platooning, repos,
-   péremption. Elle remplace `remove_excess` et le défaut des 50 retraits par passe.
+   péremption. Elle remplace `remove_excess` et le défaut des 50 retraits par passe. Livrée le
+   2026-10-02 ; les premières fins de séjour tombent le 2026-11-15 (cohorte du 2026-10-01).
 3. **Mesures par titre** pour l'enchaînement.
 4. **Planificateur et grille** dans AzuraCast, sonde Gatus.
 

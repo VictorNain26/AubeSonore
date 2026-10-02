@@ -62,11 +62,17 @@ def test_titles_on_air_are_measured_once_and_missing_files_named(tmp_path: Path)
     conn = connect(tmp_path / "radio.db")
     media = tmp_path / "media"
     (media / "antenne").mkdir(parents=True)
-    for tid in (1, 2):
-        (media / "antenne" / f"{tid}.mp3").write_bytes(b"audio")
+    (media / "repos").mkdir()
+    (media / "antenne" / "1.mp3").write_bytes(b"audio")
+    (media / "repos" / "2.mp3").write_bytes(b"audio")
+    # Le titre au repos est mesuré aussi : il reviendra au fond.
     conn.executemany(
-        "INSERT INTO antenne VALUES (?, 'decouverte', ?, ?, ?, 'd')",
-        [(tid, tid, f"s{tid}", f"antenne/{tid}.mp3") for tid in (1, 2, 3)],
+        "INSERT INTO antenne VALUES (?, 'decouverte', ?, ?, ?, ?, 'd', 'd')",
+        [
+            (1, "decouvertes", 1, "s1", "antenne/1.mp3"),
+            (2, "repos", 2, "s2", "repos/2.mp3"),
+            (3, "nouveautes", 3, "s3", "antenne/3.mp3"),
+        ],
     )
     conn.commit()
     fake = FakeExtractor({"2.mp3"})

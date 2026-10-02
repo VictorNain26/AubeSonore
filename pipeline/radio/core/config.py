@@ -2,8 +2,9 @@
 
 import tomllib
 from pathlib import Path
+from typing import Literal
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, Field, SecretStr
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -112,10 +113,46 @@ class AcquisitionConfig(BaseModel):
 
 class AntenneConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    target_max: int = Field(default=2000, ge=1)
-    reference_share: float = Field(default=0.2, ge=0, lt=1)
-    min_age_days: int = Field(default=60, ge=0)
-    max_removals_per_pass: int = Field(default=50, ge=0)
+    stay_weeks: int = Field(default=6, ge=1)
+    rest_weeks: int = Field(default=12, ge=1)
+    life_weeks: int = Field(default=78, ge=1)
+    promotion_share: float = Field(default=0.12, ge=0, le=1)
+
+
+Categorie = Literal["nouveautes", "decouvertes", "fond", "reperes"]
+
+
+class Creneau(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    part: float = Field(gt=0, le=1)
+    passages: float = Field(gt=0)
+
+
+_GRILLE: dict[Categorie, Creneau] = {
+    "nouveautes": Creneau(part=1 / 3, passages=2),
+    "decouvertes": Creneau(part=1 / 3, passages=2),
+    "fond": Creneau(part=1 / 6, passages=1),
+    "reperes": Creneau(part=1 / 6, passages=1),
+}
+
+
+class GrilleConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    titres_par_heure: float = Field(default=14.6, gt=0)
+    categories: dict[Categorie, Creneau] = Field(default_factory=lambda: dict(_GRILLE))
+
+    @model_validator(mode="after")
+    def _parts_cover_the_hour(self) -> "GrilleConfig":
+        if set(self.categories) != {"nouveautes", "decouvertes", "fond", "reperes"}:
+            raise ValueError("la grille nomme les quatre catégories")
+        if abs(sum(c.part for c in self.categories.values()) - 1) > 0.01:
+            raise ValueError("les parts de la grille font 1")
+        return self
+
+    def stock(self, categorie: Categorie) -> int:
+        """Titres à l'antenne pour que chacun revienne `passages` fois par semaine."""
+        c = self.categories[categorie]
+        return round(c.part * self.titres_par_heure * 168 / c.passages)
 
 
 class VotesConfig(BaseModel):
@@ -138,6 +175,7 @@ class Editorial(BaseModel):
     model: ModelConfig = ModelConfig()
     acquisition: AcquisitionConfig = AcquisitionConfig()
     antenne: AntenneConfig = AntenneConfig()
+    grille: GrilleConfig = GrilleConfig()
     votes: VotesConfig = VotesConfig()
     backup: BackupConfig = BackupConfig()
 
