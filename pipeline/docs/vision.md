@@ -55,7 +55,7 @@ suivante reprend.
 | 2b Nouveautés | Titres récents choisis par des humains, ajoutés à la fournée (§3.1) | API Hype Machine v2, API Deezer | en service |
 | 2c Favoris | Les favoris Hype Machine de Victor : plus des découvertes, et mesure du goût (§3.2) | API Hype Machine v2, API Deezer | en service |
 | 3 Empreinte | Empreinte Discogs-EffNet de l'extrait Deezer de 30 s | essentia-tensorflow, modèle MTG épinglé | fait |
-| 4 Goût | Régression logistique sur l'empreinte ; chaque fournée est classée et son tiers le mieux noté est retenu | scikit-learn | fait |
+| 4 Goût | Régression logistique sur l'empreinte ; chaque fournée est classée par famille (découvertes, nouveautés) et les mieux notés de chacune sont retenus | scikit-learn | fait |
 | 5 Acquisition | Télécharger les retenus en MP3 et prouver l'identité de chaque fichier | Sockseek, ffprobe, fpcalc | en service |
 | 6 Préparation | FLAC → V0, ReplayGain, balises | ffmpeg, rsgain | en service |
 | 7 Antenne | Tenir la bibliothèque d'antenne et la publier sur AzuraCast | API AzuraCast | en service |
@@ -76,8 +76,11 @@ familles de sources alimentent chaque fournée, et chaque candidat garde la sien
     quelques requêtes par semaine, User-Agent identifié ; une réponse hors format est une
     source sautée et nommée, jamais une liste vide.
   - **Sélections éditoriales Deezer** (`/editorial/{genre}/selection`), genres
-    `deezer_editorial` (Alternative et Electro au départ ; Rap, Pop et Chanson française
-    écartés, trop grand public), les `tracks_per_album` titres les plus écoutés de chaque album.
+    `deezer_editorial` (depuis le 2026-10-02 : alternative, electro, dance, jazz, classique,
+    rock, folk, blues et brésilienne, choisis sur les notes du modèle ; pop, rap, R&B,
+    asiatique et soul & funk à l'essai, goûts de Victor ; `recherches/2026-10-02-cycle-de-vie.md`
+    §9), les `tracks_per_album` titres les plus écoutés de chaque album. Le modèle trie titre
+    par titre : la K-pop ou le rap grand public d'une sélection ne passent pas la coupure.
     Deezer exclut la musique générée par IA de ses playlists éditoriales (page « AI-generated
     music labelling », consultée le 2026-10-01).
   - Écartés : les « dernières sorties » Deezer d'un voisin (compilations d'archives, et place
@@ -101,8 +104,8 @@ priorité.
   nouveautés ; un candidat qui devient favori en sort. Un favori retiré retourne à sa fournée,
   ou est oublié.
 - **Mesure du goût.** `radio train` publie la part des favoris que le modèle en service
-  retiendrait au seuil de la dernière fournée (53 % au 2026-10-02, le hasard en retiendrait le
-  tiers). Elle ne décide jamais d'une promotion.
+  retiendrait à la coupure des découvertes de la dernière fournée, et la part que le hasard en
+  retiendrait (53 % contre 33 % au 2026-10-02). Elle ne décide jamais d'une promotion.
 - **Pas à l'entraînement.** En exemples positifs, ils n'ont pas amélioré l'AUC d'examen (0,760
   sans, 0,749 à 0,753 avec ; `recherches/2026-10-02-favoris-hypem.md`).
 
@@ -117,8 +120,11 @@ priorité.
   159 votes du banc.
 - **Signaux retirés.** Popularité, tags et proximité étaient au niveau du hasard (AUC 0,52 à 0,58).
   L'empreinte seule donne une AUC d'examen de 0,82, contre 0,76 pour l'ancien modèle empilé.
-- **Rétention.** Pour chaque fournée, le tiers le mieux noté est retenu (`keep_fraction`). Un
-  candidat entré depuis dans la bibliothèque n'est plus noté : ce n'est plus une découverte.
+- **Rétention.** Dans chaque fournée, découvertes et nouveautés ont chacune leur coupure : les
+  `keep_decouvertes` et `keep_nouveautes` mieux notées sont retenues (80 et 80). Ces effectifs
+  découlent de la grille d'antenne : ~70 entrées par semaine et par famille, plus les échecs
+  d'acquisition (`recherches/2026-10-02-cycle-de-vie.md` §3 à §5). Un candidat entré depuis dans
+  la bibliothèque n'est plus noté : ce n'est plus une découverte.
 - **Pistes écartées après mesure** : ressemblance kNN sur l'empreinte (AUC 0,67), filtre
   « couleur » à négatifs par catégories, têtes de style Essentia, modèle Jev (texte seul). Leurs
   recherches sont dans l'historique git (`git show f7d7081:docs/recherches/`).
@@ -127,7 +133,7 @@ priorité.
 
 - **Examen.** Tirage uniforme sur toute la fournée. Le verdict « retenu » au moment du tirage est
   gardé. Ces votes jugent le modèle et ne servent jamais à l'entraîner.
-- **Leçon.** Les titres les plus proches de la coupure, un par artiste, jamais d'un artiste déjà
+- **Leçon.** Les titres les plus proches de la coupure de leur famille, un par artiste, jamais d'un artiste déjà
   tiré à l'examen : le modèle candidat l'aurait vu et pas celui en service. Ces votes entraînent
   le modèle, avec un gain décroissant : AUC 0,76 sans vote, 0,79 avec 50, 0,82 avec 99. Une
   autre version d'un titre d'examen (même titre normalisé) n'entre pas non plus à
@@ -143,7 +149,9 @@ La page de vote (FastAPI derrière Cloudflare Access, rappel WhatsApp) est en se
 Justification des choix : `recherches/2026-09-30-acquisition-publication-observabilite.md` §1 et
 §2.
 
-1. **Entrée.** Les titres retenus pas encore acquis, écrits en CSV (Artist, Title, Length).
+1. **Entrée.** Les titres retenus pas encore acquis, la dernière fournée d'abord (une nouveauté
+   vieillit), puis par note, au plus `max_per_pass` (160 : les deux familles d'une fournée),
+   écrits en CSV (Artist, Title, Length).
    Un titre voté « non » (examen ou leçon) n'est jamais acquis.
 2. **Sockseek 3.0.5** (binaire figé dans `~/.local/bin`, extrait de l'archive de release
    `sockseek_3.0.5_linux-x64.tar.gz`, dont la sha256 `d0a1e909…1b66` a été vérifiée) sur un

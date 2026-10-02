@@ -17,7 +17,8 @@ lastfm_similar_limit = 100
 [nouveautes]
 # Titres récents choisis par des humains, ajoutés à la fournée de la semaine et jugés par le modèle.
 # Hype Machine : pages du classement « lastweek » des blogs (API v2 non documentée, cf. vision §3).
-hypem_pages = 2
+# Le classement tient en 3 pages (50 titres) ; la page 4 répond 404 (mesuré le 2026-10-02).
+hypem_pages = 3
 # Titres les plus écoutés retenus par album des sélections éditoriales Deezer.
 tracks_per_album = 3
 # Compte Hype Machine dont les favoris publics ne sont plus des découvertes (vision §3.2).
@@ -25,8 +26,23 @@ hypem_favorites_user = "GhostRAvage"
 
 [nouveautes.deezer_editorial]
 # Genres Deezer (/editorial) dont la sélection d'albums est lue ; nom = libellé du rapport.
+# Mesure du 2026-10-02 sur 22 genres (docs/recherches/2026-10-02-cycle-de-vie.md §9) : les genres
+# où le modèle trouve la couleur de Victor, plus ceux qu'il aime (pop, rap, R&B, asiatique,
+# soul) à l'essai ; le modèle trie titre par titre, les votes d'examen jugent chaque genre.
 alternative = 85
 electro = 106
+dance = 113
+jazz = 129
+classique = 98
+rock = 152
+folk = 466
+blues = 153
+bresilienne = 75
+pop = 132
+rap = 116
+rnb = 165
+asiatique = 16
+soul_funk = 169
 
 [model]
 # Régression logistique sur l'empreinte audio. C, poids des négatifs faibles : fixés le
@@ -34,14 +50,18 @@ electro = 106
 # (docs/recherches/2026-09-30-modele-audio-seul.md).
 c = 0.1
 weak_weight = 0.1
-# Part de chaque fournée de candidats retenue, les mieux notés d'abord.
-keep_fraction = 0.3333
+# Titres retenus par fournée et par famille, les mieux notés d'abord : ~70 entrées par semaine et
+# par famille tiennent la grille d'antenne (docs/recherches/2026-10-02-cycle-de-vie.md §3), plus
+# ~12 % d'échecs d'acquisition.
+keep_decouvertes = 80
+keep_nouveautes = 80
 # Nombre de derniers votes d'examen qui jugent le modèle.
 exam_window = 60
 
 [acquisition]
-# Titres retenus tentés au plus par passe, et tentatives par titre avant abandon.
-max_per_pass = 300
+# Titres retenus tentés au plus par passe (les deux familles de la dernière fournée), et
+# tentatives par titre avant abandon.
+max_per_pass = 160
 max_attempts = 3
 # Débit moyen minimal d'un MP3 (kbit/s) : un V0 tourne autour de 220-260.
 min_mp3_kbps = 200

@@ -70,7 +70,7 @@ class DiscoverConfig(BaseModel):
 
 class FreshConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    hypem_pages: int = Field(default=2, ge=0, le=5)
+    hypem_pages: int = Field(default=3, ge=0, le=5)
     deezer_editorial: dict[str, int] = Field(
         default_factory=lambda: {"alternative": 85, "electro": 106}
     )
@@ -82,13 +82,18 @@ class ModelConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     c: float = Field(default=0.1, gt=0)
     weak_weight: float = Field(default=0.1, ge=0, le=1)
-    keep_fraction: float = Field(default=1 / 3, gt=0, le=1)
+    keep_decouvertes: int = Field(default=80, ge=1)
+    keep_nouveautes: int = Field(default=80, ge=1)
     exam_window: int = Field(default=60, ge=10, le=1000)
+
+    @property
+    def keep(self) -> dict[str, int]:
+        return {"decouvertes": self.keep_decouvertes, "nouveautes": self.keep_nouveautes}
 
 
 class AcquisitionConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    max_per_pass: int = Field(default=300, ge=1, le=5000)
+    max_per_pass: int = Field(default=160, ge=1, le=5000)
     max_attempts: int = Field(default=3, ge=1, le=20)
     min_mp3_kbps: int = Field(default=200, ge=96, le=320)
     identity_threshold: float = Field(default=0.70, gt=0.5, lt=1)

@@ -11,7 +11,7 @@ from radio.discover.candidates import add_tracks
 from radio.discover.favorites import favorites_pass
 from radio.discover.fresh import fresh_pass
 from radio.library.artists import register_library
-from radio.model.model import favorites_retained, rescore, train
+from radio.model.model import FavoritesRetained, favorites_retained, rescore, train
 from radio.signals.audio import DIM, MODEL_TAG, to_blob
 from radio.sources.deezer import DeezerTrack
 from radio.sources.hypem import API, HypemClient, HypemNotFound, HypemTrack
@@ -162,7 +162,7 @@ def test_a_favorite_is_not_a_fresh_title(tmp_path: Path) -> None:
 def test_the_share_of_favorites_the_model_would_keep(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     seed_run(conn)
-    cfg = ModelConfig()
+    cfg = ModelConfig(keep_decouvertes=32)
     assert train(conn, tmp_path / "models", cfg, NOW).promoted
     rescore(conn, tmp_path / "models", cfg)
     assert favorites_retained(conn, tmp_path / "models") is None  # pas encore de favori
@@ -177,4 +177,4 @@ def test_the_share_of_favorites_the_model_would_keep(tmp_path: Path) -> None:
         )
     conn.commit()
 
-    assert favorites_retained(conn, tmp_path / "models") == (0.5, 6)
+    assert favorites_retained(conn, tmp_path / "models") == FavoritesRetained(0.5, 6, 1 / 3)
