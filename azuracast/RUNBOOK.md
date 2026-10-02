@@ -1,7 +1,13 @@
 # Runbook — remonter la radio depuis zéro
 
 Ordre de remontage : **AzuraCast → pipeline → application web**. Les deux derniers
-consomment le premier ; l'inverse n'est jamais vrai.
+consomment le premier ; l'inverse n'est jamais vrai. Les trois vivent dans un seul
+dépôt, cloné une fois :
+
+```bash
+git clone https://github.com/VictorNain26/aubesonore.git ~/aubesonore
+loginctl enable-linger                # les unités systemd tournent sans session ouverte
+```
 
 Ce fichier vit ici parce qu'AzuraCast est la seule brique qui ne sache pas se
 reconstruire seule depuis un dépôt public.
@@ -52,36 +58,43 @@ Points à ne pas rejouer de travers :
 ## 2. Pipeline
 
 ```bash
-git clone <dépôt pipeline> ~/aubesonore/pipeline && cd ~/aubesonore/pipeline
-./scripts/setup.sh                    # dépendances système + Python + modèles
+cd ~/aubesonore/pipeline
+uv sync
+# sockseek et rsgain : binaires figés dans ~/.local/bin (versions et sha256 : docs/vision.md)
+# ffmpeg et fpcalc (libchromaprint-tools) : apt ; modèle EffNet dans models/ (radio/signals/audio.py)
 cp .env.example .env                  # y remettre la clé d'API AzuraCast régénérée
-python3 scripts/setup_playlists.py    # recrée les playlists de zones
-./scripts/setup_systemd.sh            # installe et active les timers
+for u in deploy/systemd/*; do systemctl --user link "$PWD/$u"; done
+systemctl --user daemon-reload
+systemctl --user enable --now radio-weekly.timer radio-remind.timer radio-backup.timer radio-grille.timer radio-votes.service
+cd deploy/gatus && ln -s ../../.env .env && docker compose up -d
 ```
 
-Le pipeline se réaligne seul sur AzuraCast au premier run : sa base SQLite n'est
-qu'un cache, AzuraCast fait autorité sur ce qui existe réellement à l'antenne.
+Restaurer `data/radio.db` et `data/models/` depuis la copie la plus récente de
+`/media/plex/.backups/radio` (`radio-backup`) : la base porte les votes, qui
+n'existent nulle part ailleurs.
 
 ## 3. Application web
 
 ```bash
-git clone https://github.com/VictorNain26/aubesonore.git ~/aubesonore   # dépôt unique : site/, pipeline/, azuracast/
 cd ~/aubesonore/site
 cp .env.example .env                  # secrets d'auth, SMTP, VAPID, base
 docker compose up -d --build
-# installer les timers de déploiement et de sauvegarde (voir scripts/systemd/)
+ln -s ~/aubesonore/site/scripts/systemd/* ~/.config/systemd/user/
+systemctl --user enable --now aubesonore-deploy.timer aubesonore-backup.timer
 ```
 
-Restaurer PostgreSQL depuis le dump le plus récent **dans une base jetable
-d'abord** — vérifier qu'il se lit avant de le passer sur la production.
+Restaurer PostgreSQL depuis le dump le plus récent de `/media/plex/.backups/aubesonore`
+**dans une base jetable d'abord** — vérifier qu'il se lit avant de le passer sur la
+production.
 
 ## Vérifier que tout est remonté
 
 ```bash
-docker ps                                   # azuracast, aubesonore-{db,backend,frontend}
-systemctl --user list-timers                # 4 timers attendus, aucun doublon
-cd ~/aubesonore/pipeline && python3 -m pytest tests/ -q
+docker ps                                   # azuracast, gatus, aubesonore-{db,backend,frontend}
+systemctl --user list-timers                # 6 timers : aubesonore-{backup,deploy}, radio-{backup,grille,remind,weekly}
+systemctl --user is-active radio-votes      # page de vote ; 127.0.0.1:8040 répond 403 sans Cloudflare Access
+cd ~/aubesonore/pipeline && .venv/bin/pytest -q -W error && .venv/bin/radio report
 ```
 
-Le vrai test de bout en bout reste un run de pipeline complet : il touche
+Le vrai test de bout en bout reste une passe `radio-weekly` complète : elle touche
 l'API AzuraCast, le disque média et la base SQLite d'un seul coup.
