@@ -98,9 +98,6 @@ importers:
 
   apps/backend:
     dependencies:
-      '@aubesonore/core':
-        specifier: workspace:*
-        version: link:../../packages/core
       '@aubesonore/shared-types':
         specifier: workspace:*
         version: link:../../packages/shared-types
@@ -289,9 +286,6 @@ importers:
       '@aubesonore/shared-types':
         specifier: workspace:*
         version: link:../shared-types
-      zustand:
-        specifier: ^5.0.13
-        version: 5.0.13(@types/react@19.2.14)(react@19.2.6)(use-sync-external-store@1.6.0(react@19.2.6))
     devDependencies:
       typescript:
         specifier: ^5.9.3

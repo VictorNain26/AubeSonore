@@ -1,5 +1,5 @@
 # =============================================================================
-# AubeSonore Backend — Dockerfile for Koyeb
+# AubeSonore Backend — built by docker-compose.yml on the self-hosted box
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -34,7 +34,6 @@ RUN pnpm --filter @aubesonore/shared-types build && \
 # -----------------------------------------------------------------------------
 FROM oven/bun:slim AS runner
 
-# Non-root user (matching apps/backend/Dockerfile convention)
 RUN groupadd --system --gid 1001 bunjs && \
     useradd --system --uid 1001 --gid bunjs bunjs
 

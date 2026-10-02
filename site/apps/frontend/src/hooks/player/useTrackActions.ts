@@ -1,11 +1,9 @@
 import { useCallback } from 'react';
 import { useShallow } from 'zustand/react/shallow';
-import { toast } from 'sonner';
 import { useNowPlayingStore } from '../../lib/azuracast';
 import { useLikedTracksStore, isTrackLiked } from '../../stores/likedTracksStore';
 import { useLikeAction } from './useLikeAction';
-import { shareTrack, getRadioShareUrl } from '../../lib/shareTrack';
-import * as m from '@/paraglide/messages.js';
+import { shareTrackWithToast, getRadioShareUrl } from '../../lib/shareTrack';
 
 interface UseTrackActions {
   title: string | undefined;
@@ -38,17 +36,7 @@ export function useTrackActions(): UseTrackActions {
 
   const handleShare = useCallback(() => {
     if (!title || !artist) return;
-    void shareTrack({
-      title,
-      artist,
-      url: getRadioShareUrl(title, artist),
-    })
-      .then((result) => {
-        if (result === 'copied') toast(m.toast_link_copied());
-      })
-      .catch(() => {
-        toast(m.toast_share_failed());
-      });
+    void shareTrackWithToast({ title, artist, url: getRadioShareUrl(title, artist) });
   }, [title, artist]);
 
   return { title, artist, isLiked, isLiking, handleToggleLike, handleShare };
