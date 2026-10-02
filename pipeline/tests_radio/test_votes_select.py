@@ -60,6 +60,28 @@ def test_lesson_measures_each_family_against_its_own_cut(tmp_path: Path) -> None
     assert sorted(sel.lesson) == [(2000 + a) * 100 for a in range(12)] + news
 
 
+def test_exam_splits_evenly_between_discoveries_and_fresh_picks(tmp_path: Path) -> None:
+    conn = make_model_db(tmp_path)
+    serve_scores(conn)
+    # Dernière fournée : 24 voisins aimés et 24 nouveautés ; puis 2 nouveautés seulement.
+    conn.execute(
+        "UPDATE candidates SET source = 'hypem', seed_artist_id = NULL, "
+        "neighbour_artist_id = NULL, detail = 'Blog' WHERE deezer_track_id >= 300600"
+    )
+    conn.commit()
+    sel = select_batch(conn, _rng(), 10, 0, NOW)
+    assert sum(t >= 300600 for t in sel.exam) == 5 and len(sel.exam) == 10
+
+    conn.execute("DELETE FROM ballots")
+    conn.execute(
+        "UPDATE candidates SET source = 'voisin', seed_artist_id = 1000, detail = NULL, "
+        "neighbour_artist_id = deezer_track_id / 100 WHERE deezer_track_id >= 300602"
+    )
+    conn.commit()
+    sel = select_batch(conn, _rng(), 10, 0, NOW)
+    assert sum(t in (300600, 300601) for t in sel.exam) == 2 and len(sel.exam) == 10
+
+
 def test_an_artist_once_examined_never_gets_a_lesson(tmp_path: Path) -> None:
     conn = make_model_db(tmp_path)
     serve_scores(conn)

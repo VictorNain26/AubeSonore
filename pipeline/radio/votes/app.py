@@ -5,6 +5,7 @@
   (signée, elle expire) et relaie l'audio : l'URL ne quitte jamais le serveur et n'est jamais
   journalisée.
 - Le vote est enregistré tout de suite en SQLite ; la page passe au titre suivant.
+- /suivi montre le parcours des sources et ce qui est à ajuster (radio/votes/suivi.py).
 - Fonctions synchrones : FastAPI les exécute dans son pool de fils, une connexion SQLite par
   requête.
 """
@@ -23,9 +24,11 @@ from fastapi import Depends, FastAPI, Form, Header, HTTPException
 from fastapi.responses import FileResponse, HTMLResponse, RedirectResponse, Response
 from starlette.background import BackgroundTask
 
+from radio.core.config import FreshConfig
 from radio.core.db import connect
 from radio.sources.deezer import DeezerError, DeezerTrack, DeezerUnavailable
 from radio.votes.select import Ballot, pending_ballots, record_vote
+from radio.votes.suivi import Suivi, load_suivi, pct
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +50,11 @@ button:focus-visible{outline:3px solid var(--texte);outline-offset:2px}
 .oui{background:var(--oui)}
 .non{background:var(--non)}
 .passer{grid-column:1/-1;background:transparent;color:var(--doux);border:1px solid var(--doux)}
+h2{font-size:1.1rem;margin:1rem 0 0}
+table{border-collapse:collapse;font-size:.9rem;font-variant-numeric:tabular-nums}
+th,td{padding:.25rem .4rem;text-align:right}
+th:first-child,td:first-child{text-align:left}
+ul{margin:0;padding-left:1.2rem}
 """
 
 _CHOICES = (("oui", "Oui"), ("non", "Non"), ("passer", "Passer"))
@@ -90,7 +98,36 @@ def _page(ballots: list[Ballot]) -> str:
     )
 
 
-def create_app(db_path: Path, deezer: PreviewSource, verify: Callable[[str], None]) -> FastAPI:
+def _suivi_page(s: Suivi) -> str:
+    def row(cells: list[str]) -> str:
+        return "<tr>" + "".join(f"<td>{html.escape(c)}</td>" for c in cells) + "</tr>"
+
+    flows = "".join(
+        row([f.key, str(f.candidates), str(f.retained), str(f.ready), str(f.failed), str(f.on_air)])
+        for f in s.flows
+    )
+    rates = "".join(
+        row([k, pct(r.rate), f"{pct(r.low)} - {pct(r.high)}", str(r.n)]) for k, r in s.by_source
+    )
+    adjust = "".join(f"<li>{html.escape(a)}</li>" for a in s.to_adjust) or "<li>rien</li>"
+    run = f" (fournée n°{s.run_id})" if s.run_id else ""
+    return _shell(
+        "<h1>Suivi des sources</h1>"
+        f"<h2>À ajuster</h2><ul>{adjust}</ul>"
+        f"<h2>Parcours{run}</h2><table><tr><th>Source</th><th>Cand.</th><th>Retenus</th>"
+        f"<th>Prêts</th><th>Échecs</th><th>Antenne</th></tr>{flows}</table>"
+        "<h2>Oui à l'examen</h2><table><tr><th>Source</th><th>Oui</th><th>IC 95 %</th>"
+        f"<th>Votes</th></tr>{rates}</table>"
+        '<p><a href="/">Retour au vote</a></p>'
+    )
+
+
+def create_app(
+    db_path: Path,
+    deezer: PreviewSource,
+    verify: Callable[[str], None],
+    fresh: FreshConfig | None = None,
+) -> FastAPI:
     def access(cf_access_jwt_assertion: Annotated[str | None, Header()] = None) -> None:
         if cf_access_jwt_assertion is None:
             raise HTTPException(403, "Accès réservé")
@@ -120,6 +157,14 @@ def create_app(db_path: Path, deezer: PreviewSource, verify: Callable[[str], Non
     @app.get("/", response_class=HTMLResponse, dependencies=guarded)
     def page() -> str:
         return _page(waiting())
+
+    @app.get("/suivi", response_class=HTMLResponse, dependencies=guarded)
+    def suivi() -> str:
+        conn = connect(db_path)
+        try:
+            return _suivi_page(load_suivi(conn, fresh or FreshConfig()))
+        finally:
+            conn.close()
 
     @app.post("/vote", dependencies=guarded)
     def vote(

@@ -28,6 +28,8 @@ class FreshReport:
     run_id: int
     seen: Counter[str] = field(default_factory=Counter)
     added: Counter[str] = field(default_factory=Counter)
+    # Déjà candidats d'une fournée précédente : une source qui ne renouvelle pas sa sélection.
+    already: Counter[str] = field(default_factory=Counter)
     n_unmatched: int = 0
     n_known: int = 0
     skipped: list[str] = field(default_factory=list)
@@ -62,6 +64,8 @@ def _add(
             [(tid, rep.run_id, source, detail) for tid in added],
         )
     rep.added[source] += len(added)
+    if not added:
+        rep.already[source] += 1
 
 
 def _hypem(

@@ -131,8 +131,10 @@ priorité.
 
 **Votes.** Chaque semaine, 10 titres d'examen et 10 de leçon, présentés à l'aveugle.
 
-- **Examen.** Tirage uniforme sur toute la fournée. Le verdict « retenu » au moment du tirage est
-  gardé. Ces votes jugent le modèle et ne servent jamais à l'entraîner.
+- **Examen.** Tirage uniforme dans chaque famille de la fournée, à parts égales (5 découvertes,
+  5 nouveautés) : tiré sur toute la fournée, l'examen ne donnerait que ~3 votes par semaine aux
+  nouveautés, et aucune source ne serait jugée avant des mois. Le verdict « retenu » au moment du
+  tirage est gardé. Ces votes jugent le modèle et ne servent jamais à l'entraîner.
 - **Leçon.** Les titres les plus proches de la coupure de leur famille, un par artiste, jamais d'un artiste déjà
   tiré à l'examen : le modèle candidat l'aurait vu et pas celui en service. Ces votes entraînent
   le modèle, avec un gain décroissant : AUC 0,76 sans vote, 0,79 avec 50, 0,82 avec 99. Une
@@ -292,6 +294,18 @@ par `$INVOCATION_ID` de systemd, y compris quand elle échoue : la ligne porte a
 message de la commande, ou seulement le type d'une exception imprévue, dont le texte peut
 contenir une URL signée). `radio report` affiche le dernier rapport de chaque étape.
 
+**Suivi des sources** (`radio/votes/suivi.py`), dans `radio report`, sur la page `/suivi` de la
+page de vote et en lien dans le rappel du dimanche :
+
+- le parcours de chaque source, et de chaque genre Deezer, dans la dernière fournée : candidats,
+  retenus, prêts, échecs d'acquisition, à l'antenne ;
+- le taux de « oui » à l'examen par source, genre et blog, avec son intervalle de Wilson ;
+- les points à ajuster, chacun avec sa règle : une source dont l'intervalle reste sous le taux
+  du reste après 20 votes d'examen (§3.1), un genre ou une source qui n'a rien apporté de neuf
+  à la dernière fournée, une source dont la moitié des retenus reste introuvable sur Soulseek
+  (dès 10 tentatives). `radio nouveautes` compte aussi les titres « déjà vus » par source : une
+  sélection qui ne se renouvelle pas.
+
 Seuils, par étape : taux d'acquisition au-dessus de `min_success_rate` dès
 `min_attempts_for_rate` tentatives (`editorial.toml`) ; aucune erreur à l'antenne.
 
@@ -333,7 +347,8 @@ toutes les 24 h et un message de retour à la normale, sur deux canaux :
   Gatus. `essentia-tensorflow` en est exclu : ses versions récentes ne publient que des roues
   cp314, et le projet est en Python 3.12.
 - **Déploiement** : merger sur `master` suffit. `aubesonore-deploy.timer` avance le checkout
-  `~/radio`, jamais pendant une passe hebdomadaire.
+  `~/radio`, jamais pendant une passe hebdomadaire, et redémarre `radio-votes` quand `pipeline/`
+  change : la page de vote garde sinon le code de son démarrage.
 - Les tests tournent sans réseau (~12 s). Tout bug corrigé reçoit son test.
 
 ## 9. Ordre de réalisation

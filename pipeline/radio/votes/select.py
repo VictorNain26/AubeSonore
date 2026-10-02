@@ -1,8 +1,11 @@
 """Sélection hebdomadaire des votes et bulletins en attente.
 
-- Examen : tirage uniforme sur toute la dernière fournée notée, retenus ou non : l'AUC des
-  modèles s'y compare sans biais, et le taux de oui des retenus se lit sur les bulletins marqués
-  `retained`. Un vote d'examen n'est jamais un exemple d'entraînement (radio/model/dataset.py).
+- Examen : tirage uniforme dans chaque famille de la dernière fournée notée (découvertes,
+  nouveautés), retenus ou non, à parts égales : sans cela, les ~300 nouveautés d'une fournée de
+  ~1 100 titres ne recevraient que 3 votes par semaine, et aucune source ne serait jugée avant
+  des mois. Les deux modèles comparés sont notés sur les mêmes votes, et le taux de oui des
+  retenus se lit sur les bulletins marqués `retained`. Un vote d'examen n'est jamais un exemple
+  d'entraînement (radio/model/dataset.py).
 - Leçon : les titres les plus incertains (note la plus proche de la coupure de leur famille,
   découvertes ou nouveautés, dans la dernière fournée), au plus un par artiste : échantillonnage
   par incertitude (Settles, Active Learning Literature Survey, 2009).
@@ -120,7 +123,10 @@ def select_batch(
         """,
         (model_id,),
     ).fetchall()
-    batch = [int(r[0]) for r in rows if int(r[3]) == run_id]
+    families: dict[str, list[int]] = {}
+    for r in rows:
+        if int(r[3]) == run_id:
+            families.setdefault(FAMILY[str(r[5])], []).append(int(r[0]))
     retained = {int(r[0]) for r in rows if int(r[2]) == 1}
     cuts: dict[str, float] = {}
     for source, score in conn.execute(
@@ -130,8 +136,15 @@ def select_batch(
     ):
         family = FAMILY[str(source)]
         cuts[family] = min(cuts.get(family, 1.0), float(score))
-    k = min(n_exam, len(batch))
-    exam = sorted(int(t) for t in rng.choice(batch, size=k, replace=False)) if k else []
+    # Parts égales ; une famille trop petite laisse sa part à l'autre.
+    exam: list[int] = []
+    left = n_exam
+    pools = sorted(families.items(), key=lambda kv: (len(kv[1]), kv[0]))
+    for i, (_, pool) in enumerate(pools):
+        k = min(len(pool), left // (len(pools) - i))
+        exam += [int(t) for t in rng.choice(pool, size=k, replace=False)] if k else []
+        left -= k
+    exam.sort()
     lesson: list[int] = []
     # Un artiste d'examen, de cette sélection ou d'une précédente, ne reçoit jamais de vote de
     # leçon : le modèle candidat l'aurait vu, pas celui en service, et l'examen le favoriserait.
@@ -155,7 +168,7 @@ def select_batch(
         artists.add(artist)
     chosen = [(t, "exam") for t in exam] + [(t, "lesson") for t in lesson]
     if not chosen:
-        return Selection(None, model_id, run_id, len(batch), [], [])
+        return Selection(None, model_id, run_id, sum(map(len, families.values())), [], [])
     positions = rng.permutation(len(chosen))
     with conn:
         cur = conn.execute(
@@ -170,4 +183,4 @@ def select_batch(
                 for (tid, kind), p in zip(chosen, positions, strict=True)
             ],
         )
-    return Selection(selection_id, model_id, run_id, len(batch), exam, lesson)
+    return Selection(selection_id, model_id, run_id, sum(map(len, families.values())), exam, lesson)
