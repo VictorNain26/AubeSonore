@@ -3,20 +3,48 @@ import { describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { makeArtistProfile } from '../mocks/handlers';
-import { ArtistPageView, type ArtistPageState } from './ArtistPageView';
+import { ArtistPageView, factsLine, type ArtistPageState } from './ArtistPageView';
 
 function show(state: ArtistPageState) {
   return render(<ArtistPageView state={state} />, { wrapper: MemoryRouter });
 }
 
+const SUMMARY = {
+  text: 'Hania Rani est une pianiste et compositrice polonaise.',
+  lang: 'fr' as const,
+  url: 'https://fr.wikipedia.org/wiki/Hania_Rani',
+};
+
 describe('ArtistPageView', () => {
-  it('names the artist and lists what the antenna played', () => {
+  it('says who the artist is, then what the antenna played', () => {
     show({ status: 'ready', profile: makeArtistProfile() });
 
     expect(screen.getByRole('heading', { level: 1, name: 'Hania Rani' })).toBeInTheDocument();
-    expect(screen.getByText('modern classical · piano')).toBeInTheDocument();
+    expect(screen.getByText('Artiste · Pologne')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Passé sur AubeSonore' })).toBeInTheDocument();
     expect(screen.getByText('F Major')).toBeInTheDocument();
+  });
+
+  it('quotes the Wikipedia summary with its source and licence', () => {
+    show({ status: 'ready', profile: makeArtistProfile({ summary: SUMMARY }) });
+
+    expect(screen.getByRole('blockquote')).toHaveTextContent(SUMMARY.text);
+    expect(screen.getByRole('blockquote')).toHaveAttribute('lang', 'fr');
+    expect(screen.getByRole('link', { name: 'Wikipédia' })).toHaveAttribute('href', SUMMARY.url);
+    expect(screen.getByRole('link', { name: 'CC BY-SA 4.0' })).toHaveAttribute(
+      'href',
+      'https://creativecommons.org/licenses/by-sa/4.0/'
+    );
+  });
+
+  it('says when the summary is in the other language', () => {
+    show({
+      status: 'ready',
+      profile: makeArtistProfile({ summary: { ...SUMMARY, lang: 'en' } }),
+    });
+
+    expect(screen.getByRole('blockquote')).toHaveAttribute('lang', 'en');
+    expect(screen.getByRole('link', { name: 'Wikipédia, en anglais' })).toBeInTheDocument();
   });
 
   it('says so when no play is recorded yet', () => {
@@ -25,30 +53,11 @@ describe('ArtistPageView', () => {
     expect(screen.getByText("Aucun passage enregistré pour l'instant.")).toBeInTheDocument();
   });
 
-  it('links a similar artist only when the site has their page', () => {
-    show({
-      status: 'ready',
-      profile: makeArtistProfile({
-        similar: [
-          { name: 'Nils Frahm', image: null, page: { id: 'a-2', slug: 'nils-frahm' } },
-          { name: 'Ólafur Arnalds', image: null, page: null },
-        ],
-      }),
-    });
+  it('shows nothing a source could not fill', () => {
+    show({ status: 'ready', profile: makeArtistProfile({ facts: null }) });
 
-    expect(screen.getByRole('link', { name: 'Nils Frahm' })).toHaveAttribute(
-      'href',
-      '/artist/a-2/nils-frahm'
-    );
-    expect(screen.queryByRole('link', { name: 'Ólafur Arnalds' })).not.toBeInTheDocument();
-    expect(screen.getByText('Ólafur Arnalds')).toBeInTheDocument();
-  });
-
-  it('hides the sections no source could fill', () => {
-    show({ status: 'ready', profile: makeArtistProfile() });
-
-    expect(screen.queryByRole('heading', { name: 'Biographie' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Dans la même veine' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('blockquote')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Artiste ·/)).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Écouter ailleurs' })).not.toBeInTheDocument();
   });
 
@@ -56,15 +65,17 @@ describe('ArtistPageView', () => {
     show({
       status: 'ready',
       profile: makeArtistProfile({
-        links: [{ platform: 'bandcamp', url: 'https://haniarani.bandcamp.com' }],
-        topTracks: [{ title: 'Eden', url: 'https://www.deezer.com/track/1' }],
+        links: [
+          { platform: 'deezer', url: 'https://www.deezer.com/artist/1' },
+          { platform: 'official', url: 'https://haniarani.com/' },
+        ],
       }),
     });
 
-    expect(screen.getByRole('link', { name: 'Bandcamp' })).toHaveAttribute('target', '_blank');
-    expect(screen.getByRole('link', { name: /Eden/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Deezer' })).toHaveAttribute('target', '_blank');
+    expect(screen.getByRole('link', { name: 'Site officiel' })).toHaveAttribute(
       'href',
-      'https://www.deezer.com/track/1'
+      'https://haniarani.com/'
     );
   });
 
@@ -80,5 +91,40 @@ describe('ArtistPageView', () => {
     show({ status: 'loading' });
 
     expect(screen.getByRole('link', { name: 'Revenir au direct' })).toHaveAttribute('href', '/');
+  });
+});
+
+describe('factsLine', () => {
+  const group = {
+    kind: 'group' as const,
+    place: 'Paris',
+    country: 'FR',
+    formed: 1993,
+    ended: 2021,
+    active: false,
+  };
+
+  it('names a group, where and when it played', () => {
+    expect(factsLine(group)).toBe('Groupe · Paris, France · 1993 – 2021');
+    expect(factsLine({ ...group, ended: null, active: true })).toBe(
+      'Groupe · Paris, France · depuis 1993'
+    );
+  });
+
+  it('never says "since" of a group that ended on an unknown date', () => {
+    expect(factsLine({ ...group, ended: null })).toBe('Groupe · Paris, France · formé en 1993');
+  });
+
+  it('says nothing when MusicBrainz states nothing', () => {
+    expect(
+      factsLine({
+        kind: null,
+        place: null,
+        country: null,
+        formed: null,
+        ended: null,
+        active: false,
+      })
+    ).toBeNull();
   });
 });

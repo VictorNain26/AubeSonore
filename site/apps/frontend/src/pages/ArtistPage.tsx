@@ -4,10 +4,16 @@ import { ArtistPageView, type ArtistPageState } from '../artist/ArtistPageView';
 import { useHeroListenVisible } from '../home/listen';
 import { SiteFooter } from '../home/SiteFooter';
 import { fetchArtistProfile } from '../lib/artistProfile';
+import { useLocaleStore } from '../stores/localeStore';
 
 export default function ArtistPage() {
   const { id } = useParams<{ id: string }>();
-  const [loaded, setLoaded] = useState<{ id: string; state: ArtistPageState } | null>(null);
+  const locale = useLocaleStore((s) => s.locale);
+  const [loaded, setLoaded] = useState<{
+    key: string;
+    state: ArtistPageState;
+  } | null>(null);
+  const key = `${id}:${locale}`;
   const setListenVisible = useHeroListenVisible((s) => s.setVisible);
 
   // No hero here: the player bar is the only way to listen.
@@ -19,20 +25,20 @@ export default function ArtistPage() {
     fetchArtistProfile(id, controller.signal)
       .then((profile) =>
         setLoaded({
-          id,
+          key,
           state: profile ? { status: 'ready', profile } : { status: 'missing' },
         })
       )
       .catch((err: unknown) => {
         if (err instanceof Error && err.name === 'AbortError') return;
-        setLoaded({ id, state: { status: 'error' } });
+        setLoaded({ key, state: { status: 'error' } });
       });
     return () => controller.abort();
-  }, [id]);
+  }, [id, key]);
 
-  // Derived, so navigating to another artist never flashes the previous one.
+  // Derived, so another artist or language never flashes the previous one.
   const state: ArtistPageState =
-    loaded !== null && loaded.id === id ? loaded.state : { status: 'loading' };
+    loaded !== null && loaded.key === key ? loaded.state : { status: 'loading' };
 
   useEffect(() => {
     const previous = document.title;

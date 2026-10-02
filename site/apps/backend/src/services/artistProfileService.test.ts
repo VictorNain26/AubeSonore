@@ -6,7 +6,6 @@ interface ArtistRow {
   normalizedName: string;
   slug: string;
   deezerId: string | null;
-  mbid: string | null;
 }
 
 const baseRow: ArtistRow = {
@@ -15,12 +14,9 @@ const baseRow: ArtistRow = {
   normalizedName: 'daft punk',
   slug: 'daft-punk',
   deezerId: '27',
-  mbid: 'mb-1',
 };
 
 let rows: ArtistRow[] = [baseRow];
-// Site pages of the similar artists, looked up by Deezer id.
-let pageRows: Array<{ id: string; slug: string; deezerId: string }> = [];
 
 const realSchema = await import('../db/schema');
 
@@ -28,10 +24,7 @@ void mock.module('../db', () => ({
   schema: realSchema,
   db: {
     select: () => ({
-      from: () => ({
-        where: () =>
-          Object.assign(Promise.resolve(pageRows), { limit: () => Promise.resolve(rows) }),
-      }),
+      from: () => ({ where: () => ({ limit: () => Promise.resolve(rows) }) }),
     }),
   },
 }));
@@ -39,94 +32,105 @@ void mock.module('../db', () => ({
 // spyOn on the real exports, restored after this file: mock.module would
 // replace these modules for every other test file of the run (Bun 1.3).
 const deezer = await import('./deezerService');
-const lastfm = await import('./lastfmService');
 const musicbrainz = await import('./musicbrainzService');
 const radioPlays = await import('./radioPlayService');
+const wikipedia = await import('./wikipediaService');
 
-const spies = [
-  spyOn(deezer, 'getArtist').mockResolvedValue({
+const facts = {
+  kind: 'group' as const,
+  place: 'Paris',
+  country: 'FR',
+  formed: 1993,
+  ended: 2021,
+  active: false,
+};
+
+const spies = {
+  deezer: spyOn(deezer, 'getArtist').mockResolvedValue({
     id: '27',
     name: 'Daft Punk',
     picture: 'https://cdn.deezer.com/dp.jpg',
   }),
-  spyOn(deezer, 'getRelatedArtists').mockResolvedValue([
-    { id: '1', name: 'Justice', picture: 'https://cdn.deezer.com/j.jpg' },
-  ]),
-  spyOn(deezer, 'getTopTracks').mockResolvedValue([
-    { title: 'Around the World', link: 'https://deezer.com/track/1' },
-  ]),
-  spyOn(lastfm, 'getArtistInfo').mockResolvedValue({
-    bio: 'Un duo français.',
-    tags: ['french house'],
-    similarArtists: [],
-    listeners: 4200,
+  mbid: spyOn(musicbrainz, 'findMbidByDeezerId').mockResolvedValue({
+    status: 'found',
+    value: 'mb-1',
   }),
-  spyOn(musicbrainz, 'getArtistLinks').mockResolvedValue([
-    { platform: 'official', url: 'https://daftpunk.com' },
-  ]),
-  spyOn(radioPlays, 'getPlaysByArtist').mockResolvedValue([
+  musicbrainz: spyOn(musicbrainz, 'getArtistByMbid').mockResolvedValue({
+    status: 'found',
+    value: {
+      facts,
+      links: [{ platform: 'official', url: 'https://daftpunk.com/' }],
+      wikidataId: 'Q185828',
+    },
+  }),
+  summary: spyOn(wikipedia, 'getSummary').mockResolvedValue({
+    text: 'Daft Punk est un groupe français de musique électronique.',
+    lang: 'fr',
+    url: 'https://fr.wikipedia.org/wiki/Daft_Punk',
+  }),
+  plays: spyOn(radioPlays, 'getPlaysByArtist').mockResolvedValue([
     { title: 'Around the World', artist: 'Daft Punk', playedAt: '2026-07-27T10:00:00.000Z' },
   ]),
-];
+};
 
 afterAll(() => {
-  for (const spy of spies) spy.mockRestore();
+  for (const spy of Object.values(spies)) spy.mockRestore();
 });
 
 const { getArtistProfile } = await import('./artistProfileService');
 
 beforeEach(() => {
   rows = [baseRow];
-  pageRows = [];
+  for (const spy of Object.values(spies)) spy.mockClear();
 });
 
 describe('getArtistProfile', () => {
-  it('composes every source into one profile', async () => {
-    const profile = await getArtistProfile('artist-1');
+  it('composes every source into one profile, in the page language', async () => {
+    const profile = await getArtistProfile('artist-1', 'en');
 
-    expect(profile).not.toBeNull();
-    expect(profile?.name).toBe('Daft Punk');
-    expect(profile?.slug).toBe('daft-punk');
-    expect(profile?.image).toBe('https://cdn.deezer.com/dp.jpg');
-    expect(profile?.bio).toBe('Un duo français.');
-    expect(profile?.tags).toEqual(['french house']);
-    expect(profile?.listeners).toBe(4200);
-    expect(profile?.similar).toEqual([
-      { name: 'Justice', image: 'https://cdn.deezer.com/j.jpg', page: null },
-    ]);
-    expect(profile?.topTracks).toEqual([
-      { title: 'Around the World', url: 'https://deezer.com/track/1' },
-    ]);
-    expect(profile?.links).toEqual([{ platform: 'official', url: 'https://daftpunk.com' }]);
-    expect(profile?.playedOnRadio).toEqual([
-      { title: 'Around the World', artist: 'Daft Punk', playedAt: '2026-07-27T10:00:00.000Z' },
-    ]);
-    expect(profile?.resolved).toBe(true);
+    expect(profile).toEqual({
+      id: 'artist-1',
+      name: 'Daft Punk',
+      slug: 'daft-punk',
+      image: 'https://cdn.deezer.com/dp.jpg',
+      facts,
+      summary: {
+        text: 'Daft Punk est un groupe français de musique électronique.',
+        lang: 'fr',
+        url: 'https://fr.wikipedia.org/wiki/Daft_Punk',
+      },
+      links: [
+        { platform: 'deezer', url: 'https://www.deezer.com/artist/27' },
+        { platform: 'official', url: 'https://daftpunk.com/' },
+      ],
+      playedOnRadio: [
+        { title: 'Around the World', artist: 'Daft Punk', playedAt: '2026-07-27T10:00:00.000Z' },
+      ],
+    });
+    expect(spies.mbid).toHaveBeenCalledWith('27');
+    expect(spies.summary).toHaveBeenCalledWith('Q185828', 'en');
   });
 
-  it('links a similar artist to its page on the site when the antenna played them', async () => {
-    pageRows = [{ id: 'artist-2', slug: 'justice', deezerId: '1' }];
+  it('asks Wikipedia nothing when MusicBrainz knows no such Deezer artist', async () => {
+    spies.mbid.mockResolvedValueOnce({ status: 'none' });
 
-    const profile = await getArtistProfile('artist-1');
+    const profile = await getArtistProfile('artist-1', 'fr');
 
-    expect(profile?.similar).toEqual([
-      {
-        name: 'Justice',
-        image: 'https://cdn.deezer.com/j.jpg',
-        page: { id: 'artist-2', slug: 'justice' },
-      },
+    expect(profile?.facts).toBeNull();
+    expect(profile?.summary).toBeNull();
+    expect(profile?.links).toEqual([
+      { platform: 'deezer', url: 'https://www.deezer.com/artist/27' },
     ]);
+    expect(spies.summary).not.toHaveBeenCalled();
   });
 
   it('keeps the radio floor when the artist matched no upstream', async () => {
-    rows = [{ ...baseRow, deezerId: null, mbid: null }];
+    rows = [{ ...baseRow, deezerId: null }];
 
-    const profile = await getArtistProfile('artist-1');
+    const profile = await getArtistProfile('artist-1', 'fr');
 
-    expect(profile?.resolved).toBe(false);
     expect(profile?.image).toBeNull();
-    expect(profile?.similar).toEqual([]);
-    expect(profile?.topTracks).toEqual([]);
+    expect(profile?.facts).toBeNull();
     expect(profile?.links).toEqual([]);
     expect(profile?.playedOnRadio).toHaveLength(1);
   });
@@ -134,6 +138,6 @@ describe('getArtistProfile', () => {
   it('returns null for an unknown id', async () => {
     rows = [];
 
-    expect(await getArtistProfile('nope')).toBeNull();
+    expect(await getArtistProfile('nope', 'fr')).toBeNull();
   });
 });

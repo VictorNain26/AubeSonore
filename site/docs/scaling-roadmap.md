@@ -20,8 +20,8 @@ When **any** of these fires, migrate everything below in one PR:
 
 **State to migrate** (each implements `CacheStore<V>` from `lib/cache/ttlCache.ts` already):
 
-- Every `TtlCache` disposed in `gracefulShutdown` (`index.ts`): `songlinkCache`, `itunesCache`, `lastfmCache`, `radioHistoryCache`, `trendsCache`
-- `circuitOpenUntil` (`services/lastfmService.ts`)
+- Every `TtlCache` disposed in `gracefulShutdown` (`index.ts`): `linksCache`, `itunesCache`, `deezerCache`, `musicbrainzCache`, `wikipediaCache`, `radioHistoryCache`, `trendsCache`
+- `circuitOpenUntil` (`services/deezerService.ts`) and the MusicBrainz throttle `nextSlotAt` (`services/musicbrainzService.ts`)
 - `lastRefreshByUser` Map (`services/trackService.ts`) — also persist to PG `user.last_refresh_at` column
 - Rate limit buckets (`lib/rateLimit.ts`)
 

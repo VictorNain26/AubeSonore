@@ -1,5 +1,5 @@
 import type { ArtistProfile } from '@aubesonore/shared-types/client';
-import { localizeHref } from '@/paraglide/runtime.js';
+import { getLocale, localizeHref } from '@/paraglide/runtime.js';
 import { API_BASE_URL } from '../utils/config';
 
 /** The page path of an artist, in the current language (`/artist/…` or `/en/artist/…`). */
@@ -7,13 +7,15 @@ export function artistPath(page: { id: string; slug: string }): string {
   return localizeHref(`/artist/${page.id}/${page.slug}`);
 }
 
+/** The profile in the page language: its summary is the Wikipedia article in that language. */
 export async function fetchArtistProfile(
   id: string,
   signal?: AbortSignal
 ): Promise<ArtistProfile | null> {
-  const response = await fetch(`${API_BASE_URL}/api/artist/${encodeURIComponent(id)}`, {
-    signal: signal ?? null,
-  });
+  const response = await fetch(
+    `${API_BASE_URL}/api/artist/${encodeURIComponent(id)}?lang=${getLocale()}`,
+    { signal: signal ?? null }
+  );
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   return (await response.json()) as ArtistProfile;

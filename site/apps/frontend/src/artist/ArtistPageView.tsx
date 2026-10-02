@@ -1,11 +1,14 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
-import type { ArtistProfile } from '@aubesonore/shared-types/client';
+import type {
+  ArtistFacts,
+  ArtistPlatform,
+  ArtistProfile,
+  ArtistSummary,
+} from '@aubesonore/shared-types/client';
 import { getLocale, localizeHref } from '@/paraglide/runtime.js';
 import { Cover } from '../home/Cover';
 import { TEXT_ACTION } from '../home/styles';
-import { artistPath } from '../lib/artistProfile';
-import { cn } from '../lib/utils';
 import * as m from '@/paraglide/messages.js';
 
 export type ArtistPageState =
@@ -14,12 +17,43 @@ export type ArtistPageState =
   | { status: 'error' }
   | { status: 'ready'; profile: ArtistProfile };
 
-const PLATFORM_LABELS: Record<string, () => string> = {
-  official: () => m.artist_link_official(),
+const PLATFORM_LABELS: Record<ArtistPlatform, () => string> = {
+  deezer: () => 'Deezer',
+  spotify: () => 'Spotify',
+  appleMusic: () => 'Apple Music',
   bandcamp: () => 'Bandcamp',
   soundcloud: () => 'SoundCloud',
-  wikipedia: () => m.artist_link_wikipedia(),
+  official: () => m.artist_link_official(),
 };
+
+const KIND_LABELS: Record<NonNullable<ArtistFacts['kind']>, () => string> = {
+  person: () => m.artist_kind_person(),
+  group: () => m.artist_kind_group(),
+  orchestra: () => m.artist_kind_orchestra(),
+  choir: () => m.artist_kind_choir(),
+};
+
+// Wikipedia text is CC BY-SA: the article and the licence are both linked.
+// https://en.wikipedia.org/wiki/Wikipedia:Reusing_Wikipedia_content
+const LICENSE_URL = 'https://creativecommons.org/licenses/by-sa/4.0/';
+
+/** "Groupe · Paris, France · 1993 – 2021": what MusicBrainz states, nothing more. */
+export function factsLine(facts: ArtistFacts): string | null {
+  const country = facts.country
+    ? new Intl.DisplayNames([getLocale()], { type: 'region' }).of(facts.country)
+    : undefined;
+  const where = [facts.place, country].filter(Boolean).join(', ');
+  const formed = facts.formed ? String(facts.formed) : null;
+  const when = !formed
+    ? ''
+    : facts.ended
+      ? `${formed} – ${facts.ended}`
+      : facts.active
+        ? m.artist_since({ year: formed })
+        : m.artist_formed({ year: formed });
+  const parts = [facts.kind ? KIND_LABELS[facts.kind]() : '', where, when].filter(Boolean);
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
 
 function formatPlayedAt(iso: string): string {
   return new Intl.DateTimeFormat(getLocale(), {
@@ -83,13 +117,35 @@ function Message({ title, body }: { title: string; body: string }) {
   );
 }
 
-const LIFT =
-  'ease-out-soft group-hover:shadow-lift transition-[translate,box-shadow] duration-500 motion-safe:group-hover:-translate-y-1.5';
+const OUTSIDE_LINK = { rel: 'noopener noreferrer', target: '_blank' } as const;
+
+function Summary({ summary }: { summary: ArtistSummary }) {
+  return (
+    <figure className="m-0 flex flex-col gap-3 md:col-span-8 md:col-start-5 lg:col-span-7 lg:col-start-4">
+      <blockquote cite={summary.url} lang={summary.lang} className="m-0">
+        <p className="text-intro m-0 max-w-prose">{summary.text}</p>
+      </blockquote>
+      <figcaption className="text-label text-text-muted flex items-center gap-3 font-mono uppercase">
+        <a href={summary.url} {...OUTSIDE_LINK} className={TEXT_ACTION}>
+          {summary.lang === getLocale()
+            ? m.artist_summary_source()
+            : m.artist_summary_source_other()}
+        </a>
+        <span aria-hidden="true">·</span>
+        <a href={LICENSE_URL} {...OUTSIDE_LINK} className={TEXT_ACTION}>
+          CC BY-SA 4.0
+        </a>
+      </figcaption>
+    </figure>
+  );
+}
 
 function Profile({ profile }: { profile: ArtistProfile }) {
+  const facts = profile.facts ? factsLine(profile.facts) : null;
+
   return (
     <>
-      <div className="lift-in grid gap-6 px-6 pt-10 md:grid-cols-12 md:items-end md:gap-x-10 md:px-10 md:pt-16">
+      <div className="lift-in grid gap-6 px-6 pt-10 md:grid-cols-12 md:items-end md:gap-x-10 md:gap-y-12 md:px-10 md:pt-16">
         <Cover
           src={profile.image}
           alt={m.artist_portrait_alt({ name: profile.name })}
@@ -98,12 +154,10 @@ function Profile({ profile }: { profile: ArtistProfile }) {
           className="aspect-square w-40 md:col-span-4 md:w-full lg:col-span-3"
         />
         <div className="flex min-w-0 flex-col gap-3 md:col-span-8 lg:col-span-9">
-          <p className="text-label text-text-muted m-0 font-mono uppercase">{m.artist_label()}</p>
           <h1 className="text-hero m-0 break-words">{profile.name}</h1>
-          {profile.tags.length > 0 ? (
-            <p className="text-sub text-text-muted m-0">{profile.tags.join(' · ')}</p>
-          ) : null}
+          {facts ? <p className="text-sub text-text-muted m-0">{facts}</p> : null}
         </div>
+        {profile.summary ? <Summary summary={profile.summary} /> : null}
       </div>
 
       <div className="flex flex-col gap-16 px-6 py-12 md:gap-28 md:px-10 md:py-20">
@@ -129,74 +183,13 @@ function Profile({ profile }: { profile: ArtistProfile }) {
           )}
         </Section>
 
-        {profile.bio ? (
-          <Section id="bio" title={m.artist_bio_title()}>
-            {/* Last.fm serves the French biography, whatever the page language. */}
-            <p lang="fr" className="text-intro m-0 max-w-prose whitespace-pre-line">
-              {profile.bio}
-            </p>
-          </Section>
-        ) : null}
-
-        {profile.similar.length > 0 ? (
-          <Section id="similar" title={m.artist_similar_title()} body={m.artist_similar_body()}>
-            <ol className="m-0 -mx-6 flex scrollbar-none list-none gap-3.5 overflow-x-auto px-6 md:mx-0 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:px-0">
-              {profile.similar.map((similar) => {
-                const card = (
-                  <>
-                    <Cover
-                      src={similar.image}
-                      alt=""
-                      seed={similar.name}
-                      className={cn('aspect-square w-full', similar.page && LIFT)}
-                    />
-                    <span className="text-row truncate">{similar.name}</span>
-                  </>
-                );
-                return (
-                  <li key={similar.name} className="reveal flex w-38 shrink-0 flex-col md:w-auto">
-                    {similar.page ? (
-                      <Link
-                        to={artistPath(similar.page)}
-                        className="group focus-visible:outline-accent flex flex-col gap-2 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 md:gap-3"
-                      >
-                        {card}
-                      </Link>
-                    ) : (
-                      <div className="flex flex-col gap-2 md:gap-3">{card}</div>
-                    )}
-                  </li>
-                );
-              })}
-            </ol>
-          </Section>
-        ) : null}
-
-        {profile.links.length > 0 || profile.topTracks.length > 0 ? (
-          <Section id="listen" title={m.artist_listen_title()}>
-            <ul className="m-0 flex list-none flex-col gap-1 p-0">
+        {profile.links.length > 0 ? (
+          <Section id="listen" title={m.artist_listen_title()} body={m.artist_listen_body()}>
+            <ul className="border-accent m-0 flex list-none flex-wrap gap-x-8 border-t p-0 pt-2">
               {profile.links.map((link) => (
-                <li key={link.url}>
-                  <a
-                    href={link.url}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                    className={TEXT_ACTION}
-                  >
-                    {PLATFORM_LABELS[link.platform]?.() ?? link.platform}
-                  </a>
-                </li>
-              ))}
-              {profile.topTracks.map((track) => (
-                <li key={track.url}>
-                  <a
-                    href={track.url}
-                    rel="noopener noreferrer"
-                    target="_blank"
-                    className={cn(TEXT_ACTION, 'gap-3')}
-                  >
-                    {track.title}
-                    <span className="text-label text-text-muted font-mono uppercase">Deezer</span>
+                <li key={link.url} className="reveal">
+                  <a href={link.url} {...OUTSIDE_LINK} className={TEXT_ACTION}>
+                    {PLATFORM_LABELS[link.platform]()}
                   </a>
                 </li>
               ))}
@@ -208,7 +201,7 @@ function Profile({ profile }: { profile: ArtistProfile }) {
   );
 }
 
-/** An artist heard on the antenna: what the radio played, then where to go further. */
+/** An artist heard on the antenna: who they are, what the radio played, where to hear more. */
 export function ArtistPageView({ state }: { state: ArtistPageState }) {
   return (
     <main id="main" className="min-h-dvh">

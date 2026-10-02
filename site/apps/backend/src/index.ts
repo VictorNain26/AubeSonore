@@ -17,9 +17,9 @@ import { radioRoutes } from './routes/radio.routes';
 import { shareRoutes } from './routes/share.routes';
 import { coversRoutes } from './routes/covers.routes';
 import { linksCache, itunesCache } from './services/trackLinksService';
-import { lastfmCache } from './services/lastfmService';
 import { deezerCache } from './services/deezerService';
 import { musicbrainzCache } from './services/musicbrainzService';
+import { wikipediaCache } from './services/wikipediaService';
 import { radioHistoryCache } from './services/radioService';
 import { trendsCache } from './services/trendsService';
 import { purgeExpiredAuthRows } from './services/pushService';
@@ -38,11 +38,11 @@ try {
 // Start TTL cache sweeps (every minute, unref'd so process can exit)
 linksCache.startSweep();
 itunesCache.startSweep();
-lastfmCache.startSweep();
 radioHistoryCache.startSweep();
 trendsCache.startSweep();
 deezerCache.startSweep();
 musicbrainzCache.startSweep();
+wikipediaCache.startSweep();
 
 // Periodic purge of Better Auth's expired session/verification rows.
 // Without this they accumulate indefinitely — Better Auth does not self-clean.
@@ -143,11 +143,11 @@ async function gracefulShutdown(signal: string): Promise<void> {
 
   linksCache.dispose();
   itunesCache.dispose();
-  lastfmCache.dispose();
   radioHistoryCache.dispose();
   trendsCache.dispose();
   deezerCache.dispose();
   musicbrainzCache.dispose();
+  wikipediaCache.dispose();
 
   try {
     await pool.end();

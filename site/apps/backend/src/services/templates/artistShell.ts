@@ -1,4 +1,4 @@
-import type { ArtistProfile } from '@aubesonore/shared-types/client';
+import type { ArtistProfile, SiteLocale } from '@aubesonore/shared-types/client';
 
 // Only Deezer's CDN may end up in og:image: an attacker-controlled host there
 // would let a poisoned profile dictate what social networks display for us.
@@ -29,11 +29,11 @@ export function renderArtistShell(
   shell: string,
   profile: ArtistProfile,
   pageUrl: string,
-  locale: 'fr' | 'en' = 'fr'
+  locale: SiteLocale
 ): Promise<string> {
   const title = `${profile.name} — AubeSonore`;
-  const description = profile.bio
-    ? truncate(profile.bio, OG_DESCRIPTION_MAX)
+  const description = profile.summary
+    ? truncate(profile.summary.text, OG_DESCRIPTION_MAX)
     : locale === 'en'
       ? `${profile.name}, played on AubeSonore, a music discovery radio.`
       : `${profile.name}, passé sur AubeSonore, radio de découverte musicale.`;

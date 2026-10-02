@@ -130,16 +130,19 @@ export function makeArtistProfile(overrides: Partial<ArtistProfile> = {}): Artis
     name: 'Hania Rani',
     slug: 'hania-rani',
     image: null,
-    bio: null,
-    tags: ['modern classical', 'piano'],
-    listeners: null,
-    similar: [],
-    topTracks: [],
+    facts: {
+      kind: 'person',
+      place: null,
+      country: 'PL',
+      formed: null,
+      ended: null,
+      active: false,
+    },
+    summary: null,
     links: [],
     playedOnRadio: [
       { title: 'F Major', artist: 'Hania Rani', playedAt: '2026-10-01T05:12:00.000Z' },
     ],
-    resolved: true,
     ...overrides,
   };
 }

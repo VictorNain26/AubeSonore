@@ -31,7 +31,7 @@ export const artistRoutes = new Elysia({ prefix: '/api/artist' })
 
     return resolved;
   })
-  .get('/:id', async ({ request, params, set }) => {
+  .get('/:id', async ({ request, params, query, set }) => {
     const ip = getClientIp(request.headers);
     if (!checkRate('artist', ip, ARTIST_LIMIT, ARTIST_WINDOW_MS)) {
       set.status = 429;
@@ -44,7 +44,13 @@ export const artistRoutes = new Elysia({ prefix: '/api/artist' })
       return { error: 'Identifiant invalide' };
     }
 
-    const profile = await getArtistProfile(params.id);
+    const lang = query?.lang ?? 'fr';
+    if (lang !== 'fr' && lang !== 'en') {
+      set.status = 400;
+      return { error: 'Langue invalide' };
+    }
+
+    const profile = await getArtistProfile(params.id, lang);
     if (!profile) {
       set.status = 404;
       return { error: 'Artiste non trouvé' };

@@ -1,0 +1,461 @@
+{
+  "genres": [
+    {
+      "count": 2,
+      "disambiguation": "",
+      "name": "club",
+      "id": "bab69b07-8bb9-4415-b666-c37609cef80b"
+    },
+    {
+      "disambiguation": "",
+      "name": "dance",
+      "id": "e5bba957-8c91-496a-a675-c6d0c6b51c33",
+      "count": 6
+    },
+    {
+      "count": 4,
+      "disambiguation": "",
+      "name": "disco",
+      "id": "a04d680b-b5c5-4f6a-87a3-f9f1ff98e3ea"
+    },
+    {
+      "count": 1,
+      "disambiguation": "",
+      "name": "edm",
+      "id": "3976e9ba-16d0-461d-b732-99408a0374ba"
+    },
+    {
+      "count": 3,
+      "name": "electro",
+      "id": "60f00d05-df4d-496e-8f5a-c45c03a56ad4",
+      "disambiguation": ""
+    },
+    {
+      "count": 2,
+      "name": "electro house",
+      "id": "05247982-e44f-4c58-96f8-a5453be69f5f",
+      "disambiguation": ""
+    },
+    {
+      "disambiguation": "",
+      "id": "cae57e98-c939-4b0e-ae49-8e0cb1bdc91d",
+      "name": "electroclash",
+      "count": 1
+    },
+    {
+      "count": 41,
+      "disambiguation": "",
+      "name": "electronic",
+      "id": "89255676-1f14-4dd8-bbad-fca839d6aff4"
+    },
+    {
+      "count": 2,
+      "disambiguation": "",
+      "name": "electronic rock",
+      "id": "c4a69842-f891-4569-9506-1882aa5db433"
+    },
+    {
+      "disambiguation": "",
+      "id": "53a3cea3-17af-4421-a07a-5824b540aeb5",
+      "name": "electronica",
+      "count": 3
+    },
+    {
+      "count": 2,
+      "disambiguation": "",
+      "id": "bb55e7aa-ec06-4605-b867-ee66938713e1",
+      "name": "french electro"
+    },
+    {
+      "count": 19,
+      "id": "5acda04e-995d-4f79-9a66-5fe6a977ce15",
+      "name": "french house",
+      "disambiguation": ""
+    },
+    {
+      "name": "funk",
+      "id": "fe4ba6a1-9873-4fd0-a12b-a70c81818514",
+      "disambiguation": "",
+      "count": 2
+    },
+    {
+      "count": 21,
+      "id": "a2782cb6-1cd0-477c-a61d-b3f8b42dd1b3",
+      "name": "house",
+      "disambiguation": ""
+    },
+    {
+      "disambiguation": "",
+      "id": "d5c8b95a-fcf6-4c1d-b98c-a7cb4efb494f",
+      "name": "jackin house",
+      "count": 1
+    },
+    {
+      "name": "nu disco",
+      "id": "351424dd-91a3-4cf2-9edb-5df647743ec0",
+      "disambiguation": "",
+      "count": 2
+    },
+    {
+      "disambiguation": "",
+      "id": "640fb6e1-c2b9-40be-bbd0-4da3c4d4832c",
+      "name": "organic house",
+      "count": 1
+    },
+    {
+      "id": "911c7bbb-172d-4df8-9478-dbff4296e791",
+      "name": "pop",
+      "disambiguation": "",
+      "count": 1
+    },
+    {
+      "id": "31be54b2-4d0c-42df-aa44-c496c7b4c3c3",
+      "name": "r&b",
+      "disambiguation": "",
+      "count": 1
+    },
+    {
+      "count": 2,
+      "name": "synth-pop",
+      "id": "988e91a3-3341-416d-b7f8-7dbef6848dac",
+      "disambiguation": ""
+    },
+    {
+      "name": "techno",
+      "id": "41fe3260-fcc1-450b-bd5a-803886c56912",
+      "disambiguation": "",
+      "count": 2
+    },
+    {
+      "disambiguation": "",
+      "name": "trap",
+      "id": "9a339aa8-a0e5-450c-95a7-b11517bb508f",
+      "count": 1
+    }
+  ],
+  "type-id": "e431f5f6-b5d2-343d-8b36-72607fffb74b",
+  "gender-id": null,
+  "sort-name": "Daft Punk",
+  "gender": null,
+  "area": {
+    "type": null,
+    "iso-3166-1-codes": ["FR"],
+    "sort-name": "France",
+    "type-id": null,
+    "id": "08310658-51eb-3801-80de-5a0739207115",
+    "name": "France",
+    "disambiguation": ""
+  },
+  "relations": [
+    {
+      "attribute-values": {},
+      "target-type": "url",
+      "attribute-ids": {},
+      "ended": false,
+      "begin": null,
+      "type-id": "04a5b104-a4c2-4bac-99a1-7b837c37d9e4",
+      "end": null,
+      "target-credit": "",
+      "url": {
+        "id": "7ec0dfeb-5c20-4639-9f27-ec0cf2399403",
+        "resource": "https://www.discogs.com/artist/1289"
+      },
+      "attributes": [],
+      "source-credit": "",
+      "direction": "forward",
+      "type": "discogs"
+    },
+    {
+      "type-id": "04a5b104-a4c2-4bac-99a1-7b837c37d9e4",
+      "begin": null,
+      "target-credit": "",
+      "end": null,
+      "url": {
+        "id": "d20f1be8-2d3f-4cf7-984c-d9b9058f1cd7",
+        "resource": "https://www.discogs.com/artist/7618671"
+      },
+      "attribute-values": {},
+      "target-type": "url",
+      "attribute-ids": {},
+      "ended": false,
+      "direction": "forward",
+      "type": "discogs",
+      "attributes": [],
+      "source-credit": "Indo Silver Club"
+    },
+    {
+      "ended": false,
+      "attribute-ids": {},
+      "target-type": "url",
+      "attribute-values": {},
+      "url": {
+        "id": "21e8faa6-a475-4437-9860-c58dfdb9520f",
+        "resource": "https://music.yandex.com/artist/13905"
+      },
+      "target-credit": "",
+      "end": null,
+      "type-id": "769085a1-c2f7-4c24-a532-2375a77693bd",
+      "begin": null,
+      "source-credit": "",
+      "attributes": [],
+      "type": "free streaming",
+      "direction": "forward"
+    },
+    {
+      "url": {
+        "resource": "https://open.spotify.com/artist/4tZwfgrHOc3mvqYlEYSvVi",
+        "id": "fa1527d7-0849-437f-8bcc-364fbf56871f"
+      },
+      "begin": null,
+      "type-id": "769085a1-c2f7-4c24-a532-2375a77693bd",
+      "end": null,
+      "target-credit": "",
+      "target-type": "url",
+      "ended": false,
+      "attribute-ids": {},
+      "attribute-values": {},
+      "type": "free streaming",
+      "direction": "forward",
+      "source-credit": "",
+      "attributes": []
+    },
+    {
+      "ended": false,
+      "attribute-ids": {},
+      "target-type": "url",
+      "attribute-values": {},
+      "url": {
+        "resource": "https://www.deezer.com/artist/1477045",
+        "id": "9117fac5-e785-4276-856b-228d82425027"
+      },
+      "end": null,
+      "target-credit": "",
+      "begin": null,
+      "type-id": "769085a1-c2f7-4c24-a532-2375a77693bd",
+      "source-credit": "Daft Punk - Stardust",
+      "attributes": [],
+      "type": "free streaming",
+      "direction": "forward"
+    },
+    {
+      "attribute-ids": {},
+      "ended": false,
+      "target-type": "url",
+      "attribute-values": {},
+      "url": {
+        "id": "f38c83e3-0745-4397-86e5-6f9e9e65efe4",
+        "resource": "https://www.deezer.com/artist/27"
+      },
+      "end": null,
+      "target-credit": "",
+      "begin": null,
+      "type-id": "769085a1-c2f7-4c24-a532-2375a77693bd",
+      "source-credit": "",
+      "attributes": [],
+      "type": "free streaming",
+      "direction": "forward"
+    },
+    {
+      "attributes": [],
+      "source-credit": "",
+      "direction": "forward",
+      "type": "official homepage",
+      "attribute-values": {},
+      "target-type": "url",
+      "attribute-ids": {},
+      "ended": false,
+      "begin": null,
+      "type-id": "fe33d22f-c3b0-4d68-bd53-a856badf2b15",
+      "end": null,
+      "target-credit": "",
+      "url": {
+        "id": "2983c881-0cbe-4b53-9242-c4e5dee7a208",
+        "resource": "https://daftpunk.com/"
+      }
+    },
+    {
+      "type-id": "fe33d22f-c3b0-4d68-bd53-a856badf2b15",
+      "begin": null,
+      "target-credit": "",
+      "end": null,
+      "url": {
+        "id": "39b134e8-1e76-45c4-9ffb-d86a49e85048",
+        "resource": "http://mouskni.com/artists/daft-punk/"
+      },
+      "attribute-values": {},
+      "target-type": "url",
+      "ended": true,
+      "attribute-ids": {},
+      "direction": "forward",
+      "type": "official homepage",
+      "attributes": [],
+      "source-credit": ""
+    },
+    {
+      "direction": "forward",
+      "type": "soundcloud",
+      "attributes": [],
+      "source-credit": "",
+      "begin": null,
+      "type-id": "89e4a949-0976-440d-bda1-5f772c1e5710",
+      "end": null,
+      "target-credit": "",
+      "url": {
+        "resource": "https://soundcloud.com/daftpunkofficialmusic",
+        "id": "21c8090f-21d1-4937-9c13-e6350cfdf927"
+      },
+      "attribute-values": {},
+      "target-type": "url",
+      "attribute-ids": {},
+      "ended": false
+    },
+    {
+      "direction": "forward",
+      "type": "streaming",
+      "attributes": [],
+      "source-credit": "",
+      "target-credit": "",
+      "end": "2022-06-08",
+      "type-id": "63cc5d1f-f096-4c94-a43f-ecb32ea94161",
+      "begin": null,
+      "url": {
+        "resource": "https://us.napster.com/artist/daft-punk",
+        "id": "447e0eec-55a3-4bf7-8924-097aa109afcc"
+      },
+      "attribute-values": {},
+      "attribute-ids": {},
+      "ended": true,
+      "target-type": "url"
+    },
+    {
+      "type": "streaming",
+      "direction": "forward",
+      "source-credit": "",
+      "attributes": [],
+      "url": {
+        "resource": "https://music.amazon.fr/artists/B001E8WS3O",
+        "id": "bc54aa93-1a44-4f53-b5c5-4ca58824db63"
+      },
+      "end": null,
+      "target-credit": "",
+      "begin": null,
+      "type-id": "63cc5d1f-f096-4c94-a43f-ecb32ea94161",
+      "ended": false,
+      "attribute-ids": {},
+      "target-type": "url",
+      "attribute-values": {}
+    },
+    {
+      "direction": "forward",
+      "type": "streaming",
+      "attributes": [],
+      "source-credit": "",
+      "begin": null,
+      "type-id": "63cc5d1f-f096-4c94-a43f-ecb32ea94161",
+      "end": null,
+      "target-credit": "",
+      "url": {
+        "id": "478f3f6e-0e74-4e81-a184-4245a1a8975a",
+        "resource": "https://music.apple.com/fr/artist/5468295"
+      },
+      "attribute-values": {},
+      "target-type": "url",
+      "attribute-ids": {},
+      "ended": false
+    },
+    {
+      "attribute-values": {},
+      "attribute-ids": {},
+      "ended": false,
+      "target-type": "url",
+      "end": null,
+      "target-credit": "",
+      "begin": null,
+      "type-id": "63cc5d1f-f096-4c94-a43f-ecb32ea94161",
+      "url": {
+        "id": "57707e49-3bf5-4686-92ab-007aedff506b",
+        "resource": "https://open.qobuz.com/artist/36819"
+      },
+      "attributes": [],
+      "source-credit": "",
+      "direction": "forward",
+      "type": "streaming"
+    },
+    {
+      "source-credit": "",
+      "attributes": [],
+      "type": "streaming",
+      "direction": "forward",
+      "target-type": "url",
+      "ended": false,
+      "attribute-ids": {},
+      "attribute-values": {},
+      "url": {
+        "resource": "https://tidal.com/artist/8847",
+        "id": "9a95785e-0e37-49b4-a99b-ad6dfeba65e1"
+      },
+      "type-id": "63cc5d1f-f096-4c94-a43f-ecb32ea94161",
+      "begin": null,
+      "target-credit": "",
+      "end": null
+    },
+    {
+      "url": {
+        "id": "2c886e53-3838-4e7e-ae5a-30d860f0c652",
+        "resource": "https://www.qobuz.com/fr-fr/interpreter/daft-punk/36819"
+      },
+      "type-id": "63cc5d1f-f096-4c94-a43f-ecb32ea94161",
+      "begin": null,
+      "target-credit": "",
+      "end": null,
+      "target-type": "url",
+      "attribute-ids": {},
+      "ended": false,
+      "attribute-values": {},
+      "type": "streaming",
+      "direction": "forward",
+      "source-credit": "",
+      "attributes": []
+    },
+    {
+      "url": {
+        "id": "ea4d1683-896f-4bb7-8332-9d71b9564695",
+        "resource": "https://www.wikidata.org/wiki/Q185828"
+      },
+      "type-id": "689870a4-a1e4-4912-b17f-7b2664215698",
+      "begin": null,
+      "target-credit": "",
+      "end": null,
+      "target-type": "url",
+      "attribute-ids": {},
+      "ended": false,
+      "attribute-values": {},
+      "type": "wikidata",
+      "direction": "forward",
+      "source-credit": "",
+      "attributes": []
+    }
+  ],
+  "isnis": ["0000000123531208"],
+  "id": "056e4f3e-d505-4dad-8ec1-d04f521cbb56",
+  "type": "Group",
+  "end-area": null,
+  "begin-area": {
+    "id": "dc10c22b-e510-4006-8b7f-fecb4f36436e",
+    "name": "Paris",
+    "disambiguation": "",
+    "type-id": null,
+    "iso-3166-2-codes": ["FR-75"],
+    "type": null,
+    "sort-name": "Paris"
+  },
+  "disambiguation": "French electronic duo",
+  "name": "Daft Punk",
+  "life-span": {
+    "begin": "1993",
+    "end": "2021-02-22",
+    "ended": true
+  },
+  "ipis": ["00711797335"],
+  "country": "FR"
+}

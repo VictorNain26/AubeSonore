@@ -38,14 +38,14 @@ const profileSpy = spyOn(profileService, 'getArtistProfile').mockImplementation(
           name: profileName,
           slug: 'daft-punk',
           image: profileImage,
-          bio: 'Un duo français.',
-          tags: [],
-          listeners: null,
-          similar: [],
-          topTracks: [],
+          facts: null,
+          summary: {
+            text: 'Un duo français.',
+            lang: 'fr' as const,
+            url: 'https://fr.wikipedia.org/wiki/Daft_Punk',
+          },
           links: [],
           playedOnRadio: [],
-          resolved: true,
         }
       : null
   )

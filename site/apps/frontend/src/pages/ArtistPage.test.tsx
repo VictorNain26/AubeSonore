@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router';
 import { useHeroListenVisible } from '../home/listen';
 import ArtistPage from './ArtistPage';
@@ -22,7 +22,8 @@ describe('ArtistPage', () => {
     expect(
       await screen.findByRole('heading', { level: 1, name: 'Hania Rani' })
     ).toBeInTheDocument();
-    expect(document.title).toBe('Hania Rani — AubeSonore');
+    // Set by an effect after the heading renders.
+    await waitFor(() => expect(document.title).toBe('Hania Rani — AubeSonore'));
   });
 
   it('shows the not-found state for an id the API does not know', async () => {

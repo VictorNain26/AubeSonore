@@ -1,3 +1,4 @@
+import type { SiteLocale } from '@aubesonore/shared-types/client';
 import { Elysia } from 'elysia';
 import { env } from '../config/env';
 import { logger } from '../lib/logger';
@@ -44,15 +45,16 @@ export function __resetArtistShell(): void {
   shell = null;
 }
 
-type Locale = 'fr' | 'en';
-
 interface HandlerContext {
   request: Request;
   params: { id: string };
   set: { status?: number | string; headers: Record<string, string | number> };
 }
 
-async function handle(locale: Locale, { request, params, set }: HandlerContext): Promise<string> {
+async function handle(
+  locale: SiteLocale,
+  { request, params, set }: HandlerContext
+): Promise<string> {
   const ip = getClientIp(request.headers);
   if (!checkRate('artistPage', ip, PAGE_LIMIT, PAGE_WINDOW_MS)) {
     set.status = 429;
@@ -76,7 +78,7 @@ async function handle(locale: Locale, { request, params, set }: HandlerContext):
   // leaves browsers on a page whose hashed assets are gone.
   set.headers['cache-control'] = 'no-cache';
 
-  const profile = await getArtistProfile(params.id);
+  const profile = await getArtistProfile(params.id, locale);
   // Unknown artist: a real 404, or crawlers index it as a soft 404. The SPA
   // still boots and renders its own not-found state.
   if (!profile) {

@@ -18,14 +18,10 @@ const spies = [
             name: 'Daft Punk',
             slug: 'daft-punk',
             image: null,
-            bio: null,
-            tags: [],
-            listeners: null,
-            similar: [],
-            topTracks: [],
+            facts: null,
+            summary: null,
             links: [],
             playedOnRadio: [],
-            resolved: true,
           }
         : null
     )
@@ -54,6 +50,23 @@ describe('GET /api/artist/:id', () => {
 
     expect(res.status).toBe(200);
     expect(((await res.json()) as { name: string }).name).toBe('Daft Punk');
+  });
+
+  it('asks the profile in the page language, French by default', async () => {
+    const [profileSpy] = spies;
+    await app.handle(new Request(`http://localhost/api/artist/${VALID_ID}?lang=en`));
+    await app.handle(new Request(`http://localhost/api/artist/${VALID_ID}`));
+
+    expect(profileSpy?.mock.calls.slice(-2)).toEqual([
+      [VALID_ID, 'en'],
+      [VALID_ID, 'fr'],
+    ]);
+  });
+
+  it('rejects a language the site is not published in', async () => {
+    const res = await app.handle(new Request(`http://localhost/api/artist/${VALID_ID}?lang=de`));
+
+    expect(res.status).toBe(400);
   });
 
   it('rejects a malformed id at the boundary', async () => {
