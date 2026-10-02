@@ -151,35 +151,6 @@ export async function unlikeTrack({
 }
 
 // ─────────────────────────────────────────────
-// Vérifier si un morceau est liké
-// ─────────────────────────────────────────────
-
-export async function isTrackLiked({
-  user,
-  title,
-  artist,
-}: {
-  user: User;
-  title: string;
-  artist: string;
-}): Promise<boolean> {
-  const track = await db
-    .select({ id: schema.likedTracks.id })
-    .from(schema.likedTracks)
-    .where(
-      and(
-        eq(schema.likedTracks.userId, user.id),
-        eq(schema.likedTracks.title, title),
-        eq(schema.likedTracks.artist, artist)
-      )
-    )
-    .limit(1)
-    .then((res) => res[0]);
-
-  return !!track;
-}
-
-// ─────────────────────────────────────────────
 // Récupérer un morceau liké par titre/artiste
 // ─────────────────────────────────────────────
 

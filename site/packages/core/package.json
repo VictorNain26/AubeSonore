@@ -42,8 +42,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aubesonore/shared-types": "workspace:*",
-    "zustand": "^5.0.13"
+    "@aubesonore/shared-types": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
