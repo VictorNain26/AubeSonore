@@ -38,7 +38,8 @@ describe('SiteHeader', () => {
     expect(useAuthModalStore.getState().isOpen).toBe(true);
   });
 
-  it('opens Mes titres, and keeps the account in its own menu', async () => {
+  function signIn(): ReturnType<typeof vi.fn> {
+    const signOut = vi.fn().mockResolvedValue(undefined);
     useAuthStore.setState({
       user: {
         id: '1',
@@ -51,15 +52,22 @@ describe('SiteHeader', () => {
       isAuthenticated: true,
       isLoading: false,
       authError: null,
+      signOut,
     });
-    const signOut = vi.fn().mockResolvedValue(undefined);
-    useAuthStore.setState({ signOut });
+    return signOut;
+  }
 
+  it('opens Mes titres in a drawer named like its button', async () => {
+    signIn();
     render(<SiteHeader />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Mes titres' }));
     expect(await screen.findByRole('dialog', { name: 'Mes titres' })).toBeInTheDocument();
-    await userEvent.keyboard('{Escape}');
+  });
+
+  it('keeps the account in its own menu, where the listener signs out', async () => {
+    const signOut = signIn();
+    render(<SiteHeader />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Mon compte' }));
     expect(await screen.findByText('jane@example.com')).toBeInTheDocument();
