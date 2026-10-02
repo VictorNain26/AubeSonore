@@ -13,7 +13,6 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/shared-types/package.json ./packages/shared-types/
-COPY packages/core/package.json ./packages/core/
 
 RUN pnpm install --frozen-lockfile
 
@@ -22,12 +21,11 @@ RUN pnpm install --frozen-lockfile
 # -----------------------------------------------------------------------------
 FROM deps AS builder
 
-COPY packages ./packages
+COPY packages/shared-types ./packages/shared-types
 COPY apps/backend ./apps/backend
 COPY tsconfig.base.json ./
 
-RUN pnpm --filter @aubesonore/shared-types build && \
-    pnpm --filter @aubesonore/core build
+RUN pnpm --filter @aubesonore/shared-types build
 
 # -----------------------------------------------------------------------------
 # Stage 3: minimal runtime
