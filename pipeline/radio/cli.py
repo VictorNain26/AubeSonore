@@ -8,9 +8,10 @@ import sys
 from collections import Counter
 from collections.abc import Callable
 from contextlib import closing
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import PurePosixPath
 from typing import NoReturn, ParamSpec, TypeVar
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import requests
@@ -21,6 +22,7 @@ from pydantic import ValidationError
 
 from radio.acquire.run import acquire_pass
 from radio.acquire.sockseek import SockseekError
+from radio.antenna import grille as grille_mod
 from radio.antenna.sync import antenne_pass
 from radio.core.backup import BackupError, backup
 from radio.core.config import Editorial, Settings, load_editorial
@@ -631,6 +633,60 @@ def mesures() -> None:
         _fail(f"Fichiers d'antenne absents de {settings.azuracast_media_dir}", 1)
 
 
+@app.command()
+@_stage("grille")
+def grille(
+    aujourdhui: bool = typer.Option(
+        False, "--aujourdhui", help="Les heures restantes d'aujourd'hui, au lieu de demain."
+    ),
+) -> None:
+    """Écrit la grille d'une journée dans les playlists horaires d'AzuraCast : qui passe, à
+    quelle heure, dans quel ordre."""
+    settings = _settings()
+    cfg = _editorial(settings).grille
+    if settings.azuracast_api_key is None:
+        _fail("AZURACAST_API_KEY doit être défini dans .env", 2)
+    station = AzuracastClient(
+        settings.azuracast_url,
+        settings.azuracast_api_key.get_secret_value(),
+        settings.azuracast_station_id,
+    )
+    try:
+        now = datetime.now(ZoneInfo(station.timezone()))
+        day = now.date() if aujourdhui else now.date() + timedelta(days=1)
+        hours = list(range(now.hour + 1, 24)) if aujourdhui else list(range(24))
+        played = station.last_played((now - timedelta(days=14)).isoformat(), now.isoformat())
+        with _db(settings) as conn:
+            plan = grille_mod.plan_day(grille_mod.load_titres(conn), played, cfg, day, hours)
+            errors = grille_mod.publish(plan, station)
+            _record(
+                conn,
+                "grille",
+                not errors,
+                {
+                    "jour": day.isoformat(),
+                    "heures": len(hours),
+                    "créneaux": plan.slots,
+                    "créneaux vides": plan.empty_slots,
+                    "titres non mesurés": plan.unmeasured,
+                    "erreurs": len(errors),
+                },
+            )
+    except AzuracastUnavailable as e:
+        _fail(f"AzuraCast indisponible ({e})", 1)
+    _echo(
+        [
+            f"Grille du {day.isoformat()} : {_n(len(hours))} heures, créneaux "
+            + ", ".join(f"{c} {_n(n)}" for c, n in plan.slots.items()),
+            f"  créneaux vides : {_n(plan.empty_slots)}, titres pas encore mesurés : "
+            f"{_n(plan.unmeasured)}",
+            *(f"  erreur : {e}" for e in errors),
+        ]
+    )
+    if errors:
+        _fail(f"{_n(len(errors))} heures mal écrites", 1)
+
+
 def _train_lines(r: TrainReport) -> list[str]:
     c = r.counts
     verdict = "promu" if r.promoted else "non promu"
@@ -763,6 +819,7 @@ PASS_STAGES = (
     "acquire",
     "antenne",
     "mesures",
+    "grille",
 )
 
 

@@ -283,17 +283,36 @@ dans `~/radio/archives/*-avant-bascule-2026-10-01.json`, création de la playlis
 (id 10) rattachée à `antenne/`, désactivation des 8 anciennes, suppression des 369 anciens
 titres. Les playlists se réactivent depuis la sauvegarde ; les fichiers supprimés sont perdus.
 
-### 7.3 Enchaînement (plus tard)
+### 7.3 Enchaînement et grille
 
-Déjà décidé le 2026-09-23 :
+Une grille horaire fixe la part d'antenne de chaque catégorie (`[grille]` de `editorial.toml` :
+1/3 nouveautés, 1/3 découvertes, 1/6 fond, 1/6 repères), et le même planificateur ordonne
+chaque heure (`recherches/2026-10-02-cycle-de-vie.md` §2 et §6). `radio grille` écrit chaque
+soir à 23:00 la journée du lendemain ; la passe du dimanche réécrit les heures qui restent après
+avoir fait entrer et sortir des titres (`--aujourdhui`, jamais l'heure en cours).
 
-- un fil qui dérive, chaque titre proche du précédent, tiré vers une grille cible 7 × 24 h
-  (énergie, tempo, dansabilité) ;
-- le vendredi et le samedi, une soirée plus dansante jusqu'à 03:00 ;
-- publication en playlists horaires séquentielles, programmées, avec `loop_once` et sans
-  `avoid_duplicates` ;
-- la playlist « AubeSonore » devient alors le secours, puisque les playlists programmées passent
-  devant.
+- **Créneaux.** Une heure en prévoit `ceil(titres_par_heure) + 1` (16), répartis entre les
+  catégories par smooth weighted round-robin. Tant qu'une catégorie n'a pas son stock, sa part
+  est réduite en proportion et rendue aux autres.
+- **Remplissage, créneau par créneau** (comme MusicMaster) : la catégorie est parcourue dans
+  l'ordre de rotation (dernier passage dans l'historique d'AzuraCast, 14 jours), sur une fenêtre
+  de `marge − 1` fois les passages du jour ; le titre le plus proche de la cible de l'heure est
+  pris, `retard` faisant pencher vers le plus ancien. Un artiste ne repasse ni dans l'heure ni
+  dans l'heure précédente ; un titre placé repart en fin de rotation.
+- **Cibles** : énergie (arousal), dansabilité et tempo, en quantiles des titres mesurés à
+  l'antenne. Six blocs : matin dès 6 h, après-midi dès 12 h, soir dès 20 h, nuit dès 23 h, fin de
+  nuit dès 4 h (5 h le samedi et le dimanche), d'après Heggli, Stupacher et Vuust (*Royal
+  Society Open Science*, 2021, PMC8580447) ; fête le vendredi et le samedi de 20 h à 3 h
+  (décision du 2026-09-23). Un titre pas encore mesuré est neutre.
+- **Ordre** : fil qui dérive, du dernier titre de l'heure précédente au plus proche, de la fin
+  d'un titre au début du suivant.
+- **AzuraCast** : 168 playlists « Grille {jour} {hh}h », séquentielles, programmées une heure par
+  semaine avec `loop_once`, sans `avoid_duplicates`, créées au premier usage
+  (`POST /station/1/playlists` avec `schedule_items` ; `start_date` et `end_date` à `null`
+  obligatoires). Remplissage : `DELETE …/empty` puis `POST …/import` (M3U, ordre conservé,
+  `ImportAction` 0.23.8). Les playlists programmées passent devant la playlist « AubeSonore »,
+  qui reste le secours (`QueueBuilder`, 0.23.8). Le titre de trop d'une heure n'est pas joué :
+  l'heure suivante démarre à l'heure.
 
 **Mesures par titre** (`radio mesures`, depuis le 2026-10-02 ;
 `recherches/2026-10-02-mesures-titres.md`). Chaque titre de la table `antenne`, au repos compris
@@ -362,7 +381,8 @@ toutes les 24 h et un message de retour à la normale, sur deux canaux :
 | `flux-public` : `radio.aubesonore.fr/listen/aubesonore/radio.mp3`, toutes les 5 min | HTTP 200 : vérifie aussi le tunnel Cloudflare (en place) |
 | `passe-hebdo` (endpoint externe) | Poussée par `ExecStopPost=` avec `$SERVICE_RESULT` ; alerte au premier échec ou après 8 jours de silence (en place) |
 | `sauvegarde` (endpoint externe) | Même mécanisme pour `radio-backup` ; alerte au premier échec ou après 2 jours de silence |
-| Playlist en cours ≠ secours | Après l'enchaînement (§7.3) |
+| `grille-a-l-antenne` : `nowplaying`, toutes les 10 min | la playlist en cours s'appelle « Grille … » ; alerte après 7 échecs (plus d'une heure de secours) |
+| `grille` (endpoint externe) | `radio-grille` ; alerte au premier échec ou après 2 jours de silence |
 | `page-de-vote` : `127.0.0.1:8040`, toutes les 5 min | HTTP 403 sans jeton Access : la page tourne (en place) |
 | `page-de-vote-publique` : `votes.aubesonore.fr`, toutes les 5 min, redirection non suivie | HTTP 302 vers la connexion Access : la règle Access et la route du tunnel tiennent |
 
@@ -393,7 +413,8 @@ toutes les 24 h et un message de retour à la normale, sur deux canaux :
 
 | Quand | Unité systemd utilisateur | Ce qui se passe |
 |---|---|---|
-| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `nouveautes`, `signals`, `train`, `votes-select`, `acquire`, `antenne`, `mesures`, `check` ; bornée à 12 h, battement de cœur Gatus |
+| dimanche 03:00 | `radio-weekly` | `library-sync`, `discover`, `nouveautes`, `signals`, `train`, `votes-select`, `acquire`, `antenne`, `mesures`, `grille --aujourdhui`, `check` ; bornée à 12 h, battement de cœur Gatus |
+| chaque jour 23:00 | `radio-grille` | grille du lendemain dans les 24 playlists horaires du jour ; battement de cœur Gatus |
 | chaque jour 04:30 | `radio-backup` | copie de `data/radio.db` (API de sauvegarde SQLite, `integrity_check` vérifié) et de `data/models/` dans `RADIO_BACKUP_DIR` (`/media/plex/.backups/radio`, autre disque physique), 14 jours gardés ; battement de cœur Gatus |
 | dimanche 10:00 | `radio-remind` | rappel WhatsApp de vote |
 | en continu | `radio-votes` | page de vote, `127.0.0.1:8040`, publiée sur `votes.aubesonore.fr` |
@@ -412,7 +433,7 @@ Gatus : `cd deploy/gatus && docker compose up -d` (son `.env` est un lien vers c
 ```bash
 for u in deploy/systemd/*; do systemctl --user link "$PWD/$u"; done
 systemctl --user daemon-reload
-systemctl --user enable --now radio-weekly.timer radio-remind.timer radio-backup.timer radio-votes.service
+systemctl --user enable --now radio-weekly.timer radio-remind.timer radio-backup.timer radio-grille.timer radio-votes.service
 loginctl enable-linger
 ```
 

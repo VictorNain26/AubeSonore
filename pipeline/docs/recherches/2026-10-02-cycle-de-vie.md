@@ -135,43 +135,43 @@ d'auditeurs, qui remplace ici la recherche auditeurs des radios [I].
 
 Le planificateur doit tenir deux contraintes qui tirent en sens contraires : la **rotation**
 (chaque titre revient à son rythme) et la **courbe** de la journée (un titre calme ne passe pas
-le samedi à minuit). Il les sépare en trois temps, chaque jour à minuit, pour les 24 heures du
-lendemain (`radio grille`) :
+le samedi à minuit). Il remplit la grille créneau par créneau, comme un ordonnanceur radio
+(MusicMaster [S]) : pour chaque créneau, la catégorie est parcourue dans l'ordre de rotation
+(joué il y a le plus longtemps d'abord, le turnover [S]), sur une fenêtre de recherche, et le
+titre le plus proche de la cible de l'heure est pris, l'ancienneté départageant. Un artiste ne
+repasse ni dans l'heure ni dans l'heure précédente (au moins 60 min, proche des 70 min de
+MusicMaster [S]). Chaque heure est ensuite ordonnée en fil qui dérive.
 
-1. **Qui passe demain.** Pour chaque catégorie, le quota du jour est pris parmi les titres joués
-   il y a le plus longtemps, avec une marge de 40 % : chaque titre passe une fois avant qu'un
-   autre revienne (le turnover d'une catégorie, MusicMaster [S]).
-2. **À quelle heure.** Ces titres sont répartis entre les créneaux de la grille en minimisant
-   l'écart entre chaque titre et la cible de son heure. C'est un problème d'affectation, résolu
-   par l'algorithme hongrois (`scipy.optimize.linear_sum_assignment`, scipy est déjà une
-   dépendance). Un titre non placé reste prioritaire le lendemain. Le coût grandit avec son
-   retard, si bien qu'un titre énergique finit toujours par passer, au pire le samedi soir [I].
-3. **Dans quel ordre.** Chaque heure est ordonnée en fil qui dérive, en partant du dernier titre
-   de l'heure précédente et en allant chaque fois au plus proche (plus proche voisin [I]). La
-   séparation d'artiste est d'au moins 70 min (MusicMaster [S]).
+Une première version affectait toute la journée d'un coup (algorithme hongrois) avec un seul
+titre par artiste et par jour : essayée à blanc sur l'antenne du 2026-10-02, elle laissait
+224 créneaux vides sur 384, les découvertes venant d'un nombre limité d'artistes, et des heures
+presque vides [M]. Le remplissage créneau par créneau en laisse 0 (16 titres par heure, 315
+titres distincts, au plus 2 passages par jour avec 341 titres pour 384 créneaux) [M].
 
 - **Grille cible 7 × 24 h** (énergie, tempo, dansabilité). L'écoute suit cinq blocs dans la
-  journée : matin, après-midi, soir, nuit, et fin de nuit/petit matin (Heggli, Stupacher, Vuust,
-  *Royal Society Open Science*, 2021, 2 milliards d'écoutes Spotify [S]). Décision du
-  2026-09-23 : le vendredi et le samedi soir sont plus dansants, jusqu'à 03:00. **Les cibles
+  journée (Heggli, Stupacher, Vuust, *Royal Society Open Science*, 2021, 2 milliards d'écoutes
+  Spotify, texte intégral PMC8580447 [S]) : matin dès 6 h, plus d'énergie et un tempo plus
+  lent ; après-midi dès 12 h, tempo en nette hausse ; soir dès 20 h, tempo et dansabilité au plus
+  haut ; nuit dès 23 h, volume et tempo au plus bas ; fin de nuit dès 4 h, un peu plus d'énergie
+  que la nuit. Le week-end, le soir s'allonge (nuit à 3 h puis 4 h, fin de nuit à 5 h). Décision
+  du 2026-09-23 : le vendredi et le samedi soir sont plus dansants, jusqu'à 03:00. L'amplitude
+  des cibles est un choix [I] : l'article ne donne que le sens des écarts. **Les cibles
   s'expriment en quantiles des titres à l'antenne** et non en valeurs absolues : chaque titre a
   ainsi des heures qui lui conviennent, et la grille suit la couleur de l'antenne quand elle
   change [I].
-- **Mesures par titre** : têtes Essentia (danceability, mood_party, mood_relaxed,
-  mood_aggressive, engagement) et tempo (RhythmExtractor2013), calculés une fois sur le fichier
-  d'antenne. Ces modèles MTG sont sous licence non commerciale, compatible avec une radio
-  gratuite et sans publicité.
-- **Une heure se remplit en durée, pas en nombre** : on ajoute des titres jusqu'à dépasser
-  60 min, pour que le secours ne prenne jamais la fin d'une heure. Le comportement d'AzuraCast
-  au changement d'heure (titre coupé ou mené à son terme) sera vérifié sur la vraie station
-  avant la bascule.
+- **Mesures par titre** (`2026-10-02-mesures-titres.md`) : dansabilité et arousal (énergie) sur
+  MSD-MusiCNN, tempo par TempoCNN, sur le titre entier, son début et sa fin. Modèles MTG sous
+  licence non commerciale, compatible avec une radio gratuite et sans publicité.
+- **Une heure prévoit un titre de plus que la station n'en joue** (16 pour 14,6 mesurés) : le
+  secours ne prend jamais la fin d'une heure ; le titre de trop n'est pas joué et reste en tête
+  de rotation.
 - **AzuraCast** : une playlist séquentielle programmée par heure (`loop_once`,
   `avoid_duplicates=false`), remplie par `DELETE …/empty` puis `POST …/import` (M3U, l'ordre est
   conservé). La playlist « AubeSonore » reste le secours, liée au seul dossier `antenne/` ; le
   repos est dans `repos/`, lié à aucune playlist (`do=move` déplace un fichier sans réécrire ses
   balises [S]). Une sonde Gatus alerte si le secours joue.
-- **Un vote « non »** retire le titre à la passe du soir : il ne figure plus dans la grille du
-  lendemain.
+- **Un vote « non »** retire le titre à la passe du dimanche, qui réécrit aussitôt les heures
+  restantes de la journée.
 
 ## 7. Ce qu'on n'avait pas encore vu
 
@@ -200,8 +200,8 @@ lendemain (`radio grille`) :
 2. **Cycle de vie à l'antenne** : catégories, sorties par âge, promotion, platooning, repos,
    péremption. Elle remplace `remove_excess` et le défaut des 50 retraits par passe. Livrée le
    2026-10-02 ; les premières fins de séjour tombent le 2026-11-15 (cohorte du 2026-10-01).
-3. **Mesures par titre** pour l'enchaînement.
-4. **Planificateur et grille** dans AzuraCast, sonde Gatus.
+3. **Mesures par titre** pour l'enchaînement. Livrée le 2026-10-02.
+4. **Planificateur et grille** dans AzuraCast, sonde Gatus. Livrée le 2026-10-02.
 
 Chaque étape met `docs/vision.md` à jour dans le même commit.
 

@@ -136,9 +136,34 @@ _GRILLE: dict[Categorie, Creneau] = {
 }
 
 
+Bloc = Literal["matin", "apres_midi", "soir", "nuit", "fin_de_nuit", "fete"]
+
+
+class Cible(BaseModel):
+    """Cible d'un bloc horaire, en quantiles des titres à l'antenne (0 à 1)."""
+
+    model_config = ConfigDict(extra="forbid")
+    energie: float = Field(ge=0, le=1)
+    dansabilite: float = Field(ge=0, le=1)
+    tempo: float = Field(ge=0, le=1)
+
+
+_CIBLES: dict[Bloc, Cible] = {
+    "matin": Cible(energie=0.6, dansabilite=0.45, tempo=0.4),
+    "apres_midi": Cible(energie=0.55, dansabilite=0.5, tempo=0.6),
+    "soir": Cible(energie=0.6, dansabilite=0.65, tempo=0.7),
+    "nuit": Cible(energie=0.25, dansabilite=0.3, tempo=0.25),
+    "fin_de_nuit": Cible(energie=0.35, dansabilite=0.3, tempo=0.3),
+    "fete": Cible(energie=0.75, dansabilite=0.85, tempo=0.75),
+}
+
+
 class GrilleConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     titres_par_heure: float = Field(default=14.6, gt=0)
+    marge: float = Field(default=1.4, ge=1)
+    retard: float = Field(default=0.5, ge=0)
+    cibles: dict[Bloc, Cible] = Field(default_factory=lambda: dict(_CIBLES))
     categories: dict[Categorie, Creneau] = Field(default_factory=lambda: dict(_GRILLE))
 
     @model_validator(mode="after")

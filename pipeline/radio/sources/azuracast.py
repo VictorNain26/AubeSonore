@@ -66,6 +66,62 @@ class AzuracastClient:
         )
         return [str(e) for e in r.get("errors") or []]
 
+    def last_played(self, start: str, end: str) -> dict[str, float]:
+        """Dernier passage (horodatage UNIX) de chaque titre entre `start` et `end` (ISO 8601),
+        d'après `GET /station/{id}/history`."""
+        out: dict[str, float] = {}
+        for h in self._call("GET", self._at("/history"), params={"start": start, "end": end}):
+            song = str(h["song"]["id"])
+            out[song] = max(out.get(song, 0.0), float(h["played_at"]))
+        return out
+
+    def timezone(self) -> str:
+        return str(self._call("GET", f"/station/{self._station}")["timezone"])
+
+    def playlists(self) -> dict[str, int]:
+        return {str(p["name"]): int(p["id"]) for p in self._call("GET", self._at("/playlists"))}
+
+    def create_hour_playlist(self, name: str, day: int, hour: int) -> int:
+        """Playlist séquentielle programmée une heure par semaine, jouée une fois (`loop_once`),
+        sans évitement des doublons : l'ordre écrit est l'ordre joué. `start_date` et `end_date`
+        sont lus sans valeur par défaut (StationScheduleRepository::setScheduleItems, 0.23.8)."""
+        p = self._call(
+            "POST",
+            self._at("/playlists"),
+            json={
+                "name": name,
+                "type": "default",
+                "source": "songs",
+                "order": "sequential",
+                "is_enabled": True,
+                "avoid_duplicates": False,
+                "include_in_requests": False,
+                "weight": 3,
+                "schedule_items": [
+                    {
+                        "start_time": hour * 100,
+                        "end_time": (hour + 1) % 24 * 100,
+                        "start_date": None,
+                        "end_date": None,
+                        "days": [day],
+                        "loop_once": True,
+                    }
+                ],
+            },
+        )
+        return int(p["id"])
+
+    def fill_playlist(self, playlist_id: int, m3u: str) -> int:
+        """Vide la playlist puis importe le M3U dans l'ordre (ImportAction, 0.23.8) ; renvoie le
+        nombre de chemins retrouvés."""
+        self._call("DELETE", f"{self._at('/playlist')}/{playlist_id}/empty")
+        r = self._call(
+            "POST",
+            f"{self._at('/playlist')}/{playlist_id}/import",
+            files={"playlist_file": ("grille.m3u", m3u.encode(), "audio/x-mpegurl")},
+        )
+        return sum(1 for x in r.get("import_results") or [] if x.get("match"))
+
     def busy_song_ids(self) -> set[str]:
         """Titre en cours, et titres en file d'attente ou déjà préparés par Liquidsoap : jamais
         supprimés. `now_playing` est nul quand la station est hors ligne."""
