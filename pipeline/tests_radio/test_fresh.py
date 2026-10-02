@@ -12,7 +12,7 @@ from radio.discover.fresh import NoBatchError, fresh_pass
 from radio.library.artists import register_library
 from radio.sources.deezer import DeezerTrack
 from radio.sources.hypem import API, HypemClient, HypemError, HypemTrack, HypemUnavailable
-from radio.votes.status import yes_by_source
+from radio.votes.suivi import yes_by_source
 from tests_radio.factories import make_library
 
 NOW = "2026-10-01T00:00:00+00:00"
@@ -90,6 +90,11 @@ def test_fresh_titles_join_the_last_batch_with_their_source(tmp_path: Path) -> N
     assert dict(rep.seen) == {"hypem": 3, "deezer_editorial": 5}
     assert dict(rep.added) == {"hypem": 1, "deezer_editorial": 2}
     assert (rep.n_unmatched, rep.n_known, rep.skipped) == (1, 1, [])
+
+    # La semaine suivante, mêmes sélections : rien de neuf, et c'est compté par source.
+    again = fresh_pass(conn, FakeDeezer(), hypem, CFG, 3, NOW)  # type: ignore[arg-type]
+    assert sum(again.added.values()) == 0
+    assert dict(again.already) == {"hypem": 1, "deezer_editorial": 2}
 
 
 def test_a_broken_source_is_named_and_the_others_still_run(tmp_path: Path) -> None:

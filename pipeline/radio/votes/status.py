@@ -74,21 +74,3 @@ def load_status(
         recent_votes=int(recent),
         batch=last_batch(conn),
     )
-
-
-def yes_by_source(conn: sqlite3.Connection) -> list[tuple[str, YesRate]]:
-    """Taux de oui à l'examen par source (docs/vision.md §3), puis par blog ou genre : l'examen
-    tire uniformément dans la fournée, donc il juge la source elle-même, avant le modèle."""
-    rows = conn.execute(
-        """
-        SELECT c.source, c.detail, v.vote FROM votes v JOIN candidates c USING (deezer_track_id)
-        WHERE v.kind = 'exam' AND v.vote != 'passer'
-        """
-    ).fetchall()
-    groups: dict[str, list[int]] = {}
-    for source, detail, vote in rows:
-        keys = [str(source)] + ([f"{source} · {detail}"] if detail is not None else [])
-        for key in keys:
-            groups.setdefault(key, []).append(int(vote == "oui"))
-    rates = {k: yes_rate(np.array(v, dtype=np.int64)) for k, v in groups.items()}
-    return [(k, r) for k, r in sorted(rates.items()) if r is not None]

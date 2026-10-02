@@ -56,7 +56,8 @@ from radio.sources.plex import LibraryGuardError, PlexSource
 from radio.votes.access import AccessVerifier
 from radio.votes.app import create_app
 from radio.votes.select import NoScoresError, NoServingModelError, PendingBallotsError, select_batch
-from radio.votes.status import Status, load_status, yes_by_source
+from radio.votes.status import Status, load_status
+from radio.votes.suivi import load_suivi, suivi_lines
 
 app = typer.Typer(no_args_is_help=True, add_completion=False)
 
@@ -315,6 +316,7 @@ def nouveautes() -> None:
             {
                 "vus": dict(rep.seen),
                 "ajoutés": dict(rep.added),
+                "déjà vus": dict(rep.already),
                 "non trouvés sur Deezer": rep.n_unmatched,
                 "déjà dans la bibliothèque": rep.n_known,
                 "sources sautées": rep.skipped,
@@ -324,7 +326,9 @@ def nouveautes() -> None:
         [
             f"Nouveautés (fournée n°{rep.run_id}) : "
             + ", ".join(
-                f"{src} {_n(rep.added[src])} ajoutés sur {_n(n)} vus" for src, n in rep.seen.items()
+                f"{src} {_n(rep.added[src])} ajoutés sur {_n(n)} vus "
+                f"({_n(rep.already[src])} déjà vus)"
+                for src, n in rep.seen.items()
             ),
             f"  non trouvés sur Deezer : {_n(rep.n_unmatched)}, déjà dans la bibliothèque : "
             f"{_n(rep.n_known)}",
@@ -764,23 +768,11 @@ def report() -> None:
     editorial = _editorial(settings)
     with _db(settings) as conn:
         stages = last_stages(conn)
-        sources = yes_by_source(conn)
+        suivi = load_suivi(conn, editorial.nouveautes)
     status = _status_lines(
         _status(settings, editorial), editorial.votes.quiet_days, bool(settings.votes_url)
     )
-    by_source = [
-        f"  {key} : {_rate(r.rate)} [{_rate(r.low)} - {_rate(r.high)}] sur {_n(r.n)}"
-        for key, r in sources
-    ]
-    _echo(
-        [
-            "Dernières étapes :",
-            *_stage_lines(stages),
-            *status,
-            "Taux de oui à l'examen par source :",
-            *(by_source or ["  aucun vote d'examen sur un candidat"]),
-        ]
-    )
+    _echo(["Dernières étapes :", *_stage_lines(stages), *status, *suivi_lines(suivi)])
 
 
 @app.command("votes-select")
@@ -830,7 +822,12 @@ def votes_serve() -> None:
     team, aud = settings.cf_access_team_domain, settings.cf_access_aud
     if not team or not aud:
         _fail("CF_ACCESS_TEAM_DOMAIN et CF_ACCESS_AUD doivent être définis dans .env", 2)
-    web = create_app(settings.data_dir / "radio.db", DeezerClient(), AccessVerifier(team, aud))
+    web = create_app(
+        settings.data_dir / "radio.db",
+        DeezerClient(),
+        AccessVerifier(team, aud),
+        _editorial(settings).nouveautes,
+    )
     uvicorn.run(web, host=settings.votes_host, port=settings.votes_port)
 
 
@@ -858,7 +855,12 @@ def votes_remind() -> None:
         if st.pending
         else "AubeSonore : aucun titre en attente de vote"
     )
-    lines = [head] + ([] if _page_ok(settings) else ["Page de vote injoignable"])
+    with _db(settings) as conn:
+        to_adjust = load_suivi(conn, editorial.nouveautes).to_adjust
+    suivi = f"Suivi : {settings.votes_url.rstrip('/')}/suivi" + (
+        f" ({_n(len(to_adjust))} points à ajuster)" if to_adjust else ""
+    )
+    lines = [head, suivi] + ([] if _page_ok(settings) else ["Page de vote injoignable"])
     text = "\n".join(lines + _status_lines(st, editorial.votes.quiet_days, True))
     typer.echo(text)
     try:

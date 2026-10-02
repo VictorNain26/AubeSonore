@@ -200,3 +200,12 @@ def test_extraits_never_outlive_the_app(db: Path) -> None:
     assert len(list(folder.iterdir())) == 1
     app.state.extraits.cleanup()
     assert not folder.exists()
+
+
+def test_the_follow_up_page_is_guarded_and_shows_each_source(db: Path) -> None:
+    client = _client(db)
+    assert client.get("/suivi").status_code == 403
+    page = client.get("/suivi", headers=OK)
+    assert page.status_code == 200
+    assert "Suivi des sources" in page.text and "<td>voisin</td>" in page.text
+    assert "hypem : rien de neuf" in page.text  # source attendue, absente de la fournée

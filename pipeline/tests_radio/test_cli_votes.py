@@ -170,6 +170,7 @@ def test_votes_remind_sends_the_status(full: Path, monkeypatch: pytest.MonkeyPat
     phone, key, text = sent[0]
     assert (phone, key) == (PHONE, KEY)
     assert text.startswith("AubeSonore : aucun titre en attente de vote")
+    assert "/suivi (" in text  # lien du suivi et nombre de points à ajuster
     assert "Aucun modèle en service" in text
     assert "Rappel WhatsApp envoyé" in res.output
     assert KEY not in res.output and PHONE not in res.output
