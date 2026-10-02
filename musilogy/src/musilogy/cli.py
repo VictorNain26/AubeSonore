@@ -109,6 +109,10 @@ def snapshot_popularity() -> None:
         fetch_and_extract()
     date = datetime.now(UTC).date().isoformat()
     dest = popularity_snapshot(date)
+    if dest.exists():
+        raise SystemExit(
+            f"ListenBrainz snapshot {date} already taken at {dest}: it is never taken again"
+        )
     cur = connect().execute(
         f"SELECT mbid FROM read_ndjson('{ARTISTS_JSONL.as_posix()}', columns={{mbid:'VARCHAR'}}) "
         "ORDER BY mbid"

@@ -96,3 +96,15 @@ def test_run_stops_when_the_pinned_snapshot_is_missing(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as raised:
         cli.run()
     assert "cannot be taken again" in str(raised.value)
+
+
+def test_a_snapshot_already_taken_today_is_never_taken_again(tmp_path, monkeypatch):
+    # Taking it again would overwrite the pinned file and its committed digest.
+    taken = tmp_path / "artist-popularity.jsonl"
+    taken.write_text("", encoding="utf-8")
+    monkeypatch.setattr(cli, "ARTISTS_JSONL", FIX / "artists.jsonl")
+    monkeypatch.setattr(cli, "popularity_snapshot", lambda _date: taken)
+    monkeypatch.setattr(cli, "fetch_popularity", lambda *_: pytest.fail("asked ListenBrainz"))
+    with pytest.raises(SystemExit) as raised:
+        cli.snapshot_popularity()
+    assert "never taken again" in str(raised.value)

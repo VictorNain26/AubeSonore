@@ -1,3 +1,4 @@
+import http.client
 import json
 import urllib.error
 from email.message import Message
@@ -92,6 +93,39 @@ def test_a_snapshot_cut_short_resumes_where_it_stopped(tmp_path, monkeypatch):
     assert asked == batches[1:]
     rows = [json.loads(line) for line in dest.read_text(encoding="utf-8").splitlines()]
     assert [r["artist_mbid"] for r in rows] == mbids(6)
+
+
+@pytest.mark.usefixtures("slept")
+def test_bytes_left_by_a_crash_are_cut_and_asked_again(tmp_path, monkeypatch):
+    asked = []
+
+    def post(_url, payload):
+        asked.append(payload["artist_mbids"])
+        return answer(payload["artist_mbids"]), message_with({"X-RateLimit-Remaining": "20"})
+
+    monkeypatch.setattr(fetch, "_post", post)
+    batches = [mbids(2), mbids(2, start=2)]
+    dest = tmp_path / "artist-popularity.jsonl"
+    written = "".join(json.dumps(r) + "\n" for r in answer(mbids(2)))
+    dest.with_name(dest.name + ".partial").write_bytes(written.encode() + b"\x00\xff\x00\n")
+
+    assert fetch.fetch_popularity(iter(batches), dest) == 4
+    assert asked == batches[1:]
+
+
+def test_a_connection_cut_mid_answer_is_retried(monkeypatch, slept):
+    calls = []
+
+    def post(_url, payload):
+        calls.append(1)
+        if len(calls) == 1:
+            raise http.client.RemoteDisconnected("Remote end closed connection")
+        return answer(payload["artist_mbids"]), message_with({"X-RateLimit-Remaining": "5"})
+
+    monkeypatch.setattr(fetch, "_post", post)
+    rows, _ = fetch.popularity_batch(mbids(2))
+    assert len(rows) == 2
+    assert slept == [2.0]
 
 
 @pytest.mark.usefixtures("slept")

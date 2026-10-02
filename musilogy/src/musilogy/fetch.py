@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import http.client
 import itertools
 import json
 import time
@@ -118,7 +119,14 @@ def popularity_batch(mbids: list[str]) -> tuple[list[dict[str, Any]], float]:
                 raise DownloadError(f"ListenBrainz: {e}, {attempt} attempts") from e
             time.sleep(_reset_in(e.headers) if throttled else _backoff(attempt))
             continue
-        except (urllib.error.URLError, TimeoutError) as e:
+        # A connection cut mid-answer raises outside URLError (RemoteDisconnected,
+        # ConnectionResetError, IncompleteRead): an outage all the same.
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            ConnectionError,
+            http.client.HTTPException,
+        ) as e:
             if attempt == MAX_ATTEMPTS:
                 raise DownloadError(f"ListenBrainz: {e}, {attempt} attempts") from e
             time.sleep(_backoff(attempt))
@@ -145,7 +153,12 @@ def _skip_written(partial: Path, batches: Iterator[list[str]]) -> tuple[int, Ite
             size = 0
             for mbid in batch:
                 line = next(lines, b"")
-                if not line.endswith(b"\n") or json.loads(line)["artist_mbid"] != mbid:
+                try:
+                    written = json.loads(line)["artist_mbid"]
+                except (ValueError, KeyError, TypeError):
+                    # Bytes left by a crash: cut there and ask again.
+                    written = None
+                if not line.endswith(b"\n") or written != mbid:
                     pending = batch
                     break
                 size += len(line)
