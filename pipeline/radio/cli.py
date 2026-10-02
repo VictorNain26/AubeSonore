@@ -45,6 +45,7 @@ from radio.model.model import (
     votes_count,
 )
 from radio.notify.whatsapp import WhatsAppError, send_whatsapp
+from radio.signals import features
 from radio.signals.audio import EffnetEmbedder, ModelError
 from radio.signals.measure import measure_tracks
 from radio.signals.table import load_signals
@@ -585,6 +586,40 @@ def antenne() -> None:
         _fail(f"{_n(len(rep.errors))} erreurs de publication", 1)
 
 
+@app.command()
+@_stage("mesures")
+def mesures() -> None:
+    """Mesure les titres à l'antenne (dansabilité, arousal, valence, tempo ; titre entier, début,
+    fin) pour l'enchaînement."""
+    settings = _settings()
+    try:
+        extractor = features.FeatureExtractor(settings.models_dir)
+    except features.ModelError as e:
+        _fail(f"Modèles de mesure refusés : {e}", 2)
+    with _db(settings) as conn:
+        rep = features.measure_antenna(conn, settings.azuracast_media_dir, extractor, _now())
+        _record(
+            conn,
+            "mesures",
+            not rep.missing,
+            {
+                "à mesurer": rep.n_todo,
+                "mesurés": rep.n_ok,
+                "audio illisible": rep.n_failed,
+                "fichiers absents": len(rep.missing),
+            },
+        )
+    _echo(
+        [
+            f"Titres à l'antenne : {_n(rep.n_todo)} à mesurer → {_n(rep.n_ok)} mesurés, "
+            f"{_n(rep.n_failed)} illisibles, {_n(len(rep.missing))} fichiers absents",
+            *(f"  absent : {m}" for m in rep.missing),
+        ]
+    )
+    if rep.missing:
+        _fail(f"Fichiers d'antenne absents de {settings.azuracast_media_dir}", 1)
+
+
 def _train_lines(r: TrainReport) -> list[str]:
     c = r.counts
     verdict = "promu" if r.promoted else "non promu"
@@ -716,6 +751,7 @@ PASS_STAGES = (
     "votes-select",
     "acquire",
     "antenne",
+    "mesures",
 )
 
 

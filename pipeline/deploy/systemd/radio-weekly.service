@@ -31,6 +31,9 @@ ExecStart=%h/radio/pipeline/.venv/bin/radio train
 ExecStart=%h/radio/pipeline/.venv/bin/radio votes-select
 ExecStart=-%h/radio/pipeline/.venv/bin/radio acquire
 ExecStart=%h/radio/pipeline/.venv/bin/radio antenne
+# mesures préfixée de « - » : check tourne quand même et fait échouer la passe sur cette étape,
+# avec le résumé de toutes les autres.
+ExecStart=-%h/radio/pipeline/.venv/bin/radio mesures
 ExecStart=%h/radio/pipeline/.venv/bin/radio check
 # Battement de cœur vers Gatus, même en échec : $SERVICE_RESULT vaut « success » ou la cause
 # (systemd.exec(5), « Environment Variables Set or Propagated by the Service Manager »).

@@ -124,7 +124,7 @@ def _pass(**over: tuple[int, str]) -> list[tuple[str, str, int, str]]:
 @pytest.mark.parametrize(
     ("rows", "code", "message"),
     [
-        (_pass(), 0, "9 étapes, 0 en échec, 3 publiés"),
+        (_pass(), 0, "10 étapes, 0 en échec, 3 publiés"),
         (_pass(acquire=(0, "{}")), 1, "Étapes en échec : acquire"),
         (_pass(antenne=(1, '{"publiés": 0}')), 1, "Aucune découverte publiée"),
         ([r for r in _pass() if r[1] != "acquire"], 1, "Étapes sans rapport (tuées ?) : acquire"),

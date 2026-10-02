@@ -30,6 +30,13 @@ class Settings(BaseSettings):
         default=REPO_ROOT / "models" / "discogs-effnet-bs64-1.pb",
         validation_alias="RADIO_EFFNET_MODEL",
     )
+    # Modèles MTG des mesures d'antenne (radio/signals/features.py), à côté de l'EffNet.
+    models_dir: Path = Field(default=REPO_ROOT / "models", validation_alias="RADIO_MODELS_DIR")
+    # Dossier média de la station AzuraCast, lu par `radio mesures`, jamais écrit.
+    azuracast_media_dir: Path = Field(
+        default=REPO_ROOT.parent / "azuracast" / "stations" / "aubesonore" / "media",
+        validation_alias="AZURACAST_MEDIA_DIR",
+    )
     votes_host: str = Field(default="127.0.0.1", validation_alias="RADIO_VOTES_HOST")
     votes_port: int = Field(default=8040, validation_alias="RADIO_VOTES_PORT")
     votes_url: str | None = Field(default=None, validation_alias="RADIO_VOTES_URL")
