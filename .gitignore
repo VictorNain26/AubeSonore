@@ -1,3 +1,7 @@
 # Racine du dépôt : chaque dossier (site/, pipeline/, azuracast/) a son propre .gitignore.
 # Archives locales de la radio (sauvegardes, anciennes versions) : jamais versionnées.
 archives/
+# Outillage local, comme dans site/.gitignore : worktrees d'agents Claude Code
+# et cache de Turborepo créés à la racine du checkout.
+.claude/worktrees/
+.turbo/
