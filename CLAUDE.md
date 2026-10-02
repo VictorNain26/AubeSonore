@@ -31,7 +31,10 @@ them all. `azuracast/RUNBOOK.md` covers rebuilding the whole system from nothing
 - **Deploying is merging to `master`.** `aubesonore-deploy.timer` fast-forwards `~/radio`; it
   rebuilds the site containers only when `site/` changed, and never moves the tree while the
   radio's weekly pass (`radio-weekly.service`) runs, since that pass loads `pipeline/` code.
-- Develop in a git worktree, never in `~/radio` itself: it is the production checkout.
+- **Where to develop.** `site/` runs on any workstation clone (`site/README.md`: local Postgres,
+  `pnpm dev`, the public station for now-playing). `pipeline/` and `musilogy/` need the server's
+  data (Plex, AzuraCast, MusicBrainz dumps), so they are developed on the server, in a git
+  worktree next to the checkout. Never in `~/radio` itself: it is the production checkout.
 
 ## How the pieces fit together
 
