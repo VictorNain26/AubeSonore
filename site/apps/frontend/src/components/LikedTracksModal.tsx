@@ -14,6 +14,8 @@ import * as m from '@/paraglide/messages.js';
 interface LikedTracksModalProps {
   isOpen: boolean;
   onClose: () => void;
+  /** Rows shown before « Afficher les N autres », and after each reopening. */
+  pageSize?: number;
 }
 
 // Grace period during which a removed track stays visible with an Undo
@@ -39,7 +41,7 @@ function useAlert() {
   return { state, isBusy, onToggle };
 }
 
-export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
+export function LikedTracksModal({ isOpen, onClose, pageSize = 50 }: LikedTracksModalProps) {
   const user = useAuthStore((s) => s.user);
   const alert = useAlert();
   const tracks = useLikedTracksStore((s) => s.tracks);
@@ -48,7 +50,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   const refresh = useLikedTracksStore((s) => s.refresh);
   const preferences = usePreferencesStore((s) => s.preferences);
   const updatePlatform = usePreferencesStore((s) => s.updatePlatform);
-  const [visibleCount, setVisibleCount] = useState(50);
+  const [visibleCount, setVisibleCount] = useState(pageSize);
   const [wasOpen, setWasOpen] = useState(isOpen);
   // id → timestamp at which the pending removal becomes effective.
   const [pendingRemovals, setPendingRemovals] = useState<Map<string, number>>(new Map());
@@ -69,7 +71,7 @@ export function LikedTracksModal({ isOpen, onClose }: LikedTracksModalProps) {
   // pattern rather than an effect.
   if (isOpen !== wasOpen) {
     setWasOpen(isOpen);
-    if (isOpen) setVisibleCount(50);
+    if (isOpen) setVisibleCount(pageSize);
   }
 
   // Refetch on open: links resolved server-side after the like (background
