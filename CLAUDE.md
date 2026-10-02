@@ -13,7 +13,8 @@ One self-hosted webradio, AubeSonore, in a single repository cloned at `~/aubeso
 | `musilogy/`  | Artist lineage tables from MusicBrainz dumps | Python 3.12, uv, DuckDB        |
 
 Until 2026-10-01 they were separate repositories; the standalone `radio-pipeline` and `musilogy`
-repositories are archived, their history kept under `pipeline/` and `musilogy/` (git subtree).
+repositories were deleted on 2026-10-03, their history kept under `pipeline/` and `musilogy/`
+(git subtree).
 
 **Each piece has its own `CLAUDE.md`, and it is the authority for that piece**: commands,
 conventions, invariants. Read it before touching anything there. This file covers only what spans
