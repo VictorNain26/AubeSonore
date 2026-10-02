@@ -44,8 +44,8 @@ def answer(batch):
 
 @pytest.fixture
 def slept(monkeypatch):
-    waits = []
-    monkeypatch.setattr(fetch.time, "sleep", waits.append)
+    waits: list[float] = []
+    monkeypatch.setattr("musilogy.fetch.time.sleep", waits.append)
     return waits
 
 
