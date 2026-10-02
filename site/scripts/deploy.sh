@@ -17,6 +17,20 @@ if systemctl --user is-active --quiet radio-weekly.service; then
   exit 0
 fi
 
+# The checkout serves production: anything but a clean master is someone's work
+# in progress. A fast-forward would then move their branch, or fail on their
+# files every run; refuse loudly instead, and leave the tree to its owner.
+branch=$(git symbolic-ref --quiet --short HEAD || echo "a detached HEAD")
+if [ "$branch" != master ]; then
+  echo "$REPO_DIR is on $branch, not master: deploy refused"
+  exit 1
+fi
+if [ -n "$(git status --porcelain)" ]; then
+  echo "$REPO_DIR has local changes: deploy refused"
+  git status --short | head -20
+  exit 1
+fi
+
 current=$(git rev-parse HEAD)
 target=$(git ls-remote origin refs/heads/master | cut -f1)
 
