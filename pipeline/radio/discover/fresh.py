@@ -2,7 +2,8 @@
 dernière fournée et jugés par le modèle comme les voisins.
 
 Chaque candidat garde sa source (et le blog ou le genre) : les votes d'examen jugent chaque
-source. Un titre déjà dans la bibliothèque, même sous une autre version, n'est pas une nouveauté.
+source. Un titre déjà dans la bibliothèque ou les favoris, même sous une autre version, n'est pas
+une nouveauté.
 Une source en panne est sautée et nommée, les autres continuent.
 """
 
@@ -32,9 +33,13 @@ class FreshReport:
     skipped: list[str] = field(default_factory=list)
 
 
-def _library_keys(conn: sqlite3.Connection) -> set[str]:
+def _known_keys(conn: sqlite3.Connection) -> set[str]:
+    """Titres déjà connus de Victor : sa bibliothèque et ses favoris Hype Machine."""
     return {
-        str(r[0]) for r in conn.execute("SELECT dedupe_key FROM tracks WHERE origin = 'library'")
+        str(r[0])
+        for r in conn.execute(
+            "SELECT dedupe_key FROM tracks WHERE origin IN ('library', 'favorite')"
+        )
     }
 
 
@@ -123,7 +128,7 @@ def fresh_pass(
     if row[0] is None:
         raise NoBatchError
     rep = FreshReport(int(row[0]))
-    known = _library_keys(conn)
+    known = _known_keys(conn)
     _hypem(conn, rep, known, deezer, hypem, cfg, tolerance_s, now)
     _deezer_editorial(conn, rep, known, deezer, cfg, now)
     return rep

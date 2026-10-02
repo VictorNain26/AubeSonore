@@ -1,4 +1,4 @@
-import { describe, it, expect, mock, afterEach } from 'bun:test';
+import { describe, it, expect, spyOn, afterAll, afterEach } from 'bun:test';
 import { Elysia } from 'elysia';
 
 const VALID_ID = '11111111-1111-1111-1111-111111111111';
@@ -26,27 +26,33 @@ const SHELL = `<!doctype html><html lang="fr"><head>
 let profileName = 'Daft Punk';
 let profileImage: string | null = 'https://cdn-images.dzcdn.net/images/artist/dp.jpg';
 
-void mock.module('../services/artistProfileService', () => ({
-  getArtistProfile: (id: string) =>
-    Promise.resolve(
-      id === VALID_ID
-        ? {
-            id: VALID_ID,
-            name: profileName,
-            slug: 'daft-punk',
-            image: profileImage,
-            bio: 'Un duo français.',
-            tags: [],
-            listeners: null,
-            similar: [],
-            topTracks: [],
-            links: [],
-            playedOnRadio: [],
-            resolved: true,
-          }
-        : null
-    ),
-}));
+// spyOn on the real exports, restored after this file: mock.module would
+// replace these modules for every other test file of the run (Bun 1.3).
+const profileService = await import('../services/artistProfileService');
+const profileSpy = spyOn(profileService, 'getArtistProfile').mockImplementation((id: string) =>
+  Promise.resolve(
+    id === VALID_ID
+      ? {
+          id: VALID_ID,
+          name: profileName,
+          slug: 'daft-punk',
+          image: profileImage,
+          bio: 'Un duo français.',
+          tags: [],
+          listeners: null,
+          similar: [],
+          topTracks: [],
+          links: [],
+          playedOnRadio: [],
+          resolved: true,
+        }
+      : null
+  )
+);
+
+afterAll(() => {
+  profileSpy.mockRestore();
+});
 
 const { artistPageRoutes, __resetArtistShell } = await import('./artistPage.routes');
 const { env } = await import('../config/env');

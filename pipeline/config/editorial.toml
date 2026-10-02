@@ -20,6 +20,8 @@ lastfm_similar_limit = 100
 hypem_pages = 2
 # Titres les plus écoutés retenus par album des sélections éditoriales Deezer.
 tracks_per_album = 3
+# Compte Hype Machine dont les favoris publics ne sont plus des découvertes (vision §3.2).
+hypem_favorites_user = "GhostRAvage"
 
 [nouveautes.deezer_editorial]
 # Genres Deezer (/editorial) dont la sélection d'albums est lue ; nom = libellé du rapport.

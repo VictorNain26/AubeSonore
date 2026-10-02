@@ -66,54 +66,40 @@ beforeEach(() => {
 });
 
 describe('LikedTracksModal', () => {
-  // Fifty-odd rows make the accessibility tree costly: `hidden: true` skips the
-  // visibility checks (testing-library.com/docs/queries/byrole#performance).
-  it('renders only 50 rows plus a button to reveal the remaining tracks', async () => {
-    useLikedTracksStore.setState({ tracks: Array.from({ length: 60 }, (_, i) => makeTrack(i)) });
-    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+  // The bound is 50 rows; a page of 3 exercises the same logic without rendering 60 rows.
+  it('renders one page of rows plus a button to reveal the remaining tracks', async () => {
+    useLikedTracksStore.setState({ tracks: Array.from({ length: 5 }, (_, i) => makeTrack(i)) });
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} pageSize={3} />);
 
-    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(50);
-    const showMoreButton = screen.getByRole('button', {
-      name: /afficher les 10 autres/i,
-      hidden: true,
-    });
-    expect(showMoreButton).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    await userEvent.click(screen.getByRole('button', { name: /afficher les 2 autres/i }));
 
-    await userEvent.click(showMoreButton);
-
-    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(60);
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
     expect(
-      screen.queryByRole('button', { name: /afficher les .* autres/i, hidden: true })
+      screen.queryByRole('button', { name: /afficher les .* autres/i })
     ).not.toBeInTheDocument();
   });
 
-  it('resets the visible-count bound to 50 when the modal is closed and reopened', async () => {
-    useLikedTracksStore.setState({ tracks: Array.from({ length: 60 }, (_, i) => makeTrack(i)) });
-    const { rerender } = render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+  it('shows one page again when the drawer is closed and reopened', async () => {
+    useLikedTracksStore.setState({ tracks: Array.from({ length: 5 }, (_, i) => makeTrack(i)) });
+    const { rerender } = render(<LikedTracksModal isOpen={true} onClose={vi.fn()} pageSize={3} />);
 
-    const showMoreButton = screen.getByRole('button', {
-      name: /afficher les 10 autres/i,
-      hidden: true,
-    });
-    await userEvent.click(showMoreButton);
-    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(60);
+    await userEvent.click(screen.getByRole('button', { name: /afficher les 2 autres/i }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
 
-    rerender(<LikedTracksModal isOpen={false} onClose={vi.fn()} />);
-    rerender(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+    rerender(<LikedTracksModal isOpen={false} onClose={vi.fn()} pageSize={3} />);
+    rerender(<LikedTracksModal isOpen={true} onClose={vi.fn()} pageSize={3} />);
 
-    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(50);
-    expect(
-      screen.getByRole('button', { name: /afficher les 10 autres/i, hidden: true })
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });
 
-  it('does not render the show-more button when there are 50 or fewer tracks', () => {
-    useLikedTracksStore.setState({ tracks: Array.from({ length: 50 }, (_, i) => makeTrack(i)) });
-    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} />);
+  it('has no show-more button when everything fits in a page', () => {
+    useLikedTracksStore.setState({ tracks: Array.from({ length: 3 }, (_, i) => makeTrack(i)) });
+    render(<LikedTracksModal isOpen={true} onClose={vi.fn()} pageSize={3} />);
 
-    expect(screen.getAllByRole('listitem', { hidden: true })).toHaveLength(50);
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
     expect(
-      screen.queryByRole('button', { name: /afficher les .* autres/i, hidden: true })
+      screen.queryByRole('button', { name: /afficher les .* autres/i })
     ).not.toBeInTheDocument();
   });
 

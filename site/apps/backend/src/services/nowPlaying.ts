@@ -18,11 +18,11 @@ export async function fetchNowPlaying(): Promise<NowPlayingTrack | null> {
     throw new Error(`AzuraCast nowplaying error: ${response.status}`);
   }
 
+  // One station's endpoint answers a single object, not the array of
+  // /api/nowplaying (measured 2026-10-02: { station, now_playing, ... }).
   const payload: unknown = await response.json();
-  const nowPlaying =
-    Array.isArray(payload) && payload.length > 0
-      ? (payload[0] as { now_playing?: unknown }).now_playing
-      : undefined;
+  if (typeof payload !== 'object' || payload === null) return null;
+  const { now_playing: nowPlaying } = payload as { now_playing?: unknown };
   if (typeof nowPlaying !== 'object' || nowPlaying === null) return null;
 
   const { sh_id, song } = nowPlaying as { sh_id?: unknown; song?: unknown };
