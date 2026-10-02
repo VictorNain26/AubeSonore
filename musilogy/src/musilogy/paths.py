@@ -25,3 +25,11 @@ def work_dir(dump: str) -> Path:
 
 def out_dir(dump: str) -> Path:
     return DATA_DIR / "out" / dump
+
+
+def popularity_snapshot(date: str) -> Path:
+    return RAW_DIR / "listenbrainz" / date / "artist-popularity.jsonl"
+
+
+def popularity_sums(date: str) -> Path:
+    return REFERENCE_DIR / f"listenbrainz-{date}.SHA256SUMS"

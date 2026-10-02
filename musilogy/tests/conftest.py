@@ -5,6 +5,7 @@ from typing import Any
 import duckdb
 import pytest
 
+from musilogy import REFERENCE_POPULARITY
 from musilogy.build import build
 from musilogy.paths import SQL_DIR
 
@@ -15,7 +16,15 @@ SQL = SQL_DIR
 @pytest.fixture(scope="module")
 def con():
     c = duckdb.connect(":memory:")
-    build(c, SQL, FIX / "artists.jsonl", FIX / "release_groups.jsonl", None)
+    build(
+        c,
+        SQL,
+        FIX / "artists.jsonl",
+        FIX / "release_groups.jsonl",
+        None,
+        popularity=FIX / "popularity.jsonl",
+        popularity_snapshot=REFERENCE_POPULARITY,
+    )
     return c
 
 
