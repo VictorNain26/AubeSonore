@@ -1,10 +1,12 @@
 # Frise et filiation — conception
 
-Conception du 2026-10-02. Elle garde les tables de la spec du 2026-10-01
-(`2026-10-01-artist-lineage-design.md` : inspirations, descendance,
-contemporains) et en change l'entrée : **la frise redevient la vue
-principale, et la filiation se dessine dessus**. Elle remplace la séquence et
-le périmètre de la spec du 2026-10-01, qui excluait la frise.
+Conception du 2026-10-02, complétée le 2026-10-03. C'est la seule spec en
+vigueur : elle absorbe la spec de filiation du 2026-10-01 (tables, sources,
+contemporains), qui remplaçait elle-même la spec de la frise du 2026-09-13 et
+la spec links-first du 2026-09-29 ; leur texte reste dans l'historique git.
+Ce qui change par rapport au 2026-10-01 : **la frise redevient la vue
+principale, la filiation se dessine dessus**, et la popularité ordonne
+l'affichage au lieu d'en être bannie.
 
 Les chiffres sont **descriptifs**, mesurés le 2026-10-01 sur le dump
 `20260909-001002` et sur les sources citées ; le contrat exécutable reste
@@ -17,6 +19,21 @@ d'une période, puis, en zoomant, les moins connus ; survoler un artiste pour
 voir ses liens, cliquer pour se recentrer sur un autre. Le temps donne son
 sens à la filiation : les inspirations sont avant, la descendance après, les
 contemporains dans la même colonne.
+
+L'intention de départ est consignée dans
+`docs/research/2026-09-06-music-lineage-sources.md` : à partir d'un artiste,
+voir **qui l'a inspiré**, **qui il a inspiré**, et **qui jouait à la même
+époque, dans la même scène**.
+
+## Principes
+
+- **Chaque lien porte sa provenance**, affichée avec lui : fait MusicBrainz,
+  déclaration Wikidata (référencée ou non), passage Wikipédia cité, ou
+  calcul de musilogy. Le site n'affirme rien qu'une source n'affirme.
+- **« Aucune source connue » est une réponse.** Un artiste sans inspiration
+  connue l'affiche ; rien n'est deviné pour combler le vide.
+- **Prioriser sans exclure** : la popularité décide de ce qu'on voit en
+  premier, jamais de ce qui existe (section suivante).
 
 ## Visibilité : prioriser sans exclure
 
@@ -60,7 +77,105 @@ ils se mesurent sur le prototype, en nombre d'éléments lisibles à l'écran.
    `y_end` (ou `y_presence_end`), tous présents.
 3. **Artiste** : au survol, ses liens (`links`) et sa filiation (`lineage`)
    se dessinent sur la frise ; au clic, la frise se recentre ; un panneau
-   donne les trois listes de la spec du 2026-10-01 avec leur provenance.
+   donne les trois listes — inspirations, descendance, contemporains — avec
+   leur provenance.
+
+## Filiation : inspirations et descendance
+
+Une seule table orientée, lue dans les deux sens :
+
+```sql
+lineage(artist_mbid, model_mbid, source)
+-- model_mbid est un modèle d'artist_mbid, au sens exact de `source`
+```
+
+Les colonnes `ref_status` et `evidence` arriveront avec Wikidata, la première
+source qui les remplit. Chaque ligne garde le terme de sa source — « élève
+de », « hommage à », « nommé d'après », « influencé par » — et le front
+l'affiche tel quel : un professeur n'est pas présenté comme une influence
+déclarée. Les inspirations d'un artiste sont les lignes où il est
+`artist_mbid` ; sa descendance, celles où il est `model_mbid`.
+
+### Sources retenues
+
+| source | règle | lignes |
+|---|---|---|
+| `mb_teacher` | `links.type = 'teacher'` : `dst` est l'élève de `src` | 29 242 |
+| `mb_tribute` | `links.type = 'tribute'` : `src` rend hommage à `dst` | 2 780 |
+| `mb_named_after` | `links.type = 'named after artist'` : `src` porte le nom de `dst` | 666 |
+| `wikidata_p737` | « influenced by » (P737), sujet et objet portant un MBID (P434) | 8 624 |
+
+Le sens des liens MusicBrainz est vérifié par l'âge : pour `teacher`, la
+source est la plus âgée dans 21 918 cas contre 235 ; pour `tribute` et
+`named after artist`, la cible est la plus âgée (20 contre 1, 55 contre 2).
+Les groupes hommage dominent la descendance des artistes célèbres (dizaines
+pour The Beatles) : le front les regroupe sous leur propre libellé plutôt que
+de les mêler aux héritiers.
+
+**Wikidata P737** (CC0, page Wikidata:Copyright). Requête exécutée le
+2026-10-01 sur `query.wikidata.org` :
+
+```sparql
+SELECT (COUNT(DISTINCT ?st) AS ?stmts) (COUNT(DISTINCT ?s) AS ?subj) (COUNT(DISTINCT ?o) AS ?obj)
+WHERE { ?s p:P737 ?st . ?st ps:P737 ?o . ?s wdt:P434 [] . ?o wdt:P434 [] . }
+```
+
+8 624 déclarations, 2 491 artistes influencés, 3 513 modèles. Sur les
+10 226 déclarations dont le sujet porte un MBID, 3 706 ont au moins une
+référence (36 %) et 1 964 une référence forte — « affirmé dans » (P248) ou
+URL (P854), 19 %. `ref_status` le dira : `referenced` (P248 ou P854),
+`other_ref` (toute autre référence, dont « importé de Wikipédia », P143),
+`unreferenced`. La couverture est mince — quelques milliers d'artistes sur
+2,3 M — et le front l'assume. Wikidata change en continu : `fetch` en prend
+un relevé daté avec empreinte, comme un dump, et un rejeu repart de ce
+fichier, pas du service.
+
+### Sources écartées
+
+| source | raison |
+|---|---|
+| Crawl AllMusic (`flaviovdf/allmusic-disruption`) | aucune licence, dernier commit 2019-07-17 : impubliable |
+| WASABI KG (Zenodo 4312641) | CC-BY-NC-4.0 ; présence d'arêtes d'influence non vérifiée |
+| Similarité audio (MERT, CLAP, MuQ, CLaMP 3) | exige l'audio, que le projet n'a pas ; sans commit depuis six mois ; poids souvent NC ; une similarité n'est pas une influence ; le modèle d'influence par l'audio de Shalit et al. 2013 (proceedings.mlr.press/v28/shalit13.pdf) n'atteint qu'une corrélation de Spearman moyenne de 0,15 avec le classement d'influence d'AllMusic |
+| ListenBrainz similar-artists | CC0 et maintenu, mais calculé sur la co-écoute ; le filtrage collaboratif sur-recommande les artistes populaires — « few popular items are over-recommended », Abdollahpouri, Burke et Mansoury 2020 (arxiv.org/abs/2003.11634) |
+| Jev (TypeSafe AI, annoncé le 2026-09-15) | n'apporte pas de connaissance, au mieux une vérification que la passe citée de Wikipédia remplit déjà ; accès anticipé, API fermée, sans papier ni adoption mesurable (typesafe.ai/blog/introducing-system-one-models-and-jev) |
+
+## Contemporains
+
+Calculés par musilogy, à la demande. Chaque critère repose sur une
+définition ou une référence, pas sur un seuil choisi :
+
+- **contemporain** : des années de présence qui se recouvrent (`y0` à
+  `y_presence_end`) — la définition du mot ;
+- **même scène** : même lieu d'origine. Bennett et Peterson (*Music Scenes:
+  Local, Translocal, and Virtual*, Vanderbilt University Press, 2004)
+  distinguent scènes locales, translocales et virtuelles ; la notice de
+  Project MUSE (muse.jhu.edu/book/2821) le confirme, mais la définition
+  géographique de la scène locale n'a pas été lue dans le texte même, faute
+  d'accès. On prend le `begin_area_mbid` quand il est connu — l'identité du
+  lieu, pas son nom, que London partage avec l'Ontario —, sinon le pays ;
+- **genre commun** : au moins un genre partagé.
+
+Aucun seuil supplémentaire : la liste n'est pas coupée, elle est
+**ordonnée**, puis paginée. Ordre total et reproductible : similarité de
+Jaccard des genres, décroissante — interprétable, car on peut montrer les
+genres partagés (Gabbolini et Bridge, ISMIR 2021,
+archives.ismir.net/ismir2021/paper/000026.pdf : « if items are described by
+sets of tags, then Jaccard similarity over tags also exhibits intrinsic
+intepretability ») —, puis `mbid`. Le front affiche les genres partagés à
+côté de chaque contemporain : c'est la raison du lien.
+
+Mesures sur un échantillon de 2 000 artistes, années qui se recouvrent et un
+genre commun :
+
+| lieu | médiane | p90 | p99 | sans contemporain |
+|---|---|---|---|---|
+| aucun | 9 045 | 39 768 | 90 708 | — |
+| pays | 318 | 4 280 | 14 790 | 319 |
+| `begin_area` | 0 | 28 | 250 | 1 335 |
+
+Publiée complète, la liste ferait environ 188 millions de lignes : elle se
+calcule à la demande, une centaine de millisecondes par artiste sous DuckDB.
 
 ## Données : ce qu'on a, ce qui manque
 
@@ -72,7 +187,7 @@ Mesuré sur le dump de référence (groupes, sauf mention) :
 | groupes datés sans genre | 197 423, absents de la frise | tags MusicBrainz : 2,8 % en ont ; **lien Discogs : 37,6 %** |
 | popularité | ListenBrainz couvre 85 à 100 % des groupes de la frise par décennie, 1950–2020 | Wikidata écarté : fiche pour 5 à 68 %, médiane 1 à 3 sitelinks |
 | structure des genres | relations `subgenre`, `influenced by`, `fusion of` dans MusicBrainz | absentes des dumps JSON et de `ws/2` (`inc=genre-rels` ne renvoie rien) : dump PostgreSQL |
-| filiation | sources de la spec du 2026-10-01 ; Wikidata ne relie qu'une minorité d'artistes récents | phase Wikipédia |
+| filiation | sources MusicBrainz ; Wikidata ne relie qu'une minorité d'artistes récents | phase Wikipédia |
 | écouter | Bandcamp 29 %, streaming gratuit 31 %, YouTube 17 % des groupes de la frise ; vidéos YouTube dans Discogs | recherche Deezer d'AubeSonore |
 | personnes | 6,8 % placées : leur `begin` est une naissance | `y_first_album` |
 
@@ -91,10 +206,9 @@ de `artist.tar.xz`.
   (`listenbrainz/webserver/views/api_tools.py`).
 - Licence : les données d'écoute sont publiées sous CC0
   (listenbrainz.readthedocs.io/en/latest/users/listenbrainz-dumps.html).
-- La valeur bouge chaque jour : `fetch` en prend un **relevé daté**, avec
-  empreinte, comme un dump. Table `popularity(mbid, listen_count,
-  user_count, snapshot)`. Les limites de débit se lisent dans les en-têtes à
-  l'implémentation.
+- La valeur bouge chaque jour : `snapshot-popularity` en prend un **relevé
+  daté**, avec empreinte, comme un dump. Table `popularity(mbid,
+  listen_count, user_count, snapshot)`.
 
 ### Discogs — genres manquants
 
@@ -119,36 +233,104 @@ de `artist.tar.xz`.
   tables de genres et de liens, en flux, et la date du fullexport retenu est
   publiée dans `manifest.json`.
 
-## Front
+### Wikipédia — influences extraites
 
-- Dans `site/` d'AubeSonore, sur la charte v5
-  (`site/apps/frontend/src/design/tokens.css`), en anglais comme le reste du
-  site. Le site lit les tables de musilogy **importées dans sa base** ; il
-  n'appelle jamais musilogy à l'exécution.
-- Rendu : deck.gl (dépôt `visgl/deck.gl`, v9.4.0 du 2026-09-05, non archivé).
-  `OrthographicView` accepte `zoomX`/`zoomY` et un contrôleur
-  `zoomAxis: 'X'` : zoom sur le temps seul
-  (`docs/api-reference/core/orthographic-view.md`, `docs/upgrade-guide.md`
-  § v9.3).
-- duckdb-wasm est écarté : dernière release le 2025-12-16, au-delà de six
-  mois.
+Pour dépasser les quelques milliers d'artistes de Wikidata, la seule source
+publiable est la prose de Wikipédia (CC BY-SA), dont les sections
+« influences » citent leurs références.
+
+- **Accès** : Wikimedia Enterprise, offre gratuite (snapshots mensuels,
+  50 000 requêtes On-demand par mois, enterprise.wikimedia.com/pricing/) ;
+  Structured Contents est en bêta, « not covered by SLA ». Le jeu Parquet
+  `wikimedia/structured-wikipedia` sur Hugging Face (cc-by-sa-4.0) est une
+  alternative à évaluer. Les dumps HTML de dumps.wikimedia.org ne sont plus
+  répliqués depuis le 2025-03-24.
+- **MBID → article** : P434 donne l'élément Wikidata, son lien de site donne
+  l'article. Couverture non mesurée.
+- **Extraction** : Claude avec Citations, qui renvoie le passage exact.
+  Citations « cannot be used together with structured outputs » (400) —
+  platform.claude.com/docs/en/build-with-claude/citations — donc deux
+  passes : extraction citée, puis structuration du texte obtenu.
+- **Provenance** : `wikipedia_extracted`, avec l'URL, l'identifiant de
+  révision et le passage cité.
+- **Périmètre** : les artistes joués par AubeSonore (`radio_play`), un
+  ensemble fini, avant toute extension.
+
+## Intégration dans le site
+
+Le site lit les tables de musilogy **importées dans sa base** ; il n'appelle
+jamais musilogy à l'exécution.
+
+### Import
+
+- `musilogy load` lit les Parquet publiés de `data/out/<dump>/` et les écrit
+  dans la base Postgres du site par l'extension `postgres` de DuckDB
+  (`ATTACH '<dsn>' AS site (TYPE postgres)`,
+  duckdb.org/docs/current/core_extensions/postgres/overview.html). Aucune
+  dépendance nouvelle côté Python : DuckDB est déjà le moteur de musilogy.
+- Tables chargées : celles que la frise lit — `artists`, `genres`,
+  `density`, `links`, `lineage`, `popularity` — plus `manifest` (dump,
+  relevé, commit), que la page cite comme source. `albums` reste en Parquet
+  tant qu'aucun écran ne le lit.
+- **Bascule atomique** : le chargement remplit `musilogy_next`, puis une
+  seule transaction Postgres remplace `musilogy` par lui. Le site ne lit
+  jamais un import partiel, et un import raté laisse le précédent en place.
+- Le schéma `musilogy` n'appartient pas à Drizzle : `drizzle.config.js` ne
+  décrit que `src/db/schema.ts`, qui reste dans `public`.
+- La base n'est joignable que dans le réseau Docker du site ; son port est
+  publié sur `127.0.0.1` pour l'import, et `pg_hba.conf` impose TLS
+  (`hostssl`).
+- **Sauvegarde** : `backup-db.sh` exclut le schéma (`pg_dump
+  --exclude-schema=musilogy`, postgresql.org/docs/16/app-pgdump.html) : il
+  se recharge depuis `data/out/`. Ce qui ne se recharge pas, c'est
+  `data/raw/`, seule copie du dump de référence.
+
+### Les règles restent dans musilogy
+
+Les contemporains deviennent une fonction Postgres,
+`musilogy.contemporaries(mbid)`, écrite dans `src/musilogy/pg/` et installée
+par `musilogy load` ; ses tests tournent contre un vrai Postgres (service de
+la CI). La macro DuckDB `70_contemporaries.sql` et la commande `musilogy
+artist`, qui servaient à juger les listes avant qu'un front les lise, sont
+retirées : une règle, une implémentation.
+
+### API et front
+
+- Backend : trois routes en lecture, validées à la frontière — vue
+  d'ensemble (`density`, `genres`, étiquettes), fenêtre genre × période
+  (artistes ordonnés par popularité, paginés), artiste (fiche, `links`,
+  `lineage`, une page de contemporains).
+- Front : dans `site/`, sur la charte v5
+  (`site/apps/frontend/src/design/tokens.css`), en français et en anglais
+  comme le reste du site. Rendu : deck.gl (dépôt `visgl/deck.gl`, v9.4.0 du
+  2026-09-05, non archivé, vérifié le 2026-10-03). `OrthographicView`
+  accepte `zoomX`/`zoomY` et un contrôleur `zoomAxis: 'X'` : zoom sur le
+  temps seul (`docs/api-reference/core/orthographic-view.md`,
+  `docs/upgrade-guide.md` § v9.3). duckdb-wasm est écarté : dernière release
+  le 2025-12-16, au-delà de six mois.
+- **Prototype non listé** : une route hors navigation, en `noindex`, jusqu'à
+  ce que les seuils de zoom soient mesurés.
+- La page porte l'attribution de MusicBrainz et de ListenBrainz.
 
 ## Licence
 
-Inchangée : le jeu reste CC-BY-NC-SA 3.0 par les genres MusicBrainz.
-ListenBrainz, Discogs et le cœur MusicBrainz sont CC0 et n'ajoutent aucune
-contrainte. L'affichage dans AubeSonore suppose un usage non commercial.
+`artists` et `genres` dépendent des genres MusicBrainz (CC-BY-NC-SA 3.0),
+donc les contemporains et la frise aussi. ListenBrainz, Discogs, Wikidata et
+le cœur MusicBrainz sont CC0 ; Wikipédia CC BY-SA. L'affichage dans
+AubeSonore porte l'attribution et suppose un usage non commercial.
 
 ## Séquence
 
-1. **Couche 0, tables de filiation** (spec du 2026-10-01) : `lineage`,
-   contemporains, commande `musilogy artist`. `disambiguation` et `name_key`
-   sont livrés (musilogy #19).
-2. **Popularité** : relevé ListenBrainz dans `fetch`, table `popularity`.
-3. **Prototype de frise** dans `site/`, sur les tables existantes : la PR
-   AubeSonore #191 (page artiste) est d'abord portée sous `site/apps/`. Les
-   seuils de zoom se mesurent ici.
+1. **Couche 0, tables de filiation** : `lineage`, contemporains,
+   `disambiguation` et `name_key`. Fait (PR #228).
+2. **Popularité** : relevé ListenBrainz, table `popularity`. Fait (PR #246).
+3. **Prototype de frise** : `musilogy load` et la fonction des
+   contemporains, puis l'API du site, puis la frise. Les seuils de zoom se
+   mesurent ici, et les trois listes se jugent sur des artistes connus avant
+   que la route soit liée.
 4. **Relations URL et Discogs** : extraction des liens externes, genres
    Discogs, gain mesuré en groupes ajoutés à la frise.
 5. **Graphe des genres** depuis le dump PostgreSQL.
-6. **Wikidata P737**, puis **Wikipédia** (phases de la spec du 2026-10-01).
+6. **Wikidata P737**, puis **Wikipédia**.
+
+Hors périmètre : la recherche par alias.

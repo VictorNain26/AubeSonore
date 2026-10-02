@@ -182,7 +182,8 @@ tests/
   conftest.py            fixtures partagées
   fixtures/              témoins réels versionnés
   test_*.py              une suite par règle, plus test_baseline.py (suite lente)
-docs/superpowers/       spécifications et plans datés, historiques
+docs/research/          notes de recherche datées
+docs/superpowers/specs/ la spec en vigueur de la frise et de la filiation
 ```
 
 ## Licence et attribution
