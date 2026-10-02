@@ -403,6 +403,15 @@
   }
 }
 
+/* The now dot swells with the bass of the live (--bass, set by the horizon line, 0 when
+   nothing is heard). `transform` adds to the `scale` its entry animation uses. */
+@utility bass-beat {
+  @media (prefers-reduced-motion: no-preference) {
+    transform: scale(calc(1 + var(--bass, 0) * 0.9));
+    transition: transform 0.08s linear;
+  }
+}
+
 /* Garder: the heart beats once when a track is kept. */
 @utility keep-pop {
   @media (prefers-reduced-motion: no-preference) {

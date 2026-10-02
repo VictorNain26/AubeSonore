@@ -1,10 +1,18 @@
 import { useEffect, useLayoutEffect, useRef } from 'react';
+import { getAnalyser } from '../lib/player';
 
 // ─────────────────────────────────────────────
 // The horizon line: two traces drifting against each other, each a sum of
 // three sines. At rest they barely ripple and drift slowly; while the live
 // plays they swell and speed up. Amplitude and speed ease between the two, so
 // pressing Écouter never makes the line jump.
+//
+// While it plays, the line listens: each of the three sines follows a band
+// of the stream (its widest swell the bass, the finest the treble) and the
+// whole line breathes with the energy; the bass also beats the "now" dot
+// through `--bass` on the horizon. On iOS the stream stays off Web Audio
+// (lib/player.ts): the bands rest at their middle and the line is the
+// mockup's alone.
 //
 // One period spans the visible width, so the drift loops seamlessly. The rAF
 // loop lives in the canvas: a frame never re-renders the React tree, and
@@ -59,9 +67,75 @@ export const AMPLITUDE = { rest: 5 / 120, live: 30 / 120 };
 /** Seconds for amplitude and speed to cover about two thirds of a change. */
 const EASE_SECONDS = 0.6;
 
-/** Signed offset of a trace (about -1..1) at `u`, a position in widths. */
-export function traceOffset(sines: readonly Sine[], u: number): number {
-  return sines.reduce((y, [n, w, p]) => y + w * Math.sin(2 * Math.PI * n * u + p), 0);
+/** Loudness of the stream in three bands, 0..1. */
+export type Bands = readonly [bass: number, mid: number, treble: number];
+
+/** Where the bands sit when nothing is heard: the line is then the mockup's. */
+export const QUIET: Bands = [0.5, 0.5, 0.5];
+
+const BAND_HZ = [250, 2000, 8000] as const;
+/** Bands rise fast and fall slowly, like a meter, so the line follows beats without jitter. */
+const ATTACK_SECONDS = 0.06;
+const RELEASE_SECONDS = 0.35;
+
+/** Mean level of each band (bass up to 250 Hz, mid to 2 kHz, treble to 8 kHz), 0..1. */
+export function bandsOf(frequencies: Uint8Array, sampleRate: number): Bands {
+  const binHz = sampleRate / (2 * frequencies.length);
+  const levels = [0, 0, 0];
+  const counts = [0, 0, 0];
+  frequencies.forEach((value, bin) => {
+    const band = BAND_HZ.findIndex((top) => (bin + 0.5) * binHz <= top);
+    if (band === -1) return;
+    levels[band] = (levels[band] ?? 0) + value / 255;
+    counts[band] = (counts[band] ?? 0) + 1;
+  });
+  return [0, 1, 2].map((b) => ((counts[b] ?? 0) ? (levels[b] ?? 0) / (counts[b] ?? 1) : 0.5)) as [
+    number,
+    number,
+    number,
+  ];
+}
+
+/** Recent floor and ceiling of each band: the auto gain of a meter. */
+export interface Gain {
+  floor: Bands;
+  ceiling: Bands;
+}
+
+/** Seconds for floor and ceiling to relax towards the level; a smaller span is not stretched. */
+const GAIN_SECONDS = 4;
+const MIN_SPAN = 0.08;
+
+/**
+ * Raw levels hardly move (the bass of most mixes sits near full scale): each band is read
+ * between its recent floor and ceiling instead, which follow a new extreme at once and relax
+ * over a few seconds, so beats stand out whatever the mix.
+ */
+export function autoGain(gain: Gain | null, raw: Bands, dt: number): { gain: Gain; bands: Bands } {
+  const relax = 1 - Math.exp(-dt / GAIN_SECONDS);
+  const floor = raw.map((level, k) => {
+    const f = gain?.floor[k] ?? level;
+    return Math.min(level, f + (level - f) * relax);
+  }) as unknown as Bands;
+  const ceiling = raw.map((level, k) => {
+    const c = gain?.ceiling[k] ?? level;
+    return Math.max(level, c + (level - c) * relax);
+  }) as unknown as Bands;
+  const bands = raw.map((level, k) => {
+    const span = Math.max((ceiling[k] ?? 1) - (floor[k] ?? 0), MIN_SPAN);
+    return Math.min(1, Math.max(0, (level - (floor[k] ?? 0)) / span));
+  }) as unknown as Bands;
+  return { gain: { floor, ceiling }, bands };
+}
+
+/** Signed offset of a trace (about -1.6..1.6) at `u`, a position in widths; each sine is
+ *  scaled by its band, from 0.4 (silent) to 1.6 (loudest); 0.5 leaves it as drawn. */
+export function traceOffset(sines: readonly Sine[], u: number, bands: Bands = QUIET): number {
+  return sines.reduce(
+    (y, [n, w, p], k) =>
+      y + w * (0.4 + 1.2 * (bands[k] ?? 0.5)) * Math.sin(2 * Math.PI * n * u + p),
+    0
+  );
 }
 
 export interface WaveMotion {
@@ -69,17 +143,29 @@ export interface WaveMotion {
   liveness: number;
   /** Drift of each layer, in widths. */
   drift: number[];
+  /** Followed bands of the stream. */
+  bands: Bands;
 }
 
-/** Advances the motion by `dt` seconds towards rest or live. */
-export function stepMotion(motion: WaveMotion, isPlaying: boolean, dt: number): WaveMotion {
+/** Advances the motion by `dt` seconds towards rest or live, the bands towards `heard`. */
+export function stepMotion(
+  motion: WaveMotion,
+  isPlaying: boolean,
+  dt: number,
+  heard: Bands = QUIET
+): WaveMotion {
   const target = isPlaying ? 1 : 0;
   const liveness = target + (motion.liveness - target) * Math.exp(-dt / EASE_SECONDS);
   const drift = LAYERS.map((layer, i) => {
     const period = layer.period.rest + (layer.period.live - layer.period.rest) * liveness;
     return ((motion.drift[i] ?? 0) + (layer.direction * dt) / period) % 1;
   });
-  return { liveness, drift };
+  const bands = motion.bands.map((level, k) => {
+    const goal = heard[k] ?? 0.5;
+    const tau = goal > level ? ATTACK_SECONDS : RELEASE_SECONDS;
+    return goal + (level - goal) * Math.exp(-dt / tau);
+  }) as unknown as Bands;
+  return { liveness, drift, bands };
 }
 
 interface HorizonLineProps {
@@ -116,7 +202,11 @@ export function HorizonLine({ isPlaying, className }: HorizonLineProps) {
     let motion: WaveMotion = {
       liveness: isPlayingRef.current ? 1 : 0,
       drift: LAYERS.map(() => 0),
+      bands: QUIET,
     };
+    let frequencies: Uint8Array<ArrayBuffer> | null = null;
+    let gain: Gain | null = null;
+    const horizon = canvas.closest<HTMLElement>('[data-horizon]');
     let frame = 0;
     let lastTime = performance.now();
 
@@ -124,7 +214,20 @@ export function HorizonLine({ isPlaying, className }: HorizonLineProps) {
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
       // Reduced motion: a still line at rest.
-      if (!reducedMotion.matches) motion = stepMotion(motion, isPlayingRef.current, dt);
+      if (!reducedMotion.matches) {
+        const analyser = isPlayingRef.current ? getAnalyser() : null;
+        let heard = QUIET;
+        if (analyser) {
+          frequencies ??= new Uint8Array(analyser.frequencyBinCount);
+          analyser.getByteFrequencyData(frequencies);
+          const read = autoGain(gain, bandsOf(frequencies, analyser.context.sampleRate), dt);
+          gain = read.gain;
+          heard = read.bands;
+        }
+        motion = stepMotion(motion, isPlayingRef.current, dt, heard);
+        // The dot beats with the bass only while it is heard: 0 when quiet.
+        horizon?.style.setProperty('--bass', String(analyser ? motion.bands[0] : 0));
+      }
 
       const { width, height } = canvas;
       const mid = height / 2;
@@ -137,7 +240,9 @@ export function HorizonLine({ isPlaying, className }: HorizonLineProps) {
         const drift = motion.drift[i] ?? 0;
         ctx.beginPath();
         for (let x = 0; x <= width + step; x += step) {
-          const y = mid + amplitude * layer.gain * traceOffset(layer.sines, x / width + drift);
+          const y =
+            mid +
+            amplitude * layer.gain * traceOffset(layer.sines, x / width + drift, motion.bands);
           if (x === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
