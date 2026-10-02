@@ -42,20 +42,25 @@ async function findBy(normalizedName: string): Promise<Resolved | null> {
   return rows[0] ?? null;
 }
 
-/** Pages exist for what the antenna played, never for a name typed into the API. */
-async function playedOnAntenna(normalizedName: string): Promise<boolean> {
+/**
+ * A title the antenna played by this artist, or null when it never played
+ * them: pages exist for what the antenna played, never for a name typed into
+ * the API. The title is also what tells homonyms apart on Deezer.
+ */
+async function playedTitle(normalizedName: string): Promise<string | null> {
   const rows = await db
-    .select({ id: radioPlay.id })
+    .select({ title: radioPlay.title })
     .from(radioPlay)
     .where(eq(radioPlay.artistNormalized, normalizedName))
     .limit(1);
-  if (rows[0]) return true;
+  if (rows[0]) return rows[0].title;
 
   // The watcher records a track up to a minute after it starts.
   const current = await fetchNowPlaying().catch(() => null);
-  return (
-    current !== null && normalizeArtistName(primaryArtistName(current.artist)) === normalizedName
-  );
+  return current !== null &&
+    normalizeArtistName(primaryArtistName(current.artist)) === normalizedName
+    ? current.title
+    : null;
 }
 
 export async function resolveArtist(rawName: string): Promise<Resolved | null> {
@@ -66,9 +71,10 @@ export async function resolveArtist(rawName: string): Promise<Resolved | null> {
   const existing = await findBy(normalizedName);
   if (existing) return existing;
 
-  if (!(await playedOnAntenna(normalizedName))) return null;
+  const title = await playedTitle(normalizedName);
+  if (title === null) return null;
 
-  const search = await searchArtist(primary, normalizeArtistName);
+  const search = await searchArtist(primary, title, normalizeArtistName);
   // Deezer down: resolve again next time rather than persist a false "unknown".
   if (search.status === 'failed') return null;
 

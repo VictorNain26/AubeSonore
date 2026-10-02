@@ -3,11 +3,12 @@ import type { ArtistSearch } from './deezerService';
 import type { NowPlayingTrack } from './nowPlaying';
 
 let artistRows: Array<{ id: string; slug: string }> = [];
-let playRows: Array<{ id: string }> = [];
+let playRows: Array<{ title: string }> = [];
 let inserted: Array<Record<string, unknown>> = [];
 let search: ArtistSearch = { status: 'none' };
 let nowPlaying: NowPlayingTrack | null = null;
 let searches = 0;
+let searchedTitles: string[] = [];
 
 const schema = await import('../db/schema');
 
@@ -40,8 +41,9 @@ const deezer = await import('./deezerService');
 const onAir = await import('./nowPlaying');
 
 const spies = [
-  spyOn(deezer, 'searchArtist').mockImplementation(() => {
+  spyOn(deezer, 'searchArtist').mockImplementation((_name: string, title: string) => {
     searches += 1;
+    searchedTitles.push(title);
     return Promise.resolve(search);
   }),
   spyOn(onAir, 'fetchNowPlaying').mockImplementation(() => Promise.resolve(nowPlaying)),
@@ -61,6 +63,7 @@ beforeEach(() => {
   search = { status: 'none' };
   nowPlaying = null;
   searches = 0;
+  searchedTitles = [];
 });
 
 describe('primaryArtistName', () => {
@@ -138,10 +141,19 @@ describe('resolveArtist', () => {
 
     expect(await resolveArtist('Air')).not.toBeNull();
     expect(inserted).toHaveLength(1);
+    expect(searchedTitles).toEqual(['Kelly Watch the Stars']);
+  });
+
+  it('tells homonyms apart by a title the antenna played', async () => {
+    playRows = [{ title: 'Cassius 1999' }];
+
+    await resolveArtist('Cassius');
+
+    expect(searchedTitles).toEqual(['Cassius 1999']);
   });
 
   it('persists nothing while Deezer is failing, so the next call retries', async () => {
-    playRows = [{ id: 'p-1' }];
+    playRows = [{ title: 'Kelly Watch the Stars' }];
     search = { status: 'failed' };
 
     expect(await resolveArtist('Air')).toBeNull();
@@ -149,7 +161,7 @@ describe('resolveArtist', () => {
   });
 
   it('gives an artist Deezer does not know a page of its own', async () => {
-    playRows = [{ id: 'p-1' }];
+    playRows = [{ title: 'Kelly Watch the Stars' }];
 
     const resolved = await resolveArtist('Unsigned Band feat. Friend');
 
@@ -162,7 +174,7 @@ describe('resolveArtist', () => {
   });
 
   it('binds a Deezer match and takes its spelling', async () => {
-    playRows = [{ id: 'p-1' }];
+    playRows = [{ title: 'Kelly Watch the Stars' }];
     search = { status: 'match', artist: { id: '27', name: 'Daft Punk', picture: null } };
 
     await resolveArtist('daft punk');
@@ -175,7 +187,7 @@ describe('resolveArtist', () => {
   });
 
   it('resolves a name written without Latin letters', async () => {
-    playRows = [{ id: 'p-1' }];
+    playRows = [{ title: 'Kelly Watch the Stars' }];
 
     expect(await resolveArtist('Кино')).toMatchObject({ slug: 'кино' });
   });
