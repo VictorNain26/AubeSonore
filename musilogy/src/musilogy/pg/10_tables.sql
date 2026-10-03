@@ -46,6 +46,11 @@ CREATE TABLE density (
   PRIMARY KEY (genre_mbid, year)
 );
 
+CREATE TABLE activity (
+  year integer PRIMARY KEY,
+  groups bigint NOT NULL
+);
+
 CREATE TABLE links (
   src_mbid text COLLATE "C" NOT NULL,
   dst_mbid text COLLATE "C" NOT NULL,

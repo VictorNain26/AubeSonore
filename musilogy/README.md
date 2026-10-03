@@ -1,6 +1,6 @@
 # musilogy
 
-Couche 0 : transforme deux dumps JSON MusicBrainz et un relevé ListenBrainz en sept tables reproductibles et testées, publiées en Parquet. La couche 1 est la frise d'AubeSonore (`site/`) : elle lit ces tables après leur import dans la base du site, jamais musilogy à l'exécution — conception dans `docs/superpowers/specs/2026-10-02-frieze-lineage-design.md`.
+Couche 0 : transforme deux dumps JSON MusicBrainz et un relevé ListenBrainz en huit tables reproductibles et testées, publiées en Parquet. La couche 1 est la frise d'AubeSonore (`site/`) : elle lit ces tables après leur import dans la base du site, jamais musilogy à l'exécution — conception dans `docs/superpowers/specs/2026-10-02-frieze-lineage-design.md`.
 
 ## Principe directeur
 
@@ -10,7 +10,7 @@ Couche 0 : transforme deux dumps JSON MusicBrainz et un relevé ListenBrainz en 
 
 C'est le changement le plus lourd par rapport à la première version de ce dépôt, qui appliquait le filtre de la frise à la population et n'en publiait que 63 487 groupes sur 682 447, soit 30 % de la masse d'albums réelle.
 
-## Les sept tables
+## Les huit tables
 
 Mesurées sur le dump de référence `20260909-001002` :
 
@@ -23,6 +23,7 @@ Mesurées sur le dump de référence `20260909-001002` :
 | `lineage` | un modèle d'un artiste — professeur, artiste honoré, homonyme d'origine —, avec la source qui l'affirme | 32 667 |
 | `popularity` | les écoutes ListenBrainz d'un artiste, relevées à une date | 989 488 |
 | `density` | groupes présents par genre et par année | 58 767 cellules |
+| `activity` | groupes distincts présents par année, même population que `density` : le dénominateur qui fait d'une densité une part de l'année | 172 années |
 
 Colonnes réelles (voir `src/musilogy/sql/`) :
 
@@ -96,7 +97,7 @@ Le coût mesuré de la règle est un faux positif, `mincecore` (73,1 % sur 216 c
 
 ## Ce que reçoit la couche 1
 
-`data/out/<dump>/` contient les sept tables en Parquet et le manifeste.
+`data/out/<dump>/` contient les huit tables en Parquet et le manifeste.
 
 `density` est publié plutôt que laissé à recalculer, et `density_eligible` voyage avec le vocabulaire comme une colonne à part entière — la règle elle-même, pas seulement les deux mesures qui la motivent, elles aussi publiées à côté pour qui veut l'auditer plutôt que la croire sur parole. Un consommateur n'a donc aucun seuil à coder en dur : sans cette colonne, reconstruire la densité depuis `artists` et `genres` donne 59 778 cellules au lieu de 58 767 — les 1 011 cellules des treize genres que la couche 0 refuse délibérément de publier. Réimplémenter une règle, c'est là qu'elle se perd.
 
@@ -104,7 +105,7 @@ Chaque ligne porte son `mbid` — la clé de jointure vers `albums`, `links` et 
 
 **Attention à `y_presence_end` quand la fin est inconnue.** La colonne vaut alors `y0` : le groupe se réduit à une barre d'un an. Cela concerne **53 761 groupes sur les 175 403 de type `Group` datés et porteurs d'un genre, soit 30,6 %**, dont 9 850 qui ne sont pas terminés et n'ont aucune preuve de fin. Sur ces 175 403, **174 516 alimentent effectivement une cellule** de `density` ; les 887 autres ne portent que des genres exclus. Un groupe formé en 2026 est donc un point, pas une barre ouverte. Pour rendre cela honnêtement, la couche 1 doit lire `ended` et `y_end_source` plutôt que `y_presence_end` seul : c'est le rendu faux le plus probable d'une première intégration.
 
-`manifest.json` porte les empreintes des archives, la date et l'empreinte du relevé ListenBrainz (`popularity`), **les empreintes des sept fichiers Parquet livrés** (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les sept compteurs de neutralisation, les exclusions de densité et de liens, le commit et l'empreinte des corrections.
+`manifest.json` porte les empreintes des archives, la date et l'empreinte du relevé ListenBrainz (`popularity`), **les empreintes des huit fichiers Parquet livrés** (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les sept compteurs de neutralisation, les exclusions de densité et de liens, le commit et l'empreinte des corrections.
 
 Ces empreintes de sortie sont opposables parce que la livraison est reproductible : à dump et code identiques, deux exécutions écrivent les mêmes octets. L'ordre des lignes est fixé par une clé totale sur chaque table. Un consommateur distingue donc une livraison inchangée d'une nouvelle par sa seule empreinte, sans retélécharger.
 
@@ -114,7 +115,7 @@ Ces empreintes de sortie sont opposables parce que la livraison est reproductibl
 
 Six tables sont chargées — `artists`, `genres`, `density`, `links`, `lineage`, `popularity` — plus `manifest` (dump, relevé, commit) ; `albums` reste en Parquet tant qu'aucun écran ne le lit. Les listes de genres, que Postgres ne sait pas typer en structures anonymes, deviennent du `jsonb`, avec leurs `mbid` à côté dans `genre_mbids`. Mesuré sur le dump de référence : environ 3 min, 1,1 Go.
 
-**Ce que lit le site : des fonctions, pas des tables.** Le site ne lit jamais les tables directement : il appelle les fonctions de `pg/90_*.sql`, testées ici contre Postgres. Il dépend de leurs signatures, pas de la disposition des tables. `frieze_genres()` et `frieze_density()` donnent la vue d'ensemble, limitée aux genres que `density` garde. `frieze_window(genre, de, à, taille, décalage)` donne une page des artistes présents dans un genre sur une période, les plus écoutés d'abord, ceux que ListenBrainz ne connaît pas en dernier, avec le total : personne n'est écarté, la page dit seulement quoi dessiner d'abord. Un genre exclu de la vue d'ensemble reste interrogeable ici. `artist_card(mbid)`, `artist_links(mbid)` (chaque lien lu depuis l'artiste, `forward` s'il en est la source MusicBrainz) et `artist_lineage(mbid)` (inspirations et descendance, chacune avec sa source) donnent la fiche.
+**Ce que lit le site : des fonctions, pas des tables.** Le site ne lit jamais les tables directement : il appelle les fonctions de `pg/90_*.sql`, testées ici contre Postgres. Il dépend de leurs signatures, pas de la disposition des tables. `frieze_genres()`, `frieze_density()` et `frieze_activity()` donnent la vue d'ensemble, limitée aux genres que `density` garde ; `activity` en est le dénominateur, pour lire chaque genre comme une part des groupes de l'année plutôt qu'en nombres absolus, qui ne montreraient que la croissance de MusicBrainz. `frieze_window(genre, de, à, taille, décalage)` donne une page des artistes présents dans un genre sur une période, les plus écoutés d'abord, ceux que ListenBrainz ne connaît pas en dernier, avec le total : personne n'est écarté, la page dit seulement quoi dessiner d'abord. Un genre exclu de la vue d'ensemble reste interrogeable ici. `artist_card(mbid)`, `artist_links(mbid)` (chaque lien lu depuis l'artiste, `forward` s'il en est la source MusicBrainz) et `artist_lineage(mbid)` (inspirations et descendance, chacune avec sa source) donnent la fiche.
 
 **Contemporains, à la demande.** Une fonction, pas une table : `musilogy.contemporaries(mbid, page_size, page_offset)` renvoie une page des artistes dont les années de présence (`y0` à `y_presence_end`) recouvrent celles de l'artiste, qui partagent sa scène et au moins un genre, avec le total de la liste. La scène est le même `begin_area_mbid` — l'identité du lieu, pas son nom, que London partage avec l'Ontario —, sinon le même pays quand l'artiste n'a pas de lieu de début ; `scene` dit lequel a servi. Aucun seuil : la liste est ordonnée par similarité de Jaccard des genres, puis par `mbid`, et chaque ligne porte les genres partagés. Publiée complète, elle ferait environ 188 millions de lignes (extrapolé d'un échantillon de 2 000 artistes, médiane 21, p99 9 667). Le classement lit `scenes`, la projection étroite des 285 284 artistes qui ont une année et un genre : 5 à 30 ms pour un artiste courant, 180 ms pour le pire cas mesuré, un artiste américain sans lieu de début et ses 22 152 contemporains. Sur 300 artistes tirés par `hash(mbid)`, ses 167 104 lignes étaient identiques à celles de l'ancienne macro DuckDB.
 
@@ -122,7 +123,7 @@ Six tables sont chargées — `artists`, `genres`, `density`, `links`, `lineage`
 
 Le **contrat exécutable** est `tests/test_baseline.py` : il confronte le pipeline entier au dump de référence et compare exactement les comptes, la somme des cellules de densité et la répartition des provenances. Les chiffres cités ici sont descriptifs ; en cas de divergence, c'est le test qui fait foi.
 
-Deux situations, deux conduites, à ne pas confondre. **Sur le dump de référence, un écart signale une règle mal implémentée** — jamais un prétexte pour ajuster la ligne de base. **Sur un nouveau dump, tous les chiffres bougent légitimement**, et la ligne de base se régénère : les sept comptes, les trois répartitions de provenance, les neuf compteurs d'anomalies, les sept de neutralisation, les exclusions de densité et de liens, la répartition des liens par type et celle de `lineage` par source. Il faut alors aussi mettre à jour `REFERENCE_DUMP`, la valeur par défaut de `dump_year`, ajouter le `reference/<dump>.SHA256SUMS` correspondant, prendre un relevé ListenBrainz sur la nouvelle extraction et l'épingler dans `REFERENCE_POPULARITY` (l'invariant `popularity_unrequested` refuse un relevé pris sur une autre), et modifier à la main les bornes codées en dur dans les vues de `90_invariants.sql` — cette dernière opération est délibérément manuelle, c'est ce qui empêche une mauvaise variable de satisfaire à la fois la règle et son contrôle. Les extractions vivant dans `data/work/<dump>/`, changer `REFERENCE_DUMP` suffit à repartir d'une extraction neuve, sans rien vider à la main ; le manifeste porte déjà les paramètres du run (section précédente).
+Deux situations, deux conduites, à ne pas confondre. **Sur le dump de référence, un écart signale une règle mal implémentée** — jamais un prétexte pour ajuster la ligne de base. **Sur un nouveau dump, tous les chiffres bougent légitimement**, et la ligne de base se régénère : les huit comptes, les trois répartitions de provenance, les neuf compteurs d'anomalies, les sept de neutralisation, les exclusions de densité et de liens, la répartition des liens par type et celle de `lineage` par source. Il faut alors aussi mettre à jour `REFERENCE_DUMP`, la valeur par défaut de `dump_year`, ajouter le `reference/<dump>.SHA256SUMS` correspondant, prendre un relevé ListenBrainz sur la nouvelle extraction et l'épingler dans `REFERENCE_POPULARITY` (l'invariant `popularity_unrequested` refuse un relevé pris sur une autre), et modifier à la main les bornes codées en dur dans les vues de `90_invariants.sql` — cette dernière opération est délibérément manuelle, c'est ce qui empêche une mauvaise variable de satisfaire à la fois la règle et son contrôle. Les extractions vivant dans `data/work/<dump>/`, changer `REFERENCE_DUMP` suffit à repartir d'une extraction neuve, sans rien vider à la main ; le manifeste porte déjà les paramètres du run (section précédente).
 
 Provenance des bords, sur le dump de référence :
 

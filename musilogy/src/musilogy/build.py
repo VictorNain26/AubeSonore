@@ -165,6 +165,8 @@ INVARIANTS = (
     "density_population_mismatch",
     "density_missing_cell",
     "density_excluded_genre_present",
+    "activity_mismatch",
+    "activity_below_density",
     "link_endpoint_missing",
     "link_incomplete",
     "duplicate_link",

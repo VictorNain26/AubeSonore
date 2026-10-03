@@ -13,6 +13,7 @@ BASELINE = {
     "albums": 1_290_584,
     "genres": 1_729,
     "density": 58_767,
+    "activity": 172,
     "links": 771_147,
     "lineage": 32_667,
     "popularity": 989_488,

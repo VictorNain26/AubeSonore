@@ -192,6 +192,9 @@ def test_contractual_bounds_are_not_read_from_the_session_variables():
         "album_out_of_window": 1,
         "presence_out_of_range": 2,
         "density_out_of_range": 7,
+        # activity counts the same population year by year: it stretches past
+        # 2026 with density, and its recount holds the same hardcoded window.
+        "activity_mismatch": 1,
     }
 
 

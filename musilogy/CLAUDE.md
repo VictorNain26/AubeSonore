@@ -1,7 +1,7 @@
 # musilogy
 
 Couche 0 : deux dumps JSON MusicBrainz et un relevé ListenBrainz transformés
-en sept tables Parquet reproductibles. Les règles métier et les chiffres sont dans le `README.md` ; ce
+en huit tables Parquet reproductibles. Les règles métier et les chiffres sont dans le `README.md` ; ce
 fichier décrit comment on travaille sur ce dépôt.
 
 Les conventions qui ne servent qu'à un endroit sont chargées à la demande :

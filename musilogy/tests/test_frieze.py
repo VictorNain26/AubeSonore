@@ -125,3 +125,13 @@ def test_a_teacher_is_an_inspiration_of_the_pupil_and_the_pupil_its_descendant(t
     assert pg_query(pg, f"SELECT side, other_mbid, source FROM musilogy.artist_lineage('{A}')") == [
         ("descendant", B, "mb_teacher")
     ]
+
+
+def test_the_overview_has_a_denominator_counting_each_band_once(tmp_path, pg):
+    loaded(tmp_path, pg, [group(A, genres=("post-punk", "new wave")), group(B)], popularity={})
+    assert pg_query(
+        pg, "SELECT year, groups FROM musilogy.frieze_activity() WHERE year = 1980"
+    ) == [(1980, 2)]
+    assert pg_query(pg, "SELECT sum(present) FROM musilogy.frieze_density() WHERE year = 1980") == [
+        (3,)
+    ]
