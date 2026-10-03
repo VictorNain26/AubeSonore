@@ -187,7 +187,13 @@ Ce qui ne s'emboîte pas encore, mesuré le 2026-10-03 :
      (Railway, Supabase) que le site n'utilise plus ;
    - `site/docs/scaling-roadmap.md` ne fait passer Cloudflare devant la radio qu'au palier P2,
      alors que le flux passe déjà par le Tunnel.
-4. **Aucune copie hors de la maison** (§3.6).
+4. **Le README du site décrit un site qui n'existe plus** : liens par Songlink/Odesli (fermé le
+   2026-07-31), « identité jour/nuit » et « fil-journée » (retirés au profit d'un seul style).
+5. **La migration `0006_timestamptz` avale toute erreur** (`EXCEPTION WHEN OTHERS THEN NULL`) :
+   déjà appliquée en production, elle ne refait rien, mais un échec y passerait inaperçu.
+6. **La sauvegarde des médias de l'antenne vit hors du dépôt** (`~/mediaserver/backup-restic.sh`,
+   unités dans `~/.config/systemd/user`) alors qu'elle ne sert qu'AubeSonore.
+7. **Aucune copie hors de la maison** (§3.6).
 
 ## 6. Feuille de route
 
