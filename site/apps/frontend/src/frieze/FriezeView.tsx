@@ -8,9 +8,11 @@ import { TEXT_ACTION } from '../home/styles';
 import { INCOMPLETE_FROM, laneOutline, type Lane } from './lanes';
 
 // A lane is one band of the frieze: its name and peak on a first line, its
-// ridge below. World units: x in years, y in pixels (only time zooms).
+// ridge below, never reaching the text. World units: x in years, y in pixels
+// (only time zooms).
 export const LANE = 64;
-const RIDGE = 40;
+const BASELINE = LANE - 6;
+const RIDGE = 30;
 const FIRST_YEAR = 1850;
 const LAST_YEAR = 2027;
 const VIEW = new OrthographicView({ id: 'frieze', flipY: true });
@@ -89,7 +91,7 @@ export function FriezeView({
       new SolidPolygonLayer<{ lane: Lane; index: number }>({
         id: 'ridges',
         data: lanes.map((lane, index) => ({ lane, index })),
-        getPolygon: ({ lane, index }) => laneOutline(lane, (index + 1) * LANE - 8, RIDGE),
+        getPolygon: ({ lane, index }) => laneOutline(lane, index * LANE + BASELINE, RIDGE),
         getFillColor: palette.ink,
         updateTriggers: { getPolygon: lanes },
       }),
@@ -113,6 +115,10 @@ export function FriezeView({
   }, [lanes, palette, height]);
 
   const numbers = new Intl.NumberFormat(getLocale());
+  const percent = new Intl.NumberFormat(getLocale(), {
+    style: 'percent',
+    maximumSignificantDigits: 2,
+  });
   const [yearFrom, yearTo] = view ? visibleYears(view, size.width) : [1950, LAST_YEAR];
   const step = yearTo - yearFrom > 120 ? 50 : yearTo - yearFrom > 40 ? 10 : 5;
   const ticks: number[] = [];
@@ -160,7 +166,10 @@ export function FriezeView({
               >
                 <span className="text-row">{lane.name}</span>
                 <span className="text-label text-text-muted font-mono tabular-nums">
-                  {m.frieze_peak({ count: numbers.format(lane.peak), year: String(lane.peakYear) })}
+                  {m.frieze_peak({
+                    share: percent.format(lane.peakShare),
+                    year: String(lane.peakYear),
+                  })}
                 </span>
               </li>
             ))}

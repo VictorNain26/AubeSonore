@@ -13,6 +13,10 @@ const overview: FriezeOverview = {
     year: [1960, 1961, 1963, 1920, 1921, 1977, 1978],
     present: [10, 30, 20, 4, 2, 15, 5],
   },
+  activity: {
+    year: [1920, 1921, 1960, 1961, 1963, 1977, 1978],
+    groups: [8, 8, 40, 60, 80, 30, 50],
+  },
 };
 
 describe('buildLanes', () => {
@@ -22,11 +26,19 @@ describe('buildLanes', () => {
     expect(rock).toMatchObject({ from: 1960, to: 1963, present: [10, 30, 0, 20] });
   });
 
-  it('keeps each genre peak and the year its mass is centred on', () => {
+  it('reads each year as the share of the groups present', () => {
     const rock = buildLanes(overview).find((l) => l.name === 'rock');
 
-    expect(rock).toMatchObject({ peak: 30, peakYear: 1961, total: 60 });
-    expect(rock?.center).toBeCloseTo((1960 * 10 + 1961 * 30 + 1963 * 20) / 60);
+    expect(rock?.share).toEqual([0.25, 0.5, 0, 0.25]);
+    expect(rock).toMatchObject({ peakShare: 0.5, peakYear: 1961, total: 60 });
+  });
+
+  it('peaks where the share peaks, not where the count does', () => {
+    // punk counts 15 groups in 1977 and 5 in 1978, but 1977 holds half the
+    // groups present: that is its peak; jazz's 4 of 8 in 1920 likewise.
+    const punk = buildLanes(overview).find((l) => l.name === 'punk');
+
+    expect(punk).toMatchObject({ peakShare: 0.5, peakYear: 1977 });
   });
 });
 
@@ -54,6 +66,7 @@ describe('laneOutline', () => {
     const outline = laneOutline(rock, 100, 40);
 
     expect(outline[0]).toEqual([1960, 100]);
+    expect(outline[1]).toEqual([1960.5, 80]);
     expect(outline[2]).toEqual([1961.5, 60]);
     expect(outline.at(-1)).toEqual([1964, 100]);
   });

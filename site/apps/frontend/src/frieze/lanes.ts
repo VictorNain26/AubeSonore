@@ -4,14 +4,21 @@ import type { FriezeOverview } from '@aubesonore/shared-types/client';
 export interface Lane {
   mbid: string;
   name: string;
-  /** Groups present, year by year, from `from` to `to` included; 0 where none. */
+  /** Years covered, from `from` to `to` included. */
   from: number;
   to: number;
+  /** Groups of the genre present each year; 0 where none. */
   present: number[];
-  peak: number;
+  /**
+   * The genre's share of the groups present each year: what the ridge draws.
+   * Absolute counts would only show MusicBrainz's growth.
+   */
+  share: number[];
+  peakShare: number;
   peakYear: number;
+  /** Groups summed over the years: the weight that picks which lanes show. */
   total: number;
-  /** The year the genre's mass is centred on: what the lanes are ordered by. */
+  /** The year the genre's share is centred on: what the lanes are ordered by. */
   center: number;
 }
 
@@ -23,6 +30,9 @@ export interface Lane {
 export const INCOMPLETE_FROM = 2015;
 
 export function buildLanes(overview: FriezeOverview): Lane[] {
+  const active = new Map(
+    overview.activity.year.map((y, i) => [y, overview.activity.groups[i] ?? 0])
+  );
   const byGenre = new Map<number, Map<number, number>>();
   overview.density.genre.forEach((g, i) => {
     const years = byGenre.get(g) ?? new Map<number, number>();
@@ -37,15 +47,19 @@ export function buildLanes(overview: FriezeOverview): Lane[] {
     const from = Math.min(...years.keys());
     const to = Math.max(...years.keys());
     const present = Array.from({ length: to - from + 1 }, (_, i) => years.get(from + i) ?? 0);
-    let peak = 0;
+    // activity counts every group density does: a year with groups has a denominator.
+    const share = present.map((value, i) =>
+      value > 0 ? value / (active.get(from + i) ?? value) : 0
+    );
+    let peakShare = 0;
     let peakYear = from;
-    let total = 0;
+    let mass = 0;
     let weighted = 0;
-    present.forEach((value, i) => {
-      total += value;
+    share.forEach((value, i) => {
+      mass += value;
       weighted += value * (from + i);
-      if (value > peak) {
-        peak = value;
+      if (value > peakShare) {
+        peakShare = value;
         peakYear = from + i;
       }
     });
@@ -55,17 +69,18 @@ export function buildLanes(overview: FriezeOverview): Lane[] {
       from,
       to,
       present,
-      peak,
+      share,
+      peakShare,
       peakYear,
-      total,
-      center: total > 0 ? weighted / total : from,
+      total: present.reduce((sum, value) => sum + value, 0),
+      center: mass > 0 ? weighted / mass : from,
     });
   }
   return lanes;
 }
 
 /**
- * The `count` heaviest genres, ordered by the year their mass is centred on,
+ * The `count` heaviest genres, ordered by the year their share is centred on,
  * then by MBID: read top to bottom, the lanes tell the history in order.
  */
 export function heaviestByEpoch(lanes: Lane[], count: number): Lane[] {
@@ -78,13 +93,13 @@ export function heaviestByEpoch(lanes: Lane[], count: number): Lane[] {
 /**
  * The lane's outline in world units: x in years, y downwards from the top of
  * the frieze. Each year spans [year, year + 1]; the ridge rises up to
- * `height` above the lane's baseline at its peak, so every lane shows the
- * shape of its own life, whatever its size.
+ * `height` above the lane's baseline where the genre's share peaks, so every
+ * lane shows the shape of its own life, whatever its size.
  */
 export function laneOutline(lane: Lane, baseline: number, height: number): [number, number][] {
   const points: [number, number][] = [[lane.from, baseline]];
-  lane.present.forEach((value, i) => {
-    points.push([lane.from + i + 0.5, baseline - (height * value) / (lane.peak || 1)]);
+  lane.share.forEach((value, i) => {
+    points.push([lane.from + i + 0.5, baseline - (height * value) / (lane.peakShare || 1)]);
   });
   points.push([lane.to + 1, baseline]);
   return points;

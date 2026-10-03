@@ -57,6 +57,11 @@ interface GenreRow extends Record<string, unknown> {
   n_artists: Int8;
 }
 
+interface ActivityRow extends Record<string, unknown> {
+  year: number;
+  groups: Int8;
+}
+
 interface DensityRow extends Record<string, unknown> {
   genre_mbid: string;
   year: number;
@@ -67,9 +72,10 @@ export async function getFriezeOverview(): Promise<FriezeOverview> {
   const cached = friezeOverviewCache.get('overview');
   if (cached) return cached;
 
-  const [genres, cells] = await Promise.all([
+  const [genres, cells, activity] = await Promise.all([
     db.execute<GenreRow>(sql`SELECT * FROM musilogy.frieze_genres()`),
     db.execute<DensityRow>(sql`SELECT * FROM musilogy.frieze_density()`),
+    db.execute<ActivityRow>(sql`SELECT * FROM musilogy.frieze_activity()`),
   ]);
   const index = new Map(genres.rows.map((g, i) => [g.genre_mbid, i]));
   const density: FriezeOverview['density'] = { genre: [], year: [], present: [] };
@@ -88,6 +94,10 @@ export async function getFriezeOverview(): Promise<FriezeOverview> {
       artists: Number(g.n_artists),
     })),
     density,
+    activity: {
+      year: activity.rows.map((r) => r.year),
+      groups: activity.rows.map((r) => Number(r.groups)),
+    },
   };
   friezeOverviewCache.set('overview', overview);
   return overview;

@@ -187,6 +187,12 @@ export interface FriezeOverview {
   genres: FriezeGenre[];
   /** Columnar: cell i is genre `genres[genre[i]]`, `present[i]` groups in `year[i]`. */
   density: { genre: number[]; year: number[]; present: number[] };
+  /**
+   * Distinct groups present each year, in the same population: a genre is
+   * read as its share of the year, never in absolute counts, which only
+   * follow MusicBrainz's growth.
+   */
+  activity: { year: number[]; groups: number[] };
 }
 
 export interface FriezeArtistRef {
