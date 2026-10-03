@@ -36,12 +36,25 @@ describe('buildLanes', () => {
   it('peaks where the share is surely high, not on a year of a handful of groups', () => {
     const lanes = buildLanes({
       genres: [{ mbid: 'g-blues', name: 'blues', artists: 41 }],
-      density: { genre: [0, 0], year: [1900, 1960], present: [1, 40] },
-      activity: { year: [1900, 1960], groups: [1, 100] },
+      density: { genre: [0, 0], year: [1920, 1960], present: [18, 500] },
+      activity: { year: [1920, 1960], groups: [30, 1000] },
     });
 
-    // 1 group of 1 is 100 %, 40 of 100 is 40 %: the second is the one to trust.
-    expect(lanes[0]).toMatchObject({ peakYear: 1960, peakShare: 0.4 });
+    // 18 groups of 30 is 60 %, 500 of 1000 is 50 %: the second is the one to trust.
+    expect(lanes[0]).toMatchObject({ peakYear: 1960, peakShare: 0.5 });
+  });
+});
+
+describe('buildLanes on a sparse year', () => {
+  it('draws nothing where too few groups are known for a share', () => {
+    const lanes = buildLanes({
+      genres: [{ mbid: 'g-pop-rock', name: 'pop rock', artists: 40 }],
+      density: { genre: [0, 0], year: [1879, 1980], present: [1, 40] },
+      activity: { year: [1879, 1980], groups: [2, 700] },
+    });
+
+    expect(lanes[0]?.sure[0]).toBe(0);
+    expect(lanes[0]).toMatchObject({ peakYear: 1980 });
   });
 });
 

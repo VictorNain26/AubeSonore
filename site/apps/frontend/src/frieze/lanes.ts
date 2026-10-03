@@ -37,6 +37,13 @@ export interface Lane {
  */
 export const INCOMPLETE_FROM = 2015;
 
+/**
+ * Below this many groups active in a year, MusicBrainz knows too few (2 in
+ * 1879, 30 in 1920) for a share to mean anything: the Wilson bound of one group
+ * out of two, 9 %, would outrank pop rock's real 6 %. Those years draw nothing.
+ */
+export const MIN_GROUPS = 30;
+
 const Z = 1.96;
 
 /**
@@ -75,7 +82,10 @@ export function buildLanes(overview: FriezeOverview): Lane[] {
     // activity counts every group density does: a year with groups has a denominator.
     const groups = present.map((value, i) => active.get(from + i) ?? value);
     const share = present.map((value, i) => (value > 0 ? value / (groups[i] ?? value) : 0));
-    const sure = present.map((value, i) => wilsonLower(value, groups[i] ?? 0));
+    const sure = present.map((value, i) => {
+      const n = groups[i] ?? 0;
+      return n < MIN_GROUPS ? 0 : wilsonLower(value, n);
+    });
     let peakSure = 0;
     let peakYear = from;
     let mass = 0;
