@@ -142,6 +142,8 @@ export interface ArtistProfile {
   links: ArtistLink[];
   /** What the antenna actually played — the one section no upstream can supply. */
   playedOnRadio: ArtistRadioPlay[];
+  /** MusicBrainz id, null when MusicBrainz declares no Deezer link: keys the frieze (`/api/frieze/artist/:mbid`). */
+  mbid: string | null;
 }
 
 export const PLATFORM_NAMES: Record<PreferredPlatform, string> = {

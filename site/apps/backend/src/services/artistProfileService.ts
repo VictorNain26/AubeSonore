@@ -30,11 +30,11 @@ async function musicbrainzArtist(row: {
   id: string;
   deezerId: string | null;
   mbid: string | null;
-}): Promise<MusicBrainzArtist | null> {
+}): Promise<{ mbid: string; artist: MusicBrainzArtist | null } | null> {
   const mbid = await ensureMbid(row);
   if (!mbid) return null;
   const found = await getArtistByMbid(mbid);
-  return found.status === 'found' ? found.value : null;
+  return { mbid, artist: found.status === 'found' ? found.value : null };
 }
 
 export async function getArtistProfile(
@@ -63,8 +63,9 @@ export async function getArtistProfile(
     withFallback('radioPlay', getPlaysByArtist(row.normalizedName), []),
   ]);
 
-  const summary = musicbrainz?.wikidataId
-    ? await withFallback('wikipedia', getSummary(musicbrainz.wikidataId, locale), null)
+  const facts = musicbrainz?.artist ?? null;
+  const summary = facts?.wikidataId
+    ? await withFallback('wikipedia', getSummary(facts.wikidataId, locale), null)
     : null;
 
   return {
@@ -72,14 +73,16 @@ export async function getArtistProfile(
     name: row.displayName,
     slug: row.slug,
     image: deezerArtist?.picture ?? null,
-    facts: musicbrainz?.facts ?? null,
+    facts: facts?.facts ?? null,
     summary,
     links: [
       ...(row.deezerId
         ? [{ platform: 'deezer' as const, url: `https://www.deezer.com/artist/${row.deezerId}` }]
         : []),
-      ...(musicbrainz?.links ?? []),
+      ...(facts?.links ?? []),
     ],
     playedOnRadio,
+    // Stored once found: MusicBrainz down still leaves the frieze reachable.
+    mbid: musicbrainz?.mbid ?? row.mbid,
   };
 }
