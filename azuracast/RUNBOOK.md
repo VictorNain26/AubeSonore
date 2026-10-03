@@ -17,29 +17,31 @@ reconstruire seule depuis un dépôt public.
 | Élément | Où il vit | Versionné | Sans lui |
 |---|---|---|---|
 | `docker-compose.yml`, `.env.example` | ce dépôt | oui | rien ne redémarre |
-| `azuracast.env` (dont `MYSQL_PASSWORD`) | hors git | non — sauvegarde | base inaccessible |
-| `.env` | hors git | non — voir `.env.example` | ports par défaut, collisions |
-| `stations/` (média) | NVMe uniquement | **aucune sauvegarde** | catalogue perdu, sans recours |
+| `azuracast.env` (dont `MYSQL_PASSWORD`) | hors git | non — restic | base inaccessible |
+| `.env` | hors git | non — restic, ou `.env.example` | ports par défaut, collisions |
+| `stations/` (média) | NVMe | restic, quotidien | catalogue perdu |
 | `stations/*/config/` | NVMe | inclus dans la sauvegarde AzuraCast | station à reconfigurer |
 | Base MariaDB | volume Docker | sauvegarde AzuraCast quotidienne | métadonnées, comptes, playlists |
 
-`scripts/backup-config.sh` copie la configuration et les secrets hors du NVMe.
-La base a sa propre sauvegarde quotidienne (~2 Mo, sur un disque distinct).
+Depuis le 2026-10-03, `restic-backup.timer` (04:45, unité et script hors dépôt :
+`~/.config/systemd/user/restic-backup.*`, `~/mediaserver/backup-restic.sh`) sauvegarde
+`stations/`, `docker-compose.yml`, `.env` et `azuracast.env` dans un dépôt restic chiffré,
+`/media/plex/.backups/restic`, disque distinct du NVMe ; rétention 7 jours, 4 semaines,
+6 mois ; battement de cœur Gatus `radio_sauvegarde-medias`. Cela remplace l'arbitrage
+d'août 2026, qui laissait les médias sans sauvegarde. La base MariaDB a sa propre
+sauvegarde quotidienne (~2 Mo, même disque distinct).
 
-**Les médias n'ont délibérément aucune sauvegarde** (décision d'août 2026). La
-perte du NVMe signifie donc : la base se restaure, mais elle référencera des
-fichiers qui n'existent plus. Le rattrapage consiste à laisser le pipeline
-reconstituer une bibliothèque — ce ne seront pas les mêmes morceaux. Si cet
-arbitrage change, la sauvegarde à écrire est une copie de `stations/*/media`
-vers un disque distinct ; sans elle, ce tableau reste la vérité.
+**Le mot de passe du dépôt** est dans `~/.config/restic/password`, sur le NVMe : sans
+une copie gardée ailleurs, la perte du NVMe rend le dépôt illisible.
 
 ## 1. AzuraCast
 
 ```bash
 cd ~/aubesonore/azuracast
 cp .env.example .env                  # ajuster les ports si la machine a changé
-# restaurer azuracast.env depuis la sauvegarde (il contient MYSQL_PASSWORD)
-# restaurer stations/ depuis la sauvegarde (média + config station)
+# restaurer stations/, .env et azuracast.env (MYSQL_PASSWORD) depuis restic :
+restic -r /media/plex/.backups/restic --password-file <copie du mot de passe> \
+  restore latest --tag nightly --target /
 docker compose up -d
 ```
 

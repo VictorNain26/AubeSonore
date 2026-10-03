@@ -14,8 +14,8 @@ partie reproductible :
   `azuracast.env` (mot de passe MariaDB), les journaux.
 
 Corollaire : `git status` propre **ne veut pas dire** que la station est
-sauvegardée. Les médias, la base et les secrets ont leurs propres sauvegardes —
-voir `RUNBOOK.md`.
+sauvegardée. Les médias et les secrets sont dans le dépôt restic, la base dans la
+sauvegarde AzuraCast — voir `RUNBOOK.md`.
 
 ## Position dans le système
 
