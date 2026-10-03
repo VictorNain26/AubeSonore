@@ -16,6 +16,10 @@ Until 2026-10-01 they were separate repositories; the standalone `radio-pipeline
 repositories were deleted on 2026-10-03, their history kept under `pipeline/` and `musilogy/`
 (git subtree).
 
+**`docs/vision.md` is the product vision and the architecture across the pieces** (French):
+who owns which data, the contracts between pieces, the identity of an artist, the roadmap. Read
+it before a change that crosses pieces.
+
 **Each piece has its own `CLAUDE.md`, and it is the authority for that piece**: commands,
 conventions, invariants. Read it before touching anything there. This file covers only what spans
 them all. `azuracast/RUNBOOK.md` covers rebuilding the whole system from nothing.
