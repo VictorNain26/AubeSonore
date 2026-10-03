@@ -6,9 +6,11 @@ from typing import Any
 import duckdb
 import pytest
 
-from musilogy import REFERENCE_POPULARITY
+from musilogy import REFERENCE_DUMP, REFERENCE_POPULARITY
 from musilogy.build import build
+from musilogy.load import load
 from musilogy.paths import SQL_DIR
+from musilogy.publish import publish
 
 FIX = Path(__file__).parent / "fixtures"
 SQL = SQL_DIR
@@ -98,6 +100,48 @@ def pg():
         if os.environ.get("CI"):
             pytest.fail("MUSILOGY_TEST_PG is unset in the CI")
         pytest.skip("MUSILOGY_TEST_PG unset: no disposable Postgres")
+    return conninfo
+
+
+def published(tmp_path, artists, popularity=None):
+    """A synthetic build, published as a delivery. `popularity` maps an mbid
+    to its listen count; every other artist gets the null row ListenBrainz
+    sends for an artist it has no listen of, as a real snapshot asks about
+    everyone."""
+    tmp_path.mkdir(exist_ok=True)
+    kwargs = {}
+    if popularity is not None:
+        path = tmp_path / "popularity.jsonl"
+        path.write_text(
+            "".join(
+                json.dumps(
+                    {
+                        "artist_mbid": a["mbid"],
+                        "total_listen_count": popularity.get(a["mbid"]),
+                        "total_user_count": popularity.get(a["mbid"]),
+                    }
+                )
+                + "\n"
+                for a in artists
+            ),
+            encoding="utf-8",
+        )
+        kwargs = {"popularity": path, "popularity_snapshot": REFERENCE_POPULARITY}
+    out = tmp_path / "out"
+    publish(build_synthetic(tmp_path, artists, **kwargs), out, REFERENCE_DUMP, None)
+    return out
+
+
+def pg_query(conninfo, sql):
+    con = duckdb.connect()
+    con.execute("LOAD postgres")
+    escaped = conninfo.replace("'", "''")
+    con.execute(f"ATTACH '{escaped}' AS pg (TYPE postgres, READ_ONLY)")
+    return con.execute("SELECT * FROM postgres_query('pg', ?)", [sql]).fetchall()
+
+
+def loaded(tmp_path, conninfo, artists, popularity=None):
+    load(published(tmp_path, artists, popularity), conninfo)
     return conninfo
 
 

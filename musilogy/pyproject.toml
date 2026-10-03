@@ -65,7 +65,7 @@ module = [
     "test_cli", "test_corrections", "test_density",
     "test_env", "test_extract", "test_fetch", "test_fixtures",
     "test_genre_reliability", "test_genres", "test_invariants",
-    "test_lifespan", "test_lineage", "test_links", "test_load", "test_paths",
+    "test_frieze", "test_lifespan", "test_lineage", "test_links", "test_load", "test_paths",
     "test_persons", "test_popularity", "test_presence", "test_publish",
 ]
 disallow_untyped_defs = false

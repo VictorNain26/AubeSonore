@@ -10,3 +10,5 @@ CREATE TABLE scenes AS
 ALTER TABLE scenes ADD PRIMARY KEY (mbid);
 CREATE INDEX ON scenes (begin_area_mbid);
 CREATE INDEX ON scenes (country);
+-- The frieze window looks artists up by genre (frieze_window, 90_frieze).
+CREATE INDEX ON scenes USING gin (genre_mbids);
