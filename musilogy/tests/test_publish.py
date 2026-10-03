@@ -1,4 +1,3 @@
-import gzip
 import json
 import subprocess
 
@@ -14,10 +13,6 @@ from musilogy.publish import publish
 REF_SUMS = REFERENCE_DIR / f"{DUMP}.SHA256SUMS"
 
 
-def read_web(out_dir, name):
-    return json.loads(gzip.decompress((out_dir / "web" / f"{name}.json.gz").read_bytes()))
-
-
 def test_publish_writes_every_table(con, tmp_path):
     manifest = publish(con, tmp_path, DUMP, None)
     for name in ("artists", "albums", "genres", "density", "links", "lineage", "popularity"):
@@ -27,99 +22,15 @@ def test_publish_writes_every_table(con, tmp_path):
     assert "genre_parents" not in manifest["counts"]
 
 
-def test_links_are_archived_but_stay_out_of_the_web_export(con, tmp_path):
-    # The Parquet archive is where the link table belongs until layer 1 picks
-    # the format it reads: the JSON exports already weigh tens of MB gzip.
-    publish(con, tmp_path, DUMP, None)
-    assert (tmp_path / "links.parquet").exists()
-    assert not (tmp_path / "web" / "links.json.gz").exists()
-
-
-def test_web_export_is_columnar_and_gzipped(con, tmp_path):
-    publish(con, tmp_path, DUMP, None)
-    raw = (tmp_path / "web" / "artists_timeline.json.gz").read_bytes()
-    assert raw[:2] == b"\x1f\x8b"
-    data = json.loads(gzip.decompress(raw))
-    assert len(data["name"]) == len(data["y0"])
-
-
-def test_web_export_carries_what_a_consumer_needs_to_join_and_to_audit(con, tmp_path):
-    # The join key and the genres first: without mbid, the 380k timeline rows
-    # can be joined to nothing — not to web/genres.json.gz, not to density —
-    # and without genres a consumer cannot filter. Then both edges' raw
-    # evidence, not just the right one: a derived value is verifiable only if
-    # what it derives from travels with it.
-    publish(con, tmp_path, DUMP, None)
-    data = read_web(tmp_path, "artists_timeline")
-    assert set(data) >= {
-        "mbid",
-        "name",
-        "genres",
-        "genre_source",
-        "genres_declared",
-        "genres_from_albums",
-        "y0",
-        "y0_source",
-        "y0_declared",
-        "y_first_album",
-        "y_end",
-        "y_end_source",
-        "y_end_declared",
-        "y_last_album",
-        "y_presence_end",
-    }
-    assert all(data["mbid"])
-    assert len(set(data["mbid"])) == len(data["mbid"])
-
-    vocabulary = set(read_web(tmp_path, "genres")["genre_mbid"])
-    exported = [g["mbid"] for row in data["genres"] for g in row]
-    assert exported, "no band carries a genre: the join is not exercised"
-    assert set(exported) <= vocabulary
-
-
-def test_web_artifacts_alone_reproduce_the_published_density(tmp_path):
-    # The regression that matters. A web-only consumer applies the rule of
-    # 60_density.sql to artists_timeline + genres. The rule now travels as a
-    # column, `density_eligible`, so this test reads that column instead of
-    # recomposing the two bounds it stands for; the two measurements stay
-    # published alongside it for whoever wants to audit the rule rather than
-    # trust it. If the column did not travel, a web-only consumer could not
-    # see which genres are excluded and would rebuild the cells this layer
-    # withholds — on the reference dump, 828 of them, on exactly the
-    # art-music genres the exclusion targets.
-    artists, release_groups = unreliable_genre_records()
-    c = build_synthetic(tmp_path, artists, release_groups)
-    out = tmp_path / "out"
-    publish(c, out, DUMP, None)
-
-    vocabulary = read_web(out, "genres")
-    excluded = {
-        mbid
-        for mbid, eligible in zip(
-            vocabulary["genre_mbid"], vocabulary["density_eligible"], strict=True
-        )
-        if not eligible
-    }
-    assert excluded, "the scenario must exercise at least one excluded genre"
-
-    timeline = read_web(out, "artists_timeline")
-    rebuilt = set()
-    for i, kind in enumerate(timeline["type"]):
-        y0, end = timeline["y0"][i], timeline["y_presence_end"][i]
-        if kind != "Group" or y0 is None or end is None:
-            continue
-        for genre in timeline["genres"][i] or []:
-            if genre["mbid"] in excluded:
-                continue
-            rebuilt |= {(genre["mbid"], year) for year in range(y0, end + 1)}
-
-    published = {
-        (mbid, year)
-        for mbid, year in zip(
-            read_web(out, "density")["genre_mbid"], read_web(out, "density")["year"], strict=True
-        )
-    }
-    assert rebuilt == published
+def test_publish_removes_every_file_it_did_not_write(con, tmp_path):
+    # Deliveries published before the web exports were retired still hold a
+    # web/ directory: it must leave the delivery, not be digested into it.
+    retired = tmp_path / "web" / "artists_timeline.json.gz"
+    retired.parent.mkdir(parents=True)
+    retired.write_bytes(b"retired export")
+    manifest = publish(con, tmp_path, DUMP, None)
+    assert not retired.exists()
+    assert not any(name.startswith("web/") for name in manifest["output_sha256"])
 
 
 def test_publish_removes_a_parquet_it_no_longer_writes(con, tmp_path):
@@ -131,43 +42,10 @@ def test_publish_removes_a_parquet_it_no_longer_writes(con, tmp_path):
     assert (tmp_path / "artists.parquet").exists()
 
 
-def test_publish_removes_a_web_export_it_no_longer_writes(con, tmp_path):
-    # A schema change leaves the previous export behind: publish() used to
-    # write only, never delete, so a file from an older population stayed in
-    # the delivered directory next to the current ones.
-    web = tmp_path / "web"
-    web.mkdir(parents=True)
-    stale = web / "artists.json.gz"
-    stale.write_bytes(gzip.compress(b'{"name":[]}'))
-    publish(con, tmp_path, DUMP, None)
-    assert not stale.exists()
-    assert (web / "artists_timeline.json.gz").exists()
-
-
-def test_name_is_not_an_identity_in_the_web_export(con, tmp_path):
-    # Three homonym witnesses: keyed by `name`, layer 1 would merge distinct
-    # artists. This is why the export carries mbid.
-    publish(con, tmp_path, DUMP, None)
-    rest = read_web(tmp_path, "artists_rest")
-    assert len(set(rest["name"])) < len(rest["name"])
-    assert len(set(rest["mbid"])) == len(rest["mbid"])
-
-
-def test_web_export_is_split_between_timeline_eligible_and_the_rest(con, tmp_path):
-    publish(con, tmp_path, DUMP, None)
-    timeline = read_web(tmp_path, "artists_timeline")
-    rest = read_web(tmp_path, "artists_rest")
-    assert all(y0 is not None for y0 in timeline["y0"])
-    assert all(y0 is None for y0 in rest["y0"])
-    total = con.execute("SELECT count(*) FROM artists").fetchone()[0]
-    assert len(timeline["name"]) + len(rest["name"]) == total
-
-
 def test_presence_is_never_published(con, tmp_path):
     manifest = publish(con, tmp_path, DUMP, None)
     assert "presence" not in manifest["counts"]
     assert not (tmp_path / "presence.parquet").exists()
-    assert not (tmp_path / "web" / "presence.json.gz").exists()
 
 
 def test_manifest_carries_archive_checksums(con, tmp_path):
@@ -250,7 +128,7 @@ def test_manifest_carries_git_sha(con, tmp_path):
 def test_manifest_carries_corrections_checksum_when_present(con, tmp_path):
     corrections = tmp_path / "corrections.csv"
     corrections.write_text("mbid,field,value,justification,source\n", encoding="utf-8")
-    manifest = publish(con, tmp_path, DUMP, corrections)
+    manifest = publish(con, tmp_path / "out", DUMP, corrections)
     assert manifest["corrections_sha256"] == sha256_file(corrections)
 
 
@@ -457,12 +335,6 @@ PARQUET_KEYS = {
     "density": ["genre_mbid", "year"],
     "links": ["src_mbid", "dst_mbid", "type", "y_begin", "y_end"],
 }
-WEB_KEYS = {
-    "genres": ["genre_mbid"],
-    "density": ["genre_mbid", "year"],
-    "artists_timeline": ["mbid"],
-    "artists_rest": ["mbid"],
-}
 
 
 def nulls_last(row):
@@ -482,26 +354,6 @@ def test_published_parquet_rows_are_ordered_by_their_key(con, tmp_path, table):
     assert rows == sorted(rows, key=nulls_last)
 
 
-@pytest.mark.parametrize("export", sorted(WEB_KEYS))
-def test_web_export_rows_are_ordered_by_their_key(con, tmp_path, export):
-    publish(con, tmp_path, DUMP, None)
-    data = read_web(tmp_path, export)
-    rows = list(zip(*(data[column] for column in WEB_KEYS[export]), strict=True))
-    assert rows == sorted(rows, key=nulls_last)
-
-
-@pytest.mark.parametrize("export", sorted(WEB_KEYS))
-def test_web_export_carries_no_timestamp(con, tmp_path, export):
-    # Ordering the rows is not enough for a reproducible delivery: the gzip
-    # header holds an mtime field, so the same bytes compressed twice differ.
-    # Asserted on the header rather than by publishing twice and diffing —
-    # mtime has one-second resolution, and two publications of the fixtures
-    # land in the same second, so the comparison would sleep on the bug.
-    publish(con, tmp_path, DUMP, None)
-    header = (tmp_path / "web" / f"{export}.json.gz").read_bytes()[:8]
-    assert int.from_bytes(header[4:8], "little") == 0
-
-
 def test_manifest_carries_the_digest_of_every_delivered_file(con, tmp_path):
     # The delivery is byte-reproducible, which is only useful if the digests
     # travel with it: without them a consumer cannot tell a truncated download
@@ -518,28 +370,3 @@ def test_manifest_carries_the_digest_of_every_delivered_file(con, tmp_path):
     assert set(manifest["output_sha256"]) == delivered
     for name, digest in manifest["output_sha256"].items():
         assert digest == sha256_file(tmp_path / name)
-
-
-def test_publish_prunes_a_stale_file_left_in_a_subdirectory_of_web(con, tmp_path):
-    # The pruning loop and the digest walk must agree on what web/ contains:
-    # with iterdir the nested file survived pruning and was digested as
-    # delivered, so the manifest announced a file no run had written.
-    nested = tmp_path / "web" / "old"
-    nested.mkdir(parents=True)
-    stale = nested / "artists_timeline.json.gz"
-    stale.write_bytes(b"stale")
-    manifest = publish(con, tmp_path, DUMP, None)
-    assert not stale.exists()
-    assert "web/old/artists_timeline.json.gz" not in manifest["output_sha256"]
-
-
-def test_publish_prunes_a_stale_binary_but_keeps_the_exports_it_just_wrote(con, tmp_path):
-    # The pruning loop walks every file in web/, not just *.json.gz: a binary
-    # left by an older schema goes, the exports this run wrote stay.
-    web = tmp_path / "web"
-    web.mkdir(parents=True)
-    stale = web / "frieze.bin.gz"
-    stale.write_bytes(b"stale")
-    publish(con, tmp_path, DUMP, None)
-    assert not stale.exists()
-    assert (web / "artists_timeline.json.gz").exists()

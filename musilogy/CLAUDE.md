@@ -26,7 +26,7 @@ en ouvrant `tests/`, et `/baseline` pour instruire un écart à la ligne de base
 ## Architecture
 
 - **La couche 0 produit des tables, pas des vues d'affichage.** Un filtre qui
-  sert au rendu appartient à la projection (`density`, export web) ; la
+  sert au rendu appartient à une projection (`density`) ; la
   population reste complète. Confondre les deux fait disparaître des données
   qu'on ne sait plus récupérer en aval.
 - **Une valeur dérivée voyage avec sa provenance.** Publier `y0` à côté de

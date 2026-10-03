@@ -141,10 +141,9 @@ CREATE OR REPLACE VIEW presence_out_of_range AS
           ELSE b.y_end
         END;
 -- Same idiom as 20_albums.sql/last_album_mismatch, for its twin
--- 40_presence.sql: artists.y_presence_end (published in Parquet and in
--- web/artists_timeline.json.gz / web/artists_rest.json.gz) must stay identical to
+-- 40_presence.sql: artists.y_presence_end must stay identical to
 -- presence.y_presence_end (from which density derives), otherwise the two
--- published artifacts could diverge.
+-- published tables could diverge.
 CREATE OR REPLACE VIEW presence_end_mismatch AS
   SELECT b.mbid FROM artists b JOIN presence p USING (mbid)
   WHERE b.y_presence_end IS DISTINCT FROM p.y_presence_end;

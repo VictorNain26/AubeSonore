@@ -10,7 +10,7 @@ One self-hosted webradio, AubeSonore, in a single repository cloned at `~/aubeso
 | `site/`      | Web app (listener site + API)               | pnpm, Turbo, Bun, React        |
 | `pipeline/`  | Taste model, discovery, acquisition, antenne | Python 3.12, uv                |
 | `azuracast/` | Broadcast server runtime                    | Docker — **config only** here  |
-| `musilogy/`  | Artist lineage tables from MusicBrainz dumps | Python 3.12, uv, DuckDB        |
+| `musilogy/`  | Frieze and lineage tables from MusicBrainz  | Python 3.12, uv, DuckDB        |
 
 Until 2026-10-01 they were separate repositories; the standalone `radio-pipeline` and `musilogy`
 repositories were deleted on 2026-10-03, their history kept under `pipeline/` and `musilogy/`
@@ -58,10 +58,10 @@ AzuraCast is the hub. The other two never talk to each other.
   read-only consumer of the station and must stay that way.
 - Any change that seems to need pipeline↔app coupling is a design smell — route it through
   AzuraCast, or reconsider.
-- musilogy is **offline reference data**, outside the radio: it turns MusicBrainz dumps into
-  Parquet tables (artists, links, lineage) on demand. Nothing consumes them yet; the site's
-  artist page is the planned reader, through an import into its database — never by calling
-  musilogy at runtime.
+- musilogy is **offline reference data**, outside the radio: it turns MusicBrainz dumps and a
+  ListenBrainz snapshot into seven Parquet tables. Nothing consumes them yet; the site's frieze
+  is the planned reader, through an import into a `musilogy` schema of its database — never by
+  calling musilogy at runtime (`musilogy/docs/superpowers/specs/2026-10-02-frieze-lineage-design.md`).
 
 ## Documentation drifts faster than the system
 

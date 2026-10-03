@@ -1,8 +1,7 @@
-"""Writes the deliverables: archival Parquet, columnar JSON for the web, manifest."""
+"""Writes the deliverables: one Parquet file per table, and the manifest."""
 
 from __future__ import annotations
 
-import gzip
 import json
 import subprocess
 from decimal import Decimal
@@ -15,34 +14,6 @@ from musilogy.fetch import expected_sums, sha256_file
 from musilogy.paths import PACKAGE_DIR, REFERENCE_DIR, popularity_sums
 
 TABLES = ("artists", "albums", "genres", "density", "links", "lineage", "popularity")
-ARTISTS_WEB_COLUMNS = [
-    # mbid first: it is the only key layer 1 can join on — against
-    # web/genres.json.gz, against density, against anything. `name` is not an
-    # identity, the witnesses alone carry three homonyms.
-    "mbid",
-    "name",
-    "type",
-    # Both edges travel with their raw evidence, not just the right one: a
-    # derived value is verifiable only if what it derives from is exported too.
-    "y0",
-    "y0_source",
-    "y0_declared",
-    "y_birth",
-    "y_first_album",
-    "y_end",
-    "y_end_source",
-    "y_end_declared",
-    "y_last_album",
-    "y_presence_end",
-    "ended",
-    "country",
-    "begin_area",
-    "begin_area_mbid",
-    "genres",
-    "genre_source",
-    "genres_declared",
-    "genres_from_albums",
-]
 # A delivery has to come out in a fixed order, or the same code on the same
 # extraction writes different bytes: the tables are built by parallel joins and
 # aggregates, so their insertion order is whatever the threads produced. Each
@@ -59,26 +30,6 @@ ORDER_BY = {
     "lineage": "artist_mbid, model_mbid, source",
     "popularity": "mbid",
 }
-WEB_COLUMNS = {
-    # density_eligible carries the exclusion rule of 60_density.sql itself:
-    # without it a web-only consumer cannot apply the rule, recomputes density
-    # from artists_timeline alone, and silently invents the 1 011 cells of the
-    # art-music genres this layer deliberately withholds. The two measurements
-    # stay published alongside it for whoever wants to audit the rule rather
-    # than trust it.
-    "genres": [
-        "genre_mbid",
-        "name",
-        "n_artists",
-        "density_eligible",
-        "n_candidate_credits",
-        "multi_artist_drop_pct",
-    ],
-    # Published too, so a consumer reads the aggregate rather than rebuilding
-    # it: a consumer that recomputes it reimplements a rule, and reimplementing
-    # is where the exclusion gets lost.
-    "density": ["genre_mbid", "year", "present"],
-}
 
 
 def _git_sha() -> str:
@@ -92,31 +43,6 @@ def _git_sha() -> str:
         ).stdout.strip()
     except (subprocess.CalledProcessError, OSError):
         return "unknown"
-
-
-def _write_columnar(
-    con: duckdb.DuckDBPyConnection, source: str, order_by: str, columns: list[str], path: Path
-) -> None:
-    """One JSON array per column, serialized by DuckDB and streamed into the
-    gzip. Fetched as Python rows, the 2.3 M artists held over 3 GB outside
-    DuckDB's memory limit and stalled the run on the shared server."""
-    # mtime=0 and an empty name: gzip stamps both into its header otherwise,
-    # so the same payload written twice would give different bytes and no
-    # consumer could tell an unchanged export from a new one by its digest.
-    with (
-        path.open("wb") as raw,
-        gzip.GzipFile(filename="", mode="wb", compresslevel=9, fileobj=raw, mtime=0) as gz,
-    ):
-        for i, column in enumerate(columns):
-            row = con.execute(
-                f"SELECT to_json(list({column} ORDER BY {order_by})) FROM {source}"
-            ).fetchone()
-            assert row is not None  # an aggregate always returns one row
-            gz.write(b"{" if i == 0 else b",")
-            gz.write(json.dumps(column).encode() + b":")
-            # list() over no row is NULL, not an empty list.
-            gz.write((row[0] or "[]").encode())
-        gz.write(b"}")
 
 
 def _counters(con: duckdb.DuckDBPyConnection, table: str) -> dict[str, int]:
@@ -223,9 +149,6 @@ def publish(
     extraction: Path | None = None,
 ) -> dict[str, Any]:
     out_dir.mkdir(parents=True, exist_ok=True)
-    web_dir = out_dir / "web"
-    web_dir.mkdir(exist_ok=True)
-    written: set[str] = set()
 
     counts: dict[str, int] = {}
     for name in TABLES:
@@ -236,43 +159,12 @@ def publish(
         )
         counts[name] = _count(con, name)
 
-    # Same reason as the web exports below: a table dropped from a previous
-    # schema must not survive in the delivered directory, where a consumer
-    # globbing *.parquet would load a population that no longer exists.
-    for stale in out_dir.glob("*.parquet"):
-        if stale.stem not in TABLES:
-            stale.unlink()
-
-    for table, columns in WEB_COLUMNS.items():
-        _write_columnar(con, table, ORDER_BY[table], columns, web_dir / f"{table}.json.gz")
-        written.add(f"{table}.json.gz")
-
-    # Split in two: a timeline only needs the artists it can place (y0 IS NOT
-    # NULL); pulling in the rest would double the payload for no benefit to
-    # that consumer.
-    for name, condition in (
-        ("artists_timeline", "y0 IS NOT NULL"),
-        ("artists_rest", "y0 IS NULL"),
-    ):
-        _write_columnar(
-            con,
-            f"artists WHERE {condition}",
-            ORDER_BY["artists"],
-            ARTISTS_WEB_COLUMNS,
-            web_dir / f"{name}.json.gz",
-        )
-        written.add(f"{name}.json.gz")
-
-    # Prune what this run did not write. Without it an export dropped from a
-    # previous schema survives in the delivered directory: a consumer globbing
-    # web/*.json.gz then loads a file describing a population that no longer
-    # exists, joinable to nothing. That reasoning was always about every
-    # export, not only the JSON ones, hence every file under web/, not a glob.
-    # rglob, like the digest walk below: with iterdir a file in a subdirectory
-    # of web/ escaped pruning and was digested as delivered anyway, so the two
-    # walks disagreed on what the delivery contains.
-    for stale in web_dir.rglob("*"):
-        if stale.is_file() and stale.relative_to(web_dir).as_posix() not in written:
+    # A file this run did not write — a table dropped from the schema, an
+    # export retired — would otherwise stay in the delivery and be digested
+    # into the manifest as if this run had produced it.
+    written = {f"{name}.parquet" for name in TABLES} | {"manifest.json"}
+    for stale in out_dir.rglob("*"):
+        if stale.is_file() and stale.relative_to(out_dir).as_posix() not in written:
             stale.unlink()
 
     rows_loaded = input_rows_loaded(con)
