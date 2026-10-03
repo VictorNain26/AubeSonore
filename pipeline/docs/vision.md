@@ -1,6 +1,7 @@
-# AubeSonore — vision
+# Pipeline d'antenne — conception
 
-Seul document de conception et d'exploitation du pipeline. Les preuves (mesures, sources datées)
+Seul document de conception et d'exploitation du pipeline. La vision produit et l'architecture
+d'AubeSonore, au-dessus des quatre pièces, sont dans `docs/vision.md` à la racine du dépôt. Les preuves (mesures, sources datées)
 sont dans `docs/recherches/`. Quand le système réel contredit ce document, le système a raison et
 ce document se corrige.
 
@@ -498,7 +499,9 @@ après la déconnexion, ce qui fait tourner les unités sans session ouverte (`m
 
 ## 11. Hors périmètre
 
-- Le site d'écoute, qui a son propre dépôt.
-- Les likes du site comme signal : cela coupleraient le site et le pipeline.
-- La sauvegarde des médias de l'antenne : ils se retéléchargent. La base, elle, est sauvegardée
-  chaque jour (§10) : les votes ne se reconstituent pas.
+- Le site d'écoute, pièce `site/` du même dépôt (`docs/vision.md`).
+- Les likes du site comme signal : cela couplerait le site et le pipeline.
+- La sauvegarde des médias de l'antenne, qui n'est pas faite ici : depuis le 2026-10-03, une
+  tâche de l'hôte les sauvegarde avec restic (`azuracast/RUNBOOK.md`), car ils ne se
+  retéléchargent pas à l'identique. La base du pipeline est sauvegardée chaque jour (§10) : les
+  votes ne se reconstituent pas.
