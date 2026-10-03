@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -9,11 +9,14 @@ import { join } from 'node:path';
 // mask the very guard under test.
 const ENV_MODULE = new URL('./env.ts', import.meta.url).pathname;
 
+// TLS is on by default in production and has its own cases below; the
+// other cases leave it off so they test only what they name.
 const BASE = {
   PATH: process.env.PATH ?? '',
   DATABASE_URL: 'postgresql://u:p@localhost:5432/db',
   BETTER_AUTH_SECRET: 'x'.repeat(32),
   BETTER_AUTH_URL: 'https://api.example.test',
+  DATABASE_SSL: 'false',
 };
 
 let cwd: string;
@@ -70,5 +73,32 @@ describe('production email configuration', () => {
     const { ok } = await loadEnv({ NODE_ENV: 'development' });
 
     expect(ok).toBe(true);
+  });
+});
+
+describe('database TLS', () => {
+  const MAIL_OFF = { NODE_ENV: 'production', DISABLE_EMAILS: 'true' };
+
+  it('refuses TLS without a CA to verify the server against', async () => {
+    const { ok, stderr } = await loadEnv({ ...MAIL_OFF, DATABASE_SSL: 'true' });
+
+    expect(ok).toBe(false);
+    expect(stderr).toContain('refusing unverified TLS');
+  });
+
+  it('starts with TLS once the CA is given as a file', async () => {
+    const ca = join(cwd, 'ca.crt');
+    writeFileSync(ca, '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n');
+
+    const { ok } = await loadEnv({ ...MAIL_OFF, DATABASE_SSL: 'true', DATABASE_CA_CERT_FILE: ca });
+
+    expect(ok).toBe(true);
+  });
+
+  it('turns TLS on in production unless told otherwise', async () => {
+    const { ok, stderr } = await loadEnv({ ...MAIL_OFF, DATABASE_SSL: '' });
+
+    expect(ok).toBe(false);
+    expect(stderr).toContain('refusing unverified TLS');
   });
 });
