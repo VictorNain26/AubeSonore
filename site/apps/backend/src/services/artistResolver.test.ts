@@ -1,8 +1,15 @@
 import { describe, it, expect, mock, spyOn, afterAll, beforeEach } from 'bun:test';
 import type { ArtistSearch } from './deezerService';
+import type { Lookup } from './musicbrainzService';
+import { DrizzleQueryError } from 'drizzle-orm';
 import type { NowPlayingTrack } from './nowPlaying';
 
-let artistRows: Array<{ id: string; slug: string }> = [];
+type ArtistRow = { id: string; slug: string; deezerId?: string | null; mbid?: string | null };
+let artistRows: ArtistRow[] = [];
+let updates: Array<Record<string, unknown>> = [];
+let updateError: Error | null = null;
+let mbLookup: Lookup<string> = { status: 'none' };
+let mbLookups = 0;
 let playRows: Array<{ title: string }> = [];
 let inserted: Array<Record<string, unknown>> = [];
 let search: ArtistSearch = { status: 'none' };
@@ -32,6 +39,15 @@ void mock.module('../db', () => ({
         }),
       }),
     }),
+    update: () => ({
+      set: (values: Record<string, unknown>) => ({
+        where: () => {
+          if (updateError) return Promise.reject(updateError);
+          updates.push(values);
+          return Promise.resolve();
+        },
+      }),
+    }),
   },
 }));
 
@@ -39,6 +55,7 @@ void mock.module('../db', () => ({
 // replace these modules for every other test file of the run (Bun 1.3).
 const deezer = await import('./deezerService');
 const onAir = await import('./nowPlaying');
+const musicbrainz = await import('./musicbrainzService');
 
 const spies = [
   spyOn(deezer, 'searchArtist').mockImplementation((_name: string, title: string) => {
@@ -47,6 +64,10 @@ const spies = [
     return Promise.resolve(search);
   }),
   spyOn(onAir, 'fetchNowPlaying').mockImplementation(() => Promise.resolve(nowPlaying)),
+  spyOn(musicbrainz, 'findMbidByDeezerId').mockImplementation(() => {
+    mbLookups += 1;
+    return Promise.resolve(mbLookup);
+  }),
 ];
 
 afterAll(() => {
@@ -64,6 +85,10 @@ beforeEach(() => {
   nowPlaying = null;
   searches = 0;
   searchedTitles = [];
+  updates = [];
+  updateError = null;
+  mbLookup = { status: 'none' };
+  mbLookups = 0;
 });
 
 describe('primaryArtistName', () => {
@@ -190,5 +215,87 @@ describe('resolveArtist', () => {
     playRows = [{ title: 'Kelly Watch the Stars' }];
 
     expect(await resolveArtist('Кино')).toMatchObject({ slug: 'кино' });
+  });
+});
+
+describe('the MBID, pivot to the frieze', () => {
+  const DAFT_PUNK = {
+    status: 'match',
+    artist: { id: '27', name: 'Daft Punk', picture: null },
+  } as const;
+
+  it('writes the MBID MusicBrainz declares for the Deezer artist', async () => {
+    playRows = [{ title: 'Da Funk' }];
+    search = DAFT_PUNK;
+    mbLookup = { status: 'found', value: 'mb-daft-punk' };
+
+    await resolveArtist('Daft Punk');
+
+    expect(updates).toEqual([{ mbid: 'mb-daft-punk' }]);
+  });
+
+  it('asks MusicBrainz nothing for an artist Deezer does not know', async () => {
+    playRows = [{ title: 'Demo' }];
+
+    await resolveArtist('Unsigned Band');
+
+    expect(mbLookups).toBe(0);
+    expect(updates).toEqual([]);
+  });
+
+  it.each([{ status: 'none' as const }, { status: 'failed' as const }])(
+    'writes nothing when MusicBrainz answers $status, so a later call retries',
+    async (answer) => {
+      playRows = [{ title: 'Da Funk' }];
+      search = DAFT_PUNK;
+      mbLookup = answer;
+
+      expect(await resolveArtist('Daft Punk')).not.toBeNull();
+      expect(updates).toEqual([]);
+    }
+  );
+
+  it('completes a known artist still missing its MBID, without asking Deezer again', async () => {
+    artistRows = [{ id: 'a-27', slug: 'daft-punk', deezerId: '27', mbid: null }];
+    mbLookup = { status: 'found', value: 'mb-daft-punk' };
+
+    await resolveArtist('Daft Punk');
+
+    expect(searches).toBe(0);
+    expect(updates).toEqual([{ mbid: 'mb-daft-punk' }]);
+  });
+
+  it('leaves a known MBID alone', async () => {
+    artistRows = [{ id: 'a-27', slug: 'daft-punk', deezerId: '27', mbid: 'mb-daft-punk' }];
+
+    await resolveArtist('Daft Punk');
+
+    expect(mbLookups).toBe(0);
+  });
+
+  it('still resolves the artist when another row already holds the MBID', async () => {
+    artistRows = [{ id: 'a-27', slug: 'daft-punk', deezerId: '27', mbid: null }];
+    mbLookup = { status: 'found', value: 'mb-daft-punk' };
+    // What drizzle throws for a unique violation: pg's error, code 23505, as cause.
+    updateError = new DrizzleQueryError(
+      'update "artist" ...',
+      [],
+      Object.assign(new Error('duplicate key value'), { code: '23505' })
+    );
+
+    expect(await resolveArtist('Daft Punk')).toEqual({ id: 'a-27', slug: 'daft-punk' });
+  });
+
+  it('lets any other write failure surface', async () => {
+    artistRows = [{ id: 'a-27', slug: 'daft-punk', deezerId: '27', mbid: null }];
+    mbLookup = { status: 'found', value: 'mb-daft-punk' };
+    updateError = new Error('connection terminated');
+
+    const failure = await resolveArtist('Daft Punk').then(
+      () => null,
+      (err: unknown) => err
+    );
+
+    expect(failure).toEqual(new Error('connection terminated'));
   });
 });

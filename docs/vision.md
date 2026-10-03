@@ -111,9 +111,9 @@ Un artiste a trois identités, et chacune a son rôle :
 | le MBID (MusicBrainz) | 2,3 M d'artistes | **le pivot** : la clé de musilogy, donc de la frise, de la filiation et des contemporains |
 
 Le site passe du texte à `artist.id` (`artistResolver`), puis de Deezer au MBID par le lien
-Deezer que MusicBrainz déclare. **Ce MBID doit être enregistré dans `artist.mbid` dès qu'il est
-trouvé** : c'est le pont entre l'antenne et la frise. Aujourd'hui la colonne existe mais rien ne
-l'écrit (0 MBID sur 29 artistes, mesuré le 2026-10-03) : le pont n'existe pas.
+Deezer que MusicBrainz déclare. **Ce MBID est enregistré dans `artist.mbid` dès qu'il est
+trouvé** : c'est le pont entre l'antenne et la frise. Chaque artiste joué est résolu à son premier
+passage, pas quand un auditeur ouvre sa page.
 
 Quand musilogy extraira les relations URL (étape 4 de sa spec), le passage Deezer → MBID se fera
 hors ligne, pour tous les artistes joués, sans appel à MusicBrainz.
@@ -171,7 +171,9 @@ listes (inspirations, descendance, contemporains) n'ont pas été jugées sur de
 
 Ce qui ne s'emboîte pas encore, mesuré le 2026-10-03 :
 
-1. **`artist.mbid` n'est jamais écrit** : le pont antenne → frise n'existe pas (§3.4).
+1. **Les alertes « artiste aimé » ne reconnaissent pas l'artiste comme le reste du site** : elles
+   comparent le nom en minuscules brutes (`likedArtistWatcher`), là où l'identité utilise le nom
+   normalisé (`normalizeArtistName`) ; « Beyoncé » aimé ne déclenche rien quand « Beyonce » passe.
 2. **La frise n'a pas d'API côté site.** Les fonctions SQL sont prêtes (PR #257) ; l'API et le
    front restent à faire, sur des types partagés qui réutilisent la même référence d'artiste que
    la page artiste.
@@ -193,8 +195,8 @@ Dans cet ordre ; chaque étape est une PR courte, fusionnée avant la suivante.
 
 1. **Ce document**, validé, et les écarts documentaires du §5.3 corrigés.
 2. **Fonctions SQL de la frise** (PR #257), puis `musilogy load` en production.
-3. **Le pont** : `artist.mbid` enregistré dès qu'il est trouvé, et rattrapé pour les artistes
-   déjà connus.
+3. **Le pont** : `artist.mbid` enregistré dès qu'il est trouvé, chaque artiste joué résolu à son
+   premier passage, et les artistes déjà joués rattrapés.
 4. **L'API** : `/api/frieze/*` (vue d'ensemble, fenêtre, fiche) et les types partagés, dont une
    référence d'artiste commune à la page artiste et à la frise.
 5. **La page artiste** : section filiation et contemporains, lien vers la frise.
