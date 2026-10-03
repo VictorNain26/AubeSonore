@@ -186,5 +186,22 @@
   "artist_missing_title": "Artiste introuvable.",
   "artist_missing_body": "Cette page n'existe pas, ou plus. La musique, elle, ne s'est pas arrêtée.",
   "artist_error_title": "Page indisponible.",
-  "artist_error_body": "Impossible de charger cet artiste pour l'instant. Réessayez dans un moment."
+  "artist_error_body": "Impossible de charger cet artiste pour l'instant. Réessayez dans un moment.",
+  "artist_models_title": "Ses modèles",
+  "artist_models_body": "Professeurs, artistes honorés, noms repris : chaque lien vient de MusicBrainz.",
+  "artist_heirs_title": "Sa descendance",
+  "artist_heirs_body": "Élèves, hommages, noms donnés : ceux qui se réclament de cet artiste.",
+  "artist_peers_title": "Ses contemporains",
+  "artist_peers_body": "Même scène, mêmes années, au moins un genre en commun.",
+  "artist_lineage_none": "Aucune source connue.",
+  "artist_lineage_more": "Et {count} autres.",
+  "artist_role_teacher": "professeur",
+  "artist_role_honoured": "honoré",
+  "artist_role_name_taken": "nom repris",
+  "artist_role_pupil": "élève",
+  "artist_role_tribute": "hommage",
+  "artist_role_named_after": "porte son nom",
+  "artist_scene_place": "même lieu",
+  "artist_scene_country": "même pays",
+  "artist_tributes": "Groupes hommage : {count}."
 }
