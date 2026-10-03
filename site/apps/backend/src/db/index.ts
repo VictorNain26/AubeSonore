@@ -3,23 +3,8 @@ import { Pool } from 'pg';
 import { env } from '../config/env';
 import * as schema from './schema';
 
-/**
- * TLS policy:
- * - dev: no TLS (local Postgres is plain).
- * - prod with DATABASE_CA_CERT set: full verification against the supplied CA.
- *   Recommended for hardened deployments. Railway, Supabase, Neon and similar
- *   providers expose their CA via dashboard/API.
- * - prod without DATABASE_CA_CERT: TLS encryption is still enforced via the
- *   connection string (most managed Postgres force this), but the server cert
- *   is accepted without local verification. This is the documented Railway/
- *   Heroku posture — their internal certs are self-signed and not exposed.
- *   Acceptable tradeoff for now; the connection is encrypted in transit.
- */
-const sslConfig = env.DATABASE_SSL
-  ? env.DATABASE_CA_CERT
-    ? { rejectUnauthorized: true, ca: env.DATABASE_CA_CERT }
-    : { rejectUnauthorized: false }
-  : false;
+// TLS is verified against the stack's CA; config/env refuses TLS without one.
+const sslConfig = env.DATABASE_SSL ? { rejectUnauthorized: true, ca: env.DATABASE_CA_CERT } : false;
 
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,

@@ -14,11 +14,11 @@ interface EnvConfig {
 
   // Database
   DATABASE_URL: string;
-  /** Optional Postgres CA cert (PEM, single-line with \n) for full TLS verification. */
+  /** CA of the stack's Postgres (PEM, single-line with \n, or DATABASE_CA_CERT_FILE); required whenever TLS is on. */
   DATABASE_CA_CERT: string | undefined;
-  /** Optional pool size override. Defaults to 10 (safe on Railway eco-small). */
+  /** Optional pool size override. Defaults to 10. */
   DATABASE_POOL_MAX: number;
-  /** Whether to use TLS for the DB connection. Defaults to true in prod (managed PG); set false for a local plain Postgres on a private Docker network. */
+  /** TLS to Postgres, always verified against DATABASE_CA_CERT. Defaults to true in prod; false for a local plain Postgres. */
   DATABASE_SSL: boolean;
 
   // Auth
@@ -147,6 +147,13 @@ export const env: EnvConfig = {
 };
 
 // Cross-field validation: secrets must be coherent.
+// TLS without a CA would encrypt yet accept any certificate. The database is
+// the stack's own, signed by its own CA (site/certs): it is always verified.
+if (env.DATABASE_SSL && !env.DATABASE_CA_CERT) {
+  throw new Error(
+    'DATABASE_SSL is on but DATABASE_CA_CERT(_FILE) is missing: refusing unverified TLS'
+  );
+}
 if (env.IS_PROD && env.BETTER_AUTH_SECRET.length < 32) {
   throw new Error('BETTER_AUTH_SECRET must be at least 32 chars in production');
 }
