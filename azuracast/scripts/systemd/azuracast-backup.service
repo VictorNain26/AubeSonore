@@ -1,0 +1,13 @@
+[Unit]
+Description=AubeSonore : sauvegarde restic chiffrée des médias et de la configuration d'AzuraCast sur un autre disque
+
+[Service]
+Type=oneshot
+# Seul GATUS_TOKEN sert ici, pour le battement de cœur.
+EnvironmentFile=%h/aubesonore/pipeline/.env
+Nice=19
+IOSchedulingClass=idle
+ExecStart=%h/aubesonore/azuracast/scripts/backup-media.sh
+TimeoutStartSec=2h
+# Battement de cœur vers Gatus, même en échec (même mécanisme que radio-backup).
+ExecStopPost=/bin/sh -c 'curl -fsS -m 10 -X POST -H "Authorization: Bearer $GATUS_TOKEN" "http://127.0.0.1:8050/api/v1/endpoints/radio_sauvegarde-medias/external?success=$([ "$SERVICE_RESULT" = success ] && echo true || echo false)&error=$SERVICE_RESULT"'

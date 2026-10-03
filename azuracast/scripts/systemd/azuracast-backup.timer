@@ -1,0 +1,10 @@
+[Unit]
+Description=AubeSonore : sauvegarde quotidienne des médias de l'antenne (après celles d'AzuraCast à 04:00 et du pipeline à 04:30)
+
+[Timer]
+OnCalendar=*-*-* 04:45:00
+RandomizedDelaySec=10m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
