@@ -1,13 +1,10 @@
 import json
 
-import duckdb
 import pytest
-from conftest import build_synthetic, synthetic_artist
+from conftest import loaded, pg_query, published, synthetic_artist
 
-from musilogy import REFERENCE_DUMP as DUMP
 from musilogy.fetch import ChecksumError
 from musilogy.load import LoadError, load
-from musilogy.publish import publish
 
 ME = "00000000-0000-4000-8000-0000000000c0"
 A = "00000000-0000-4000-8000-0000000000c1"
@@ -26,35 +23,15 @@ def group(mbid, begin="1978", end="1985", genres=("post-punk",), **place):
     return synthetic_artist(mbid, begin, end, genres=[genre(g) for g in genres], **place)
 
 
-def published(tmp_path, artists):
-    tmp_path.mkdir(exist_ok=True)
-    out = tmp_path / "out"
-    publish(build_synthetic(tmp_path, artists), out, DUMP, None)
-    return out
-
-
-def query(conninfo, sql):
-    con = duckdb.connect()
-    con.execute("LOAD postgres")
-    escaped = conninfo.replace("'", "''")
-    con.execute(f"ATTACH '{escaped}' AS pg (TYPE postgres, READ_ONLY)")
-    return con.execute("SELECT * FROM postgres_query('pg', ?)", [sql]).fetchall()
-
-
 def contemporaries(conninfo, mbid=ME, page_size=100, page_offset=0):
     return [
         r[:4]
-        for r in query(
+        for r in pg_query(
             conninfo,
             "SELECT mbid, scene, shared_genres, jaccard FROM "
             f"musilogy.contemporaries('{mbid}', {page_size}, {page_offset})",
         )
     ]
-
-
-def loaded(tmp_path, conninfo, artists):
-    load(published(tmp_path, artists), conninfo)
-    return conninfo
 
 
 def test_years_that_do_not_overlap_are_no_contemporaries(tmp_path, pg):
@@ -139,7 +116,7 @@ def test_a_page_carries_the_total_of_the_whole_list(tmp_path, pg):
         pg,
         [group(ME, begin_area=LEEDS), *(group(m, begin_area=LEEDS) for m in (A, B, C))],
     )
-    page = query(pg, f"SELECT mbid, total FROM musilogy.contemporaries('{ME}', 2, 1)")
+    page = pg_query(pg, f"SELECT mbid, total FROM musilogy.contemporaries('{ME}', 2, 1)")
     assert page == [(B, 3), (C, 3)]
 
 
@@ -155,7 +132,7 @@ def test_an_artist_without_a_year_has_no_contemporary_rather_than_a_guess(tmp_pa
 def test_a_new_load_replaces_the_previous_one(tmp_path, pg):
     loaded(tmp_path / "first", pg, [group(ME), group(A)])
     loaded(tmp_path / "second", pg, [group(B)])
-    assert query(pg, "SELECT mbid FROM musilogy.artists") == [(B,)]
+    assert pg_query(pg, "SELECT mbid FROM musilogy.artists") == [(B,)]
 
 
 def test_a_load_that_falls_short_leaves_the_previous_one_in_place(tmp_path, pg):
@@ -168,7 +145,7 @@ def test_a_load_that_falls_short_leaves_the_previous_one_in_place(tmp_path, pg):
     (out / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(LoadError):
         load(out, pg)
-    assert query(pg, "SELECT mbid FROM musilogy.artists") == [(ME,)]
+    assert pg_query(pg, "SELECT mbid FROM musilogy.artists") == [(ME,)]
 
 
 def test_a_delivery_that_disagrees_with_its_manifest_is_refused(tmp_path):

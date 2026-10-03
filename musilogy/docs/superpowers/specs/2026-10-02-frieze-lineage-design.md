@@ -311,10 +311,19 @@ contre 1,7 s en lisant `artists`.
 
 ### API et front
 
-- Backend : trois routes en lecture, validées à la frontière — vue
-  d'ensemble (`density`, `genres`, étiquettes), fenêtre genre × période
-  (artistes ordonnés par popularité, paginés), artiste (fiche, `links`,
-  `lineage`, une page de contemporains).
+- Backend : trois routes en lecture, validées à la frontière, qui n'appellent
+  que les fonctions de `src/musilogy/pg/90_*.sql` — vue d'ensemble
+  (`frieze_genres`, `frieze_density`), fenêtre genre × période
+  (`frieze_window`, paginée, les plus écoutés d'abord), artiste
+  (`artist_card`, `artist_links`, `artist_lineage`, une page de
+  `contemporaries`). Les étiquettes de la vue d'ensemble sont la première
+  page d'une fenêtre, demandée pour les genres affichés : les embarquer toutes
+  dans la vue d'ensemble, trois par couple genre × décennie (7 624 couples
+  mesurés le 2026-10-03), ferait environ 1,7 Mo de JSON chargés avant le
+  premier affichage, pour des genres qu'on n'ouvrira pour la plupart jamais.
+  Ces fonctions sont
+  le contrat entre musilogy et le site ; le CI du site n'a pas de Postgres,
+  le leur si.
 - Front : dans `site/`, sur la charte v5
   (`site/apps/frontend/src/design/tokens.css`), en français et en anglais
   comme le reste du site. Rendu : deck.gl (dépôt `visgl/deck.gl`, v9.4.0 du
