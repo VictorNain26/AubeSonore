@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -84,6 +85,20 @@ def build_synthetic(tmp_path, artists, release_groups=(), **build_kwargs):
     c = duckdb.connect(":memory:")
     build(c, SQL, artists_path, rgs_path, None, **build_kwargs)
     return c
+
+
+@pytest.fixture
+def pg():
+    """A libpq connection string to a disposable Postgres, never the site's:
+    the tests drop and recreate the musilogy schemas. The CI provides one; a
+    run without it skips these tests, except in the CI, where a skip would
+    hide that they stopped running."""
+    conninfo = os.environ.get("MUSILOGY_TEST_PG")
+    if not conninfo:
+        if os.environ.get("CI"):
+            pytest.fail("MUSILOGY_TEST_PG is unset in the CI")
+        pytest.skip("MUSILOGY_TEST_PG unset: no disposable Postgres")
+    return conninfo
 
 
 BAND_EXCLUDED = "00000000-0000-4000-8000-000000000001"

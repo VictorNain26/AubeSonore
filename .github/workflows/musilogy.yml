@@ -18,6 +18,21 @@ jobs:
   checks:
     name: musilogy (ruff, mypy, pytest)
     runs-on: ubuntu-latest
+    # Les tests du chargement (tests/test_load.py) tournent contre un vrai Postgres, de la même
+    # version majeure que la base du site. Syntaxe : docs.github.com, « Creating PostgreSQL service
+    # containers ».
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
@@ -32,3 +47,5 @@ jobs:
       # La suite lente (pytest -m slow) rejoue le pipeline sur le dump MusicBrainz réel : elle exige
       # les extractions de data/work/, non versionnées, et ne tourne donc pas ici. addopts l'exclut.
       - run: uv run pytest
+        env:
+          MUSILOGY_TEST_PG: host=localhost port=5432 user=postgres password=postgres dbname=postgres

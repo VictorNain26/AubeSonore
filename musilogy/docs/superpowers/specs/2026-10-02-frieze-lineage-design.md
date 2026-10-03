@@ -272,14 +272,21 @@ jamais musilogy à l'exécution.
   `density`, `links`, `lineage`, `popularity` — plus `manifest` (dump,
   relevé, commit), que la page cite comme source. `albums` reste en Parquet
   tant qu'aucun écran ne le lit.
-- **Bascule atomique** : le chargement remplit `musilogy_next`, puis une
-  seule transaction Postgres remplace `musilogy` par lui. Le site ne lit
-  jamais un import partiel, et un import raté laisse le précédent en place.
+- **Bascule atomique** : le chargement remplit `musilogy_next`, vérifie ses
+  comptes contre le manifeste, puis une seule transaction Postgres remplace
+  `musilogy` par lui. Le site ne lit jamais un import partiel, et un import
+  raté laisse le précédent en place. Mesuré : environ 3 min, 1,1 Go.
+- Les listes de genres deviennent du `jsonb` (Postgres n'a pas de structure
+  anonyme), avec leurs `mbid` dans un `text[]` pour les requêtes.
 - Le schéma `musilogy` n'appartient pas à Drizzle : `drizzle.config.js` ne
   décrit que `src/db/schema.ts`, qui reste dans `public`.
 - La base n'est joignable que dans le réseau Docker du site ; son port est
-  publié sur `127.0.0.1` pour l'import, et `pg_hba.conf` impose TLS
-  (`hostssl`).
+  publié sur `127.0.0.1:5433` pour l'import, en `verify-full` contre la CA
+  du site (le certificat couvre `localhost`) — `pg_hba.conf` impose TLS.
+- `/dev/shm` du conteneur passe à 128 Mo (`shm_size`, exemple Compose de
+  hub.docker.com/_/postgres) : les 64 Mo par défaut de Docker font échouer la
+  construction parallèle des index (« could not resize shared memory
+  segment »).
 - **Sauvegarde** : `backup-db.sh` exclut le schéma (`pg_dump
   --exclude-schema=musilogy`, postgresql.org/docs/16/app-pgdump.html) : il
   se recharge depuis `data/out/`. Ce qui ne se recharge pas, c'est
@@ -288,11 +295,19 @@ jamais musilogy à l'exécution.
 ### Les règles restent dans musilogy
 
 Les contemporains deviennent une fonction Postgres,
-`musilogy.contemporaries(mbid)`, écrite dans `src/musilogy/pg/` et installée
-par `musilogy load` ; ses tests tournent contre un vrai Postgres (service de
-la CI). La macro DuckDB `70_contemporaries.sql` et la commande `musilogy
-artist`, qui servaient à juger les listes avant qu'un front les lise, sont
-retirées : une règle, une implémentation.
+`musilogy.contemporaries(mbid, page_size, page_offset)`, écrite dans
+`src/musilogy/pg/` et installée par `musilogy load` ; ses tests tournent
+contre un vrai Postgres (service de la CI). La macro DuckDB et la commande
+`musilogy artist`, qui servaient à juger les listes avant qu'un front les
+lise, sont retirées : une règle, une implémentation. Avant leur retrait, les
+deux implémentations ont rendu les mêmes 167 104 lignes sur 300 artistes
+tirés par `hash(mbid)`.
+
+Elle classe dans `scenes`, projection étroite des 285 284 artistes qui ont
+une année et un genre, et ne lit les noms et genres partagés que pour la
+page demandée : 5 à 30 ms pour un artiste courant, 180 ms pour le pire cas
+mesuré (un artiste américain sans lieu de début, 22 152 contemporains),
+contre 1,7 s en lisant `artists`.
 
 ### API et front
 

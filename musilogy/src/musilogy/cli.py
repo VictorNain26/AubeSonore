@@ -1,4 +1,4 @@
-"""CLI entry point: run, snapshot-popularity, make-fixtures, artist."""
+"""CLI entry point: run, snapshot-popularity, make-fixtures, load."""
 
 from __future__ import annotations
 
@@ -11,7 +11,6 @@ import duckdb
 
 from musilogy import REFERENCE_DUMP as DUMP
 from musilogy import REFERENCE_POPULARITY
-from musilogy import artist as lineage
 from musilogy.build import build, check_invariants, connect
 from musilogy.extract import extract, reduce_artist, reduce_release_group
 from musilogy.fetch import (
@@ -22,6 +21,7 @@ from musilogy.fetch import (
     sha256_file,
     verify,
 )
+from musilogy.load import load
 from musilogy.paths import (
     CORRECTIONS_CSV,
     FIXTURES_DIR,
@@ -234,52 +234,9 @@ def make_fixtures() -> None:
     print("missing:", missing or "none")
 
 
-def _label(name: str, disambiguation: str | None, y0: int | None, y_end: int | None) -> str:
-    """Name, disambiguation and years: what tells two homonyms apart."""
-    years = "" if y0 is None else f" {y0}-{'' if y_end is None else y_end}"
-    return name + ("" if disambiguation is None else f" ({disambiguation})") + years
-
-
-def artist(mbid: str, limit: int, published: Path) -> None:
-    """Prints the three lists of one artist with their provenance, read from
-    the published tables: judging the result on known artists comes before
-    any front end reads them."""
-    # A run published before lineage existed has artists.parquet alone.
-    missing = [t for t in ("artists", "lineage") if not (published / f"{t}.parquet").exists()]
-    if missing:
-        raise SystemExit(f"{', '.join(missing)} not published in {published}: run `musilogy run`")
-    con = lineage.open_published(published)
-    found = lineage.describe(con, mbid)
-    if found is None:
-        raise SystemExit(f"unknown artist: {mbid}")
-    print(_label(found[0], found[1], None, None), mbid)
-    for title, rows in (
-        ("Inspirations", lineage.inspirations(con, mbid)),
-        ("Descendants", lineage.descendants(con, mbid)),
-    ):
-        print(f"\n{title}")
-        if not rows:
-            print("  no known source")
-        for r in rows:
-            label = _label(r.name, r.disambiguation, r.y0, r.y_end)
-            print(f"  {r.term}: {label}  [{r.source}] {r.mbid}")
-    total, page = lineage.contemporaries(con, mbid, limit)
-    print(f"\nContemporaries — {total}, by shared genres (Jaccard), then mbid")
-    if not total:
-        print("  none: no year, no genre, no place, or no one sharing them")
-    for c in page:
-        print(
-            f"  {c.jaccard:.2f} {_label(c.name, c.disambiguation, c.y0, c.y_presence_end)}"
-            f"  — {', '.join(c.shared_genres)}  [same {c.scene}] {c.mbid}"
-        )
-
-
-def _page_size(value: str) -> int:
-    n = int(value)
-    if n < 1:
-        # A negative slice would print every contemporary but the last ones.
-        raise argparse.ArgumentTypeError(f"at least 1, got {n}")
-    return n
+def load_site() -> None:
+    """Loads the published delivery into the site's database."""
+    print(load(out_dir(DUMP)))
 
 
 def main() -> None:
@@ -290,10 +247,8 @@ def main() -> None:
         "snapshot-popularity", help="take a dated ListenBrainz snapshot of every artist"
     )
     subparsers.add_parser("make-fixtures", help="extract witness records for the test fixtures")
-    read = subparsers.add_parser("artist", help="an artist's lineage and contemporaries")
-    read.add_argument("mbid")
-    read.add_argument(
-        "--limit", type=_page_size, default=20, help="contemporaries shown (default 20)"
+    subparsers.add_parser(
+        "load", help="load the published tables into the site's Postgres (libpq environment)"
     )
 
     args = parser.parse_args()
@@ -303,8 +258,8 @@ def main() -> None:
         snapshot_popularity()
     elif args.command == "make-fixtures":
         make_fixtures()
-    elif args.command == "artist":
-        artist(args.mbid, args.limit, out_dir(DUMP))
+    elif args.command == "load":
+        load_site()
 
 
 if __name__ == "__main__":
