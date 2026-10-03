@@ -45,12 +45,11 @@ RETURNS TABLE (
 LANGUAGE sql STABLE
 AS $$
   WITH page AS (
-    SELECT s.mbid, p.listen_count, count(*) OVER () AS total
+    SELECT s.mbid, s.listen_count, count(*) OVER () AS total
     FROM musilogy.scenes s
-    LEFT JOIN musilogy.popularity p USING (mbid)
     WHERE s.genre_mbids @> ARRAY[genre]
       AND s.y0 <= y_to AND y_from <= s.y_presence_end
-    ORDER BY p.listen_count DESC NULLS LAST, s.mbid
+    ORDER BY s.listen_count DESC NULLS LAST, s.mbid
     LIMIT page_size OFFSET page_offset
   )
   SELECT a.mbid, a.name, a.disambiguation, a.type, a.y0, a.y_end, a.y_end_source,
