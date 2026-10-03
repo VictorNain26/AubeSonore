@@ -4,7 +4,8 @@ import { db } from '../db';
 import { artist } from '../db/schema';
 import { logger } from '../lib/logger';
 import { getArtist } from './deezerService';
-import { findMbidByDeezerId, getArtistByMbid, type MusicBrainzArtist } from './musicbrainzService';
+import { ensureMbid } from './artistResolver';
+import { getArtistByMbid, type MusicBrainzArtist } from './musicbrainzService';
 import { getPlaysByArtist } from './radioPlayService';
 import { getSummary } from './wikipediaService';
 
@@ -25,10 +26,14 @@ async function withFallback<V>(label: string, work: Promise<V>, fallback: V): Pr
   }
 }
 
-async function musicbrainzArtist(deezerId: string): Promise<MusicBrainzArtist | null> {
-  const mbid = await findMbidByDeezerId(deezerId);
-  if (mbid.status !== 'found') return null;
-  const found = await getArtistByMbid(mbid.value);
+async function musicbrainzArtist(row: {
+  id: string;
+  deezerId: string | null;
+  mbid: string | null;
+}): Promise<MusicBrainzArtist | null> {
+  const mbid = await ensureMbid(row);
+  if (!mbid) return null;
+  const found = await getArtistByMbid(mbid);
   return found.status === 'found' ? found.value : null;
 }
 
@@ -43,6 +48,7 @@ export async function getArtistProfile(
       normalizedName: artist.normalizedName,
       slug: artist.slug,
       deezerId: artist.deezerId,
+      mbid: artist.mbid,
     })
     .from(artist)
     .where(eq(artist.id, id))
@@ -53,7 +59,7 @@ export async function getArtistProfile(
 
   const [deezerArtist, musicbrainz, playedOnRadio] = await Promise.all([
     row.deezerId ? withFallback('deezer', getArtist(row.deezerId), null) : null,
-    row.deezerId ? withFallback('musicbrainz', musicbrainzArtist(row.deezerId), null) : null,
+    row.deezerId ? withFallback('musicbrainz', musicbrainzArtist(row), null) : null,
     withFallback('radioPlay', getPlaysByArtist(row.normalizedName), []),
   ]);
 

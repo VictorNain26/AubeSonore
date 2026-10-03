@@ -27,6 +27,7 @@ interface RecordedPlay {
 function makeDeps(overrides: Partial<WatcherDeps> = {}) {
   const sent: SentCall[] = [];
   const played: RecordedPlay[] = [];
+  const resolved: string[] = [];
   let currentTime = 1_000_000;
   const deps: WatcherDeps = {
     fetchNowPlaying: () => Promise.resolve(track(1)),
@@ -39,13 +40,37 @@ function makeDeps(overrides: Partial<WatcherDeps> = {}) {
       played.push({ shId, title, artist });
       return Promise.resolve();
     },
+    resolveArtist: (artist) => {
+      resolved.push(artist);
+      return Promise.resolve(null);
+    },
     now: () => currentTime,
     ...overrides,
   };
-  return { deps, sent, played, advance: (ms: number) => (currentTime += ms) };
+  return { deps, sent, played, resolved, advance: (ms: number) => (currentTime += ms) };
 }
 
 describe('createLikedArtistNotifier', () => {
+  it('gives each artist the antenna plays its identity, once per new track', async () => {
+    const { deps, resolved } = makeDeps();
+    const check = createLikedArtistNotifier(deps);
+
+    await check();
+    await check();
+
+    expect(resolved).toEqual(['Hania Rani']);
+  });
+
+  it('still notifies when resolving the artist fails', async () => {
+    const { deps, sent } = makeDeps({
+      resolveArtist: () => Promise.reject(new Error('musicbrainz down')),
+    });
+
+    await createLikedArtistNotifier(deps)();
+
+    expect(sent).toHaveLength(1);
+  });
+
   it('sends to users who liked the artist when a new track starts', async () => {
     const { deps, sent } = makeDeps();
     const check = createLikedArtistNotifier(deps);

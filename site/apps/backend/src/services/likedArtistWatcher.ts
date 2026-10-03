@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import { db, schema } from '../db/index';
 import { logger } from '../lib/logger';
 import { isPushEnabled, sendToUsers } from './pushService';
+import { resolveArtist } from './artistResolver';
 import { recordPlay } from './radioPlayService';
 import { fetchNowPlaying, type NowPlayingTrack } from './nowPlaying';
 
@@ -10,6 +11,7 @@ export interface WatcherDeps {
   findUserIdsByArtist: (artistLower: string) => Promise<string[]>;
   send: (userIds: string[], title: string, body: string, url: string) => Promise<unknown>;
   recordPlay: (shId: number, title: string, artist: string) => Promise<void>;
+  resolveArtist: (artist: string) => Promise<unknown>;
   now?: () => number;
 }
 
@@ -40,6 +42,17 @@ export function createLikedArtistNotifier(deps: WatcherDeps): () => Promise<void
         message: (err as Error).message,
       });
     }
+
+    // Every artist the antenna plays gets its identity, MBID included, at its
+    // first play rather than when a listener opens its page: that is what
+    // links the antenna to the frieze (docs/vision.md §3.4). Not awaited, so a
+    // slow lookup never delays the notification.
+    deps.resolveArtist(track.artist).catch((err: unknown) => {
+      logger.warn('artist.resolve_failed', {
+        artist: track.artist,
+        message: err instanceof Error ? err.message : String(err),
+      });
+    });
 
     const userIds = await deps.findUserIdsByArtist(artistLower);
     const cutoff = now() - DEDUPE_MS;
@@ -87,6 +100,7 @@ export function startLikedArtistWatcher(intervalMs = 60_000): () => void {
     findUserIdsByArtist: pushEnabled ? findUserIdsByArtist : () => Promise.resolve([]),
     send: (userIds, title, body, url) => sendToUsers(userIds, title, body, url),
     recordPlay,
+    resolveArtist,
   });
 
   const timer = setInterval(() => {

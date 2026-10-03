@@ -6,6 +6,7 @@ interface ArtistRow {
   normalizedName: string;
   slug: string;
   deezerId: string | null;
+  mbid: string | null;
 }
 
 const baseRow: ArtistRow = {
@@ -14,9 +15,11 @@ const baseRow: ArtistRow = {
   normalizedName: 'daft punk',
   slug: 'daft-punk',
   deezerId: '27',
+  mbid: null,
 };
 
 let rows: ArtistRow[] = [baseRow];
+let mbidWrites: Array<Record<string, unknown>> = [];
 
 const realSchema = await import('../db/schema');
 
@@ -25,6 +28,14 @@ void mock.module('../db', () => ({
   db: {
     select: () => ({
       from: () => ({ where: () => ({ limit: () => Promise.resolve(rows) }) }),
+    }),
+    update: () => ({
+      set: (values: Record<string, unknown>) => ({
+        where: () => {
+          mbidWrites.push(values);
+          return Promise.resolve();
+        },
+      }),
     }),
   },
 }));
@@ -81,6 +92,7 @@ const { getArtistProfile } = await import('./artistProfileService');
 
 beforeEach(() => {
   rows = [baseRow];
+  mbidWrites = [];
   for (const spy of Object.values(spies)) spy.mockClear();
 });
 
@@ -109,6 +121,21 @@ describe('getArtistProfile', () => {
     });
     expect(spies.mbid).toHaveBeenCalledWith('27');
     expect(spies.summary).toHaveBeenCalledWith('Q185828', 'en');
+  });
+
+  it('keeps the MBID it found, the bridge to the frieze', async () => {
+    await getArtistProfile('artist-1', 'fr');
+
+    expect(mbidWrites).toEqual([{ mbid: 'mb-1' }]);
+  });
+
+  it('reads a stored MBID instead of looking it up again', async () => {
+    rows = [{ ...baseRow, mbid: 'mb-1' }];
+
+    const profile = await getArtistProfile('artist-1', 'fr');
+
+    expect(spies.mbid).not.toHaveBeenCalled();
+    expect(profile?.facts).toEqual(facts);
   });
 
   it('asks Wikipedia nothing when MusicBrainz knows no such Deezer artist', async () => {

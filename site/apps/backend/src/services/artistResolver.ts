@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { and, DrizzleQueryError, eq, isNull } from 'drizzle-orm';
 import { db } from '../db';
 import { artist, radioPlay } from '../db/schema';
+import { logger } from '../lib/logger';
 import { searchArtist } from './deezerService';
+import { findMbidByDeezerId } from './musicbrainzService';
 import { fetchNowPlaying } from './nowPlaying';
 
 // Only explicit featuring markers. Splitting on `&`, `+`, `x` or `,` would
@@ -32,14 +34,51 @@ export function slugify(name: string): string {
 }
 
 type Resolved = { id: string; slug: string };
+type Identity = { id: string; deezerId: string | null; mbid: string | null };
 
-async function findBy(normalizedName: string): Promise<Resolved | null> {
+async function findBy(normalizedName: string): Promise<(Resolved & Identity) | null> {
   const rows = await db
-    .select({ id: artist.id, slug: artist.slug })
+    .select({ id: artist.id, slug: artist.slug, deezerId: artist.deezerId, mbid: artist.mbid })
     .from(artist)
     .where(eq(artist.normalizedName, normalizedName))
     .limit(1);
   return rows[0] ?? null;
+}
+
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    err instanceof DrizzleQueryError &&
+    (err.cause as { code?: string } | undefined)?.code === '23505'
+  );
+}
+
+/**
+ * The artist's MBID, the pivot to musilogy and the frieze (docs/vision.md
+ * §3.4), found through the Deezer link MusicBrainz declares and written once
+ * found. Nothing found, or MusicBrainz failing, writes nothing: the next call
+ * tries again.
+ */
+export async function ensureMbid(row: Identity): Promise<string | null> {
+  if (row.mbid || !row.deezerId) return row.mbid;
+  const found = await findMbidByDeezerId(row.deezerId);
+  if (found.status !== 'found') return null;
+  try {
+    await db
+      .update(artist)
+      .set({ mbid: found.value })
+      .where(and(eq(artist.id, row.id), isNull(artist.mbid)));
+  } catch (err) {
+    // artist_mbid_unique: another row already holds it, two spellings of one
+    // artist. The page still shows the MusicBrainz facts; only the write is
+    // lost. Any other failure is not this case and propagates.
+    if (!isUniqueViolation(err)) throw err;
+    logger.warn('artist.mbid_not_written', {
+      id: row.id,
+      mbid: found.value,
+      message: (err as Error).message,
+    });
+  }
+  return found.value;
 }
 
 /**
@@ -69,7 +108,10 @@ export async function resolveArtist(rawName: string): Promise<Resolved | null> {
   if (!normalizedName) return null;
 
   const existing = await findBy(normalizedName);
-  if (existing) return existing;
+  if (existing) {
+    await ensureMbid(existing);
+    return { id: existing.id, slug: existing.slug };
+  }
 
   const title = await playedTitle(normalizedName);
   if (title === null) return null;
@@ -92,9 +134,10 @@ export async function resolveArtist(rawName: string): Promise<Resolved | null> {
     })
     .onConflictDoNothing()
     .returning({ id: artist.id, slug: artist.slug });
-  if (inserted[0]) return inserted[0];
-
   // Lost the insert race against a concurrent resolution: read the winner. A
   // Deezer match needs an equal normalized name, so two rows never share one.
-  return findBy(normalizedName);
+  const row = inserted[0] ?? (await findBy(normalizedName));
+  if (!row) return null;
+  await ensureMbid({ id: row.id, deezerId: match?.id ?? null, mbid: null });
+  return { id: row.id, slug: row.slug };
 }
