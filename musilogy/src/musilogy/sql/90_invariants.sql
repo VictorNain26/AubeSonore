@@ -158,6 +158,34 @@ CREATE OR REPLACE VIEW density_above_band_count AS
 -- Independent recomputation of density's own eligibility rule (same idiom as
 -- last_album_mismatch): only a band of type Group, with a non-NULL y0, that
 -- carries the genre in question, may be counted for that genre and year.
+-- activity, recounted from artists rather than from density_memberships: a
+-- year whose distinct groups differ from the table is a broken denominator.
+-- Each group is unrolled into its years, so the recount meets the table on
+-- an equality: a range join here is the shape that froze the server on
+-- 2026-10-02 (see test_no_invariant_joins_without_an_equality).
+-- [1850, 2026] hardcoded on purpose, same reasoning as artist_out_of_window.
+CREATE OR REPLACE VIEW activity_mismatch AS
+  WITH recount AS (
+    SELECT y.year, count(DISTINCT b.mbid) AS groups
+    FROM artists b, UNNEST(range(b.y0, b.y_presence_end + 1)) AS y(year)
+    WHERE b.type = 'Group' AND b.y0 IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM UNNEST(b.genres) AS t(g)
+        JOIN genres gx ON gx.genre_mbid = t.g.mbid
+        WHERE gx.density_eligible
+      )
+    GROUP BY y.year
+  )
+  SELECT coalesce(a.year, r.year) AS year
+  FROM activity a FULL JOIN recount r USING (year)
+  WHERE a.groups IS DISTINCT FROM r.groups
+     OR coalesce(a.year, r.year) NOT BETWEEN 1850 AND 2026;
+-- No genre can hold more groups in a year than the year holds, and no year of
+-- density can be missing its denominator.
+CREATE OR REPLACE VIEW activity_below_density AS
+  SELECT d.genre_mbid, d.year FROM density d
+  LEFT JOIN activity a USING (year)
+  WHERE a.year IS NULL OR d.present > a.groups;
 CREATE OR REPLACE VIEW density_population_mismatch AS
   SELECT d.genre_mbid, d.year FROM density d
   WHERE d.present <> (

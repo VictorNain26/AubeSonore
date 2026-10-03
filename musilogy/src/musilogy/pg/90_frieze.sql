@@ -22,6 +22,15 @@ AS $$
   ORDER BY genre_mbid, year;
 $$;
 
+-- Distinct groups present per year, in density's population: the
+-- denominator that turns a genre's density into its share of the year.
+CREATE FUNCTION musilogy.frieze_activity()
+RETURNS TABLE (year integer, groups bigint)
+LANGUAGE sql STABLE
+AS $$
+  SELECT year, groups FROM musilogy.activity ORDER BY year;
+$$;
+
 -- The artists present in a genre over a period, most listened first: the
 -- page is what to draw first, the total how many remain, and no one is cut
 -- (spec, "Visibilité : prioriser sans exclure"). An artist ListenBrainz has

@@ -313,7 +313,7 @@ contre 1,7 s en lisant `artists`.
 
 - Backend : trois routes en lecture, validées à la frontière, qui n'appellent
   que les fonctions de `src/musilogy/pg/90_*.sql` — vue d'ensemble
-  (`frieze_genres`, `frieze_density`), fenêtre genre × période
+  (`frieze_genres`, `frieze_density`, `frieze_activity`), fenêtre genre × période
   (`frieze_window`, paginée, les plus écoutés d'abord), artiste
   (`artist_card`, `artist_links`, `artist_lineage`, une page de
   `contemporaries`). Les étiquettes de la vue d'ensemble sont la première

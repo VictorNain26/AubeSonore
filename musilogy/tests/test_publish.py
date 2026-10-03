@@ -15,7 +15,16 @@ REF_SUMS = REFERENCE_DIR / f"{DUMP}.SHA256SUMS"
 
 def test_publish_writes_every_table(con, tmp_path):
     manifest = publish(con, tmp_path, DUMP, None)
-    for name in ("artists", "albums", "genres", "density", "links", "lineage", "popularity"):
+    for name in (
+        "artists",
+        "albums",
+        "genres",
+        "density",
+        "activity",
+        "links",
+        "lineage",
+        "popularity",
+    ):
         assert (tmp_path / f"{name}.parquet").exists()
         assert name in manifest["counts"]
     assert manifest["dump"] == DUMP

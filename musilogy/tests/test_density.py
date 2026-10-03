@@ -1,3 +1,6 @@
+from conftest import build_synthetic, synthetic_artist, unreliable_genre_records
+
+
 def test_no_cell_after_the_dump_year(con):
     assert con.execute("SELECT count(*) FROM density WHERE year > 2026").fetchall() == [(0,)]
 
@@ -35,3 +38,31 @@ def test_density_respects_the_presence_window(con):
         "SELECT min(year), max(year), count(*) FROM density WHERE genre_mbid = ?",
         [genre],
     ).fetchone() == (1977, 2020, 44)
+
+
+def test_activity_counts_a_band_once_whatever_its_genres(tmp_path):
+    # Two genres, one band: density counts it twice a year, activity once.
+    band = synthetic_artist(
+        "00000000-0000-4000-8000-0000000000a1",
+        "1980",
+        "1982",
+        genres=[
+            {"mbid": "g-a", "name": "a", "votes": 2},
+            {"mbid": "g-b", "name": "b", "votes": 1},
+        ],
+    )
+    c = build_synthetic(tmp_path, [band])
+    assert c.execute("SELECT year, groups FROM activity ORDER BY year").fetchall() == [
+        (1980, 1),
+        (1981, 1),
+        (1982, 1),
+    ]
+    assert c.execute("SELECT sum(present) FROM density WHERE year = 1981").fetchone() == (2,)
+
+
+def test_activity_leaves_out_a_band_whose_genres_are_all_excluded(tmp_path):
+    # In 1990 four bands carry a genre; band-excluded carries only the one the
+    # multi-artist rule excludes from density, so the year counts three.
+    artists, release_groups = unreliable_genre_records()
+    c = build_synthetic(tmp_path, artists, release_groups)
+    assert c.execute("SELECT groups FROM activity WHERE year = 1990").fetchone() == (3,)
