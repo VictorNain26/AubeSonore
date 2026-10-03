@@ -25,8 +25,11 @@ if ! docker ps --filter "name=^${CONTAINER}$" --filter "health=healthy" --format
   exit 1
 fi
 
-# Custom format: compressed, and pg_restore can list/select from it.
-docker exec "$CONTAINER" pg_dump -U "$DB_USER" -Fc "$DB_NAME" > "$TARGET"
+# Custom format: compressed, and pg_restore can list/select from it. The
+# musilogy schema (~1 GB) is derived data, reloaded from its Parquet delivery
+# by `musilogy load`: dumping it nightly would only multiply its size by the
+# retention.
+docker exec "$CONTAINER" pg_dump -U "$DB_USER" -Fc --exclude-schema=musilogy "$DB_NAME" > "$TARGET"
 chmod 600 "$TARGET"
 
 # A dump that pg_restore cannot read is worse than no dump, because it looks

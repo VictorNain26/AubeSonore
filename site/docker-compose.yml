@@ -45,6 +45,14 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - pg_certs:/certs:ro
+    # Loopback only, for `musilogy load` run on the host (TLS still required by
+    # pg_hba.conf; the certificate covers localhost).
+    ports:
+      - '127.0.0.1:5433:5432'
+    # Docker's 64 MB /dev/shm fails the parallel index build of the musilogy
+    # load ("could not resize shared memory segment"); 128mb is the image's
+    # own Compose example (hub.docker.com/_/postgres).
+    shm_size: 128mb
     # This box is a shared homelab running ~22 containers; a runaway here must
     # not take Plex down with it. The ceilings sit ~20x above observed steady
     # state, so they cap accidents without throttling normal work.

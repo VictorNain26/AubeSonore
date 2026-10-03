@@ -42,6 +42,7 @@ The stack runs on the maintainer's own box. Merging to `master` is the whole dep
 - The script refuses to dump unless the container reports `healthy`, and deletes any archive `pg_restore --list` cannot read: a corrupt dump is worse than none, because it looks like a backup.
 - Dumps are `chmod 600` in a `700` directory — they carry user emails and auth rows, on a box shared with other services.
 - To restore: `docker exec -i aubesonore-db pg_restore -U aubesonore -d <db> < <dump>`. Rehearse into a throwaway database, never straight over production.
+- The `musilogy` schema is left out of the dump (`--exclude-schema`): it is reference data owned by `musilogy/`, reloaded with `musilogy load` (`musilogy/CLAUDE.md`). Drizzle never touches it — `drizzle.config.js` only describes `src/db/schema.ts`, in `public`.
 
 ## Backend env
 
