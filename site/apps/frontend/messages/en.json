@@ -203,5 +203,12 @@
   "artist_role_named_after": "named after them",
   "artist_scene_place": "same place",
   "artist_scene_country": "same country",
-  "artist_tributes": "Tribute acts: {count}."
+  "artist_tributes": "Tribute acts: {count}.",
+  "frieze_title": "The frieze",
+  "frieze_body": "Genres, oldest first. Each curve follows the share of active bands playing the genre, year after year, scaled to its own peak.",
+  "frieze_peak": "{share} of bands in {year}",
+  "frieze_incomplete": "After {year} the data is incomplete: recent bands are less documented, the fall is not real.",
+  "frieze_more": "Show {count} more genres",
+  "frieze_error": "The frieze cannot load right now. Try again in a moment.",
+  "frieze_source": "Data from MusicBrainz (CC BY-NC-SA 3.0) and ListenBrainz"
 }

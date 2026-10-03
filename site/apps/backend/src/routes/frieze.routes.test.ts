@@ -70,7 +70,7 @@ beforeEach(() => {
 });
 
 describe('GET /api/frieze/overview', () => {
-  it('sends the density as columns indexing the genre list', async () => {
+  it('sends the density as columns indexing the genre list, with its yearly denominator', async () => {
     answers.frieze_genres = [
       { genre_mbid: 'g-jazz', name: 'jazz', n_artists: '120' },
       { genre_mbid: 'g-rock', name: 'rock', n_artists: '9000' },
@@ -78,6 +78,10 @@ describe('GET /api/frieze/overview', () => {
     answers.frieze_density = [
       { genre_mbid: 'g-rock', year: 1970, present: '512' },
       { genre_mbid: 'g-jazz', year: 1959, present: '40' },
+    ];
+    answers.frieze_activity = [
+      { year: 1959, groups: '300' },
+      { year: 1970, groups: '2048' },
     ];
 
     const res = await get('/api/frieze/overview');
@@ -88,6 +92,7 @@ describe('GET /api/frieze/overview', () => {
         { mbid: 'g-rock', name: 'rock', artists: 9000 },
       ],
       density: { genre: [1, 0], year: [1970, 1959], present: [512, 40] },
+      activity: { year: [1959, 1970], groups: [300, 2048] },
     });
   });
 });

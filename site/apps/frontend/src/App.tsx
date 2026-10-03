@@ -13,6 +13,8 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { useLocaleStore } from './stores/localeStore';
 
 const ArtistPage = lazy(() => import('./pages/ArtistPage'));
+// deck.gl touches the browser at import: the frieze loads only on its own route.
+const FriezePage = lazy(() => import('./pages/FriezePage'));
 
 /** Rendered inside a router: BrowserRouter in main.tsx, StaticRouter when pre-rendering. */
 export default function App() {
@@ -33,6 +35,12 @@ export default function App() {
     </ErrorBoundary>
   );
 
+  const frieze = (
+    <Suspense fallback={null}>
+      <FriezePage />
+    </Suspense>
+  );
+
   return (
     <>
       <AuthInit />
@@ -44,6 +52,8 @@ export default function App() {
           <Route path="/reset-password" element={<HomePage />} />
           <Route path="/artist/:id/:slug?" element={artist} />
           <Route path="/en/artist/:id/:slug?" element={artist} />
+          <Route path="/frieze" element={frieze} />
+          <Route path="/en/frieze" element={frieze} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         {/* Outside the routes: navigating between pages keeps the bar mounted. */}
