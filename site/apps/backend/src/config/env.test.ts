@@ -1,45 +1,104 @@
-import { describe, expect, it } from 'bun:test';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-// config/env validates at import, in a frozen singleton: the guard is tested
-// as it runs in production, by booting a process that imports the module.
-function importEnv(extra: Record<string, string>) {
-  return Bun.spawnSync({
-    cmd: [
-      process.execPath,
-      '-e',
-      `await import(${JSON.stringify(join(import.meta.dir, 'env.ts'))})`,
-    ],
-    env: {
-      PATH: process.env.PATH ?? '',
-      NODE_ENV: 'test',
-      DATABASE_URL: 'postgres://test:test@localhost:5432/test',
-      BETTER_AUTH_SECRET: 'x'.repeat(32),
-      BETTER_AUTH_URL: 'http://localhost:3000',
-      ...extra,
-    },
+// env.ts validates at import time and bun caches modules, so each case runs in
+// its own process. The cwd is a scratch directory on purpose: bun auto-loads a
+// .env from the cwd, and apps/backend/.env sets DISABLE_EMAILS, which would
+// mask the very guard under test.
+const ENV_MODULE = new URL('./env.ts', import.meta.url).pathname;
+
+// TLS is on by default in production and has its own cases below; the
+// other cases leave it off so they test only what they name.
+const BASE = {
+  PATH: process.env.PATH ?? '',
+  DATABASE_URL: 'postgresql://u:p@localhost:5432/db',
+  BETTER_AUTH_SECRET: 'x'.repeat(32),
+  BETTER_AUTH_URL: 'https://api.example.test',
+  DATABASE_SSL: 'false',
+};
+
+let cwd: string;
+
+beforeAll(() => {
+  cwd = mkdtempSync(join(tmpdir(), 'aubesonore-env-'));
+});
+
+afterAll(() => {
+  rmSync(cwd, { recursive: true, force: true });
+});
+
+async function loadEnv(
+  overrides: Record<string, string>
+): Promise<{ ok: boolean; stderr: string }> {
+  const proc = Bun.spawn(['bun', '-e', `await import(${JSON.stringify(ENV_MODULE)})`], {
+    cwd,
+    env: { ...BASE, ...overrides },
+    stdout: 'pipe',
     stderr: 'pipe',
   });
+
+  const stderr = await new Response(proc.stderr).text();
+  const code = await proc.exited;
+  return { ok: code === 0, stderr };
 }
 
-describe('database TLS', () => {
-  it('refuses TLS without a CA to verify the server against', () => {
-    const result = importEnv({ DATABASE_SSL: 'true' });
+describe('production email configuration', () => {
+  it('refuses to start when mail is enabled but no transport is configured', async () => {
+    const { ok, stderr } = await loadEnv({ NODE_ENV: 'production' });
 
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stderr.toString()).toContain('refusing unverified TLS');
+    expect(ok).toBe(false);
+    expect(stderr).toContain('SMTP_HOST is required in production');
   });
 
-  it('boots with TLS when the CA is given as a file', () => {
-    const ca = join(mkdtempSync(join(tmpdir(), 'ca-')), 'ca.crt');
+  it('starts when the operator explicitly accepts having no mail', async () => {
+    const { ok } = await loadEnv({ NODE_ENV: 'production', DISABLE_EMAILS: 'true' });
+
+    expect(ok).toBe(true);
+  });
+
+  it('starts once a transport is configured', async () => {
+    const { ok } = await loadEnv({
+      NODE_ENV: 'production',
+      SMTP_HOST: 'smtp.example.test',
+      SMTP_USER: 'user',
+      SMTP_PASSWORD: 'secret',
+    });
+
+    expect(ok).toBe(true);
+  });
+
+  it('leaves development alone', async () => {
+    const { ok } = await loadEnv({ NODE_ENV: 'development' });
+
+    expect(ok).toBe(true);
+  });
+});
+
+describe('database TLS', () => {
+  const MAIL_OFF = { NODE_ENV: 'production', DISABLE_EMAILS: 'true' };
+
+  it('refuses TLS without a CA to verify the server against', async () => {
+    const { ok, stderr } = await loadEnv({ ...MAIL_OFF, DATABASE_SSL: 'true' });
+
+    expect(ok).toBe(false);
+    expect(stderr).toContain('refusing unverified TLS');
+  });
+
+  it('starts with TLS once the CA is given as a file', async () => {
+    const ca = join(cwd, 'ca.crt');
     writeFileSync(ca, '-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----\n');
 
-    expect(importEnv({ DATABASE_SSL: 'true', DATABASE_CA_CERT_FILE: ca }).exitCode).toBe(0);
+    const { ok } = await loadEnv({ ...MAIL_OFF, DATABASE_SSL: 'true', DATABASE_CA_CERT_FILE: ca });
+
+    expect(ok).toBe(true);
   });
 
-  it('boots without TLS for a local plain Postgres', () => {
-    expect(importEnv({ DATABASE_SSL: 'false' }).exitCode).toBe(0);
+  it('turns TLS on in production unless told otherwise', async () => {
+    const { ok, stderr } = await loadEnv({ ...MAIL_OFF, DATABASE_SSL: '' });
+
+    expect(ok).toBe(false);
+    expect(stderr).toContain('refusing unverified TLS');
   });
 });
