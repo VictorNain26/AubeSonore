@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { FriezeOverview } from '@aubesonore/shared-types/client';
-import { buildLanes, heaviestByEpoch, laneOutline } from './lanes';
+import { buildLanes, heaviestByEpoch, laneOutline, wilsonLower } from './lanes';
 
 const overview: FriezeOverview = {
   genres: [
@@ -30,15 +30,26 @@ describe('buildLanes', () => {
     const rock = buildLanes(overview).find((l) => l.name === 'rock');
 
     expect(rock?.share).toEqual([0.25, 0.5, 0, 0.25]);
-    expect(rock).toMatchObject({ peakShare: 0.5, peakYear: 1961, total: 60 });
+    expect(rock).toMatchObject({ peakYear: 1961, peakShare: 0.5, total: 60 });
   });
 
-  it('peaks where the share peaks, not where the count does', () => {
-    // punk counts 15 groups in 1977 and 5 in 1978, but 1977 holds half the
-    // groups present: that is its peak; jazz's 4 of 8 in 1920 likewise.
-    const punk = buildLanes(overview).find((l) => l.name === 'punk');
+  it('peaks where the share is surely high, not on a year of a handful of groups', () => {
+    const lanes = buildLanes({
+      genres: [{ mbid: 'g-blues', name: 'blues', artists: 41 }],
+      density: { genre: [0, 0], year: [1900, 1960], present: [1, 40] },
+      activity: { year: [1900, 1960], groups: [1, 100] },
+    });
 
-    expect(punk).toMatchObject({ peakShare: 0.5, peakYear: 1977 });
+    // 1 group of 1 is 100 %, 40 of 100 is 40 %: the second is the one to trust.
+    expect(lanes[0]).toMatchObject({ peakYear: 1960, peakShare: 0.4 });
+  });
+});
+
+describe('wilsonLower', () => {
+  it('gives the 95 % Wilson lower bound', () => {
+    expect(wilsonLower(0, 10)).toBe(0);
+    expect(wilsonLower(1, 1)).toBeCloseTo(1 / (1 + 1.96 * 1.96), 6);
+    expect(wilsonLower(50, 100)).toBeCloseTo(0.4038, 3);
   });
 });
 
@@ -59,14 +70,13 @@ describe('heaviestByEpoch', () => {
 });
 
 describe('laneOutline', () => {
-  it('rises to the full height at the peak and closes on the baseline', () => {
+  it('rises to the full height where the bound peaks and closes on the baseline', () => {
     const rock = buildLanes(overview).find((l) => l.name === 'rock');
     if (!rock) throw new Error('rock lane missing');
 
     const outline = laneOutline(rock, 100, 40);
 
     expect(outline[0]).toEqual([1960, 100]);
-    expect(outline[1]).toEqual([1960.5, 80]);
     expect(outline[2]).toEqual([1961.5, 60]);
     expect(outline.at(-1)).toEqual([1964, 100]);
   });
