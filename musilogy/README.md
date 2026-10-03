@@ -70,8 +70,6 @@ Chaque règle vit dans son fichier SQL numéroté (`src/musilogy/sql/`) ; **la n
 
 - **`60_density` — Densité.** Délibérément plus étroite que la population : type `Group`, `y0` connu, au moins un genre, **et un genre `density_eligible`** — la règle est matérialisée dans `55_genre_reliability`, ce fichier ne fait que l'appliquer. Un groupe compte dans chacun de ses genres ; les totaux par genre ne s'additionnent pas.
 
-- **`70_contemporaries` — Contemporains, à la demande.** Une macro, pas une table : `contemporaries(mbid)` renvoie les artistes dont les années de présence (`y0` à `y_presence_end`) recouvrent celles de l'artiste, qui partagent sa scène et au moins un genre. La scène est le même `begin_area_mbid` — l'identité du lieu, pas son nom, que London partage avec l'Ontario —, sinon le même pays quand l'artiste n'a pas de lieu de début ; `scene` dit lequel a servi. Aucun seuil : la liste est ordonnée par similarité de Jaccard des genres, puis par `mbid`, et chaque ligne porte les genres partagés. Publiée complète, elle ferait environ 188 millions de lignes (extrapolé d'un échantillon de 2 000 artistes, médiane 21, p99 9 667) ; un artiste se calcule en une centaine de millisecondes.
-
 - **`80_links` — Liens.** Toutes les relations d'artiste à artiste, **typées** : `type` garde le nom MusicBrainz (`member of band`, `is person`, `artist rename`, `subgroup`, `teacher`, `parent`…), pour que le consommateur sache ce qu'un lien affirme sans se fier à une catégorie de la couche 0. Le dump porte chaque relation sur ses deux artistes, orientée par `direction` ; elle est lue source → cible des deux côtés, puis dédoublonnée, avec ses années lues par la même macro stricte que partout ailleurs. Les deux extrémités doivent être des artistes de `artists` : un lien vers un personnage ou un artiste sans type n'aurait nulle part où arriver, et ces 38 442 liens écartés sont comptés dans `manifest.json` (`link_exclusions`). **Ce n'est pas de l'influence** : MusicBrainz n'en porte aucune ; un lien est un fait vérifiable, qui a joué où, qui a enseigné à qui.
 
 - **`85_lineage` — Filiation.** `model_mbid` est un modèle d'`artist_mbid`, au sens exact de `source`, lue dans un sens pour les inspirations, dans l'autre pour la descendance. Trois types de `links` : `teacher` (`mb_teacher`, le professeur est la source du lien), `tribute` (`mb_tribute`) et `named after artist` (`mb_named_after`), dont la cible est le modèle. Le sens a été vérifié par l'âge : le professeur est le plus âgé dans 21 918 cas contre 235. Une ligne par paire et par source : les années du lien n'en font pas partie, et une paire affirmée par deux sources reste deux lignes. Les colonnes `ref_status` et `evidence` de la spécification arriveront avec Wikidata, la première source qui les remplit.
@@ -109,6 +107,14 @@ Chaque ligne porte son `mbid` — la clé de jointure vers `albums`, `links` et 
 `manifest.json` porte les empreintes des archives, la date et l'empreinte du relevé ListenBrainz (`popularity`), **les empreintes des sept fichiers Parquet livrés** (`output_sha256`), les comptes, les **paramètres** du run (`dump_year`, `min_year`, `multi_artist_drop_limit`, `min_candidate_credits`), les **entrées** (`rows_loaded` par table brute, le sidecar d'extraction), les anomalies de lecture de dates, les sept compteurs de neutralisation, les exclusions de densité et de liens, le commit et l'empreinte des corrections.
 
 Ces empreintes de sortie sont opposables parce que la livraison est reproductible : à dump et code identiques, deux exécutions écrivent les mêmes octets. L'ordre des lignes est fixé par une clé totale sur chaque table. Un consommateur distingue donc une livraison inchangée d'une nouvelle par sa seule empreinte, sans retélécharger.
+
+## Chargement dans le site
+
+`uv run musilogy load` vérifie les Parquet publiés contre leur manifeste, les copie dans un schéma `musilogy_next` de la base du site, compare les comptes copiés à ceux du manifeste, puis bascule `musilogy_next` en `musilogy` en une transaction : le site ne lit jamais un chargement partiel, et un chargement raté laisse le précédent en place. La connexion vient de l'environnement libpq (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`, `PGSSLMODE`, `PGSSLROOTCERT`). Le SQL côté Postgres vit dans `src/musilogy/pg/`, numéroté comme `sql/` : `10_tables` avant la copie, les suivants sur le schéma de transit, `90_` une fois la bascule faite.
+
+Six tables sont chargées — `artists`, `genres`, `density`, `links`, `lineage`, `popularity` — plus `manifest` (dump, relevé, commit) ; `albums` reste en Parquet tant qu'aucun écran ne le lit. Les listes de genres, que Postgres ne sait pas typer en structures anonymes, deviennent du `jsonb`, avec leurs `mbid` à côté dans `genre_mbids`. Mesuré sur le dump de référence : environ 3 min, 1,1 Go.
+
+**Contemporains, à la demande.** Une fonction, pas une table : `musilogy.contemporaries(mbid, page_size, page_offset)` renvoie une page des artistes dont les années de présence (`y0` à `y_presence_end`) recouvrent celles de l'artiste, qui partagent sa scène et au moins un genre, avec le total de la liste. La scène est le même `begin_area_mbid` — l'identité du lieu, pas son nom, que London partage avec l'Ontario —, sinon le même pays quand l'artiste n'a pas de lieu de début ; `scene` dit lequel a servi. Aucun seuil : la liste est ordonnée par similarité de Jaccard des genres, puis par `mbid`, et chaque ligne porte les genres partagés. Publiée complète, elle ferait environ 188 millions de lignes (extrapolé d'un échantillon de 2 000 artistes, médiane 21, p99 9 667). Le classement lit `scenes`, la projection étroite des 285 284 artistes qui ont une année et un genre : 5 à 30 ms pour un artiste courant, 180 ms pour le pire cas mesuré, un artiste américain sans lieu de début et ses 22 152 contemporains. Sur 300 artistes tirés par `hash(mbid)`, ses 167 104 lignes étaient identiques à celles de l'ancienne macro DuckDB.
 
 ## Chiffres de référence
 
@@ -149,6 +155,7 @@ uv sync
 Deux niveaux de test :
 
 - `uv run pytest` — suite rapide, quelques secondes, sans dépendance au dump. Tourne sur 33 témoins réels versionnés dans `tests/fixtures/` (extraits authentiques du dump de référence, jamais de données inventées) et sur quelques enregistrements synthétiques pour les formes qu'aucun témoin ne porte.
+- `tests/test_load.py` — le chargement et la fonction des contemporains, contre un vrai Postgres jetable désigné par `MUSILOGY_TEST_PG` (chaîne de connexion libpq ; les tests y suppriment et recréent les schémas `musilogy`). Sans elle, ces tests sont sautés, sauf en CI, qui fournit un service Postgres 16 et échoue si la variable manque.
 - `uv run pytest -m slow` — ligne de base : confronte le pipeline entier aux ~3 millions d'enregistrements du dump de référence. Exige les extractions dans `data/work/<dump>/` (non versionnées, ~10 min à produire) ; sinon le test est ignoré.
 
 La suite passe depuis n'importe quel répertoire : tous les chemins sont ancrés sur le paquet (`musilogy.paths`), jamais sur le répertoire courant.
@@ -157,7 +164,7 @@ La suite passe depuis n'importe quel répertoire : tous les chemins sont ancrés
 uv run musilogy run                 # fetch → extract → transform → validate → publish
 uv run musilogy snapshot-popularity # relevé ListenBrainz daté, à épingler (~1 h)
 uv run musilogy make-fixtures       # régénère les témoins depuis les extractions
-uv run musilogy artist <mbid>       # inspirations, descendance et contemporains, lus dans data/out/
+uv run musilogy load                # charge data/out/ dans la base du site (environnement libpq)
 ```
 
 Aucune sortie du pipeline n'est versionnée ; seules les empreintes et les fixtures le sont.
@@ -173,11 +180,12 @@ src/musilogy/
   build.py               enchaîne les fichiers SQL, applique les corrections, vérifie les invariants
   publish.py             écrit les Parquet et manifest.json
   cli.py                 les quatre commandes
-  artist.py              lit la filiation et les contemporains d'un artiste dans les tables publiées
+  load.py                charge les Parquet publiés dans la base du site
   paths.py               chemins ancrés sur le paquet
   corrections.csv        corrections manuelles, versionné
   reference/             empreintes des archives et des relevés ListenBrainz
   sql/                   les règles, en ordre topologique
+  pg/                    les tables et la fonction des contemporains côté Postgres
 tests/
   conftest.py            fixtures partagées
   fixtures/              témoins réels versionnés

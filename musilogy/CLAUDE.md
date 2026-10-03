@@ -63,8 +63,8 @@ d'acceptation se donne en nombre ou en code de sortie. « le chiffre `density` d
   `20260909-001002` n'est plus publié par MetaBrainz : cette copie est la
   seule.
 - La CI (`.github/workflows/musilogy.yml`, à la racine d'AubeSonore) passe le
-  lint, les types et la suite rapide ; la suite lente exige le dump et tourne
-  à la demande.
+  lint, les types et la suite rapide, tests Postgres compris (service
+  Postgres 16) ; la suite lente exige le dump et tourne à la demande.
 
 ## Commandes
 
@@ -76,7 +76,25 @@ uv run pytest -m slow         # ligne de base sur le dump réel, exige data/work
 uv run musilogy run           # fetch → extract → transform → validate → publish
 uv run musilogy snapshot-popularity  # relevé ListenBrainz daté, à épingler
 uv run musilogy make-fixtures
-uv run musilogy artist <mbid> # lit data/out/, exige un run publié
+uv run musilogy load          # charge data/out/ dans la base du site (environnement libpq)
+MUSILOGY_TEST_PG='host=… dbname=…' uv run pytest tests/test_load.py  # Postgres jetable, jamais celui du site
+```
+
+Le SQL côté Postgres vit dans `src/musilogy/pg/`, numéroté comme `sql/` :
+`10_tables` avant la copie, les suivants sur le schéma de transit, `90_` après
+la bascule. Une règle n'y existe qu'en un exemplaire : les contemporains sont
+une fonction Postgres, sans double DuckDB.
+
+Charger la base du site, depuis victorserv (le port de `aubesonore-db` n'est
+publié que sur `127.0.0.1:5433`, et `pg_hba.conf` impose TLS ; le certificat
+couvre `localhost`) :
+
+```bash
+PGPASSWORD="$(grep '^POSTGRES_PASSWORD=' ~/aubesonore/site/.env | cut -d= -f2-)" \
+PGHOST=localhost PGPORT=5433 PGUSER=aubesonore PGDATABASE=aubesonore \
+PGSSLMODE=verify-full PGSSLROOTCERT=~/aubesonore/site/certs/ca.crt \
+systemd-run --user --scope -p MemoryHigh=3G -p MemoryMax=3584M -p MemorySwapMax=0 \
+  nice -n 10 uv run musilogy load   # ~3 min sur le dump de référence
 ```
 
 Sur victorserv, `pytest -m slow` et `musilogy run` partent dans un scope
