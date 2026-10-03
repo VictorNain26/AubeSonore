@@ -2,6 +2,8 @@
 
 Webradio de découverte musicale : [radio.aubesonore.fr](https://radio.aubesonore.fr).
 
+Vision produit et architecture : [`docs/vision.md`](docs/vision.md).
+
 | Dossier | Contenu |
 |---|---|
 | [`site/`](site/) | Site d'écoute et API |
