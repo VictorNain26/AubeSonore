@@ -23,8 +23,8 @@ reconstruire seule depuis un dépôt public.
 | `stations/*/config/` | NVMe | inclus dans la sauvegarde AzuraCast | station à reconfigurer |
 | Base MariaDB | volume Docker | sauvegarde AzuraCast quotidienne | métadonnées, comptes, playlists |
 
-Depuis le 2026-10-03, `restic-backup.timer` (04:45, unité et script hors dépôt :
-`~/.config/systemd/user/restic-backup.*`, `~/mediaserver/backup-restic.sh`) sauvegarde
+Depuis le 2026-10-03, `azuracast-backup.timer` (04:45, `scripts/backup-media.sh`,
+unités dans `scripts/systemd/`) sauvegarde
 `stations/`, `docker-compose.yml`, `.env` et `azuracast.env` dans un dépôt restic chiffré,
 `/media/plex/.backups/restic`, disque distinct du NVMe ; rétention 7 jours, 4 semaines,
 6 mois ; battement de cœur Gatus `radio_sauvegarde-medias`. Cela remplace l'arbitrage
@@ -36,6 +36,10 @@ une copie gardée ailleurs, la perte du NVMe rend le dépôt illisible.
 
 ## 1. AzuraCast
 
+restic s'installe depuis le binaire officiel signé (https://restic.readthedocs.io,
+« Installation » : empreinte `SHA256SUMS`, signature GPG de la clé
+`CF8F 18F2 8445 7597 3F79 D4E1 91A6 868B D3F7 A907`) dans `~/.local/bin/restic`.
+
 ```bash
 cd ~/aubesonore/azuracast
 cp .env.example .env                  # ajuster les ports si la machine a changé
@@ -43,6 +47,10 @@ cp .env.example .env                  # ajuster les ports si la machine a chang�
 restic -r /media/plex/.backups/restic --password-file <copie du mot de passe> \
   restore latest --tag nightly --target /
 docker compose up -d
+# la copie du mot de passe reprend sa place, puis la sauvegarde quotidienne :
+install -m 600 <copie du mot de passe> ~/.config/restic/password
+ln -s ~/aubesonore/azuracast/scripts/systemd/* ~/.config/systemd/user/
+systemctl --user enable --now azuracast-backup.timer
 ```
 
 Vérifier : l'UI répond sur le port `AZURACAST_HTTP_PORT`, la station diffuse.
@@ -93,7 +101,7 @@ production.
 
 ```bash
 docker ps                                   # azuracast, gatus, aubesonore-{db,backend,frontend}
-systemctl --user list-timers                # 6 timers : aubesonore-{backup,deploy}, radio-{backup,grille,remind,weekly}
+systemctl --user list-timers                # 7 timers : aubesonore-{backup,deploy}, azuracast-backup, radio-{backup,grille,remind,weekly}
 systemctl --user is-active radio-votes      # page de vote ; 127.0.0.1:8040 répond 403 sans Cloudflare Access
 cd ~/aubesonore/pipeline && .venv/bin/pytest -q -W error && .venv/bin/radio report
 ```
